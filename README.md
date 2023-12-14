@@ -8,3 +8,8 @@ with the data extracted from the external sources.
 Currently supported data sources:
 * ClickHouse
 * PostgreSQL
+
+### Contributing guide
+
+TODO
+
