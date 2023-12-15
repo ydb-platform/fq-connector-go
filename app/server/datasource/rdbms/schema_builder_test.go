@@ -1,98 +1,118 @@
 package rdbms
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"google.golang.org/protobuf/proto"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
+	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 )
 
 func TestSchemaBuilder(t *testing.T) {
-	t.Run("ClickHouse", func(t *testing.T) {
-		sb := &schemaBuilder{
-			typeMapper: clickhouse.NewTypeMapper(),
-		}
+	type nameToType struct {
+		name    string
+		ydbType *Ydb.Type
+	}
 
-		require.NoError(t, sb.addColumn("col1", "Int32"))  // supported
-		require.NoError(t, sb.addColumn("col2", "String")) // supported
-		require.NoError(t, sb.addColumn("col3", "UUID"))   // yet unsupported
+	type testCase struct {
+		name                string
+		typeMapper          utils.TypeMapper
+		supportedTypesMatch []nameToType
+		unsupportedTypes    []nameToType
+	}
 
-		logger := utils.NewTestLogger(t)
-		schema, err := sb.build(logger)
-		require.NoError(t, err)
-		require.NotNil(t, schema)
-
-		require.Len(t, schema.Columns, 2)
-
-		require.Equal(t, schema.Columns[0].Name, "col1")
-		require.True(
-			t,
-			proto.Equal(schema.Columns[0].Type, &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}),
-			schema.Columns[0].Type)
-
-		require.Equal(t, schema.Columns[1].Name, "col2")
-		require.True(
-			t,
-			proto.Equal(schema.Columns[1].Type, &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}),
-			schema.Columns[1].Type)
-	})
-
-	t.Run("PostgreSQL", func(t *testing.T) {
-		sb := &schemaBuilder{
+	testCases := []testCase{
+		{
+			name:       "PostgreSQL",
 			typeMapper: postgresql.NewTypeMapper(),
-		}
+			supportedTypesMatch: []nameToType{
+				{"bigint", &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}}}}},
+				{"text", &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}}}}},
+			},
+			unsupportedTypes: []nameToType{
+				{"time", nil}, // yet unsupported
+			},
+		},
+		{
+			name:       "ClickHouse",
+			typeMapper: clickhouse.NewTypeMapper(),
+			supportedTypesMatch: []nameToType{
+				{"Int32", &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}},
+				{"String", &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}},
+			},
+			unsupportedTypes: []nameToType{
+				{"UUID", nil}, // yet unsupported
+			},
+		},
+	}
 
-		require.NoError(t, sb.addColumn("col1", "bigint")) // supported
-		require.NoError(t, sb.addColumn("col2", "text"))   // supported
-		require.NoError(t, sb.addColumn("col3", "time"))   // yet unsupported
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Positive_%s", tc.name), func(t *testing.T) {
+			tc := tc
+			sb := rdbms_utils.NewSchemaBuilder(tc.typeMapper, &api_service_protos.TTypeMappingSettings{})
 
-		logger := utils.NewTestLogger(t)
-		schema, err := sb.build(logger)
-		require.NoError(t, err)
-		require.NotNil(t, schema)
+			for num, supportedType := range tc.supportedTypesMatch {
+				require.NoError(
+					t,
+					sb.AddColumn(fmt.Sprintf("suppTypeCol%d", num),
+						supportedType.name)) // supported
+			}
 
-		require.Len(t, schema.Columns, 2)
+			for num, unsuppType := range tc.unsupportedTypes {
+				require.NoError(
+					t,
+					sb.AddColumn(fmt.Sprintf("unsuppTypeCol%d", num),
+						unsuppType.name)) // yet unsupported
+			}
 
-		require.Equal(t, schema.Columns[0].Name, "col1")
-		require.True(
-			t,
-			proto.Equal(
-				schema.Columns[0].Type,
-				&Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}}}},
-			),
-			schema.Columns[0].Type)
+			logger := utils.NewTestLogger(t)
+			schema, err := sb.Build(logger)
+			require.NoError(t, err)
+			require.NotNil(t, schema)
 
-		require.Equal(t, schema.Columns[1].Name, "col2")
-		require.True(
-			t,
-			proto.Equal(
-				schema.Columns[1].Type,
-				&Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}}}},
-			),
-			schema.Columns[1].Type)
-	})
+			require.Len(t, schema.Columns, len(tc.supportedTypesMatch))
+
+			for num, supportedType := range tc.supportedTypesMatch {
+				require.Equal(t, schema.Columns[num].Name, fmt.Sprintf("suppTypeCol%d", num))
+				require.True(
+					t,
+					proto.Equal(
+						schema.Columns[num].Type,
+						supportedType.ydbType,
+					),
+					schema.Columns[num].Type)
+			}
+		})
+
+		t.Run(fmt.Sprintf("EmptyTable_%s", tc.name), func(t *testing.T) {
+			tc := tc
+			sb := rdbms_utils.NewSchemaBuilder(tc.typeMapper, &api_service_protos.TTypeMappingSettings{})
+
+			for num, unsuppType := range tc.unsupportedTypes {
+				require.NoError(
+					t,
+					sb.AddColumn(
+						fmt.Sprintf("unsuppTypeCol%d", num),
+						unsuppType.name)) // yet unsupported
+			}
+
+			schema, err := sb.Build(utils.NewTestLogger(t))
+			require.NoError(t, err)
+			require.NotNil(t, schema)
+			require.Len(t, schema.Columns, 0)
+		})
+	}
 
 	t.Run("NonExistingTable", func(t *testing.T) {
-		sb := &schemaBuilder{}
-		schema, err := sb.build(utils.NewTestLogger(t))
+		sb := &rdbms_utils.SchemaBuilder{}
+		schema, err := sb.Build(utils.NewTestLogger(t))
 		require.ErrorIs(t, err, utils.ErrTableDoesNotExist)
 		require.Nil(t, schema)
-	})
-
-	t.Run("EmptyTable", func(t *testing.T) {
-		sb := &schemaBuilder{
-			typeMapper: clickhouse.NewTypeMapper(),
-		}
-
-		require.NoError(t, sb.addColumn("col1", "UUID")) // yet unsupported
-
-		schema, err := sb.build(utils.NewTestLogger(t))
-		require.NoError(t, err)
-		require.NotNil(t, schema)
-		require.Len(t, schema.Columns, 0)
 	})
 }

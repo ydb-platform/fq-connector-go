@@ -5,23 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	api "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
-
-func TestMakeDescribeTableQuery(t *testing.T) {
-	logger := utils.NewTestLogger(t)
-	formatter := NewSQLFormatter()
-	dsi := &common.TDataSourceInstance{Options: &common.TDataSourceInstance_PgOptions{PgOptions: &common.TPostgreSQLDataSourceOptions{Schema: "schema"}}}
-	request := &api.TDescribeTableRequest{Table: "table", DataSourceInstance: dsi}
-
-	output, args := rdbms_utils.MakeDescribeTableQuery(logger, formatter, request)
-	require.Equal(t, "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2", output)
-	require.Equal(t, args, []any{"table", "schema"})
-}
 
 func TestMakeReadSplitQuery(t *testing.T) {
 	type testCase struct {

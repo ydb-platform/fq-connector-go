@@ -33,8 +33,6 @@ type ConnectionManagerBase struct {
 }
 
 type SQLFormatter interface {
-	GetDescribeTableQuery(request *api_service_protos.TDescribeTableRequest) (string, []any)
-
 	// Get placeholder for n'th argument (starting from 0) for prepared statement
 	GetPlaceholder(n int) string
 
@@ -43,4 +41,13 @@ type SQLFormatter interface {
 
 	// Support for high level expression (without subexpressions, they are checked separately)
 	SupportsPushdownExpression(expression *api_service_protos.TExpression) bool
+}
+
+type SchemaProvider interface {
+	GetSchema(
+		ctx context.Context,
+		logger log.Logger,
+		conn Connection,
+		request *api_service_protos.TDescribeTableRequest,
+	) (*api_service_protos.TSchema, error)
 }

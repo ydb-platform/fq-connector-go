@@ -68,13 +68,6 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (f sqlFormatter) GetDescribeTableQuery(request *api_service_protos.TDescribeTableRequest) (string, []any) {
-	query := "SELECT name, type FROM system.columns WHERE table = ? and database = ?"
-	args := []any{request.Table, request.DataSourceInstance.Database}
-
-	return query, args
-}
-
 func (f sqlFormatter) GetPlaceholder(_ int) string {
 	return "?"
 }

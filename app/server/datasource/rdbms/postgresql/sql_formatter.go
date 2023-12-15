@@ -69,14 +69,6 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (f sqlFormatter) GetDescribeTableQuery(request *api_service_protos.TDescribeTableRequest) (string, []any) {
-	schema := request.GetDataSourceInstance().GetPgOptions().GetSchema()
-	query := "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2"
-	args := []any{request.Table, schema}
-
-	return query, args
-}
-
 func (f sqlFormatter) GetPlaceholder(n int) string {
 	return fmt.Sprintf("$%d", n+1)
 }

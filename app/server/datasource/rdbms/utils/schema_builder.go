@@ -1,4 +1,4 @@
-package rdbms
+package utils
 
 import (
 	"errors"
@@ -16,13 +16,13 @@ type schemaItem struct {
 	ydbColumn  *Ydb.Column
 }
 
-type schemaBuilder struct {
+type SchemaBuilder struct {
 	typeMapper          utils.TypeMapper
 	typeMappingSettings *api_service_protos.TTypeMappingSettings
 	items               []*schemaItem
 }
 
-func (sb *schemaBuilder) addColumn(columnName, columnType string) error {
+func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {
 	item := &schemaItem{
 		columnName: columnName,
 		columnType: columnType,
@@ -40,7 +40,7 @@ func (sb *schemaBuilder) addColumn(columnName, columnType string) error {
 	return nil
 }
 
-func (sb *schemaBuilder) build(logger log.Logger) (*api_service_protos.TSchema, error) {
+func (sb *SchemaBuilder) Build(logger log.Logger) (*api_service_protos.TSchema, error) {
 	if len(sb.items) == 0 {
 		return nil, utils.ErrTableDoesNotExist
 	}
@@ -66,4 +66,14 @@ func (sb *schemaBuilder) build(logger log.Logger) (*api_service_protos.TSchema, 
 	}
 
 	return &schema, nil
+}
+
+func NewSchemaBuilder(
+	typeMapper utils.TypeMapper,
+	typeMappingSettings *api_service_protos.TTypeMappingSettings,
+) *SchemaBuilder {
+	return &SchemaBuilder{
+		typeMapper:          typeMapper,
+		typeMappingSettings: typeMappingSettings,
+	}
 }
