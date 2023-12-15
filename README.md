@@ -1,4 +1,5 @@
-![Github Actions](https://github.com/ydb-platform/fq-connector-go/actions/workflows/go.yml/badge.svg)
+![Build](https://github.com/ydb-platform/fq-connector-go/actions/workflows/go.yml/badge.svg)
+![Linter](https://github.com/ydb-platform/fq-connector-go/actions/workflows/golangci-lint.yml/badge.svg)
 
 ### Objectives
 
