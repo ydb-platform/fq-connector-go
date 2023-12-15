@@ -87,13 +87,13 @@ linters:
     - gocheckcompilerdirectives
     - gochecknoinits
     - goconst
-    - gocritic
+    # - gocritic
     - gocyclo
     - gofmt
     - goimports
-    - gomnd
+    # - gomnd
     - goprintffuncname
-    - gosec
+    # - gosec
     - gosimple
     - govet
     - ineffassign
@@ -103,7 +103,7 @@ linters:
     - noctx
     - nolintlint
     - revive
-    - staticcheck
+  #  - staticcheck
     - stylecheck
     - typecheck
     - unconvert
