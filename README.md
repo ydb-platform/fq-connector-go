@@ -1,3 +1,5 @@
+![Github Actions](https://github.com/ydb-platform/fq-connector-go/actions/workflows/main.yml/badge.svg)
+
 ### Objectives
 
 Service `fq-connector-go` is a part of YDB Federative Query system.
