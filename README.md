@@ -1,4 +1,4 @@
-![Github Actions](https://github.com/ydb-platform/fq-connector-go/actions/workflows/main.yml/badge.svg)
+![Github Actions](https://github.com/ydb-platform/fq-connector-go/actions/workflows/go.yml/badge.svg)
 
 ### Objectives
 
