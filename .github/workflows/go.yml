@@ -25,7 +25,7 @@ jobs:
           go-version: ${{ matrix.go-version }}
       - name: Install dependencies
         run: |
-          go get .
+          go get ./...
       - name: Build
         run: go build -v -o fq-connector-go ./app
       - name: Test
