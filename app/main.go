@@ -12,7 +12,7 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "connector",
 	Short: "Connector for external data sources",
-	// Run: func(cmd *cobra.Command, args []string) {},
+	//  Run: func(cmd *cobra.Command, args []string) {},
 }
 
 func init() {
