@@ -21,7 +21,7 @@ type DataSourceFactory[T utils.Acceptor] interface {
 // All new data sources must implement this interface.
 // The types of data extracted from the data source are parametrized via [T utils.Acceptor] interface.
 type DataSource[T utils.Acceptor] interface {
-	// DescribeTable returns metadata about a table (or similair entity in non-relational data sources)
+	// DescribeTable returns metadata about a table (or similar entity in non-relational data sources)
 	// located within a particular database in a data source cluster.
 	DescribeTable(
 		ctx context.Context,

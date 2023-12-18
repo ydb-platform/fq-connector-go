@@ -55,8 +55,8 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 
 	if err := out.Err(); err != nil {
 		defer func() {
-			if err := out.Close(); err != nil {
-				c.logger.Error("close rows", log.Error(err))
+			if closeErr := out.Close(); closeErr != nil {
+				c.logger.Error("close rows", log.Error(closeErr))
 			}
 		}()
 
@@ -74,7 +74,7 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	ctx context.Context,
+	_ context.Context,
 	logger log.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {

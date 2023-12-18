@@ -33,7 +33,7 @@ type ReadResult[T utils.Acceptor] struct {
 type Sink[T utils.Acceptor] interface {
 	// AddRow saves the row obtained from a stream incoming from an external data source.
 	AddRow(rowTransformer utils.RowTransformer[T]) error
-	// AddError propagates an error occured during the reading from the external data source.
+	// AddError propagates an error occurred during the reading from the external data source.
 	AddError(err error)
 	// Finish reports the successful completion of reading the data stream.
 	Finish()

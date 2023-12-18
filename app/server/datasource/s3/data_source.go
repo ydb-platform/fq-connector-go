@@ -24,7 +24,11 @@ var _ datasource.DataSource[string] = (*dataSource)(nil)
 type dataSource struct {
 }
 
-func (ds *dataSource) DescribeTable(ctx context.Context, _ log.Logger, request *api_service_protos.TDescribeTableRequest) (*api_service_protos.TDescribeTableResponse, error) {
+func (ds *dataSource) DescribeTable(
+	_ context.Context,
+	_ log.Logger,
+	_ *api_service_protos.TDescribeTableRequest,
+) (*api_service_protos.TDescribeTableResponse, error) {
 	return nil, fmt.Errorf("table description is not implemented for schemaless data sources: %w", utils.ErrMethodNotSupported)
 }
 
@@ -38,7 +42,7 @@ func (ds *dataSource) ReadSplit(ctx context.Context, logger log.Logger, split *a
 
 func (ds *dataSource) doReadSplit(
 	ctx context.Context,
-	logger log.Logger,
+	_ log.Logger,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[string]) error {
 	conn := makeConnection()
@@ -142,7 +146,7 @@ func transformCSV(
 	selectWhat *api_service_protos.TSelect_TWhat,
 	schema *api_service_protos.TSchema,
 	csvReader *csv.Reader,
-	sink paging.Sink[string],
+	_ paging.Sink[string],
 ) error {
 	wantedColumnIds, appenders, err := prepareReading(selectWhat, schema)
 	if err != nil {
@@ -173,7 +177,7 @@ func transformCSV(
 }
 
 func makeConnection() *s3.Client {
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
 		return aws.Endpoint{
 			PartitionID:       "aws",
 			URL:               "http://127.0.0.1:9000",

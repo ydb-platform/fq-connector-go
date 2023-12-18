@@ -80,8 +80,7 @@ func (BytesConverter) Convert(in []byte) ([]byte, error) { return in, nil }
 type DateConverter struct{}
 
 func (DateConverter) Convert(in time.Time) (uint16, error) {
-	inTime := time.Time(in)
-	out, err := TimeToYDBDate(&inTime)
+	out, err := TimeToYDBDate(&in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Date: %w", err)
@@ -93,14 +92,13 @@ func (DateConverter) Convert(in time.Time) (uint16, error) {
 type DateToStringConverter struct{}
 
 func (DateToStringConverter) Convert(in time.Time) (string, error) {
-	return time.Time(in).Format("2006-01-02"), nil
+	return in.Format("2006-01-02"), nil
 }
 
 type DatetimeConverter struct{}
 
 func (DatetimeConverter) Convert(in time.Time) (uint32, error) {
-	inTime := time.Time(in)
-	out, err := TimeToYDBDatetime(&inTime)
+	out, err := TimeToYDBDatetime(&in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Datetime: %w", err)
@@ -112,14 +110,13 @@ func (DatetimeConverter) Convert(in time.Time) (uint32, error) {
 type DatetimeToStringConverter struct{}
 
 func (DatetimeToStringConverter) Convert(in time.Time) (string, error) {
-	return time.Time(in).UTC().Format("2006-01-02T15:04:05Z"), nil
+	return in.UTC().Format("2006-01-02T15:04:05Z"), nil
 }
 
 type TimestampConverter struct{}
 
 func (TimestampConverter) Convert(in time.Time) (uint64, error) {
-	inTime := time.Time(in)
-	out, err := TimeToYDBTimestamp(&inTime)
+	out, err := TimeToYDBTimestamp(&in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Timestamp: %w", err)
@@ -131,5 +128,5 @@ func (TimestampConverter) Convert(in time.Time) (uint64, error) {
 type TimestampToStringConverter struct{}
 
 func (TimestampToStringConverter) Convert(in time.Time) (string, error) {
-	return time.Time(in).UTC().Format("2006-01-02T15:04:05.000Z"), nil
+	return in.UTC().Format("2006-01-02T15:04:05.000Z"), nil
 }

@@ -133,6 +133,7 @@ func (tc testCaseStreaming) messageParams() (sentMessages, rowsInLastMessage int
 
 	if tc.scanErr != nil {
 		sentMessages--
+
 		rowsInLastMessage = tc.rowsPerPage
 	}
 
@@ -175,14 +176,23 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	}
 
 	if tc.scanErr == nil {
-		rows.On("MakeTransformer", []*Ydb.Type{utils.NewPrimitiveType(Ydb.Type_INT32), utils.NewPrimitiveType(Ydb.Type_STRING)}).Return(transformer, nil).Once()
+		rows.On(
+			"MakeTransformer",
+			[]*Ydb.Type{
+				utils.NewPrimitiveType(Ydb.Type_INT32),
+				utils.NewPrimitiveType(Ydb.Type_STRING),
+			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData))
 		rows.On("Next").Return(false).Once()
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))
 		rows.On("Err").Return(nil).Once()
 		rows.On("Close").Return(nil).Once()
 	} else {
-		rows.On("MakeTransformer", []*Ydb.Type{utils.NewPrimitiveType(Ydb.Type_INT32), utils.NewPrimitiveType(Ydb.Type_STRING)}).Return(transformer, nil).Once()
+		rows.On("MakeTransformer",
+			[]*Ydb.Type{
+				utils.NewPrimitiveType(Ydb.Type_INT32),
+				utils.NewPrimitiveType(Ydb.Type_STRING),
+			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData) + 1)
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))
 		// instead of the last message, an error occurs
@@ -260,7 +270,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	mocks := []interface{}{stream, connectionManager, connection, transformer}
+	mocks := []any{stream, connectionManager, connection, transformer}
 
 	mock.AssertExpectationsForObjects(t, mocks...)
 }

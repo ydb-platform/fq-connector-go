@@ -18,7 +18,7 @@ func NewPrimitiveType(t Ydb.Type_PrimitiveTypeId) *Ydb.Type {
 func NewDefaultWhat() *api_service_protos.TSelect_TWhat {
 	return &api_service_protos.TSelect_TWhat{
 		Items: []*api_service_protos.TSelect_TWhat_TItem{
-			&api_service_protos.TSelect_TWhat_TItem{
+			{
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "col0",
@@ -26,7 +26,7 @@ func NewDefaultWhat() *api_service_protos.TSelect_TWhat {
 					},
 				},
 			},
-			&api_service_protos.TSelect_TWhat_TItem{
+			{
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "col1",

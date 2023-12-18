@@ -73,6 +73,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 	}, nil
 }
 
+//nolint:gocyclo
 func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(oids))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(oids))
@@ -181,7 +182,11 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Timestamp)
 
-					return appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter](cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[
+						time.Time,
+						string,
+						*array.StringBuilder,
+						utils.TimestampToStringConverter](cast.Time, builder, cast.Valid)
 				})
 			case Ydb.Type_TIMESTAMP:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {

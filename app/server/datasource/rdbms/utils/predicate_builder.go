@@ -34,11 +34,15 @@ func formatColumn(formatter SQLFormatter, args []any, col string) (string, []any
 	return formatter.SanitiseIdentifier(col), args, nil
 }
 
-func formatNull(formatter SQLFormatter, args []any, n *api_service_protos.TExpression_TNull) (string, []any, error) {
+func formatNull(_ SQLFormatter, args []any, _ *api_service_protos.TExpression_TNull) (string, []any, error) {
 	return "NULL", args, nil
 }
 
-func formatArithmeticalExpression(formatter SQLFormatter, args []any, expression *api_service_protos.TExpression_TArithmeticalExpression) (string, []any, error) {
+func formatArithmeticalExpression(
+	formatter SQLFormatter,
+	args []any,
+	expression *api_service_protos.TExpression_TArithmeticalExpression,
+) (string, []any, error) {
 	var operation string
 
 	switch op := expression.Operation; op {
@@ -132,7 +136,12 @@ func formatNegation(formatter SQLFormatter, args []any, negation *api_service_pr
 	return fmt.Sprintf("(NOT %s)", pred), args, nil
 }
 
-func formatConjunction(formatter SQLFormatter, args []any, conjunction *api_service_protos.TPredicate_TConjunction, topLevel bool) (string, []any, error) {
+func formatConjunction(
+	formatter SQLFormatter,
+	args []any,
+	conjunction *api_service_protos.TPredicate_TConjunction,
+	topLevel bool,
+) (string, []any, error) {
 	var (
 		sb        strings.Builder
 		succeeded int32 = 0

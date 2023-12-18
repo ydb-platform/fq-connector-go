@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"google.golang.org/protobuf/proto"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestSchemaBuilder(t *testing.T) {
@@ -32,8 +32,26 @@ func TestSchemaBuilder(t *testing.T) {
 			name:       "PostgreSQL",
 			typeMapper: postgresql.NewTypeMapper(),
 			supportedTypesMatch: []nameToType{
-				{"bigint", &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}}}}},
-				{"text", &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}}}}},
+				{
+					"bigint",
+					&Ydb.Type{
+						Type: &Ydb.Type_OptionalType{
+							OptionalType: &Ydb.OptionalType{
+								Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}},
+							},
+						},
+					},
+				},
+				{
+					"text",
+					&Ydb.Type{
+						Type: &Ydb.Type_OptionalType{
+							OptionalType: &Ydb.OptionalType{
+								Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}},
+							},
+						},
+					},
+				},
 			},
 			unsupportedTypes: []nameToType{
 				{"time", nil}, // yet unsupported
