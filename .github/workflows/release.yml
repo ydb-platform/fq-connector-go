@@ -17,6 +17,17 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install dependencies
+        run: |
+          go get ./...
+      - name: Build
+        run: GOOS=linux go build -v -o fq-connector-go ./app
+      - name: Test
+        run: go test -v ./app/...
       - name: Create tag
         run: |
           git tag ${{ github.event.inputs.tag }}
