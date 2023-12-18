@@ -11,9 +11,14 @@ on:
 # ...
 
 jobs:
-  goreleaser:
+  release:
     runs-on: ubuntu-latest
     steps:
+      - name: Fail if branch is not main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "This workflow should not be triggered with workflow_dispatch on a branch other than main"
+          exit 1
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
