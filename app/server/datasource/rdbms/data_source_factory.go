@@ -38,16 +38,21 @@ func NewDataSourceFactory(qlf utils.QueryLoggerFactory) datasource.DataSourceFac
 		QueryLoggerFactory: qlf,
 	}
 
+	postgresqlTypeMapper := postgresql.NewTypeMapper()
+	clickhouseTypeMapper := clickhouse.NewTypeMapper()
+
 	return &dataSourceFactory{
 		clickhouse: Preset{
 			SQLFormatter:      clickhouse.NewSQLFormatter(),
 			ConnectionManager: clickhouse.NewConnectionManager(connManagerCfg),
-			TypeMapper:        clickhouse.NewTypeMapper(),
+			TypeMapper:        clickhouseTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.GetQueryAndArgs),
 		},
 		postgresql: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
 			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
-			TypeMapper:        postgresql.NewTypeMapper(),
+			TypeMapper:        postgresqlTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
 		},
 	}
 }

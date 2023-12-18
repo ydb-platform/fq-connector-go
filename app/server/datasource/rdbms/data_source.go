@@ -16,6 +16,7 @@ type Preset struct {
 	SQLFormatter      rdbms_utils.SQLFormatter
 	ConnectionManager rdbms_utils.ConnectionManager
 	TypeMapper        utils.TypeMapper
+	SchemaProvider    rdbms_utils.SchemaProvider
 }
 
 var _ datasource.DataSource[any] = (*dataSourceImpl)(nil)
@@ -24,6 +25,7 @@ type dataSourceImpl struct {
 	typeMapper        utils.TypeMapper
 	sqlFormatter      rdbms_utils.SQLFormatter
 	connectionManager rdbms_utils.ConnectionManager
+	schemaProvider    rdbms_utils.SchemaProvider
 	logger            log.Logger
 }
 
@@ -32,46 +34,15 @@ func (ds *dataSourceImpl) DescribeTable(
 	logger log.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	query, args := rdbms_utils.MakeDescribeTableQuery(logger, ds.sqlFormatter, request)
-
 	conn, err := ds.connectionManager.Make(ctx, logger, request.DataSourceInstance)
 	if err != nil {
 		return nil, fmt.Errorf("make connection: %w", err)
 	}
 
 	defer ds.connectionManager.Release(logger, conn)
-
-	rows, err := conn.Query(ctx, query, args...)
+	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
 	if err != nil {
-		return nil, fmt.Errorf("query builder error: %w", err)
-	}
-
-	defer func() { utils.LogCloserError(logger, rows, "close rows") }()
-
-	var (
-		columnName string
-		typeName   string
-	)
-
-	sb := &schemaBuilder{typeMapper: ds.typeMapper, typeMappingSettings: request.TypeMappingSettings}
-
-	for rows.Next() {
-		if err := rows.Scan(&columnName, &typeName); err != nil {
-			return nil, fmt.Errorf("rows scan: %w", err)
-		}
-
-		if err := sb.addColumn(columnName, typeName); err != nil {
-			return nil, fmt.Errorf("add column to schema builder: %w", err)
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration: %w", err)
-	}
-
-	schema, err := sb.build(logger)
-	if err != nil {
-		return nil, fmt.Errorf("build schema: %w", err)
+		return nil, fmt.Errorf("get schema: %w", err)
 	}
 
 	return &api_service_protos.TDescribeTableResponse{Schema: schema}, nil
@@ -154,5 +125,7 @@ func NewDataSource(
 		sqlFormatter:      preset.SQLFormatter,
 		connectionManager: preset.ConnectionManager,
 		typeMapper:        preset.TypeMapper,
+		schemaProvider:    preset.SchemaProvider,
 	}
 }
+

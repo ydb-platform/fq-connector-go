@@ -8,12 +8,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 )
 
-func MakeDescribeTableQuery(logger log.Logger, formatter SQLFormatter, request *api_service_protos.TDescribeTableRequest) (string, []any) {
-	query, args := formatter.GetDescribeTableQuery(request)
-
-	return query, args
-}
-
 func MakeReadSplitQuery(logger log.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, error) {
 	var (
 		sb   strings.Builder
