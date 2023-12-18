@@ -1,5 +1,5 @@
 # .github/workflows/release.yml
-name: release
+name: build
 
 on:
   workflow_dispatch:
