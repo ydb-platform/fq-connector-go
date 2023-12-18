@@ -17,11 +17,20 @@ Currently supported data sources:
 Use this command to run Connector with [default configuration](https://github.com/ydb-platform/fq-connector-go/blob/main/example.conf):
 
 ```
-docker run -d --name=connector -p 50051:50051 -p 6060:6060 ghcr.io/ydb-platform/fq-connector-go:latest
+docker run -d \
+    --name=connector \
+    -p 50051:50051 \
+    -p 6060:6060 \
+    ghcr.io/ydb-platform/fq-connector-go:latest
 ```
 
 Or you can mount custom configuration into container:
 
 ```
-docker run -it --name=connector -p 50051:50051 -p 6060:6060 -v /tmp/example.conf:/usr/local/etc/fq-connector.conf ghcr.io/ydb-platform/fq-connector-go:latest
+docker run -d \
+    --name=connector \
+    -p 50051:50051 \
+    -p 6060:6060 \
+    -v /tmp/example.conf:/usr/local/etc/fq-connector.conf \
+    ghcr.io/ydb-platform/fq-connector-go:latest
 ```
