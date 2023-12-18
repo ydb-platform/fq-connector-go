@@ -18,5 +18,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Create tag
-        run: git tag ${{ github.event.inputs.tag }}
+        run: |
+          git tag ${{ github.event.inputs.tag }}
+          git push --tags
       # other steps bellow as usual
