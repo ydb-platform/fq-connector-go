@@ -27,6 +27,6 @@ jobs:
         run: |
           go get ./...
       - name: Build
-        run: go build -v -o fq-connector-go ./app
+        run: GOOS=linux go build -v -o fq-connector-go ./app
       - name: Test
         run: go test -v ./app/...

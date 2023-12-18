@@ -1,0 +1,22 @@
+# .github/workflows/release.yml
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'New tag name'
+        required: true
+
+# ...
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Create tag
+        run: git tag ${{ github.event.inputs.tag }}
+      # other steps bellow as usual
