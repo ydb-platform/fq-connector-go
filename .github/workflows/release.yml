@@ -32,8 +32,9 @@ jobs:
         run: |
           docker login --username vitalyisaev2 --password ${{ secrets.GHCR_TOKEN }} ghcr.io
           docker build -t ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }} .
-          docker push ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }}
-      - name: Create tag
+          docker tag ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }} ghcr.io/ydb-platform/fq-connector-go:latest
+          docker push ghcr.io/ydb-platform/fq-connector-go
+      - name: Create and push Git tag
         run: |
           git tag ${{ github.event.inputs.tag }}
           git push --tags
