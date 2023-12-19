@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
