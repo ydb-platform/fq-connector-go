@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	api "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 

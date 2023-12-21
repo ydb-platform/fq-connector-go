@@ -1,8 +1,8 @@
 package paging
 
 import (
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 )
 
 type ColumnarBuffer[T utils.Acceptor] interface {

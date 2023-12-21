@@ -6,6 +6,8 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service "github.com/ydb-platform/fq-connector-go/api/service"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
@@ -13,8 +15,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api_service "github.com/ydb-platform/fq-connector-go/libgo/service"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 )
 

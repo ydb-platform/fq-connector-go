@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/log/zap"
 	"go.uber.org/zap/zapcore"

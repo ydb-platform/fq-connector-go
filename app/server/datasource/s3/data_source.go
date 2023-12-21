@@ -11,10 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
