@@ -37,6 +37,10 @@ func NewSuccess() *api_service_protos.TError {
 }
 
 func IsSuccess(apiErr *api_service_protos.TError) bool {
+	if apiErr == nil {
+		return true
+	}
+
 	if apiErr.Status == Ydb.StatusIds_STATUS_CODE_UNSPECIFIED {
 		panic("status uninitialized")
 	}

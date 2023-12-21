@@ -112,7 +112,7 @@ func callServer(logger log.Logger, cfg *config.ClientConfig) error {
 	var splits []*api_service_protos.TSplit
 
 	switch cfg.DataSourceInstance.Kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
 		// DescribeTable
 		schema, err := describeTable(logger, connectorClient, cfg.DataSourceInstance)
 		if err != nil {

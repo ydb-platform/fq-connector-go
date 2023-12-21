@@ -96,7 +96,7 @@ func validateDataSourceInstance(logger log.Logger, dsi *api_common.TDataSourceIn
 			return fmt.Errorf("schema field is empty: %w", utils.ErrInvalidRequest)
 		}
 
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB:
 		break
 	default:
 		return fmt.Errorf("unsupported data source: %w", utils.ErrInvalidRequest)
