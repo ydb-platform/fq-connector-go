@@ -1,8 +1,8 @@
 package ydb
 
 import (
-	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 

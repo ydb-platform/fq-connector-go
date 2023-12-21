@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"path"
 
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
