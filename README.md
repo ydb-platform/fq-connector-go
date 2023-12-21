@@ -34,3 +34,4 @@ docker run -d \
     -v /tmp/example.conf:/usr/local/etc/fq-connector.conf \
     ghcr.io/ydb-platform/fq-connector-go:latest
 ```
+
