@@ -17,6 +17,11 @@ jobs:
         run: |
           echo "This workflow should not be triggered with workflow_dispatch on a branch other than main"
           exit 1
+      - name: Fail if user is not admin
+        if: !(github.actor == 'vitalyisaev2' || github.actor == 'uzhastik')
+        run: |
+          echo "This workflow should be triggered only by repository admins"
+          exit 1
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
