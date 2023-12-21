@@ -17,16 +17,16 @@ type DataSourceMock[T utils.Acceptor] struct {
 }
 
 func (m *DataSourceMock[T]) DescribeTable(
-	ctx context.Context,
-	logger log.Logger,
-	request *api_service_protos.TDescribeTableRequest,
+	_ context.Context,
+	_ log.Logger,
+	_ *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	panic("not implemented") // TODO: Implement
 }
 
 func (m *DataSourceMock[T]) ReadSplit(
-	ctx context.Context,
-	logger log.Logger,
+	_ context.Context,
+	_ log.Logger,
 	split *api_service_protos.TSplit,
 	pagingWriter paging.Sink[T],
 ) {

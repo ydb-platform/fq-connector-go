@@ -86,6 +86,7 @@ func YdbTypesToArrowBuilders(ydbTypes []*Ydb.Type, arrowAllocator memory.Allocat
 	return builders, nil
 }
 
+//nolint:gocyclo
 func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memory.Allocator) (array.Builder, error) {
 	var builder array.Builder
 
@@ -133,6 +134,7 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 	return builder, nil
 }
 
+//nolint:gocyclo
 func ydbTypeToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (arrow.Field, error) {
 	var field arrow.Field
 

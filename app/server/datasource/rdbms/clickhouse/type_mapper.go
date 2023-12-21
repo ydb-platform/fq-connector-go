@@ -21,7 +21,11 @@ type typeMapper struct {
 	isNullable    *regexp.Regexp
 }
 
-func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+//nolint:gocyclo
+func (tm typeMapper) SQLTypeToYDBColumn(
+	columnName, typeName string,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
@@ -120,6 +124,7 @@ func makeYdbDateTimeType(ydbTypeID Ydb.Type_PrimitiveTypeId, format api_service_
 	}
 }
 
+//nolint:funlen,gocyclo
 func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
@@ -277,7 +282,7 @@ func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils
 	return nil
 }
 
-// If time value is under of type bounds ClickHouse behaviour is undefined
+// If time value is under of type bounds ClickHouse behavior is undefined
 // See note: https://clickhouse.com/docs/en/sql-reference/functions/date-time-functions#tostartofmonth
 
 var (

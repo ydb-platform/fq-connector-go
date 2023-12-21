@@ -24,7 +24,7 @@ type RowTransformerDefault[T Acceptor] struct {
 	acceptors []T
 	// Collection of functions responsible for appending certain row items to the corresponding columns.
 	appenders []func(acceptor T, builder array.Builder) error
-	// Sometimes row containes more data than necessary.
+	// Sometimes row contains more data than necessary.
 	// This array specifies what particular row items to convert into the columnar format.
 	wantedColumnIDs []int
 }

@@ -40,6 +40,7 @@ func (ds *dataSourceImpl) DescribeTable(
 	}
 
 	defer ds.connectionManager.Release(logger, conn)
+
 	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
 	if err != nil {
 		return nil, fmt.Errorf("get schema: %w", err)
@@ -128,4 +129,3 @@ func NewDataSource(
 		schemaProvider:    preset.SchemaProvider,
 	}
 }
-

@@ -12,6 +12,8 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 )
 
+var _ ColumnarBuffer[any] = (*columnarBufferArrowIPCStreamingEmptyColumns[any])(nil)
+
 // special implementation for buffer that writes schema with empty columns set
 type columnarBufferArrowIPCStreamingEmptyColumns[T utils.Acceptor] struct {
 	arrowAllocator memory.Allocator
@@ -20,6 +22,8 @@ type columnarBufferArrowIPCStreamingEmptyColumns[T utils.Acceptor] struct {
 }
 
 // AddRow saves a row obtained from the datasource into the buffer
+//
+//nolint:unused
 func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) addRow(transformer utils.RowTransformer[T]) error {
 	if len(transformer.GetAcceptors()) != 1 {
 		return fmt.Errorf("expected 1 value, got %v", len(transformer.GetAcceptors()))
@@ -58,7 +62,7 @@ func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) ToResponse() (*api_ser
 	return out, nil
 }
 
-func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) TotalRows() int { return int(cb.rowsAdded) }
+func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) TotalRows() int { return cb.rowsAdded }
 
 // Frees resources if buffer is no longer used
 func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) Release() {

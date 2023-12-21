@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
+	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
 )
 
 type DefaultSchemaProvider struct {
@@ -39,16 +39,16 @@ func (f *DefaultSchemaProvider) GetSchema(
 	sb := NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
 
 	for rows.Next() {
-		if err := rows.Scan(&columnName, &typeName); err != nil {
+		if err = rows.Scan(&columnName, &typeName); err != nil {
 			return nil, fmt.Errorf("rows scan: %w", err)
 		}
 
-		if err := sb.AddColumn(columnName, typeName); err != nil {
+		if err = sb.AddColumn(columnName, typeName); err != nil {
 			return nil, fmt.Errorf("add column to schema builder: %w", err)
 		}
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("rows iteration: %w", err)
 	}
 

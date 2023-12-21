@@ -66,6 +66,7 @@ func newSizePattern[T utils.Acceptor](acceptors []T) (*sizePattern[T], error) {
 	return sp, nil
 }
 
+//nolint:gocyclo
 func sizeOfValue(v any) (uint64, acceptorKind, error) {
 	reflected := reflect.ValueOf(v)
 

@@ -76,7 +76,9 @@ func TestReadSplit(t *testing.T) {
 			},
 		}
 
-		rows.On("MakeTransformer", []*Ydb.Type{utils.NewPrimitiveType(Ydb.Type_INT32), utils.NewPrimitiveType(Ydb.Type_UTF8)}).Return(transformer, nil).Once()
+		rows.On("MakeTransformer",
+			[]*Ydb.Type{utils.NewPrimitiveType(Ydb.Type_INT32), utils.NewPrimitiveType(Ydb.Type_UTF8)},
+		).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(2)
 		rows.On("Next").Return(false).Once()
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(2)
@@ -124,7 +126,12 @@ func TestReadSplit(t *testing.T) {
 
 		scanErr := fmt.Errorf("scan failed")
 
-		rows.On("MakeTransformer", []*Ydb.Type{utils.NewPrimitiveType(Ydb.Type_INT32), utils.NewPrimitiveType(Ydb.Type_UTF8)}).Return(transformer, nil).Once()
+		rows.On("MakeTransformer",
+			[]*Ydb.Type{
+				utils.NewPrimitiveType(Ydb.Type_INT32),
+				utils.NewPrimitiveType(Ydb.Type_UTF8),
+			},
+		).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(2)
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Once()
 		rows.On("Scan", transformer.GetAcceptors()...).Return(scanErr).Once()

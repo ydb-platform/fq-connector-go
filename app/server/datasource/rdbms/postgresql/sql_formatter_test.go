@@ -56,7 +56,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 				},
 				What: &api.TSelect_TWhat{
 					Items: []*api.TSelect_TWhat_TItem{
-						&api.TSelect_TWhat_TItem{
+						{
 							Payload: &api.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: "col",
@@ -146,7 +146,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 						Payload: &api.TPredicate_Disjunction{
 							Disjunction: &api.TPredicate_TDisjunction{
 								Operands: []*api.TPredicate{
-									&api.TPredicate{
+									{
 										Payload: &api.TPredicate_Negation{
 											Negation: &api.TPredicate_TNegation{
 												Operand: &api.TPredicate{
@@ -161,11 +161,11 @@ func TestMakeReadSplitQuery(t *testing.T) {
 											},
 										},
 									},
-									&api.TPredicate{
+									{
 										Payload: &api.TPredicate_Conjunction{
 											Conjunction: &api.TPredicate_TConjunction{
 												Operands: []*api.TPredicate{
-													&api.TPredicate{
+													{
 														Payload: &api.TPredicate_Comparison{
 															Comparison: &api.TPredicate_TComparison{
 																Operation:  api.TPredicate_TComparison_NE,
@@ -174,7 +174,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 															},
 														},
 													},
-													&api.TPredicate{
+													{
 														Payload: &api.TPredicate_IsNull{
 															IsNull: &api.TPredicate_TIsNull{
 																Value: utils.NewColumnExpression("col3"),
@@ -253,7 +253,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 						Payload: &api.TPredicate_Conjunction{
 							Conjunction: &api.TPredicate_TConjunction{
 								Operands: []*api.TPredicate{
-									&api.TPredicate{
+									{
 										Payload: &api.TPredicate_Comparison{
 											Comparison: &api.TPredicate_TComparison{
 												Operation:  api.TPredicate_TComparison_EQ,
@@ -262,7 +262,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 											},
 										},
 									},
-									&api.TPredicate{
+									{
 										// Not supported
 										Payload: &api.TPredicate_Comparison{
 											Comparison: &api.TPredicate_TComparison{
@@ -294,7 +294,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 						Payload: &api.TPredicate_Conjunction{
 							Conjunction: &api.TPredicate_TConjunction{
 								Operands: []*api.TPredicate{
-									&api.TPredicate{
+									{
 										Payload: &api.TPredicate_Comparison{
 											Comparison: &api.TPredicate_TComparison{
 												Operation:  api.TPredicate_TComparison_EQ,
@@ -303,7 +303,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 											},
 										},
 									},
-									&api.TPredicate{
+									{
 										// Not supported
 										Payload: &api.TPredicate_Comparison{
 											Comparison: &api.TPredicate_TComparison{
@@ -313,14 +313,14 @@ func TestMakeReadSplitQuery(t *testing.T) {
 											},
 										},
 									},
-									&api.TPredicate{
+									{
 										Payload: &api.TPredicate_IsNull{
 											IsNull: &api.TPredicate_TIsNull{
 												Value: utils.NewColumnExpression("col3"),
 											},
 										},
 									},
-									&api.TPredicate{
+									{
 										Payload: &api.TPredicate_IsNotNull{
 											IsNotNull: &api.TPredicate_TIsNotNull{
 												Value: utils.NewColumnExpression("col4"),
@@ -357,7 +357,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 				},
 				What: &api.TSelect_TWhat{
 					Items: []*api.TSelect_TWhat_TItem{
-						&api.TSelect_TWhat_TItem{
+						{
 							Payload: &api.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: `0; DROP TABLE information_schema.columns`,
@@ -380,7 +380,7 @@ func TestMakeReadSplitQuery(t *testing.T) {
 				},
 				What: &api.TSelect_TWhat{
 					Items: []*api.TSelect_TWhat_TItem{
-						&api.TSelect_TWhat_TItem{
+						{
 							Payload: &api.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: `0"; DROP TABLE information_schema.columns;`,

@@ -17,7 +17,7 @@ type ConnectionMock struct {
 	mock.Mock
 }
 
-func (m *ConnectionMock) Query(ctx context.Context, query string, params ...any) (Rows, error) {
+func (m *ConnectionMock) Query(_ context.Context, query string, params ...any) (Rows, error) {
 	called := []any{query}
 	called = append(called, params...)
 	args := m.Called(called...)
@@ -34,15 +34,15 @@ type ConnectionManagerMock struct {
 }
 
 func (m *ConnectionManagerMock) Make(
-	ctx context.Context,
-	logger log.Logger,
+	_ context.Context,
+	_ log.Logger,
 	dataSourceInstance *api_common.TDataSourceInstance) (Connection, error) {
 	args := m.Called(dataSourceInstance)
 
 	return args.Get(0).(Connection), args.Error(1)
 }
 
-func (m *ConnectionManagerMock) Release(logger log.Logger, conn Connection) {
+func (m *ConnectionManagerMock) Release(_ log.Logger, conn Connection) {
 	m.Called(conn)
 }
 

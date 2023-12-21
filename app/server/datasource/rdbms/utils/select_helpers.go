@@ -24,7 +24,12 @@ func selectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) ([]*Yd
 	return columns, nil
 }
 
-func formatSelectColumns(formatter SQLFormatter, selectWhat *api_service_protos.TSelect_TWhat, tableName string, fakeZeroOnEmptyColumnsSet bool) (string, error) {
+func formatSelectColumns(
+	formatter SQLFormatter,
+	selectWhat *api_service_protos.TSelect_TWhat,
+	tableName string,
+	fakeZeroOnEmptyColumnsSet bool,
+) (string, error) {
 	// SELECT $columns FROM $from
 	if tableName == "" {
 		return "", utils.ErrEmptyTableName

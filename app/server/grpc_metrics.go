@@ -13,7 +13,10 @@ import (
 
 func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 	requestCount := registry.CounterVec("requests_total", []string{"protocol", "endpoint"})
-	requestDuration := registry.DurationHistogramVec("request_duration_seconds", metrics.MakeExponentialDurationBuckets(250*time.Microsecond, 1.5, 35), []string{"protocol", "endpoint"})
+	requestDuration := registry.DurationHistogramVec(
+		"request_duration_seconds",
+		metrics.MakeExponentialDurationBuckets(250*time.Microsecond, 1.5, 35),
+		[]string{"protocol", "endpoint"})
 	panicsCount := registry.CounterVec("panics_total", []string{"protocol", "endpoint"})
 	inflightRequests := registry.GaugeVec("inflight_requests", []string{"protocol", "endpoint"})
 	statusCount := registry.CounterVec("status_total", []string{"protocol", "endpoint", "status"})
@@ -88,7 +91,11 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 
 func StreamServerMetrics(registry metrics.Registry) grpc.StreamServerInterceptor {
 	streamCount := registry.CounterVec("streams_total", []string{"protocol", "endpoint"})
-	streamDuration := registry.DurationHistogramVec("stream_duration_seconds", metrics.MakeExponentialDurationBuckets(250*time.Microsecond, 1.5, 35), []string{"protocol", "endpoint"})
+	streamDuration := registry.DurationHistogramVec(
+		"stream_duration_seconds",
+		metrics.MakeExponentialDurationBuckets(250*time.Microsecond, 1.5, 35),
+		[]string{"protocol", "endpoint"},
+	)
 	inflightStreams := registry.GaugeVec("inflight_streams", []string{"protocol", "endpoint"})
 	panicsCount := registry.CounterVec("stream_panics_total", []string{"protocol", "endpoint"})
 	sentStreamMessages := registry.CounterVec("sent_stream_messages_total", []string{"protocol", "endpoint"})
