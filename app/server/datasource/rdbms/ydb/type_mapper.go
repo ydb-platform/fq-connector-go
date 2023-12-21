@@ -118,50 +118,98 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
+	isOptinal := regexp.MustCompile(`Optional<(\w+)>$`)
+
 	for _, typeName := range typeNames {
-		switch typeName {
-		case "Bool", "Optional<Bool>":
-			acceptors = append(acceptors, new(*bool))
-			appenders = append(appenders, appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter])
-		case "Int8", "Optional<Int8>":
-			acceptors = append(acceptors, new(*int8))
-			appenders = append(appenders, appendValueToArrowBuilder[int8, int8, *array.Int8Builder, utils.Int8Converter])
-		case "Int16", "Optional<Int16>":
-			acceptors = append(acceptors, new(*int16))
-			appenders = append(appenders, appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter])
-		case "Int32", "Optional<Int32>":
-			acceptors = append(acceptors, new(*int32))
-			appenders = append(appenders, appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter])
-		case "Int64", "Optional<Int64>":
-			acceptors = append(acceptors, new(*int64))
-			appenders = append(appenders, appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter])
-		case "Uint8", "Optional<Uint8>":
-			acceptors = append(acceptors, new(*uint8))
-			appenders = append(appenders, appendValueToArrowBuilder[uint8, uint8, *array.Uint8Builder, utils.Uint8Converter])
-		case "Uint16", "Optional<Uint16>":
-			acceptors = append(acceptors, new(*uint16))
-			appenders = append(appenders, appendValueToArrowBuilder[uint16, uint16, *array.Uint16Builder, utils.Uint16Converter])
-		case "Uint32", "Optional<Uint32>":
-			acceptors = append(acceptors, new(*uint32))
-			appenders = append(appenders, appendValueToArrowBuilder[uint32, uint32, *array.Uint32Builder, utils.Uint32Converter])
-		case "Uint64", "Optional<Uint64>":
-			acceptors = append(acceptors, new(*uint64))
-			appenders = append(appenders, appendValueToArrowBuilder[uint64, uint64, *array.Uint64Builder, utils.Uint64Converter])
-		case "Float", "Optional<Float>":
-			acceptors = append(acceptors, new(*float32))
-			appenders = append(appenders, appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter])
-		case "Double", "Optional<Double>":
-			acceptors = append(acceptors, new(*float64))
-			appenders = append(appenders, appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter])
-		case "Utf8", "Optional<Utf8>":
-			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, appendValueToArrowBuilder[string, []byte, *array.BinaryBuilder, utils.StringToBytesConverter])
-		default:
-			return nil, fmt.Errorf("unknown type '%v'", typeName)
+		optional := false
+		if matches := isOptinal.FindStringSubmatch(typeName); len(matches) > 0 {
+			optional = true
+			typeName = matches[1]
 		}
+
+		var (
+			acceptor any
+			appender func(acceptor any, builder array.Builder) error
+			err      error
+		)
+
+		if !optional {
+			acceptor, appender, err = makePrimitiveTransformers(typeName)
+		} else {
+			acceptor, appender, err = makeOptionalTransformers(typeName)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("make transformer: %w", err)
+		}
+
+		acceptors = append(acceptors, acceptor)
+		appenders = append(appenders, appender)
 	}
 
 	return utils.NewRowTransformer[any](acceptors, appenders, nil), nil
+}
+
+func makePrimitiveTransformers(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
+	switch typeName {
+	case "Bool":
+		return new(bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
+	case "Int8":
+		return new(int8), appendValueToArrowBuilder[int8, int8, *array.Int8Builder, utils.Int8Converter], nil
+	case "Int16":
+		return new(int16), appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter], nil
+	case "Int32":
+		return new(int32), appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter], nil
+	case "Int64":
+		return new(int64), appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter], nil
+	case "Uint8":
+		return new(uint8), appendValueToArrowBuilder[uint8, uint8, *array.Uint8Builder, utils.Uint8Converter], nil
+	case "Uint16":
+		return new(uint16), appendValueToArrowBuilder[uint16, uint16, *array.Uint16Builder, utils.Uint16Converter], nil
+	case "Uint32":
+		return new(uint32), appendValueToArrowBuilder[uint32, uint32, *array.Uint32Builder, utils.Uint32Converter], nil
+	case "Uint64":
+		return new(uint64), appendValueToArrowBuilder[uint64, uint64, *array.Uint64Builder, utils.Uint64Converter], nil
+	case "Float":
+		return new(float32), appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter], nil
+	case "Double":
+		return new(float64), appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter], nil
+	case "Utf8":
+		return new(string), appendValueToArrowBuilder[string, []byte, *array.BinaryBuilder, utils.StringToBytesConverter], nil
+	default:
+		return nil, nil, fmt.Errorf("unknown primitive type '%v'", typeName)
+	}
+}
+
+func makeOptionalTransformers(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
+	switch typeName {
+	case "Bool":
+		return new(*bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
+	case "Int8":
+		return new(*int8), appendValueToArrowBuilder[int8, int8, *array.Int8Builder, utils.Int8Converter], nil
+	case "Int16":
+		return new(*int16), appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter], nil
+	case "Int32":
+		return new(*int32), appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter], nil
+	case "Int64":
+		return new(*int64), appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter], nil
+	case "Uint8":
+		return new(*uint8), appendValueToArrowBuilder[uint8, uint8, *array.Uint8Builder, utils.Uint8Converter], nil
+	case "Uint16":
+		return new(*uint16), appendValueToArrowBuilder[uint16, uint16, *array.Uint16Builder, utils.Uint16Converter], nil
+	case "Uint32":
+		return new(*uint32), appendValueToArrowBuilder[uint32, uint32, *array.Uint32Builder, utils.Uint32Converter], nil
+	case "Uint64":
+		return new(*uint64), appendValueToArrowBuilder[uint64, uint64, *array.Uint64Builder, utils.Uint64Converter], nil
+	case "Float":
+		return new(*float32), appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter], nil
+	case "Double":
+		return new(*float64), appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter], nil
+	case "Utf8":
+		return new(*string), appendValueToArrowBuilder[string, []byte, *array.BinaryBuilder, utils.StringToBytesConverter], nil
+	default:
+		return nil, nil, fmt.Errorf("unknown primitive type '%v'", typeName)
+	}
 }
 
 func NewTypeMapper() utils.TypeMapper {
