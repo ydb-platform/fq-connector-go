@@ -4,16 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ rdbms_utils.Connection = (*Connection)(nil)
@@ -56,7 +56,7 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 
 	if err := out.Err(); err != nil {
 		defer func() {
-			if err := out.Close(); err != nil {
+			if err = out.Close(); err != nil {
 				c.logger.Error("close rows", log.Error(err))
 			}
 		}()
@@ -79,23 +79,22 @@ func (c *connectionManager) Make(
 	logger log.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
-	
 	// TODO: add credentials (iam and basic) support
-	
 	endpoint := strings.Join([]string{dsi.Endpoint.Host, fmt.Sprintf("%v", dsi.Endpoint.Port)}, ":")
 	dsn := sugar.DSN(endpoint, dsi.Database, dsi.UseTls)
 
-	ydb_driver, err := ydb_sdk.Open(ctx, dsn)
+	ydbDriver, err := ydb_sdk.Open(ctx, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
-	ydb_conn, err := ydb_sdk.Connector(ydb_driver)
+
+	ydbConn, err := ydb_sdk.Connector(ydbDriver)
 	if err != nil {
 		return nil, fmt.Errorf("connector error: %w", err)
 	}
 
-	conn := sql.OpenDB(ydb_conn)
-	
+	conn := sql.OpenDB(ydbConn)
+
 	const (
 		maxIdleConns    = 5
 		maxOpenConns    = 10
