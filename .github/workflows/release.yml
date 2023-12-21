@@ -39,7 +39,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           docker login --username vitalyisaev2 --password ${{ secrets.GHCR_TOKEN }} ghcr.io
-          docker build -t ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }} .
+          docker build -t ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }} -f Dockerfile.release .
           docker tag ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }} ghcr.io/ydb-platform/fq-connector-go:latest
           docker push ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }}
           docker push ghcr.io/ydb-platform/fq-connector-go:latest
