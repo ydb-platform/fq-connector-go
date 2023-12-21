@@ -31,7 +31,7 @@ const DoubleType = "Double"
 const StringType = "String"
 const Utf8Type = "Utf8"
 
-func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
@@ -128,7 +128,7 @@ func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils
 	return nil
 }
 
-func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.RowTransformer[any], error) {
+func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (utils.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
