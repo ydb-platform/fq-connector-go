@@ -1,18 +1,20 @@
 package ydb
 
 import (
-"errors"
-"fmt"
+	"errors"
+	"fmt"
+	"regexp"
 
-"github.com/apache/arrow/go/v13/arrow/array"
-"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-"github.com/ydb-platform/fq-connector-go/app/server/utils"
-api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ utils.TypeMapper = typeMapper{}
 
 type typeMapper struct {
+	isOptinal *regexp.Regexp
 }
 
 func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
@@ -20,70 +22,63 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 		ydbType *Ydb.Type
 		err     error
 	)
-	// TODO: add all types support
-	// Reference table: https://ydb.yandex-team.ru/docs/yql/reference/types/
-	switch {
-	case typeName == "Bool":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_BOOL}}
-	case typeName == "Int8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT8}}
-	case typeName == "Uint8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT8}}
-	case typeName == "Int16":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT16}}
-	case typeName == "Uint16":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT16}}
-	case typeName == "Int32":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}
-	case typeName == "Uint32":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT32}}
-	case typeName == "Int64":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}
-	case typeName == "Uint64":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT64}}
-	case typeName == "Float":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_FLOAT}}
-	case typeName == "Double":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DOUBLE}}
-	case typeName == "String":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}
-	case typeName == "Utf8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}
-	case typeName == "Optional<Bool>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_BOOL}}}}}
-	case typeName == "Optional<Int8>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT8}}}}}
-	case typeName == "Optional<Uint8>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT8}}}}}
-	case typeName == "Optional<Int16>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT16}}}}}
-	case typeName == "Optional<Uint16>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT16}}}}}
-	case typeName == "Optional<Int32>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}}}}
-	case typeName == "Optional<Uint32>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT32}}}}}
-	case typeName == "Optional<Int64>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}}}}
-	case typeName == "Optional<Uint64>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT64}}}}}
-	case typeName == "Optional<Float>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_FLOAT}}}}}
-	case typeName == "Optional<Double>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DOUBLE}}}}}
-	case typeName == "Optional<String>" || typeName == "Optional<Utf8>":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}}}}
-	default:
-		err = fmt.Errorf("convert type '%s': %w", typeName, utils.ErrDataTypeNotSupported)
+
+	optional := false
+	if matches := tm.isOptinal.FindStringSubmatch(typeName); len(matches) > 0 {
+		optional = true
+		typeName = matches[1]
 	}
+
+	ydbType, err = makePrimitiveType(typeName)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("make type: %w", err)
+	}
+
+	if optional {
+		ydbType = makeOptionalType(ydbType)
 	}
 
 	return &Ydb.Column{Name: columnName, Type: ydbType}, nil
 }
 
+func makePrimitiveType(typeName string) (*Ydb.Type, error) {
+	// TODO: add all types support
+	// Reference table: https://ydb.yandex-team.ru/docs/yql/reference/types/
+	switch {
+	case typeName == "Bool":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_BOOL}}, nil
+	case typeName == "Int8":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT8}}, nil
+	case typeName == "Uint8":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT8}}, nil
+	case typeName == "Int16":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT16}}, nil
+	case typeName == "Uint16":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT16}}, nil
+	case typeName == "Int32":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}, nil
+	case typeName == "Uint32":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT32}}, nil
+	case typeName == "Int64":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}, nil
+	case typeName == "Uint64":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT64}}, nil
+	case typeName == "Float":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_FLOAT}}, nil
+	case typeName == "Double":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DOUBLE}}, nil
+	case typeName == "String":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}, nil
+	case typeName == "Utf8":
+		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}, nil
+	default:
+		return nil, fmt.Errorf("convert type '%s': %w", typeName, utils.ErrDataTypeNotSupported)
+	}
+}
 
+func makeOptionalType(ydbType *Ydb.Type) *Ydb.Type {
+	return &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
+}
 
 func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
 	acceptor any,
@@ -124,8 +119,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
 	for _, typeName := range typeNames {
-
-		switch typeName{
+		switch typeName {
 		case "Bool", "Optional<Bool>":
 			acceptors = append(acceptors, new(*bool))
 			appenders = append(appenders, appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter])
@@ -171,5 +165,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 }
 
 func NewTypeMapper() utils.TypeMapper {
-	return typeMapper{}
+	return typeMapper{
+		isOptinal: regexp.MustCompile(`Optional<(\w+)>$`),
+	}
 }

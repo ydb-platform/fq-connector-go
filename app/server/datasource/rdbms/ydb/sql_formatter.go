@@ -1,7 +1,6 @@
 package ydb
 
 import (
-
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -12,7 +11,7 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 type sqlFormatter struct {
 }
 
-// for pushdouwn feature
+// TODO: for pushdown feature
 func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
@@ -44,6 +43,7 @@ func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	}
 }
 
+// TODO: pushdown support
 func (f *sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	switch v := t.Type.(type) {
 	case *Ydb.Type_TypeId:
@@ -55,15 +55,27 @@ func (f *sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	}
 }
 
+// TODO: pushdown support
 func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
-	return false // TODO: pushdown support
+	switch e := expression.Payload.(type) {
+	case *api_service_protos.TExpression_Column:
+		return true
+	case *api_service_protos.TExpression_TypedValue:
+		return f.supportsConstantValueExpression(e.TypedValue.Type)
+	case *api_service_protos.TExpression_ArithmeticalExpression:
+		return false
+	case *api_service_protos.TExpression_Null:
+		return true
+	default:
+		return false
+	}
 }
 
 func (f sqlFormatter) GetPlaceholder(_ int) string {
 	return "?"
 }
 
-//  TODO: add identifiers processing
+// TODO: add identifiers processing
 func (f sqlFormatter) SanitiseIdentifier(ident string) string {
 	return ident
 }

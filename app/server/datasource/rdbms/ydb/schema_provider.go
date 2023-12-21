@@ -5,28 +5,30 @@ import (
 	"fmt"
 	"path"
 
+	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
+	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
-	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/libgo/service/protos"
 )
 
 type schemaProvider struct {
-	typeMapper      utils.TypeMapper
+	typeMapper utils.TypeMapper
 }
+
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
 
 func (f *schemaProvider) GetSchema(
-	ctx context.Context, 
-	logger my_log.Logger, 
-	conn rdbms_utils.Connection, 
+	ctx context.Context,
+	logger my_log.Logger,
+	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
-	ydb_conn := conn.(*Connection)
-	db, err := ydb.Unwrap(ydb_conn.DB)
+	ydbConn := conn.(*Connection)
+
+	db, err := ydb.Unwrap(ydbConn.DB)
 	if err != nil {
 		return nil, fmt.Errorf("unwrap connection: %w", err)
 	}
@@ -40,7 +42,7 @@ func (f *schemaProvider) GetSchema(
 		func(ctx context.Context, s table.Session) error {
 			desc, err = s.DescribeTable(ctx, prefix)
 			if err != nil {
-				return err
+				return fmt.Errorf("describe table: %w", err)
 			}
 			return nil
 		},
@@ -51,7 +53,7 @@ func (f *schemaProvider) GetSchema(
 
 	sb := rdbms_utils.NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
 	for _, column := range desc.Columns {
-		if err := sb.AddColumn(column.Name, column.Type.String()); err != nil {
+		if err = sb.AddColumn(column.Name, column.Type.String()); err != nil {
 			return nil, fmt.Errorf("add column to schema builder: %w", err)
 		}
 	}
