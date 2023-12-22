@@ -186,7 +186,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         prog="generate",
         description="""
-        Script for Go Protobuf API generation. 
+        Script for Go Protobuf API generation.
         It takes protofiles from YDB repository and generates Go code in fq-connector-go repository.
         """,
     )
@@ -231,7 +231,7 @@ def main():
 
     protobuf_includes = Path(args.protobuf_dir)
     if not protobuf_includes.exists():
-        raise ValueError(f"path {connector_github_root} does not exist")
+        raise ValueError(f"path {protobuf_includes} does not exist")
 
     ydb_source_files = [
         YDBProtoFile(ydb_github_root.joinpath(param[0]), param[1])
