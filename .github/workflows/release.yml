@@ -26,13 +26,13 @@ jobs:
         run: |
           echo "This workflow should be triggered only by repository admins"
           exit 1
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Create and push Git tag
         run: |
           git tag ${{ github.event.inputs.tag }}
           git push --tags
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
       - name: Setup Go ${{ matrix.go-version }}
         uses: actions/setup-go@v4
         with:
