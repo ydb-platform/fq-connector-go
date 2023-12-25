@@ -1,6 +1,9 @@
 build:
 	go build -o fq-connector-go ./app
 
+run: build
+	./fq-connector-go server -c ./example.conf	
+
 unit_test:
 	go test -v ./app/...
 

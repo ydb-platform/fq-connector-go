@@ -8,10 +8,10 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+	"go.uber.org/zap"
 )
 
 type schemaProvider struct {
@@ -22,7 +22,7 @@ var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
 
 func (f *schemaProvider) GetSchema(
 	ctx context.Context,
-	logger my_log.Logger,
+	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {

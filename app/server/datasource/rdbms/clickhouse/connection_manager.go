@@ -11,8 +11,8 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.Connection = (*Connection)(nil)
@@ -56,7 +56,7 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 	if err := out.Err(); err != nil {
 		defer func() {
 			if closeErr := out.Close(); closeErr != nil {
-				c.logger.Error("close rows", log.Error(closeErr))
+				c.logger.Error("close rows", zap.Error(closeErr))
 			}
 		}()
 
@@ -75,7 +75,7 @@ type connectionManager struct {
 
 func (c *connectionManager) Make(
 	_ context.Context,
-	logger log.Logger,
+	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
 	if dsi.GetCredentials().GetBasic() == nil {
@@ -103,7 +103,7 @@ func (c *connectionManager) Make(
 		// Set this field to true if you want to see ClickHouse driver's debug output
 		Debug: false,
 		Debugf: func(format string, v ...any) {
-			logger.Debugf(format, v...)
+			logger.Debug(format, zap.Any("args", v))
 		},
 		// TODO: make it configurable via Connector API
 		Compression: &clickhouse.Compression{
@@ -138,7 +138,7 @@ func (c *connectionManager) Make(
 	return &Connection{DB: conn, logger: queryLogger}, nil
 }
 
-func (c *connectionManager) Release(logger log.Logger, conn rdbms_utils.Connection) {
+func (c *connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
 	utils.LogCloserError(logger, conn, "close clickhouse connection")
 }
 

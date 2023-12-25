@@ -7,12 +7,12 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 type DataSourceFactory[T utils.Acceptor] interface {
 	Make(
-		logger log.Logger,
+		logger *zap.Logger,
 		dataSourceType api_common.EDataSourceKind,
 	) (DataSource[T], error)
 }
@@ -25,14 +25,14 @@ type DataSource[T utils.Acceptor] interface {
 	// located within a particular database in a data source cluster.
 	DescribeTable(
 		ctx context.Context,
-		logger log.Logger,
+		logger *zap.Logger,
 		request *api_service_protos.TDescribeTableRequest,
 	) (*api_service_protos.TDescribeTableResponse, error)
 
 	// ReadSplit is a main method for reading data from the table.
 	ReadSplit(
 		ctx context.Context,
-		logger log.Logger,
+		logger *zap.Logger,
 		split *api_service_protos.TSplit,
 		sink paging.Sink[T],
 	)

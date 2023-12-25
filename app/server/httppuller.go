@@ -6,10 +6,9 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log/nop"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 	"github.com/ydb-platform/fq-connector-go/library/go/httputil/headers"
+	"go.uber.org/zap"
 )
 
 type MetricsStreamer interface {
@@ -20,7 +19,7 @@ type MetricsStreamer interface {
 type handler struct {
 	registry     MetricsStreamer
 	streamFormat headers.ContentType
-	logger       log.Logger
+	logger       *zap.Logger
 }
 
 type spackOption struct {
@@ -37,11 +36,11 @@ type Option interface {
 }
 
 // NewHTTPPullerHandler returns new HTTP handler to expose gathered metrics using metrics dumper
-func NewHTTPPullerHandler(r MetricsStreamer, opts ...Option) http.Handler {
+func NewHTTPPullerHandler(logger *zap.Logger, r MetricsStreamer, opts ...Option) http.Handler {
 	h := handler{
 		registry:     r,
 		streamFormat: headers.TypeApplicationJSON,
-		logger:       &nop.Logger{},
+		logger:       logger,
 	}
 
 	for _, opt := range opts {
@@ -64,7 +63,7 @@ func (h handler) okSpack(header http.Header) bool {
 	for _, header := range header[headers.AcceptKey] {
 		types, err := headers.ParseAccept(header)
 		if err != nil {
-			h.logger.Warn("Can't parse accept header", log.Error(err), log.String("header", header))
+			h.logger.Warn("Can't parse accept header", zap.Error(err), zap.String("header", header))
 
 			continue
 		}
@@ -84,7 +83,7 @@ func (h handler) okLZ4Compression(header http.Header) bool {
 		encodings, err := headers.ParseAcceptEncoding(header)
 
 		if err != nil {
-			h.logger.Warn("Can't parse accept-encoding header", log.Error(err), log.String("header", header))
+			h.logger.Warn("Can't parse accept-encoding header", zap.Error(err), zap.String("header", header))
 
 			continue
 		}
@@ -111,7 +110,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		_, err := h.registry.StreamSpack(r.Context(), w, compression)
 
 		if err != nil {
-			h.logger.Error("Failed to write compressed spack", log.Error(err))
+			h.logger.Error("Failed to write compressed spack", zap.Error(err))
 		}
 
 		return
@@ -121,6 +120,6 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err := h.registry.StreamJSON(r.Context(), w)
 
 	if err != nil {
-		h.logger.Error("Failed to write json", log.Error(err))
+		h.logger.Error("Failed to write json", zap.Error(err))
 	}
 }

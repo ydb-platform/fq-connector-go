@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
+	"go.uber.org/zap"
 )
 
 type service interface {
@@ -20,7 +20,7 @@ type service interface {
 
 type launcher struct {
 	services map[string]service
-	logger   log.Logger
+	logger   *zap.Logger
 }
 
 func (l *launcher) start() <-chan error {
@@ -29,7 +29,7 @@ func (l *launcher) start() <-chan error {
 	for key := range l.services {
 		key := key
 		go func(key string) {
-			l.logger.Info("starting service", log.String("service", key))
+			l.logger.Info("starting service", zap.String("service", key))
 
 			// blocking call
 			errChan <- l.services[key].start()
@@ -42,7 +42,7 @@ func (l *launcher) start() <-chan error {
 func (l *launcher) stop() {
 	// TODO: make it concurrent
 	for key, s := range l.services {
-		l.logger.Info("stopping service", log.String("service", key))
+		l.logger.Info("stopping service", zap.String("service", key))
 		s.stop()
 	}
 }
@@ -53,7 +53,7 @@ const (
 	metricsKey          = "metrics"
 )
 
-func newLauncher(logger log.Logger, cfg *config.TServerConfig) (*launcher, error) {
+func newLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*launcher, error) {
 	l := &launcher{
 		services: make(map[string]service, 2),
 		logger:   logger,
@@ -68,13 +68,13 @@ func newLauncher(logger log.Logger, cfg *config.TServerConfig) (*launcher, error
 
 	if cfg.MetricsServer != nil {
 		l.services[metricsKey] = newServiceMetrics(
-			log.With(logger, log.String("service", metricsKey)),
+			logger.With(zap.String("service", metricsKey)),
 			cfg.MetricsServer, registry)
 	}
 
 	// init GRPC server
 	l.services[connectorServiceKey], err = newServiceConnector(
-		log.With(logger, log.String("service", connectorServiceKey)),
+		logger.With(zap.String("service", connectorServiceKey)),
 		cfg, registry)
 	if err != nil {
 		return nil, fmt.Errorf("new connector server: %w", err)
@@ -83,7 +83,7 @@ func newLauncher(logger log.Logger, cfg *config.TServerConfig) (*launcher, error
 	// init Pprof server
 	if cfg.PprofServer != nil {
 		l.services[pprofServiceKey] = newServicePprof(
-			log.With(logger, log.String("service", pprofServiceKey)),
+			logger.With(zap.String("service", pprofServiceKey)),
 			cfg.PprofServer)
 	}
 
@@ -118,9 +118,9 @@ func run(cmd *cobra.Command, _ []string) error {
 
 	select {
 	case err := <-errChan:
-		logger.Error("service fatal error", log.Error(err))
+		logger.Error("service fatal error", zap.Error(err))
 	case sig := <-signalChan:
-		logger.Info("interrupting signal", log.Any("value", sig))
+		logger.Info("interrupting signal", zap.Any("value", sig))
 		l.stop()
 	}
 

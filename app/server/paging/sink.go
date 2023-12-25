@@ -7,7 +7,7 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 type sinkState int8
@@ -27,7 +27,7 @@ type sinkImpl[T utils.Acceptor] struct {
 	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
 	trafficTracker *TrafficTracker[T]       // tracks the amount of data passed through the sink
 	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request
-	logger         log.Logger               // annotated logger
+	logger         *zap.Logger              // annotated logger
 	state          sinkState                // flag showing if it's ready to return data
 	ctx            context.Context          // client context
 }
@@ -146,7 +146,7 @@ func (s *sinkImpl[T]) unexpectedState(expected ...sinkState) error {
 
 func NewSink[T utils.Acceptor](
 	ctx context.Context,
-	logger log.Logger,
+	logger *zap.Logger,
 	trafficTracker *TrafficTracker[T],
 	columnarBufferFactory ColumnarBufferFactory[T],
 	readLimiter ReadLimiter,

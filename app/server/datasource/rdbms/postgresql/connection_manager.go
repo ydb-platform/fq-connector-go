@@ -10,8 +10,8 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.Connection = (*Connection)(nil)
@@ -63,7 +63,7 @@ type connectionManager struct {
 
 func (c *connectionManager) Make(
 	ctx context.Context,
-	logger log.Logger,
+	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
 	if dsi.GetCredentials().GetBasic() == nil {
@@ -116,7 +116,7 @@ func (c *connectionManager) Make(
 	return &Connection{conn, queryLogger}, nil
 }
 
-func (c *connectionManager) Release(logger log.Logger, conn rdbms_utils.Connection) {
+func (c *connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
 	utils.LogCloserError(logger, conn, "close posgresql connection")
 }
 

@@ -17,7 +17,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -64,7 +64,7 @@ func runClient(_ *cobra.Command, args []string) error {
 	return nil
 }
 
-func makeConnection(logger log.Logger, cfg *config.ClientConfig) (*grpc.ClientConn, error) {
+func makeConnection(logger *zap.Logger, cfg *config.ClientConfig) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 
 	if cfg.Tls != nil {
@@ -99,7 +99,7 @@ func makeConnection(logger log.Logger, cfg *config.ClientConfig) (*grpc.ClientCo
 	return conn, nil
 }
 
-func callServer(logger log.Logger, cfg *config.ClientConfig) error {
+func callServer(logger *zap.Logger, cfg *config.ClientConfig) error {
 	conn, err := makeConnection(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
@@ -140,12 +140,12 @@ func callServer(logger log.Logger, cfg *config.ClientConfig) error {
 }
 
 func describeTable(
-	logger log.Logger,
+	logger *zap.Logger,
 	connectorClient api_service.ConnectorClient,
 	dsi *api_common.TDataSourceInstance,
 ) (*api_service_protos.TSchema, error) {
 	req := &api_service_protos.TDescribeTableRequest{Table: tableName, DataSourceInstance: dsi}
-	logger.Debug("DescribeTable", log.String("request", req.String()))
+	logger.Debug("DescribeTable", zap.String("request", req.String()))
 
 	resp, err := connectorClient.DescribeTable(context.TODO(), req)
 	if err != nil {
@@ -153,18 +153,18 @@ func describeTable(
 	}
 
 	if utils.IsSuccess(resp.Error) {
-		logger.Debug("DescribeTable", log.String("response", resp.String()))
+		logger.Debug("DescribeTable", zap.String("response", resp.String()))
 
 		return resp.Schema, nil
 	}
 
-	logger.Error("DescribeTable", log.String("response", resp.String()))
+	logger.Error("DescribeTable", zap.String("response", resp.String()))
 
 	return nil, utils.NewSTDErrorFromAPIError(resp.Error)
 }
 
 func listSplits(
-	logger log.Logger,
+	logger *zap.Logger,
 	schema *api_service_protos.TSchema,
 	connectorClient api_service.ConnectorClient,
 	dsi *api_common.TDataSourceInstance,
@@ -186,7 +186,7 @@ func listSplits(
 			},
 		},
 	}
-	logger.Debug("ListSplits", log.String("request", req.String()))
+	logger.Debug("ListSplits", zap.String("request", req.String()))
 
 	streamListSplits, err := connectorClient.ListSplits(context.TODO(), req)
 	if err != nil {
@@ -206,12 +206,12 @@ func listSplits(
 		}
 
 		if !utils.IsSuccess(resp.Error) {
-			logger.Error("ListSplits", log.String("response", resp.String()))
+			logger.Error("ListSplits", zap.String("response", resp.String()))
 
 			return splits, utils.NewSTDErrorFromAPIError(resp.Error)
 		}
 
-		logger.Debug("ListSplits", log.String("response", resp.String()))
+		logger.Debug("ListSplits", zap.String("response", resp.String()))
 		splits = append(splits, resp.Splits...)
 	}
 
@@ -223,14 +223,14 @@ func listSplits(
 }
 
 func readSplits(
-	logger log.Logger,
+	logger *zap.Logger,
 	splits []*api_service_protos.TSplit,
 	format api_service_protos.TReadSplitsRequest_EFormat,
 	connectorClient api_service.ConnectorClient,
 	dsi *api_common.TDataSourceInstance,
 ) error {
 	req := &api_service_protos.TReadSplitsRequest{Splits: splits, Format: format, DataSourceInstance: dsi}
-	logger.Debug("ReadSplits", log.String("request", req.String()))
+	logger.Debug("ReadSplits", zap.String("request", req.String()))
 
 	streamReadSplits, err := connectorClient.ReadSplits(context.Background(), req)
 	if err != nil {
@@ -264,7 +264,7 @@ func readSplits(
 }
 
 func dumpReadResponses(
-	logger log.Logger,
+	logger *zap.Logger,
 	format api_service_protos.TReadSplitsRequest_EFormat,
 	responses []*api_service_protos.TReadSplitsResponse,
 ) error {
@@ -279,10 +279,10 @@ func dumpReadResponses(
 
 			for reader.Next() {
 				record := reader.Record()
-				logger.Debug("schema", log.String("schema", record.Schema().String()))
+				logger.Debug("schema", zap.String("schema", record.Schema().String()))
 
 				for i, column := range record.Columns() {
-					logger.Debug("column", log.Int("id", i), log.String("data", column.String()))
+					logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
 				}
 			}
 

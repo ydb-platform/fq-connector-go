@@ -10,7 +10,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 type Streamer[T utils.Acceptor] struct {
@@ -19,7 +19,7 @@ type Streamer[T utils.Acceptor] struct {
 	dataSource datasource.DataSource[T]
 	split      *api_service_protos.TSplit
 	sink       paging.Sink[T]
-	logger     log.Logger
+	logger     *zap.Logger
 	ctx        context.Context // clone of a stream context
 	cancel     context.CancelFunc
 }
@@ -95,7 +95,7 @@ func (s *Streamer[T]) Run() error {
 }
 
 func NewStreamer[T utils.Acceptor](
-	logger log.Logger,
+	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
