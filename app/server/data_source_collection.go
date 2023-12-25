@@ -15,7 +15,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 type DataSourceCollection struct {
@@ -26,7 +26,7 @@ type DataSourceCollection struct {
 }
 
 func (dsc *DataSourceCollection) DescribeTable(
-	ctx context.Context, logger log.Logger, request *api_service_protos.TDescribeTableRequest,
+	ctx context.Context, logger *zap.Logger, request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	kind := request.GetDataSourceInstance().GetKind()
 
@@ -48,7 +48,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 }
 
 func (dsc *DataSourceCollection) DoReadSplit(
-	logger log.Logger,
+	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
@@ -71,7 +71,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 }
 
 func readSplit[T utils.Acceptor](
-	logger log.Logger,
+	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
@@ -122,8 +122,8 @@ func readSplit[T utils.Acceptor](
 
 	logger.Debug(
 		"split reading finished",
-		log.UInt64("total_bytes", readStats.GetBytes()),
-		log.UInt64("total_rows", readStats.GetRows()),
+		zap.Uint64("total_bytes", readStats.GetBytes()),
+		zap.Uint64("total_rows", readStats.GetRows()),
 	)
 
 	return nil

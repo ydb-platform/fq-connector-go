@@ -5,7 +5,7 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 // ReadLimiter helps to limitate amount of data returned by Connector server in every read request.
@@ -40,7 +40,7 @@ type ReadLimiterFactory struct {
 	cfg *config.TServerReadLimit
 }
 
-func (rlf *ReadLimiterFactory) MakeReadLimiter(logger log.Logger) ReadLimiter {
+func (rlf *ReadLimiterFactory) MakeReadLimiter(logger *zap.Logger) ReadLimiter {
 	if rlf.cfg == nil {
 		return readLimiterNoop{}
 	}

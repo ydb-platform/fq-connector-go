@@ -7,7 +7,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 var _ DataSource[any] = (*DataSourceMock[any])(nil)
@@ -18,7 +18,7 @@ type DataSourceMock[T utils.Acceptor] struct {
 
 func (m *DataSourceMock[T]) DescribeTable(
 	_ context.Context,
-	_ log.Logger,
+	_ *zap.Logger,
 	_ *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	panic("not implemented") // TODO: Implement
@@ -26,7 +26,7 @@ func (m *DataSourceMock[T]) DescribeTable(
 
 func (m *DataSourceMock[T]) ReadSplit(
 	_ context.Context,
-	_ log.Logger,
+	_ *zap.Logger,
 	split *api_service_protos.TSplit,
 	pagingWriter paging.Sink[T],
 ) {

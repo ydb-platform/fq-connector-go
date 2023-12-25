@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 var _ Connection = (*ConnectionMock)(nil)
@@ -35,14 +35,14 @@ type ConnectionManagerMock struct {
 
 func (m *ConnectionManagerMock) Make(
 	_ context.Context,
-	_ log.Logger,
+	_ *zap.Logger,
 	dataSourceInstance *api_common.TDataSourceInstance) (Connection, error) {
 	args := m.Called(dataSourceInstance)
 
 	return args.Get(0).(Connection), args.Error(1)
 }
 
-func (m *ConnectionManagerMock) Release(_ log.Logger, conn Connection) {
+func (m *ConnectionManagerMock) Release(_ *zap.Logger, conn Connection) {
 	m.Called(conn)
 }
 
