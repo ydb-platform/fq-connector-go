@@ -8,25 +8,24 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log/zap"
+	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 )
 
 // TODO: it's better to do this in GRPC middleware
 
-func AnnotateLogger(logger log.Logger, method string, dsi *api_common.TDataSourceInstance) log.Logger {
-	logger = log.With(logger, log.String("method", method))
+func AnnotateLogger(l *zap.Logger, method string, dsi *api_common.TDataSourceInstance) *zap.Logger {
+	logger := l.With(zap.String("method", method))
 
 	if dsi != nil {
-		logger = log.With(logger,
-			log.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.Kind)]),
-			log.String("host", dsi.Endpoint.Host),
-			log.UInt32("port", dsi.Endpoint.Port),
-			log.String("database", dsi.Database),
-			log.Bool("use_tls", dsi.UseTls),
-			log.String("protocol", dsi.Protocol.String()),
+		logger = logger.With(
+			zap.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.Kind)]),
+			zap.String("host", dsi.Endpoint.Host),
+			zap.Uint32("port", dsi.Endpoint.Port),
+			zap.String("database", dsi.Database),
+			zap.Bool("use_tls", dsi.UseTls),
+			zap.String("protocol", dsi.Protocol.String()),
 			// TODO: can we print just a login without a password?
 		)
 	}
@@ -34,18 +33,18 @@ func AnnotateLogger(logger log.Logger, method string, dsi *api_common.TDataSourc
 	return logger
 }
 
-func LogCloserError(logger log.Logger, closer io.Closer, msg string) {
+func LogCloserError(logger *zap.Logger, closer io.Closer, msg string) {
 	if err := closer.Close(); err != nil {
-		logger.Error(msg, log.Error(err))
+		logger.Error(msg, zap.Error(err))
 	}
 }
 
-func NewLoggerFromConfig(cfg *config.TLoggerConfig) (log.Logger, error) {
+func NewLoggerFromConfig(cfg *config.TLoggerConfig) (*zap.Logger, error) {
 	if cfg == nil {
 		return NewDefaultLogger()
 	}
 
-	loggerCfg := zap.NewDeployConfig()
+	loggerCfg := zap.NewProductionConfig()
 	loggerCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	loggerCfg.Encoding = "console"
 	loggerCfg.Level.SetLevel(convertToZapLogLevel(cfg.GetLogLevel()))
@@ -55,38 +54,38 @@ func NewLoggerFromConfig(cfg *config.TLoggerConfig) (log.Logger, error) {
 		return nil, fmt.Errorf("new logger: %w", err)
 	}
 
-	return &zap.Logger{L: zapLogger}, nil
+	return zapLogger, nil
 }
 
-func NewDefaultLogger() (log.Logger, error) {
-	return NewLoggerFromConfig(&config.TLoggerConfig{LogLevel: config.ELogLevel_TRACE})
+func NewDefaultLogger() (*zap.Logger, error) {
+	return zap.Must(zap.NewDevelopment()), nil
 }
 
-func NewTestLogger(t *testing.T) log.Logger { return &zap.Logger{L: zaptest.NewLogger(t)} }
+func NewTestLogger(t *testing.T) *zap.Logger { return zaptest.NewLogger(t) }
 
-func DumpReadSplitsResponse(logger log.Logger, resp *api_service_protos.TReadSplitsResponse) {
+func DumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSplitsResponse) {
 	switch t := resp.GetPayload().(type) {
 	case *api_service_protos.TReadSplitsResponse_ArrowIpcStreaming:
 		if dump := resp.GetArrowIpcStreaming(); dump != nil {
-			logger.Debug("response", log.Int("arrow_blob_length", len(dump)))
+			logger.Debug("response", zap.Int("arrow_blob_length", len(dump)))
 		}
 	case *api_service_protos.TReadSplitsResponse_ColumnSet:
 		for i := range t.ColumnSet.Data {
 			data := t.ColumnSet.Data[i]
 			meta := t.ColumnSet.Meta[i]
 
-			logger.Debug("response", log.Int("column_id", i), log.String("meta", meta.String()), log.String("data", data.String()))
+			logger.Debug("response", zap.Int("column_id", i), zap.String("meta", meta.String()), zap.String("data", data.String()))
 		}
 	default:
 		panic(fmt.Sprintf("unexpected message type %v", t))
 	}
 }
 
-func SelectToFields(slct *api_service_protos.TSelect) []log.Field {
-	result := []log.Field{
-		log.Any("from", slct.From),
-		log.Any("what", slct.What),
-		log.Any("where", slct.Where),
+func SelectToFields(slct *api_service_protos.TSelect) []zap.Field {
+	result := []zap.Field{
+		zap.Any("from", slct.From),
+		zap.Any("what", slct.What),
+		zap.Any("where", slct.Where),
 	}
 
 	return result
@@ -102,12 +101,12 @@ func NewQueryLoggerFactory(cfg *config.TLoggerConfig) QueryLoggerFactory {
 	return QueryLoggerFactory{enableQueryLogging: enabled}
 }
 
-func (f *QueryLoggerFactory) Make(logger log.Logger) QueryLogger {
+func (f *QueryLoggerFactory) Make(logger *zap.Logger) QueryLogger {
 	return QueryLogger{Logger: logger, enabled: f.enableQueryLogging}
 }
 
 type QueryLogger struct {
-	log.Logger
+	*zap.Logger
 	enabled bool
 }
 
@@ -116,9 +115,9 @@ func (ql *QueryLogger) Dump(query string, args ...any) {
 		return
 	}
 
-	logFields := []log.Field{log.String("query", query)}
+	logFields := []zap.Field{zap.String("query", query)}
 	if len(args) > 0 {
-		logFields = append(logFields, log.Any("args", args))
+		logFields = append(logFields, zap.Any("args", args))
 	}
 
 	ql.Debug("execute SQL query", logFields...)

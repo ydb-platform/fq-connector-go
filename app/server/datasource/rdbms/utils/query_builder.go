@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
-func MakeReadSplitQuery(logger log.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, error) {
+func MakeReadSplitQuery(logger *zap.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, error) {
 	var (
 		sb   strings.Builder
 		args []any
@@ -26,7 +26,7 @@ func MakeReadSplitQuery(logger log.Logger, formatter SQLFormatter, request *api_
 
 		clause, args, err = formatWhereClause(formatter, request.Where)
 		if err != nil {
-			logger.Error("Failed to format WHERE clause", log.Error(err), log.String("where", request.Where.String()))
+			logger.Error("Failed to format WHERE clause", zap.Error(err), zap.String("where", request.Where.String()))
 		} else {
 			sb.WriteString(" ")
 			sb.WriteString(clause)

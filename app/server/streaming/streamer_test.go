@@ -21,8 +21,8 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 var _ api_service.Connector_ReadSplitsServer = (*streamMock)(nil)
@@ -30,7 +30,7 @@ var _ api_service.Connector_ReadSplitsServer = (*streamMock)(nil)
 type streamMock struct {
 	mock.Mock
 	api_service.Connector_ReadSplitsServer
-	logger log.Logger
+	logger *zap.Logger
 }
 
 func (m *streamMock) Context() context.Context {

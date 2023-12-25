@@ -6,8 +6,8 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 type Connection interface {
@@ -24,8 +24,8 @@ type Rows interface {
 }
 
 type ConnectionManager interface {
-	Make(ctx context.Context, logger log.Logger, dataSourceInstance *api_common.TDataSourceInstance) (Connection, error)
-	Release(logger log.Logger, connection Connection)
+	Make(ctx context.Context, logger *zap.Logger, dataSourceInstance *api_common.TDataSourceInstance) (Connection, error)
+	Release(logger *zap.Logger, connection Connection)
 }
 
 type ConnectionManagerBase struct {
@@ -46,7 +46,7 @@ type SQLFormatter interface {
 type SchemaProvider interface {
 	GetSchema(
 		ctx context.Context,
-		logger log.Logger,
+		logger *zap.Logger,
 		conn Connection,
 		request *api_service_protos.TDescribeTableRequest,
 	) (*api_service_protos.TSchema, error)

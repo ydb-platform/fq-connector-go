@@ -9,7 +9,7 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 type Preset struct {
@@ -26,12 +26,12 @@ type dataSourceImpl struct {
 	sqlFormatter      rdbms_utils.SQLFormatter
 	connectionManager rdbms_utils.ConnectionManager
 	schemaProvider    rdbms_utils.SchemaProvider
-	logger            log.Logger
+	logger            *zap.Logger
 }
 
 func (ds *dataSourceImpl) DescribeTable(
 	ctx context.Context,
-	logger log.Logger,
+	logger *zap.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	conn, err := ds.connectionManager.Make(ctx, logger, request.DataSourceInstance)
@@ -51,7 +51,7 @@ func (ds *dataSourceImpl) DescribeTable(
 
 func (ds *dataSourceImpl) doReadSplit(
 	ctx context.Context,
-	logger log.Logger,
+	logger *zap.Logger,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) error {
@@ -105,7 +105,7 @@ func (ds *dataSourceImpl) doReadSplit(
 
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
-	logger log.Logger,
+	logger *zap.Logger,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) {
@@ -118,7 +118,7 @@ func (ds *dataSourceImpl) ReadSplit(
 }
 
 func NewDataSource(
-	logger log.Logger,
+	logger *zap.Logger,
 	preset *Preset,
 ) datasource.DataSource[any] {
 	return &dataSourceImpl{

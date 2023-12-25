@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 var (
@@ -87,10 +87,10 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	}
 }
 
-func APIErrorToLogFields(apiErr *api_service_protos.TError) []log.Field {
-	return []log.Field{
-		log.String("message", apiErr.Message),
-		log.String("status", apiErr.Status.String()),
+func APIErrorToLogFields(apiErr *api_service_protos.TError) []zap.Field {
+	return []zap.Field{
+		zap.String("message", apiErr.Message),
+		zap.String("status", apiErr.Status.String()),
 	}
 }
 

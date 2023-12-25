@@ -13,8 +13,8 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
@@ -26,7 +26,7 @@ type serviceConnector struct {
 	cfg                  *config.TServerConfig
 	grpcServer           *grpc.Server
 	listener             net.Listener
-	logger               log.Logger
+	logger               *zap.Logger
 }
 
 func (s *serviceConnector) ListTables(_ *api_service_protos.TListTablesRequest, _ api_service.Connector_ListTablesServer) error {
@@ -38,10 +38,10 @@ func (s *serviceConnector) DescribeTable(
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	logger := utils.AnnotateLogger(s.logger, "DescribeTable", request.DataSourceInstance)
-	logger.Info("request handling started", log.String("table", request.GetTable()))
+	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
-		logger.Error("request handling failed", log.Error(err))
+		logger.Error("request handling failed", zap.Error(err))
 
 		return &api_service_protos.TDescribeTableResponse{
 			Error: utils.NewAPIErrorFromStdError(err),
@@ -50,7 +50,7 @@ func (s *serviceConnector) DescribeTable(
 
 	out, err := s.dataSourceCollection.DescribeTable(ctx, logger, request)
 	if err != nil {
-		logger.Error("request handling failed", log.Error(err))
+		logger.Error("request handling failed", zap.Error(err))
 
 		out = &api_service_protos.TDescribeTableResponse{Error: utils.NewAPIErrorFromStdError(err)}
 
@@ -58,14 +58,14 @@ func (s *serviceConnector) DescribeTable(
 	}
 
 	out.Error = utils.NewSuccess()
-	logger.Info("request handling finished", log.String("response", out.String()))
+	logger.Info("request handling finished", zap.String("response", out.String()))
 
 	return out, nil
 }
 
 func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsRequest, stream api_service.Connector_ListSplitsServer) error {
 	logger := utils.AnnotateLogger(s.logger, "ListSplits", nil)
-	logger.Info("request handling started", log.Int("total selects", len(request.Selects)))
+	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
@@ -77,13 +77,13 @@ func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsReq
 
 	for _, slct := range request.Selects {
 		if err := s.doListSplitsHandleSelect(stream, slct, &totalSplits); err != nil {
-			logger.Error("request handling failed", log.Error(err))
+			logger.Error("request handling failed", zap.Error(err))
 
 			return err
 		}
 	}
 
-	logger.Info("request handling finished", log.Int("total_splits", totalSplits))
+	logger.Info("request handling finished", zap.Int("total_splits", totalSplits))
 
 	return nil
 }
@@ -95,8 +95,8 @@ func (s *serviceConnector) doListSplitsHandleSelect(
 ) error {
 	logger := utils.AnnotateLogger(s.logger, "ListSplits", slct.DataSourceInstance)
 
-	args := []log.Field{
-		log.Int("split_id", *totalSplits),
+	args := []zap.Field{
+		zap.Int("split_id", *totalSplits),
 	}
 	args = append(args, utils.SelectToFields(slct)...)
 
@@ -108,8 +108,8 @@ func (s *serviceConnector) doListSplitsHandleSelect(
 	}
 
 	for _, split := range resp.Splits {
-		args := []log.Field{
-			log.Int("split_id", *totalSplits),
+		args := []zap.Field{
+			zap.Int("split_id", *totalSplits),
 		}
 		args = append(args, utils.SelectToFields(split.Select)...)
 
@@ -126,7 +126,7 @@ func (s *serviceConnector) doListSplitsHandleSelect(
 }
 
 func (s *serviceConnector) doListSplitsResponse(
-	logger log.Logger,
+	logger *zap.Logger,
 	stream api_service.Connector_ListSplitsServer,
 	response *api_service_protos.TListSplitsResponse,
 ) error {
@@ -135,7 +135,7 @@ func (s *serviceConnector) doListSplitsResponse(
 	}
 
 	if err := stream.Send(response); err != nil {
-		logger.Error("send channel failed", log.Error(err))
+		logger.Error("send channel failed", zap.Error(err))
 
 		return err
 	}
@@ -147,11 +147,11 @@ func (s *serviceConnector) ReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer) error {
 	logger := utils.AnnotateLogger(s.logger, "ReadSplits", request.DataSourceInstance)
-	logger.Info("request handling started", log.Int("total_splits", len(request.Splits)))
+	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	err := s.doReadSplits(logger, request, stream)
 	if err != nil {
-		logger.Error("request handling failed", log.Error(err))
+		logger.Error("request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TReadSplitsResponse{Error: utils.NewAPIErrorFromStdError(err)}
 
@@ -166,7 +166,7 @@ func (s *serviceConnector) ReadSplits(
 }
 
 func (s *serviceConnector) doReadSplits(
-	logger log.Logger,
+	logger *zap.Logger,
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
@@ -175,7 +175,7 @@ func (s *serviceConnector) doReadSplits(
 	}
 
 	for i, split := range request.Splits {
-		splitLogger := log.With(logger, log.Int("split_id", i))
+		splitLogger := logger.With(zap.Int("split_id", i))
 
 		err := s.dataSourceCollection.DoReadSplit(
 			splitLogger,
@@ -193,7 +193,7 @@ func (s *serviceConnector) doReadSplits(
 }
 
 func (s *serviceConnector) start() error {
-	s.logger.Debug("starting GRPC server", log.String("address", s.listener.Addr().String()))
+	s.logger.Debug("starting GRPC server", zap.String("address", s.listener.Addr().String()))
 
 	if err := s.grpcServer.Serve(s.listener); err != nil {
 		return fmt.Errorf("listener serve: %w", err)
@@ -202,7 +202,7 @@ func (s *serviceConnector) start() error {
 	return nil
 }
 
-func makeGRPCOptions(logger log.Logger, cfg *config.TServerConfig, registry *solomon.Registry) ([]grpc.ServerOption, error) {
+func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *solomon.Registry) ([]grpc.ServerOption, error) {
 	var (
 		opts      []grpc.ServerOption
 		tlsConfig *config.TServerTLSConfig
@@ -228,7 +228,7 @@ func makeGRPCOptions(logger log.Logger, cfg *config.TServerConfig, registry *sol
 
 	logger.Info("server will use TLS connections")
 
-	logger.Debug("reading key pair", log.String("cert", tlsConfig.Cert), log.String("key", tlsConfig.Key))
+	logger.Debug("reading key pair", zap.String("cert", tlsConfig.Cert), zap.String("key", tlsConfig.Key))
 
 	cert, err := tls.LoadX509KeyPair(tlsConfig.Cert, tlsConfig.Key)
 	if err != nil {
@@ -247,7 +247,7 @@ func (s *serviceConnector) stop() {
 }
 
 func newServiceConnector(
-	logger log.Logger,
+	logger *zap.Logger,
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
 ) (service, error) {

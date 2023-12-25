@@ -6,7 +6,7 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	my_log "github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 type DefaultSchemaProvider struct {
@@ -18,7 +18,7 @@ var _ SchemaProvider = (*DefaultSchemaProvider)(nil)
 
 func (f *DefaultSchemaProvider) GetSchema(
 	ctx context.Context,
-	logger my_log.Logger,
+	logger *zap.Logger,
 	conn Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {

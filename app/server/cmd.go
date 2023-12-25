@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -25,6 +24,7 @@ func init() {
 	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
 
 	if err := Cmd.MarkFlagRequired(configFlag); err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }

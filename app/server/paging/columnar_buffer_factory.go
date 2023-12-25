@@ -7,13 +7,13 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 type columnarBufferFactoryImpl[T utils.Acceptor] struct {
 	arrowAllocator memory.Allocator
-	logger         log.Logger
+	logger         *zap.Logger
 	format         api_service_protos.TReadSplitsRequest_EFormat
 	schema         *arrow.Schema
 	ydbTypes       []*Ydb.Type
@@ -47,7 +47,7 @@ func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer() (ColumnarBuffer[T], error)
 }
 
 func NewColumnarBufferFactory[T utils.Acceptor](
-	logger log.Logger,
+	logger *zap.Logger,
 	arrowAllocator memory.Allocator,
 	format api_service_protos.TReadSplitsRequest_EFormat,
 	selectWhat *api_service_protos.TSelect_TWhat,

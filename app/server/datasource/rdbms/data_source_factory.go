@@ -9,7 +9,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 var _ datasource.DataSourceFactory[any] = (*dataSourceFactory)(nil)
@@ -20,7 +20,7 @@ type dataSourceFactory struct {
 }
 
 func (dsf *dataSourceFactory) Make(
-	logger log.Logger,
+	logger *zap.Logger,
 	dataSourceType api_common.EDataSourceKind,
 ) (datasource.DataSource[any], error) {
 	switch dataSourceType {

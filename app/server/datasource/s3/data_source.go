@@ -15,8 +15,8 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 var _ datasource.DataSource[string] = (*dataSource)(nil)
@@ -26,13 +26,13 @@ type dataSource struct {
 
 func (ds *dataSource) DescribeTable(
 	_ context.Context,
-	_ log.Logger,
+	_ *zap.Logger,
 	_ *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	return nil, fmt.Errorf("table description is not implemented for schemaless data sources: %w", utils.ErrMethodNotSupported)
 }
 
-func (ds *dataSource) ReadSplit(ctx context.Context, logger log.Logger, split *api_service_protos.TSplit, sink paging.Sink[string]) {
+func (ds *dataSource) ReadSplit(ctx context.Context, logger *zap.Logger, split *api_service_protos.TSplit, sink paging.Sink[string]) {
 	if err := ds.doReadSplit(ctx, logger, split, sink); err != nil {
 		sink.AddError(err)
 	}
@@ -42,7 +42,7 @@ func (ds *dataSource) ReadSplit(ctx context.Context, logger log.Logger, split *a
 
 func (ds *dataSource) doReadSplit(
 	ctx context.Context,
-	_ log.Logger,
+	_ *zap.Logger,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[string]) error {
 	conn := makeConnection()

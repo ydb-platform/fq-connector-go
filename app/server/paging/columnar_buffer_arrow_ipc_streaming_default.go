@@ -10,7 +10,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
 var _ ColumnarBuffer[any] = (*columnarBufferArrowIPCStreamingDefault[any])(nil)
@@ -19,7 +19,7 @@ type columnarBufferArrowIPCStreamingDefault[T utils.Acceptor] struct {
 	arrowAllocator memory.Allocator
 	builders       []array.Builder
 	schema         *arrow.Schema
-	logger         log.Logger
+	logger         *zap.Logger
 }
 
 // AddRow saves a row obtained from the datasource into the buffer

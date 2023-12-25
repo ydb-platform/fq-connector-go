@@ -6,10 +6,10 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
+	"go.uber.org/zap"
 )
 
-func ValidateDescribeTableRequest(logger log.Logger, request *api_service_protos.TDescribeTableRequest) error {
+func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_protos.TDescribeTableRequest) error {
 	if err := validateDataSourceInstance(logger, request.GetDataSourceInstance()); err != nil {
 		return fmt.Errorf("validate data source instance: %w", err)
 	}
@@ -21,7 +21,7 @@ func ValidateDescribeTableRequest(logger log.Logger, request *api_service_protos
 	return nil
 }
 
-func ValidateListSplitsRequest(logger log.Logger, request *api_service_protos.TListSplitsRequest) error {
+func ValidateListSplitsRequest(logger *zap.Logger, request *api_service_protos.TListSplitsRequest) error {
 	if len(request.Selects) == 0 {
 		return fmt.Errorf("empty select list: %w", utils.ErrInvalidRequest)
 	}
@@ -35,7 +35,7 @@ func ValidateListSplitsRequest(logger log.Logger, request *api_service_protos.TL
 	return nil
 }
 
-func ValidateReadSplitsRequest(logger log.Logger, request *api_service_protos.TReadSplitsRequest) error {
+func ValidateReadSplitsRequest(logger *zap.Logger, request *api_service_protos.TReadSplitsRequest) error {
 	if err := validateDataSourceInstance(logger, request.GetDataSourceInstance()); err != nil {
 		return fmt.Errorf("validate data source instance: %w", err)
 	}
@@ -47,7 +47,7 @@ func ValidateReadSplitsRequest(logger log.Logger, request *api_service_protos.TR
 	return nil
 }
 
-func validateSelect(logger log.Logger, slct *api_service_protos.TSelect) error {
+func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error {
 	if slct == nil {
 		return fmt.Errorf("select is empty: %w", utils.ErrInvalidRequest)
 	}
@@ -59,7 +59,7 @@ func validateSelect(logger log.Logger, slct *api_service_protos.TSelect) error {
 	return nil
 }
 
-func validateDataSourceInstance(logger log.Logger, dsi *api_common.TDataSourceInstance) error {
+func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
 	if dsi.GetKind() == api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED {
 		return fmt.Errorf("empty kind: %w", utils.ErrInvalidRequest)
 	}

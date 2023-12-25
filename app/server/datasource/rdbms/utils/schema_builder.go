@@ -6,8 +6,8 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/log"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 )
 
 type schemaItem struct {
@@ -40,7 +40,7 @@ func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {
 	return nil
 }
 
-func (sb *SchemaBuilder) Build(logger log.Logger) (*api_service_protos.TSchema, error) {
+func (sb *SchemaBuilder) Build(logger *zap.Logger) (*api_service_protos.TSchema, error) {
 	if len(sb.items) == 0 {
 		return nil, utils.ErrTableDoesNotExist
 	}
@@ -61,7 +61,7 @@ func (sb *SchemaBuilder) Build(logger log.Logger) (*api_service_protos.TSchema, 
 	if len(unsupported) > 0 {
 		logger.Warn(
 			"the table schema was reduced because some column types are unsupported",
-			log.Strings("unsupported columns", unsupported),
+			zap.Strings("unsupported columns", unsupported),
 		)
 	}
 
