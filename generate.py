@@ -86,7 +86,8 @@ class YDBProtoFile:
             f.write(self.src_initial)
 
 
-# YDB's protofiles this project depends on
+# YDB's protofiles this project depends on.
+# They will be temporarily patched during the code generation.
 source_params = [
     (
         "ydb/public/api/protos/ydb_value.proto",
@@ -150,9 +151,11 @@ def __find_executable(name: str) -> Path:
 
 
 def run_protoc(
-    ydb_github_root: Path,
-    connector_github_root: Path,
-    protobuf_includes: Path,
+    source_dir: Path,
+    target_dir: Path,
+    go_module: str,
+    includes: Sequence[Path],
+    with_grpc: bool,
 ):
     # compile protoc from Arcadia
     protoc_binary = __find_executable("protoc")
@@ -160,10 +163,6 @@ def run_protoc(
     protoc_gen_go_grpc_binary = __find_executable("protoc-gen-go-grpc")
 
     # look for project protofiles
-    source_dir = ydb_github_root.joinpath(
-        "ydb/library/yql/providers/generic/connector/api"
-    )
-    target_dir = connector_github_root.joinpath("api")
     proto_files = source_dir.rglob("*.proto")
 
     # build protoc args
@@ -172,12 +171,20 @@ def run_protoc(
         f"--plugin=protoc-gen-go={protoc_gen_go_binary}",
         f"--plugin=protoc-gen-go-grpc={protoc_gen_go_grpc_binary}",
         f"--go_out={target_dir}",
-        "--go_opt=module=github.com/ydb-platform/fq-connector-go/api",
-        f"--go-grpc_out={target_dir}",
-        "--go-grpc_opt=module=github.com/ydb-platform/fq-connector-go/api",
-        f"-I{ydb_github_root}",
-        f"-I{protobuf_includes}",
+        f"--go_opt=module={go_module}",
     ]
+
+    if with_grpc:
+        cmd.extend(
+            [
+                f"--go-grpc_out={target_dir}",
+                f"--go-grpc_opt=module={go_module}",
+            ]
+        )
+
+    for include in includes:
+        cmd.append(f"-I{include}")
+
     cmd.extend(proto_files)
     __call_subprocess(cmd)
 
@@ -189,14 +196,6 @@ def parse_args():
         Script for Go Protobuf API generation.
         It takes protofiles from YDB repository and generates Go code in fq-connector-go repository.
         """,
-    )
-
-    parser.add_argument(
-        "--protobuf-dir",
-        type=str,
-        default="/usr/include/google/protobuf",
-        help="Path to the directory with protobuf standard include files",
-        required=True,
     )
 
     required_args = parser.add_argument_group("required named arguments")
@@ -229,7 +228,9 @@ def main():
     if not connector_github_root.exists():
         raise ValueError(f"path {connector_github_root} does not exist")
 
-    protobuf_includes = Path(args.protobuf_dir)
+    protobuf_includes = ydb_github_root.joinpath(
+        "contrib/libs/protobuf/src/google/protobuf"
+    )
     if not protobuf_includes.exists():
         raise ValueError(f"path {protobuf_includes} does not exist")
 
@@ -242,12 +243,28 @@ def main():
     for f in ydb_source_files:
         f.patch()
     try:
-        # Generate Connector GRPC API
-        run_protoc(ydb_github_root, connector_github_root, protobuf_includes)
+        # Generate Connector API
+        run_protoc(
+            ydb_github_root.joinpath("ydb/library/yql/providers/generic/connector/api"),
+            connector_github_root.joinpath("api"),
+            "github.com/ydb-platform/fq-connector-go/api",
+            [ydb_github_root, protobuf_includes],
+            True,
+        )
+        # Generate config protofiles
+        run_protoc(
+            connector_github_root.joinpath("app/config"),
+            connector_github_root.joinpath("app/config"),
+            "github.com/ydb-platform/fq-connector-go/app/config",
+            [ydb_github_root, connector_github_root, protobuf_includes],
+            False,
+        )
+
     finally:
         # Revert changes in YDB sources
         for f in ydb_source_files:
             f.revert()
+            pass
 
 
 if __name__ == "__main__":

@@ -27,10 +27,13 @@ jobs:
         run: |
           go get ./...
       - name: Run tests with coverage
-        run: go test -race -coverpkg=./... -coverprofile=coverage.out -covermode=atomic ./app/...
+        run: |
+          go test -race -coverpkg=./... -coverprofile=coverage_full.out -covermode=atomic ./app/...
+          cat coverage_full.out | grep -v pb.go > coverage.out
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4-beta
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.out
       - name: Build
         run: GOOS=linux go build -v -o fq-connector-go ./app
