@@ -31,7 +31,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 	kind := request.GetDataSourceInstance().GetKind()
 
 	switch kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return nil, err
@@ -54,7 +54,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	split *api_service_protos.TSplit,
 ) error {
 	switch kind := request.GetDataSourceInstance().GetKind(); kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return err
