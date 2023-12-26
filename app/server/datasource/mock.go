@@ -4,19 +4,21 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
 var _ DataSource[any] = (*DataSourceMock[any])(nil)
 
+//nolint:revive
 type DataSourceMock[T utils.Acceptor] struct {
 	mock.Mock
 }
 
-func (m *DataSourceMock[T]) DescribeTable(
+func (*DataSourceMock[T]) DescribeTable(
 	_ context.Context,
 	_ *zap.Logger,
 	_ *api_service_protos.TDescribeTableRequest,
@@ -33,6 +35,6 @@ func (m *DataSourceMock[T]) ReadSplit(
 	m.Called(split, pagingWriter)
 }
 
-func (m *DataSourceMock[T]) TypeMapper() utils.TypeMapper {
+func (*DataSourceMock[T]) TypeMapper() utils.TypeMapper {
 	panic("not implemented") // TODO: Implement
 }

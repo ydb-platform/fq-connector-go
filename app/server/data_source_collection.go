@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow/memory"
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -15,11 +17,10 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
 type DataSourceCollection struct {
-	rdbms              datasource.DataSourceFactory[any]
+	rdbms              datasource.Factory[any]
 	memoryAllocator    memory.Allocator
 	readLimiterFactory *paging.ReadLimiterFactory
 	cfg                *config.TServerConfig

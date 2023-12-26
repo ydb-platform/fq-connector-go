@@ -6,9 +6,10 @@ import (
 	"io"
 	"net/http"
 
+	"go.uber.org/zap"
+
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 	"github.com/ydb-platform/fq-connector-go/library/go/httputil/headers"
-	"go.uber.org/zap"
 )
 
 type MetricsStreamer interface {

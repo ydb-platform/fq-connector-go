@@ -8,6 +8,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"github.com/apache/arrow/go/v13/arrow/memory"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
@@ -65,5 +66,5 @@ func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) ToResponse() (*api_ser
 func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) TotalRows() int { return cb.rowsAdded }
 
 // Frees resources if buffer is no longer used
-func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) Release() {
+func (*columnarBufferArrowIPCStreamingEmptyColumns[T]) Release() {
 }

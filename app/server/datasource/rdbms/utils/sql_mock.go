@@ -5,10 +5,11 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/stretchr/testify/mock"
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ Connection = (*ConnectionMock)(nil)
@@ -103,7 +104,7 @@ type RowTransformerMock struct {
 
 func (t *RowTransformerMock) GetAcceptors() []any { return t.Acceptors }
 
-func (t *RowTransformerMock) SetAcceptors([]any) {
+func (*RowTransformerMock) SetAcceptors([]any) {
 	panic("not implemented")
 }
 

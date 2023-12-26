@@ -3,6 +3,8 @@ package rdbms
 import (
 	"fmt"
 
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
@@ -10,10 +12,9 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
-var _ datasource.DataSourceFactory[any] = (*dataSourceFactory)(nil)
+var _ datasource.Factory[any] = (*dataSourceFactory)(nil)
 
 type dataSourceFactory struct {
 	clickhouse Preset
@@ -36,8 +37,7 @@ func (dsf *dataSourceFactory) Make(
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, utils.ErrDataSourceNotSupported)
 	}
 }
-
-func NewDataSourceFactory(qlf utils.QueryLoggerFactory) datasource.DataSourceFactory[any] {
+func NewDataSourceFactory(qlf utils.QueryLoggerFactory) datasource.Factory[any] {
 	connManagerCfg := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
 	}

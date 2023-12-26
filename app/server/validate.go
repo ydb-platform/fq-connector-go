@@ -3,10 +3,11 @@ package server
 import (
 	"fmt"
 
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
 func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_protos.TDescribeTableRequest) error {
@@ -97,7 +98,6 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 		}
 
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB:
-		break
 	default:
 		return fmt.Errorf("unsupported data source: %w", utils.ErrInvalidRequest)
 	}

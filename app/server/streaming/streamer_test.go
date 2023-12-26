@@ -13,6 +13,9 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
+
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -21,8 +24,6 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"go.uber.org/zap"
 )
 
 var _ api_service.Connector_ReadSplitsServer = (*streamMock)(nil)
@@ -45,7 +46,7 @@ func (m *streamMock) Send(response *api_service_protos.TReadSplitsResponse) erro
 	return args.Error(0)
 }
 
-func (m *streamMock) makeSendMatcher(
+func (*streamMock) makeSendMatcher(
 	t *testing.T,
 	split *api_service_protos.TSplit,
 	expectedColumnarBlock [][]any,

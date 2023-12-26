@@ -6,8 +6,9 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 type ArrowBuilder[VT ValueType] interface {

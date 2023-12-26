@@ -2,6 +2,7 @@ package paging
 
 import (
 	"github.com/stretchr/testify/mock"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
@@ -37,7 +38,7 @@ type ColumnarBufferMock struct {
 }
 
 //nolint:unused
-func (m *ColumnarBufferMock) addRow(_ utils.RowTransformer[any]) error {
+func (*ColumnarBufferMock) addRow(_ utils.RowTransformer[any]) error {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -51,6 +52,6 @@ func (m *ColumnarBufferMock) Release() {
 	m.Called()
 }
 
-func (m *ColumnarBufferMock) TotalRows() int {
+func (*ColumnarBufferMock) TotalRows() int {
 	panic("not implemented") // TODO: Implement
 }

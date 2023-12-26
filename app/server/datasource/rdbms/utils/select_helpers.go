@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 func selectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) ([]*Ydb.Column, error) {
@@ -46,11 +47,11 @@ func formatSelectColumns(
 
 	// for the case of empty column set select some constant for constructing a valid sql statement
 	if len(columns) == 0 {
-		if fakeZeroOnEmptyColumnsSet {
-			sb.WriteString("0")
-		} else {
+		if !fakeZeroOnEmptyColumnsSet {
 			return "", fmt.Errorf("empty columns set")
 		}
+
+		sb.WriteString("0")
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))

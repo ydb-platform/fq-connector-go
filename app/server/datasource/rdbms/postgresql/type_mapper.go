@@ -7,16 +7,17 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ utils.TypeMapper = typeMapper{}
 
 type typeMapper struct{}
 
-func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var ydbType *Ydb.Type
 
 	// Reference table: https://wiki.yandex-team.ru/rtmapreduce/yql-streams-corner/connectors/lld-02-tipy-dannyx/
@@ -113,21 +114,24 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Float4)
 
-				return appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter](cast.Float32, builder, cast.Valid)
+				return appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter](
+					cast.Float32, builder, cast.Valid)
 			})
 		case pgtype.Float8OID:
 			acceptors = append(acceptors, new(pgtype.Float8))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Float8)
 
-				return appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter](cast.Float64, builder, cast.Valid)
+				return appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter](
+					cast.Float64, builder, cast.Valid)
 			})
 		case pgtype.TextOID, pgtype.BPCharOID, pgtype.VarcharOID:
 			acceptors = append(acceptors, new(pgtype.Text))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Text)
 
-				return appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter](cast.String, builder, cast.Valid)
+				return appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter](
+					cast.String, builder, cast.Valid)
 			})
 		case pgtype.ByteaOID:
 			acceptors = append(acceptors, new(*[]byte))
@@ -158,13 +162,15 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter](cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter](
+						cast.Time, builder, cast.Valid)
 				})
 			case Ydb.Type_DATE:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter](cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter](
+						cast.Time, builder, cast.Valid)
 				})
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, utils.ErrDataTypeNotSupported)
@@ -192,7 +198,8 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Timestamp)
 
-					return appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter](cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter](
+						cast.Time, builder, cast.Valid)
 				})
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, utils.ErrDataTypeNotSupported)

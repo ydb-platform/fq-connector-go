@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.Connection = (*Connection)(nil)
@@ -138,7 +139,7 @@ func (c *connectionManager) Make(
 	return &Connection{DB: conn, logger: queryLogger}, nil
 }
 
-func (c *connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
+func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
 	utils.LogCloserError(logger, conn, "close clickhouse connection")
 }
 

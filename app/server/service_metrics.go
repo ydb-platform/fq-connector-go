@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"go.uber.org/zap"
+
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
-	"go.uber.org/zap"
 )
 
 type serviceMetrics struct {

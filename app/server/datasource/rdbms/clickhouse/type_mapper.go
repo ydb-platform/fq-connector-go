@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ utils.TypeMapper = typeMapper{}
@@ -218,9 +219,11 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateTime64ToStringConverter])
+				appenders = append(appenders,
+					appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateTime64ToStringConverter])
 			case Ydb.Type_TIMESTAMP:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter])
+				appenders = append(appenders,
+					appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter])
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, utils.ErrDataTypeNotSupported)
 			}

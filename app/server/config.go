@@ -5,9 +5,10 @@ import (
 	"math"
 	"os"
 
+	"google.golang.org/protobuf/encoding/prototext"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"google.golang.org/protobuf/encoding/prototext"
 )
 
 func fillServerConfigDefaults(c *config.TServerConfig) {

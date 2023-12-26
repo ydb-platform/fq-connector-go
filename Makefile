@@ -4,6 +4,9 @@ build:
 run: build
 	./fq-connector-go server -c ./example.conf	
 
+lint:
+	golangci-lint run ./app/...
+
 unit_test:
 	go test -v ./app/...
 

@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (string, []any, error) {
@@ -144,7 +145,7 @@ func formatConjunction(
 ) (string, []any, error) {
 	var (
 		sb        strings.Builder
-		succeeded int32 = 0
+		succeeded int32
 		statement string
 		err       error
 		first     string
@@ -157,9 +158,9 @@ func formatConjunction(
 		if err != nil {
 			if !topLevel {
 				return "", args, fmt.Errorf("failed to format AND statement: %w", err)
-			} else {
-				args = argsCut
 			}
+
+			args = argsCut
 		} else {
 			if succeeded > 0 {
 				if succeeded == 1 {
@@ -193,7 +194,7 @@ func formatConjunction(
 func formatDisjunction(formatter SQLFormatter, args []any, disjunction *api_service_protos.TPredicate_TDisjunction) (string, []any, error) {
 	var (
 		sb        strings.Builder
-		cnt       int32 = 0
+		cnt       int32
 		statement string
 		err       error
 		first     string
@@ -203,21 +204,21 @@ func formatDisjunction(formatter SQLFormatter, args []any, disjunction *api_serv
 		statement, args, err = formatPredicate(formatter, args, predicate, false)
 		if err != nil {
 			return "", args, fmt.Errorf("failed to format OR statement: %w", err)
-		} else {
-			if cnt > 0 {
-				if cnt == 1 {
-					sb.WriteString("(")
-					sb.WriteString(first)
-				}
+		}
 
-				sb.WriteString(" OR ")
-				sb.WriteString(statement)
-			} else {
-				first = statement
+		if cnt > 0 {
+			if cnt == 1 {
+				sb.WriteString("(")
+				sb.WriteString(first)
 			}
 
-			cnt++
+			sb.WriteString(" OR ")
+			sb.WriteString(statement)
+		} else {
+			first = statement
 		}
+
+		cnt++
 	}
 
 	if cnt == 0 {

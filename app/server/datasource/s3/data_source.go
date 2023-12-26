@@ -11,12 +11,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"go.uber.org/zap"
 )
 
 var _ datasource.DataSource[string] = (*dataSource)(nil)
@@ -24,7 +25,7 @@ var _ datasource.DataSource[string] = (*dataSource)(nil)
 type dataSource struct {
 }
 
-func (ds *dataSource) DescribeTable(
+func (*dataSource) DescribeTable(
 	_ context.Context,
 	_ *zap.Logger,
 	_ *api_service_protos.TDescribeTableRequest,
@@ -40,7 +41,7 @@ func (ds *dataSource) ReadSplit(ctx context.Context, logger *zap.Logger, split *
 	sink.Finish()
 }
 
-func (ds *dataSource) doReadSplit(
+func (*dataSource) doReadSplit(
 	ctx context.Context,
 	_ *zap.Logger,
 	split *api_service_protos.TSplit,
