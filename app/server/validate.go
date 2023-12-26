@@ -98,7 +98,6 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 		}
 
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB:
-		break
 	default:
 		return fmt.Errorf("unsupported data source: %w", utils.ErrInvalidRequest)
 	}

@@ -13,7 +13,7 @@ type sqlFormatter struct {
 }
 
 // TODO: for pushdown feature
-func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -72,12 +72,12 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (f sqlFormatter) GetPlaceholder(_ int) string {
+func (sqlFormatter) GetPlaceholder(_ int) string {
 	return "?"
 }
 
 // TODO: add identifiers processing
-func (f sqlFormatter) SanitiseIdentifier(ident string) string {
+func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return ident
 }
 

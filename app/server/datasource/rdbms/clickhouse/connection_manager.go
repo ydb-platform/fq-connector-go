@@ -139,7 +139,7 @@ func (c *connectionManager) Make(
 	return &Connection{DB: conn, logger: queryLogger}, nil
 }
 
-func (c *connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
+func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
 	utils.LogCloserError(logger, conn, "close clickhouse connection")
 }
 

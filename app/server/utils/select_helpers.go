@@ -32,7 +32,8 @@ func YdbTypeToYdbPrimitiveTypeID(ydbType *Ydb.Type) (Ydb.Type_PrimitiveTypeId, e
 		case *Ydb.Type_TypeId:
 			return t.OptionalType.Item.GetTypeId(), nil
 		default:
-			return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED, fmt.Errorf("unexpected type %v: %w", t.OptionalType.Item, ErrDataTypeNotSupported)
+			return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED,
+				fmt.Errorf("unexpected type %v: %w", t.OptionalType.Item, ErrDataTypeNotSupported)
 		}
 	default:
 		return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED, fmt.Errorf("unexpected type %v: %w", t, ErrDataTypeNotSupported)

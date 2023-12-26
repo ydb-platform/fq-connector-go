@@ -117,7 +117,7 @@ func (c *connectionManager) Make(
 	return &Connection{conn, queryLogger}, nil
 }
 
-func (c *connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
+func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
 	utils.LogCloserError(logger, conn, "close posgresql connection")
 }
 

@@ -38,7 +38,7 @@ type ColumnarBufferMock struct {
 }
 
 //nolint:unused
-func (m *ColumnarBufferMock) addRow(_ utils.RowTransformer[any]) error {
+func (*ColumnarBufferMock) addRow(_ utils.RowTransformer[any]) error {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -52,6 +52,6 @@ func (m *ColumnarBufferMock) Release() {
 	m.Called()
 }
 
-func (m *ColumnarBufferMock) TotalRows() int {
+func (*ColumnarBufferMock) TotalRows() int {
 	panic("not implemented") // TODO: Implement
 }

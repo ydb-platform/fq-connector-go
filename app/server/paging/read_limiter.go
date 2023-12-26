@@ -18,7 +18,7 @@ type ReadLimiter interface {
 type readLimiterNoop struct {
 }
 
-func (rl readLimiterNoop) addRow() error { return nil }
+func (readLimiterNoop) addRow() error { return nil }
 
 type readLimiterRows struct {
 	rowsRead  uint64

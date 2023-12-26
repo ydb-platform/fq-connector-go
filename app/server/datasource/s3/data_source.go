@@ -25,7 +25,7 @@ var _ datasource.DataSource[string] = (*dataSource)(nil)
 type dataSource struct {
 }
 
-func (ds *dataSource) DescribeTable(
+func (*dataSource) DescribeTable(
 	_ context.Context,
 	_ *zap.Logger,
 	_ *api_service_protos.TDescribeTableRequest,
@@ -41,7 +41,7 @@ func (ds *dataSource) ReadSplit(ctx context.Context, logger *zap.Logger, split *
 	sink.Finish()
 }
 
-func (ds *dataSource) doReadSplit(
+func (*dataSource) doReadSplit(
 	ctx context.Context,
 	_ *zap.Logger,
 	split *api_service_protos.TSplit,

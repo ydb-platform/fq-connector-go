@@ -11,7 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-type DataSourceFactory[T utils.Acceptor] interface {
+type Factory[T utils.Acceptor] interface {
 	Make(
 		logger *zap.Logger,
 		dataSourceType api_common.EDataSourceKind,

@@ -20,7 +20,7 @@ import (
 )
 
 type DataSourceCollection struct {
-	rdbms              datasource.DataSourceFactory[any]
+	rdbms              datasource.Factory[any]
 	memoryAllocator    memory.Allocator
 	readLimiterFactory *paging.ReadLimiterFactory
 	cfg                *config.TServerConfig

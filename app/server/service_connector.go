@@ -30,7 +30,7 @@ type serviceConnector struct {
 	logger               *zap.Logger
 }
 
-func (s *serviceConnector) ListTables(_ *api_service_protos.TListTablesRequest, _ api_service.Connector_ListTablesServer) error {
+func (*serviceConnector) ListTables(_ *api_service_protos.TListTablesRequest, _ api_service.Connector_ListTablesServer) error {
 	return nil
 }
 
@@ -120,13 +120,13 @@ func (s *serviceConnector) doListSplitsHandleSelect(
 	}
 
 	if err := s.doListSplitsResponse(logger, stream, resp); err != nil {
-		return err
+		return fmt.Errorf("do list splits response: %w", err)
 	}
 
 	return nil
 }
 
-func (s *serviceConnector) doListSplitsResponse(
+func (*serviceConnector) doListSplitsResponse(
 	logger *zap.Logger,
 	stream api_service.Connector_ListSplitsServer,
 	response *api_service_protos.TListSplitsResponse,
@@ -233,7 +233,7 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 
 	cert, err := tls.LoadX509KeyPair(tlsConfig.Cert, tlsConfig.Key)
 	if err != nil {
-		return nil, fmt.Errorf("LoadX509KeyPair: %w", err)
+		return nil, fmt.Errorf("load X509 key pair: %w", err)
 	}
 
 	// for security reasons we do not allow TLS < 1.2, see YQ-1877

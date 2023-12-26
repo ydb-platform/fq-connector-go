@@ -35,7 +35,7 @@ const (
 	Utf8Type   = "Utf8"
 )
 
-func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error

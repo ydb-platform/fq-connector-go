@@ -129,7 +129,7 @@ func (dc DataConverter) RowsToColumnBlocks(input [][]any, rowsPerBlock int) [][]
 	return results
 }
 
-func (dc DataConverter) rowGroupToColumnBlock(input [][]any, totalColumns, start, end int) [][]any {
+func (DataConverter) rowGroupToColumnBlock(input [][]any, totalColumns, start, end int) [][]any {
 	columnarData := make([][]any, totalColumns)
 
 	for columnID := range columnarData {

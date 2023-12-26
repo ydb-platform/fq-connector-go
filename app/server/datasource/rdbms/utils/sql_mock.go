@@ -104,7 +104,7 @@ type RowTransformerMock struct {
 
 func (t *RowTransformerMock) GetAcceptors() []any { return t.Acceptors }
 
-func (t *RowTransformerMock) SetAcceptors([]any) {
+func (*RowTransformerMock) SetAcceptors([]any) {
 	panic("not implemented")
 }
 

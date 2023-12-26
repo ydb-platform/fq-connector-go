@@ -47,11 +47,11 @@ func formatSelectColumns(
 
 	// for the case of empty column set select some constant for constructing a valid sql statement
 	if len(columns) == 0 {
-		if fakeZeroOnEmptyColumnsSet {
-			sb.WriteString("0")
-		} else {
+		if !fakeZeroOnEmptyColumnsSet {
 			return "", fmt.Errorf("empty columns set")
 		}
+
+		sb.WriteString("0")
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))

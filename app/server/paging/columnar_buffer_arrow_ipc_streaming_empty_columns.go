@@ -66,5 +66,5 @@ func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) ToResponse() (*api_ser
 func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) TotalRows() int { return cb.rowsAdded }
 
 // Frees resources if buffer is no longer used
-func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) Release() {
+func (*columnarBufferArrowIPCStreamingEmptyColumns[T]) Release() {
 }

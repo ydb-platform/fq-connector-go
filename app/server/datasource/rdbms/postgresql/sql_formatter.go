@@ -15,7 +15,7 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 type sqlFormatter struct {
 }
 
-func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -44,7 +44,7 @@ func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	}
 }
 
-func (f *sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
+func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	switch v := t.Type.(type) {
 	case *Ydb.Type_TypeId:
 		return f.supportsType(v.TypeId)
@@ -70,11 +70,11 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (f sqlFormatter) GetPlaceholder(n int) string {
+func (sqlFormatter) GetPlaceholder(n int) string {
 	return fmt.Sprintf("$%d", n+1)
 }
 
-func (f sqlFormatter) SanitiseIdentifier(ident string) string {
+func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	// https://github.com/jackc/pgx/blob/v5.4.3/conn.go#L93
 	// https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
 	sanitizedIdent := strings.ReplaceAll(ident, string([]byte{0}), "")

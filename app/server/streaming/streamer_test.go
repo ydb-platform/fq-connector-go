@@ -46,7 +46,7 @@ func (m *streamMock) Send(response *api_service_protos.TReadSplitsResponse) erro
 	return args.Error(0)
 }
 
-func (m *streamMock) makeSendMatcher(
+func (*streamMock) makeSendMatcher(
 	t *testing.T,
 	split *api_service_protos.TSplit,
 	expectedColumnarBlock [][]any,

@@ -219,9 +219,11 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateTime64ToStringConverter])
+				appenders = append(appenders,
+					appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateTime64ToStringConverter])
 			case Ydb.Type_TIMESTAMP:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter])
+				appenders = append(appenders,
+					appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter])
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, utils.ErrDataTypeNotSupported)
 			}

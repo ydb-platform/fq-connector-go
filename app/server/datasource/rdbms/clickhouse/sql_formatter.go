@@ -14,7 +14,7 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 type sqlFormatter struct {
 }
 
-func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -69,11 +69,11 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (f sqlFormatter) GetPlaceholder(_ int) string {
+func (sqlFormatter) GetPlaceholder(_ int) string {
 	return "?"
 }
 
-func (f sqlFormatter) SanitiseIdentifier(ident string) string {
+func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	// https: //clickhouse.com/docs/en/sql-reference/syntax#identifiers
 	sanitizedIdent := strings.ReplaceAll(ident, string([]byte{0}), "")
 	sanitizedIdent = `"` + strings.ReplaceAll(sanitizedIdent, `"`, `""`) + `"`
