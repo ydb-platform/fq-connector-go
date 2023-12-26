@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics"
-	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics"
+	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
 
 func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {

@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 func TestMakeReadSplitQuery(t *testing.T) {

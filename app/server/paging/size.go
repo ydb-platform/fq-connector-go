@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 

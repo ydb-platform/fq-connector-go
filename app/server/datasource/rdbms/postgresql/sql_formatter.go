@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)

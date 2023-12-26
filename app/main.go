@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
 	"github.com/ydb-platform/fq-connector-go/app/client"
 	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/app/version"

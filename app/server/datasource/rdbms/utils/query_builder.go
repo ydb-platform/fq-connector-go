@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"go.uber.org/zap"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 func MakeReadSplitQuery(logger *zap.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, error) {

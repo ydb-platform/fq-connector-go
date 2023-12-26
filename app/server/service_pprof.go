@@ -7,9 +7,10 @@ import (
 	"net/http/pprof"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
 type servicePprof struct {

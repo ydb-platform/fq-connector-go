@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"path"
 
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"go.uber.org/zap"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type schemaProvider struct {

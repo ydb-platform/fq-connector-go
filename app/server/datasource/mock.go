@@ -4,10 +4,11 @@ import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
 var _ DataSource[any] = (*DataSourceMock[any])(nil)

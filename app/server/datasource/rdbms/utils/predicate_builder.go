@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (string, []any, error) {

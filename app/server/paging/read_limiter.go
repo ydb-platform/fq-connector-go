@@ -3,9 +3,10 @@ package paging
 import (
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"go.uber.org/zap"
 )
 
 // ReadLimiter helps to limitate amount of data returned by Connector server in every read request.

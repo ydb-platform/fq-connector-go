@@ -5,10 +5,11 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/stretchr/testify/mock"
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ Connection = (*ConnectionMock)(nil)

@@ -4,10 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type schemaItem struct {
