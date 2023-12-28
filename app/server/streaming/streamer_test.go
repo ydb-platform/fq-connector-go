@@ -143,7 +143,6 @@ func (tc testCaseStreaming) messageParams() (sentMessages, rowsInLastMessage int
 
 func (tc testCaseStreaming) execute(t *testing.T) {
 	logger := utils.NewTestLogger(t)
-	request := &api_service_protos.TReadSplitsRequest{}
 	split := utils.MakeTestSplit()
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -258,7 +257,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	streamer := NewStreamer(logger, stream, request, split, sink, dataSource)
+	streamer := NewStreamer(logger, stream, split, sink, dataSource)
 
 	err = streamer.Run()
 

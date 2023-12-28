@@ -16,7 +16,6 @@ import (
 
 type Streamer[T utils.Acceptor] struct {
 	stream     api_service.Connector_ReadSplitsServer
-	request    *api_service_protos.TReadSplitsRequest
 	dataSource datasource.DataSource[T]
 	split      *api_service_protos.TSplit
 	sink       paging.Sink[T]
@@ -98,7 +97,6 @@ func (s *Streamer[T]) Run() error {
 func NewStreamer[T utils.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
-	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[T],
 	dataSource datasource.DataSource[T],
@@ -109,7 +107,6 @@ func NewStreamer[T utils.Acceptor](
 		logger:     logger,
 		stream:     stream,
 		split:      split,
-		request:    request,
 		dataSource: dataSource,
 		sink:       sink,
 		ctx:        ctx,
