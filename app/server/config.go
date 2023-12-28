@@ -177,3 +177,30 @@ func newConfigFromPath(configPath string) (*config.TServerConfig, error) {
 
 	return &cfg, nil
 }
+
+const (
+	defaultPortConnector = 50051
+	defaultPortPprof     = 6060
+	defaultHost          = "localhost"
+)
+
+func NewDefaultConfig() *config.TServerConfig {
+	cfg := &config.TServerConfig{
+		ConnectorServer: &config.TConnectorServerConfig{
+			Endpoint: &api_common.TEndpoint{
+				Host: defaultHost,
+				Port: defaultPortConnector,
+			},
+		},
+		PprofServer: &config.TPprofServerConfig{
+			Endpoint: &api_common.TEndpoint{
+				Host: defaultHost,
+				Port: defaultPortPprof,
+			},
+		},
+	}
+
+	fillServerConfigDefaults(cfg)
+
+	return cfg
+}

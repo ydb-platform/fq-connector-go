@@ -1,2 +1,3 @@
 fq-connector-go
-coverage.out
+fq-connector-go-tests
+coverage*

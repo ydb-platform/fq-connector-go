@@ -21,12 +21,12 @@ func AnnotateLogger(l *zap.Logger, method string, dsi *api_common.TDataSourceIns
 
 	if dsi != nil {
 		logger = logger.With(
-			zap.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.Kind)]),
-			zap.String("host", dsi.Endpoint.Host),
-			zap.Uint32("port", dsi.Endpoint.Port),
-			zap.String("database", dsi.Database),
-			zap.Bool("use_tls", dsi.UseTls),
-			zap.String("protocol", dsi.Protocol.String()),
+			zap.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.GetKind())]),
+			zap.String("host", dsi.GetEndpoint().GetHost()),
+			zap.Uint32("port", dsi.GetEndpoint().GetPort()),
+			zap.String("database", dsi.GetDatabase()),
+			zap.Bool("use_tls", dsi.GetUseTls()),
+			zap.String("protocol", dsi.GetProtocol().String()),
 			// TODO: can we print just a login without a password?
 		)
 	}
@@ -42,13 +42,10 @@ func LogCloserError(logger *zap.Logger, closer io.Closer, msg string) {
 
 func NewLoggerFromConfig(cfg *config.TLoggerConfig) (*zap.Logger, error) {
 	if cfg == nil {
-		return NewDefaultLogger()
+		return NewDefaultLogger(), nil
 	}
 
-	loggerCfg := zap.NewProductionConfig()
-	loggerCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	loggerCfg.Encoding = "console"
-	loggerCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	loggerCfg := newDefaultLoggerConfig()
 	loggerCfg.Level.SetLevel(convertToZapLogLevel(cfg.GetLogLevel()))
 
 	zapLogger, err := loggerCfg.Build()
@@ -59,8 +56,28 @@ func NewLoggerFromConfig(cfg *config.TLoggerConfig) (*zap.Logger, error) {
 	return zapLogger, nil
 }
 
-func NewDefaultLogger() (*zap.Logger, error) {
-	return zap.Must(zap.NewDevelopment()), nil
+func NewDefaultLogger() *zap.Logger {
+	f := func() (*zap.Logger, error) {
+		loggerCfg := newDefaultLoggerConfig()
+
+		zapLogger, err := loggerCfg.Build()
+		if err != nil {
+			return nil, fmt.Errorf("new logger: %w", err)
+		}
+
+		return zapLogger, nil
+	}
+
+	return zap.Must(f())
+}
+
+func newDefaultLoggerConfig() zap.Config {
+	loggerCfg := zap.NewProductionConfig()
+	loggerCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	loggerCfg.Encoding = "console"
+	loggerCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	return loggerCfg
 }
 
 func NewTestLogger(t *testing.T) *zap.Logger { return zaptest.NewLogger(t) }

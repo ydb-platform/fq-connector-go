@@ -53,10 +53,7 @@ func runClient(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("unknown instance: %w", err)
 	}
 
-	logger, err := utils.NewDefaultLogger()
-	if err != nil {
-		return fmt.Errorf("new default logger: %w", err)
-	}
+	logger := utils.NewDefaultLogger()
 
 	if err := callServer(logger, cfg); err != nil {
 		return fmt.Errorf("call server: %w", err)

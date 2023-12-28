@@ -26,10 +26,21 @@ jobs:
       - name: Install dependencies
         run: |
           go get ./...
-      - name: Run tests with coverage
+      - name: Run unit tests
         run: |
-          go test -race -coverpkg=./... -coverprofile=coverage_full.out -covermode=atomic ./app/...
-          cat coverage_full.out | grep -v pb.go > coverage.out
+          go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/...
+      - name: Setup integration tests
+        uses: isbang/compose-action@v1.5.1
+        with:
+          compose-file: "/home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml"
+          down-flags: "--volumes"
+      - name: Run integration tests
+        run: |
+          go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
+          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integratoin_tests.out 
+      - name: Union coverage
+        run: |
+          cat coverage* | grep -v pb.go | grep -v mock.go > coverage.out
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4-beta
         with:

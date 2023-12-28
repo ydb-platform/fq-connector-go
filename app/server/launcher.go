@@ -6,11 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
 
@@ -19,16 +17,15 @@ type service interface {
 	stop()
 }
 
-type launcher struct {
+type Launcher struct {
 	services map[string]service
 	logger   *zap.Logger
 }
 
-func (l *launcher) start() <-chan error {
+func (l *Launcher) Start() <-chan error {
 	errChan := make(chan error, len(l.services))
 
 	for key := range l.services {
-		key := key
 		go func(key string) {
 			l.logger.Info("starting service", zap.String("service", key))
 
@@ -40,8 +37,7 @@ func (l *launcher) start() <-chan error {
 	return errChan
 }
 
-func (l *launcher) stop() {
-	// TODO: make it concurrent
+func (l *Launcher) Stop() {
 	for key, s := range l.services {
 		l.logger.Info("stopping service", zap.String("service", key))
 		s.stop()
@@ -54,8 +50,8 @@ const (
 	metricsKey          = "metrics"
 )
 
-func newLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*launcher, error) {
-	l := &launcher{
+func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, error) {
+	l := &Launcher{
 		services: make(map[string]service, 2),
 		logger:   logger,
 	}
@@ -91,39 +87,20 @@ func newLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*launcher, erro
 	return l, nil
 }
 
-func run(cmd *cobra.Command, _ []string) error {
-	configPath, err := cmd.Flags().GetString(configFlag)
-	if err != nil {
-		return fmt.Errorf("get config flag: %v", err)
-	}
-
-	cfg, err := newConfigFromPath(configPath)
-	if err != nil {
-		return fmt.Errorf("new config: %w", err)
-	}
-
-	logger, err := utils.NewLoggerFromConfig(cfg.Logger)
-	if err != nil {
-		return fmt.Errorf("new logger from config: %w", err)
-	}
-
-	l, err := newLauncher(logger, cfg)
-	if err != nil {
-		return fmt.Errorf("new launcher: %w", err)
-	}
-
-	errChan := l.start()
+func StartLauncherAndWaitForSignalOrError(logger *zap.Logger, l *Launcher) {
+	errChan := l.Start()
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
 
 	select {
 	case err := <-errChan:
-		logger.Error("service fatal error", zap.Error(err))
+		if err != nil {
+			logger.Error("service fatal error", zap.Error(err))
+		}
 	case sig := <-signalChan:
 		logger.Info("interrupting signal", zap.Any("value", sig))
-		l.stop()
 	}
 
-	return nil
+	l.Stop()
 }

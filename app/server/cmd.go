@@ -5,13 +5,15 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var Cmd = &cobra.Command{
 	Use:   "server",
 	Short: "Connector server",
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := run(cmd, args); err != nil {
+		if err := runFromCLI(cmd, args); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -27,4 +29,30 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func runFromCLI(cmd *cobra.Command, _ []string) error {
+	configPath, err := cmd.Flags().GetString(configFlag)
+	if err != nil {
+		return fmt.Errorf("get config flag: %v", err)
+	}
+
+	cfg, err := newConfigFromPath(configPath)
+	if err != nil {
+		return fmt.Errorf("new config: %w", err)
+	}
+
+	logger, err := utils.NewLoggerFromConfig(cfg.Logger)
+	if err != nil {
+		return fmt.Errorf("new logger from config: %w", err)
+	}
+
+	l, err := NewLauncher(logger, cfg)
+	if err != nil {
+		return fmt.Errorf("new launcher: %w", err)
+	}
+
+	StartLauncherAndWaitForSignalOrError(logger, l)
+
+	return nil
 }
