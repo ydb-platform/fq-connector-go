@@ -21,12 +21,12 @@ func AnnotateLogger(l *zap.Logger, method string, dsi *api_common.TDataSourceIns
 
 	if dsi != nil {
 		logger = logger.With(
-			zap.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.Kind)]),
+			zap.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.GetKind())]),
 			zap.String("host", dsi.GetEndpoint().GetHost()),
-			zap.Uint32("port", dsi.Endpoint.Port),
-			zap.String("database", dsi.Database),
-			zap.Bool("use_tls", dsi.UseTls),
-			zap.String("protocol", dsi.Protocol.String()),
+			zap.Uint32("port", dsi.GetEndpoint().GetPort()),
+			zap.String("database", dsi.GetDatabase()),
+			zap.Bool("use_tls", dsi.GetUseTls()),
+			zap.String("protocol", dsi.GetProtocol().String()),
 			// TODO: can we print just a login without a password?
 		)
 	}

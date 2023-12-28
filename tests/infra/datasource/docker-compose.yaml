@@ -8,7 +8,6 @@ services:
     ports:
       - 8123
       - 9000
-      - 9009
     environment:
       CLICKHOUSE_DB: connector
       CLICKHOUSE_USER: admin
@@ -21,17 +20,3 @@ services:
       nofile:
         soft: 262144
         hard: 262144
-
-  # postgresql:
-  #   image: postgres
-  #   container_name: fq-connector-go-tests-postgresql
-  #   ports:
-  #     - '5432:5432'
-  #   environment:
-  #     POSTGRES_DB: connector
-  #     POSTGRES_USER: admin
-  #     POSTGRES_PASSWORD: password
-  #     PGDATA: /var/lib/postgresql/data/pgdata
-  #   volumes:
-  #     # - /tmp/fq-connector-go-tests/postgresql/data/:/var/lib/postgresql/data/
-  #     - ./postgresql/init:/docker-entrypoint-initdb.d

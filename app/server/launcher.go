@@ -26,7 +26,6 @@ func (l *Launcher) Start() <-chan error {
 	errChan := make(chan error, len(l.services))
 
 	for key := range l.services {
-		key := key
 		go func(key string) {
 			l.logger.Info("starting service", zap.String("service", key))
 

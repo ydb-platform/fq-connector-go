@@ -22,9 +22,9 @@ type Server struct {
 	mutex       sync.Mutex
 }
 
-func (sn *Server) Start() {
+func (s *Server) Start() {
 	go func() {
-		errChan := sn.launcher.Start()
+		errChan := s.launcher.Start()
 
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
@@ -32,36 +32,41 @@ func (sn *Server) Start() {
 		for {
 			select {
 			case err := <-errChan:
-				sn.mutex.Lock()
-				if sn.operational {
-					// Fail fast in case of fatal error
-					if err != nil {
-						sn.logger.Fatal("launcher start", zap.Error(err))
-					}
-				} else {
-					return
-				}
-				sn.mutex.Unlock()
+				s.handleStartError(err)
 			case sig := <-signalChan:
-				sn.logger.Info("interrupting signal", zap.Any("value", sig))
-				sn.Stop()
+				s.logger.Info("interrupting signal", zap.Any("value", sig))
+				s.Stop()
 			}
 		}
 	}()
 }
 
-func (sn *Server) Client() api_service.ConnectorClient {
-	return sn.client
+func (s *Server) handleStartError(err error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.operational {
+		// Fail fast in case of fatal error
+		if err != nil {
+			s.logger.Fatal("launcher start", zap.Error(err))
+		}
+	} else {
+		s.logger.Warn("launcher start", zap.Error(err))
+	}
 }
 
-func (sn *Server) Stop() {
-	sn.mutex.Lock()
-	defer sn.mutex.Unlock()
+func (s *Server) Client() api_service.ConnectorClient {
+	return s.client
+}
 
-	if sn.operational {
-		sn.launcher.Stop()
-		sn.client.stop()
-		sn.operational = false
+func (s *Server) Stop() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.operational {
+		s.launcher.Stop()
+		s.client.stop()
+		s.operational = false
 	}
 }
 

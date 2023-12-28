@@ -3,6 +3,7 @@ package tests
 import (
 	"log"
 	"testing"
+	"time"
 
 	testify_suite "github.com/stretchr/testify/suite"
 
@@ -19,6 +20,10 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// Pause to let datasources start
+	// TODO: ping ports
+	time.Sleep(3 * time.Second)
 
 	m.Run()
 }
