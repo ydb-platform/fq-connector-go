@@ -1,0 +1,15 @@
+endpoint {
+    host: "localhost"
+    port: 50051
+}
+
+data_source_instance {
+    kind: YDB
+    endpoint {
+        host: "localhost"
+        port: 2136
+    }
+    database: "local"
+    protocol: NATIVE
+}
+
