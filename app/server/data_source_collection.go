@@ -10,6 +10,7 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
@@ -44,7 +45,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 
 		return ds.DescribeTable(ctx, logger, request)
 	default:
-		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, utils.ErrDataSourceNotSupported)
+		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
 }
 
@@ -67,7 +68,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 
 		return readSplit[string](logger, stream, request.GetFormat(), split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
-		return fmt.Errorf("unsupported data source type '%v': %w", kind, utils.ErrDataSourceNotSupported)
+		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
 }
 
@@ -81,7 +82,7 @@ func readSplit[T utils.Acceptor](
 	readLimiterFactory *paging.ReadLimiterFactory,
 	cfg *config.TServerConfig,
 ) error {
-	logger.Debug("split reading started", utils.SelectToFields(split.Select)...)
+	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
 
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](
 		logger,
@@ -130,7 +131,7 @@ func readSplit[T utils.Acceptor](
 }
 
 func NewDataSourceCollection(
-	queryLoggerFactory utils.QueryLoggerFactory,
+	queryLoggerFactory common.QueryLoggerFactory,
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
 	cfg *config.TServerConfig,

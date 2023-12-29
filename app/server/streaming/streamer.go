@@ -63,13 +63,31 @@ func (s *Streamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
 
 	resp.Stats = result.Stats
 
-	utils.DumpReadSplitsResponse(s.logger, resp)
+	dumpReadSplitsResponse(s.logger, resp)
 
 	if err := s.stream.Send(resp); err != nil {
 		return fmt.Errorf("stream send: %w", err)
 	}
 
 	return nil
+}
+
+func dumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSplitsResponse) {
+	switch t := resp.GetPayload().(type) {
+	case *api_service_protos.TReadSplitsResponse_ArrowIpcStreaming:
+		if dump := resp.GetArrowIpcStreaming(); dump != nil {
+			logger.Debug("response", zap.Int("arrow_blob_length", len(dump)))
+		}
+	case *api_service_protos.TReadSplitsResponse_ColumnSet:
+		for i := range t.ColumnSet.Data {
+			data := t.ColumnSet.Data[i]
+			meta := t.ColumnSet.Meta[i]
+
+			logger.Debug("response", zap.Int("column_id", i), zap.String("meta", meta.String()), zap.String("data", data.String()))
+		}
+	default:
+		panic(fmt.Sprintf("unexpected message type %v", t))
+	}
 }
 
 func (s *Streamer[T]) Run() error {

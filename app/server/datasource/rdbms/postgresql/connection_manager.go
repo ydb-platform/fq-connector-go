@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
@@ -40,7 +41,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (utils.RowTransformer[any], 
 
 type Connection struct {
 	*pgx.Conn
-	logger utils.QueryLogger
+	logger common.QueryLogger
 }
 
 func (c Connection) Close() error {
@@ -118,7 +119,7 @@ func (c *connectionManager) Make(
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	utils.LogCloserError(logger, conn, "close posgresql connection")
+	common.LogCloserError(logger, conn, "close posgresql connection")
 }
 
 func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {

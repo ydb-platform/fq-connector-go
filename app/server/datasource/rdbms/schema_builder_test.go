@@ -9,10 +9,11 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 func TestSchemaBuilder(t *testing.T) {
@@ -23,7 +24,7 @@ func TestSchemaBuilder(t *testing.T) {
 
 	type testCase struct {
 		name                string
-		typeMapper          utils.TypeMapper
+		typeMapper          datasource.TypeMapper
 		supportedTypesMatch []nameToType
 		unsupportedTypes    []nameToType
 	}
@@ -90,7 +91,7 @@ func TestSchemaBuilder(t *testing.T) {
 						unsuppType.name)) // yet unsupported
 			}
 
-			logger := utils.NewTestLogger(t)
+			logger := common.NewTestLogger(t)
 			schema, err := sb.Build(logger)
 			require.NoError(t, err)
 			require.NotNil(t, schema)
@@ -121,7 +122,7 @@ func TestSchemaBuilder(t *testing.T) {
 						unsuppType.name)) // yet unsupported
 			}
 
-			schema, err := sb.Build(utils.NewTestLogger(t))
+			schema, err := sb.Build(common.NewTestLogger(t))
 			require.NoError(t, err)
 			require.NotNil(t, schema)
 			require.Len(t, schema.Columns, 0)
@@ -130,8 +131,8 @@ func TestSchemaBuilder(t *testing.T) {
 
 	t.Run("NonExistingTable", func(t *testing.T) {
 		sb := &rdbms_utils.SchemaBuilder{}
-		schema, err := sb.Build(utils.NewTestLogger(t))
-		require.ErrorIs(t, err, utils.ErrTableDoesNotExist)
+		schema, err := sb.Build(common.NewTestLogger(t))
+		require.ErrorIs(t, err, common.ErrTableDoesNotExist)
 		require.Nil(t, schema)
 	})
 }

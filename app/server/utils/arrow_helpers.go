@@ -9,6 +9,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
 type ArrowBuilder[VT ValueType] interface {
@@ -46,7 +47,12 @@ func SelectWhatToArrowSchema(selectWhat *api_service_protos.TSelect_TWhat) (*arr
 				return nil, fmt.Errorf("optional YDB type to arrow field: %w", err)
 			}
 		default:
-			return nil, fmt.Errorf("only primitive and optional types are supported, got '%T' instead: %w", t, ErrDataTypeNotSupported)
+			err := fmt.Errorf(
+				"only primitive and optional types are supported, got '%T' instead: %w",
+				t, common.ErrDataTypeNotSupported,
+			)
+
+			return nil, err
 		}
 
 		fields = append(fields, field)
@@ -78,7 +84,12 @@ func YdbTypesToArrowBuilders(ydbTypes []*Ydb.Type, arrowAllocator memory.Allocat
 				return nil, fmt.Errorf("optional YDB type to Arrow builder: %w", err)
 			}
 		default:
-			return nil, fmt.Errorf("only primitive and optional types are supported, got '%T' instead: %w", t, ErrDataTypeNotSupported)
+			err := fmt.Errorf(
+				"only primitive and optional types are supported, got '%T' instead: %w",
+				t, common.ErrDataTypeNotSupported,
+			)
+
+			return nil, err
 		}
 
 		builders = append(builders, builder)
@@ -129,7 +140,7 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 	case Ydb.Type_TIMESTAMP:
 		builder = array.NewUint64Builder(arrowAllocator)
 	default:
-		return nil, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("register type '%v': %w", typeID, common.ErrDataTypeNotSupported)
 	}
 
 	return builder, nil
@@ -177,7 +188,7 @@ func ydbTypeToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (a
 	case Ydb.Type_TIMESTAMP:
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Uint64}
 	default:
-		return arrow.Field{}, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
+		return arrow.Field{}, fmt.Errorf("register type '%v': %w", typeID, common.ErrDataTypeNotSupported)
 	}
 
 	return field, nil

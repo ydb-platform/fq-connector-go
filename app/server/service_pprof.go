@@ -9,8 +9,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type servicePprof struct {
@@ -49,7 +49,7 @@ func newServicePprof(logger *zap.Logger, cfg *config.TPprofServerConfig) service
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
 	httpServer := &http.Server{
-		Addr:    utils.EndpointToString(cfg.Endpoint),
+		Addr:    common.EndpointToString(cfg.Endpoint),
 		Handler: mux,
 	}
 

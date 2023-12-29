@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
@@ -72,7 +73,7 @@ func (tt *TrafficTracker[T]) checkPageSizeLimit(bytesDelta, rowsDelta uint64) (b
 				"single row size exceeds page size limit (%d > %d bytes): %w",
 				bytesDelta,
 				tt.pagination.BytesPerPage,
-				utils.ErrPageSizeExceeded)
+				common.ErrPageSizeExceeded)
 
 			return true, err
 		}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
 var Cmd = &cobra.Command{
@@ -42,7 +42,7 @@ func runFromCLI(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("new config: %w", err)
 	}
 
-	logger, err := utils.NewLoggerFromConfig(cfg.Logger)
+	logger, err := common.NewLoggerFromConfig(cfg.Logger)
 	if err != nil {
 		return fmt.Errorf("new logger from config: %w", err)
 	}

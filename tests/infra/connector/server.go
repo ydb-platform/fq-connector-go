@@ -9,8 +9,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type Server struct {
@@ -71,7 +71,7 @@ func (s *Server) Stop() {
 
 func NewServer() (*Server, error) {
 	cfg := server.NewDefaultConfig()
-	logger := utils.NewDefaultLogger()
+	logger := common.NewDefaultLogger()
 
 	launcher, err := server.NewLauncher(logger, cfg)
 	if err != nil {

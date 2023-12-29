@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"time"
+
+	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
 var (
@@ -13,7 +15,7 @@ var (
 
 func TimeToYDBDate(t *time.Time) (uint16, error) {
 	if t.Before(minYDBTime) || t.After(maxYDBTime) {
-		return 0, fmt.Errorf("convert '%v' to YDB Date: %w", t, ErrValueOutOfTypeBounds)
+		return 0, fmt.Errorf("convert '%v' to YDB Date: %w", t, common.ErrValueOutOfTypeBounds)
 	}
 
 	days := t.Sub(minYDBTime).Hours() / 24
@@ -23,7 +25,7 @@ func TimeToYDBDate(t *time.Time) (uint16, error) {
 
 func TimeToYDBDatetime(t *time.Time) (uint32, error) {
 	if t.Before(minYDBTime) || t.After(maxYDBTime) {
-		return 0, fmt.Errorf("convert '%v' to YDB Date: %w", t, ErrValueOutOfTypeBounds)
+		return 0, fmt.Errorf("convert '%v' to YDB Date: %w", t, common.ErrValueOutOfTypeBounds)
 	}
 
 	seconds := t.Unix()
@@ -33,7 +35,7 @@ func TimeToYDBDatetime(t *time.Time) (uint32, error) {
 
 func TimeToYDBTimestamp(t *time.Time) (uint64, error) {
 	if t.Before(minYDBTime) || t.After(maxYDBTime) {
-		return 0, fmt.Errorf("convert '%v' to YDB Date: %w", t, ErrValueOutOfTypeBounds)
+		return 0, fmt.Errorf("convert '%v' to YDB Date: %w", t, common.ErrValueOutOfTypeBounds)
 	}
 
 	seconds := t.UnixMicro()

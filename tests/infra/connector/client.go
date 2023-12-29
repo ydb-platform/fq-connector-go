@@ -12,8 +12,8 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type Client interface {
@@ -118,12 +118,12 @@ func dumpStream[T StreamResponse](rcvStream stream[T]) ([]T, error) {
 }
 
 func (c *clientImpl) stop() {
-	utils.LogCloserError(c.logger, c.conn, "client GRPC connection")
+	common.LogCloserError(c.logger, c.conn, "client GRPC connection")
 }
 
 func newClient(logger *zap.Logger, cfg *config.TServerConfig) (Client, error) {
 	conn, err := grpc.Dial(
-		utils.EndpointToString(cfg.ConnectorServer.Endpoint),
+		common.EndpointToString(cfg.ConnectorServer.Endpoint),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {

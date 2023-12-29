@@ -7,7 +7,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
 func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_protos.TDescribeTableRequest) error {
@@ -16,7 +16,7 @@ func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_proto
 	}
 
 	if request.GetTable() == "" {
-		return fmt.Errorf("empty table: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("empty table: %w", common.ErrInvalidRequest)
 	}
 
 	return nil
@@ -24,7 +24,7 @@ func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_proto
 
 func ValidateListSplitsRequest(logger *zap.Logger, request *api_service_protos.TListSplitsRequest) error {
 	if len(request.Selects) == 0 {
-		return fmt.Errorf("empty select list: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("empty select list: %w", common.ErrInvalidRequest)
 	}
 
 	for i, slct := range request.Selects {
@@ -38,7 +38,7 @@ func ValidateListSplitsRequest(logger *zap.Logger, request *api_service_protos.T
 
 func ValidateReadSplitsRequest(logger *zap.Logger, request *api_service_protos.TReadSplitsRequest) error {
 	if len(request.Splits) == 0 {
-		return fmt.Errorf("splits are empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("splits are empty: %w", common.ErrInvalidRequest)
 	}
 
 	for i, split := range request.Splits {
@@ -60,7 +60,7 @@ func validateSplit(logger *zap.Logger, split *api_service_protos.TSplit) error {
 
 func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error {
 	if slct == nil {
-		return fmt.Errorf("select is empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("select is empty: %w", common.ErrInvalidRequest)
 	}
 
 	if err := validateDataSourceInstance(logger, slct.GetDataSourceInstance()); err != nil {
@@ -72,27 +72,27 @@ func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error 
 
 func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
 	if dsi == nil {
-		return fmt.Errorf("empty data source instance: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
 	}
 
 	if dsi.GetKind() == api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED {
-		return fmt.Errorf("empty kind: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
 	}
 
 	if dsi.Endpoint == nil {
-		return fmt.Errorf("endpoint is empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("endpoint is empty: %w", common.ErrInvalidRequest)
 	}
 
 	if dsi.Endpoint.Host == "" {
-		return fmt.Errorf("endpoint.host is empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("endpoint.host is empty: %w", common.ErrInvalidRequest)
 	}
 
 	if dsi.Endpoint.Port == 0 {
-		return fmt.Errorf("endpoint.port is empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("endpoint.port is empty: %w", common.ErrInvalidRequest)
 	}
 
 	if dsi.Database == "" {
-		return fmt.Errorf("database field is empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("database field is empty: %w", common.ErrInvalidRequest)
 	}
 
 	if dsi.UseTls {
@@ -102,18 +102,18 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 	}
 
 	if dsi.Protocol == api_common.EProtocol_PROTOCOL_UNSPECIFIED {
-		return fmt.Errorf("protocol field is empty: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("protocol field is empty: %w", common.ErrInvalidRequest)
 	}
 
 	switch dsi.GetKind() {
 	case api_common.EDataSourceKind_POSTGRESQL:
 		if dsi.GetPgOptions().Schema == "" {
-			return fmt.Errorf("schema field is empty: %w", utils.ErrInvalidRequest)
+			return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
 		}
 
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB:
 	default:
-		return fmt.Errorf("unsupported data source: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("unsupported data source: %w", common.ErrInvalidRequest)
 	}
 
 	return nil

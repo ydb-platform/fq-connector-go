@@ -6,12 +6,12 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ datasource.Factory[any] = (*dataSourceFactory)(nil)
@@ -34,10 +34,10 @@ func (dsf *dataSourceFactory) Make(
 	case api_common.EDataSourceKind_YDB:
 		return NewDataSource(logger, &dsf.ydb), nil
 	default:
-		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, utils.ErrDataSourceNotSupported)
+		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
 }
-func NewDataSourceFactory(qlf utils.QueryLoggerFactory) datasource.Factory[any] {
+func NewDataSourceFactory(qlf common.QueryLoggerFactory) datasource.Factory[any] {
 	connManagerCfg := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
 	}

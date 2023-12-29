@@ -7,43 +7,43 @@ import (
 	"github.com/stretchr/testify/require"
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
-	api "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 func TestMakeSQLFormatterQuery(t *testing.T) {
 	type testCase struct {
 		testName    string
-		selectReq   *api.TSelect
+		selectReq   *api_service_protos.TSelect
 		outputQuery string
 		outputArgs  []any
 		err         error
 	}
 
-	logger := utils.NewTestLogger(t)
+	logger := common.NewTestLogger(t)
 	formatter := NewSQLFormatter()
 
 	tcs := []testCase{
 		{
 			testName: "empty_table_name",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "",
 				},
-				What: &api.TSelect_TWhat{},
+				What: &api_service_protos.TSelect_TWhat{},
 			},
 			outputQuery: "",
 			outputArgs:  nil,
-			err:         utils.ErrEmptyTableName,
+			err:         common.ErrEmptyTableName,
 		},
 		{
 			testName: "empty_no columns",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: &api.TSelect_TWhat{},
+				What: &api_service_protos.TSelect_TWhat{},
 			},
 			outputQuery: `SELECT 0 FROM "tab"`,
 			outputArgs:  []any{},
@@ -51,17 +51,17 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "select_col",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: &api.TSelect_TWhat{
-					Items: []*api.TSelect_TWhat_TItem{
+				What: &api_service_protos.TSelect_TWhat{
+					Items: []*api_service_protos.TSelect_TWhat_TItem{
 						{
-							Payload: &api.TSelect_TWhat_TItem_Column{
+							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: "col",
-									Type: utils.NewPrimitiveType(ydb.Type_INT32),
+									Type: rdbms_utils.NewPrimitiveType(ydb.Type_INT32),
 								},
 							},
 						},
@@ -74,16 +74,16 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "is_null",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_IsNull{
-							IsNull: &api.TPredicate_TIsNull{
-								Value: utils.NewColumnExpression("col1"),
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_IsNull{
+							IsNull: &api_service_protos.TPredicate_TIsNull{
+								Value: rdbms_utils.NewColumnExpression("col1"),
 							},
 						},
 					},
@@ -95,16 +95,16 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "is_not_null",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_IsNotNull{
-							IsNotNull: &api.TPredicate_TIsNotNull{
-								Value: utils.NewColumnExpression("col2"),
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_IsNotNull{
+							IsNotNull: &api_service_protos.TPredicate_TIsNotNull{
+								Value: rdbms_utils.NewColumnExpression("col2"),
 							},
 						},
 					},
@@ -116,16 +116,16 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "bool_column",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_BoolExpression{
-							BoolExpression: &api.TPredicate_TBoolExpression{
-								Value: utils.NewColumnExpression("col2"),
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_BoolExpression{
+							BoolExpression: &api_service_protos.TPredicate_TBoolExpression{
+								Value: rdbms_utils.NewColumnExpression("col2"),
 							},
 						},
 					},
@@ -137,25 +137,25 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "complex_filter",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_Disjunction{
-							Disjunction: &api.TPredicate_TDisjunction{
-								Operands: []*api.TPredicate{
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_Disjunction{
+							Disjunction: &api_service_protos.TPredicate_TDisjunction{
+								Operands: []*api_service_protos.TPredicate{
 									{
-										Payload: &api.TPredicate_Negation{
-											Negation: &api.TPredicate_TNegation{
-												Operand: &api.TPredicate{
-													Payload: &api.TPredicate_Comparison{
-														Comparison: &api.TPredicate_TComparison{
-															Operation:  api.TPredicate_TComparison_LE,
-															LeftValue:  utils.NewColumnExpression("col2"),
-															RightValue: utils.NewInt32ValueExpression(42),
+										Payload: &api_service_protos.TPredicate_Negation{
+											Negation: &api_service_protos.TPredicate_TNegation{
+												Operand: &api_service_protos.TPredicate{
+													Payload: &api_service_protos.TPredicate_Comparison{
+														Comparison: &api_service_protos.TPredicate_TComparison{
+															Operation:  api_service_protos.TPredicate_TComparison_LE,
+															LeftValue:  rdbms_utils.NewColumnExpression("col2"),
+															RightValue: rdbms_utils.NewInt32ValueExpression(42),
 														},
 													},
 												},
@@ -163,22 +163,22 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 										},
 									},
 									{
-										Payload: &api.TPredicate_Conjunction{
-											Conjunction: &api.TPredicate_TConjunction{
-												Operands: []*api.TPredicate{
+										Payload: &api_service_protos.TPredicate_Conjunction{
+											Conjunction: &api_service_protos.TPredicate_TConjunction{
+												Operands: []*api_service_protos.TPredicate{
 													{
-														Payload: &api.TPredicate_Comparison{
-															Comparison: &api.TPredicate_TComparison{
-																Operation:  api.TPredicate_TComparison_NE,
-																LeftValue:  utils.NewColumnExpression("col1"),
-																RightValue: utils.NewUint64ValueExpression(0),
+														Payload: &api_service_protos.TPredicate_Comparison{
+															Comparison: &api_service_protos.TPredicate_TComparison{
+																Operation:  api_service_protos.TPredicate_TComparison_NE,
+																LeftValue:  rdbms_utils.NewColumnExpression("col1"),
+																RightValue: rdbms_utils.NewUint64ValueExpression(0),
 															},
 														},
 													},
 													{
-														Payload: &api.TPredicate_IsNull{
-															IsNull: &api.TPredicate_TIsNull{
-																Value: utils.NewColumnExpression("col3"),
+														Payload: &api_service_protos.TPredicate_IsNull{
+															IsNull: &api_service_protos.TPredicate_TIsNull{
+																Value: rdbms_utils.NewColumnExpression("col3"),
 															},
 														},
 													},
@@ -198,18 +198,18 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "unsupported_predicate",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_Between{
-							Between: &api.TPredicate_TBetween{
-								Value:    utils.NewColumnExpression("col2"),
-								Least:    utils.NewColumnExpression("col1"),
-								Greatest: utils.NewColumnExpression("col3"),
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_Between{
+							Between: &api_service_protos.TPredicate_TBetween{
+								Value:    rdbms_utils.NewColumnExpression("col2"),
+								Least:    rdbms_utils.NewColumnExpression("col1"),
+								Greatest: rdbms_utils.NewColumnExpression("col3"),
 							},
 						},
 					},
@@ -221,18 +221,18 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "unsupported_type",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_Comparison{
-							Comparison: &api.TPredicate_TComparison{
-								Operation:  api.TPredicate_TComparison_EQ,
-								LeftValue:  utils.NewColumnExpression("col2"),
-								RightValue: utils.NewTextValueExpression("text"),
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_Comparison{
+							Comparison: &api_service_protos.TPredicate_TComparison{
+								Operation:  api_service_protos.TPredicate_TComparison_EQ,
+								LeftValue:  rdbms_utils.NewColumnExpression("col2"),
+								RightValue: rdbms_utils.NewTextValueExpression("text"),
 							},
 						},
 					},
@@ -244,32 +244,32 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "partial_filter_removes_and",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_Conjunction{
-							Conjunction: &api.TPredicate_TConjunction{
-								Operands: []*api.TPredicate{
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_Conjunction{
+							Conjunction: &api_service_protos.TPredicate_TConjunction{
+								Operands: []*api_service_protos.TPredicate{
 									{
-										Payload: &api.TPredicate_Comparison{
-											Comparison: &api.TPredicate_TComparison{
-												Operation:  api.TPredicate_TComparison_EQ,
-												LeftValue:  utils.NewColumnExpression("col1"),
-												RightValue: utils.NewInt32ValueExpression(32),
+										Payload: &api_service_protos.TPredicate_Comparison{
+											Comparison: &api_service_protos.TPredicate_TComparison{
+												Operation:  api_service_protos.TPredicate_TComparison_EQ,
+												LeftValue:  rdbms_utils.NewColumnExpression("col1"),
+												RightValue: rdbms_utils.NewInt32ValueExpression(32),
 											},
 										},
 									},
 									{
 										// Not supported
-										Payload: &api.TPredicate_Comparison{
-											Comparison: &api.TPredicate_TComparison{
-												Operation:  api.TPredicate_TComparison_EQ,
-												LeftValue:  utils.NewColumnExpression("col2"),
-												RightValue: utils.NewTextValueExpression("text"),
+										Payload: &api_service_protos.TPredicate_Comparison{
+											Comparison: &api_service_protos.TPredicate_TComparison{
+												Operation:  api_service_protos.TPredicate_TComparison_EQ,
+												LeftValue:  rdbms_utils.NewColumnExpression("col2"),
+												RightValue: rdbms_utils.NewTextValueExpression("text"),
 											},
 										},
 									},
@@ -285,46 +285,46 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "partial_filter",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: utils.NewDefaultWhat(),
-				Where: &api.TSelect_TWhere{
-					FilterTyped: &api.TPredicate{
-						Payload: &api.TPredicate_Conjunction{
-							Conjunction: &api.TPredicate_TConjunction{
-								Operands: []*api.TPredicate{
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_Conjunction{
+							Conjunction: &api_service_protos.TPredicate_TConjunction{
+								Operands: []*api_service_protos.TPredicate{
 									{
-										Payload: &api.TPredicate_Comparison{
-											Comparison: &api.TPredicate_TComparison{
-												Operation:  api.TPredicate_TComparison_EQ,
-												LeftValue:  utils.NewColumnExpression("col1"),
-												RightValue: utils.NewInt32ValueExpression(32),
+										Payload: &api_service_protos.TPredicate_Comparison{
+											Comparison: &api_service_protos.TPredicate_TComparison{
+												Operation:  api_service_protos.TPredicate_TComparison_EQ,
+												LeftValue:  rdbms_utils.NewColumnExpression("col1"),
+												RightValue: rdbms_utils.NewInt32ValueExpression(32),
 											},
 										},
 									},
 									{
 										// Not supported
-										Payload: &api.TPredicate_Comparison{
-											Comparison: &api.TPredicate_TComparison{
-												Operation:  api.TPredicate_TComparison_EQ,
-												LeftValue:  utils.NewColumnExpression("col2"),
-												RightValue: utils.NewTextValueExpression("text"),
+										Payload: &api_service_protos.TPredicate_Comparison{
+											Comparison: &api_service_protos.TPredicate_TComparison{
+												Operation:  api_service_protos.TPredicate_TComparison_EQ,
+												LeftValue:  rdbms_utils.NewColumnExpression("col2"),
+												RightValue: rdbms_utils.NewTextValueExpression("text"),
 											},
 										},
 									},
 									{
-										Payload: &api.TPredicate_IsNull{
-											IsNull: &api.TPredicate_TIsNull{
-												Value: utils.NewColumnExpression("col3"),
+										Payload: &api_service_protos.TPredicate_IsNull{
+											IsNull: &api_service_protos.TPredicate_TIsNull{
+												Value: rdbms_utils.NewColumnExpression("col3"),
 											},
 										},
 									},
 									{
-										Payload: &api.TPredicate_IsNotNull{
-											IsNotNull: &api.TPredicate_TIsNotNull{
-												Value: utils.NewColumnExpression("col4"),
+										Payload: &api_service_protos.TPredicate_IsNotNull{
+											IsNotNull: &api_service_protos.TPredicate_TIsNotNull{
+												Value: rdbms_utils.NewColumnExpression("col4"),
 											},
 										},
 									},
@@ -340,11 +340,11 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "negative_sql_injection_by_table",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: `information_schema.columns; DROP TABLE information_schema.columns`,
 				},
-				What: &api.TSelect_TWhat{},
+				What: &api_service_protos.TSelect_TWhat{},
 			},
 			outputQuery: `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
 			outputArgs:  []any{},
@@ -352,17 +352,17 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "negative_sql_injection_by_col",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: &api.TSelect_TWhat{
-					Items: []*api.TSelect_TWhat_TItem{
+				What: &api_service_protos.TSelect_TWhat{
+					Items: []*api_service_protos.TSelect_TWhat_TItem{
 						{
-							Payload: &api.TSelect_TWhat_TItem_Column{
+							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: `0; DROP TABLE information_schema.columns`,
-									Type: utils.NewPrimitiveType(ydb.Type_INT32),
+									Type: rdbms_utils.NewPrimitiveType(ydb.Type_INT32),
 								},
 							},
 						},
@@ -375,17 +375,17 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		},
 		{
 			testName: "negative_sql_injection_fake_quotes",
-			selectReq: &api.TSelect{
-				From: &api.TSelect_TFrom{
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
 					Table: "tab",
 				},
-				What: &api.TSelect_TWhat{
-					Items: []*api.TSelect_TWhat_TItem{
+				What: &api_service_protos.TSelect_TWhat{
+					Items: []*api_service_protos.TSelect_TWhat_TItem{
 						{
-							Payload: &api.TSelect_TWhat_TItem_Column{
+							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: `0"; DROP TABLE information_schema.columns;`,
-									Type: utils.NewPrimitiveType(ydb.Type_INT32),
+									Type: rdbms_utils.NewPrimitiveType(ydb.Type_INT32),
 								},
 							},
 						},

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 func TestTrafficTracker(t *testing.T) {
@@ -135,7 +135,7 @@ func TestTrafficTracker(t *testing.T) {
 		*col1Acceptor = 1 // 4 bytes > 1 byte
 
 		ok, err := tt.tryAddRow(acceptors)
-		require.True(t, errors.Is(err, utils.ErrPageSizeExceeded))
+		require.True(t, errors.Is(err, common.ErrPageSizeExceeded))
 		require.False(t, ok)
 	})
 }

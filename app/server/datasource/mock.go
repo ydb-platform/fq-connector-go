@@ -34,7 +34,3 @@ func (m *DataSourceMock[T]) ReadSplit(
 ) {
 	m.Called(split, pagingWriter)
 }
-
-func (*DataSourceMock[T]) TypeMapper() utils.TypeMapper {
-	panic("not implemented") // TODO: Implement
-}

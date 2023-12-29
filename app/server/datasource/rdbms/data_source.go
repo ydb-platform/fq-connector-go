@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -16,14 +17,14 @@ import (
 type Preset struct {
 	SQLFormatter      rdbms_utils.SQLFormatter
 	ConnectionManager rdbms_utils.ConnectionManager
-	TypeMapper        utils.TypeMapper
+	TypeMapper        datasource.TypeMapper
 	SchemaProvider    rdbms_utils.SchemaProvider
 }
 
 var _ datasource.DataSource[any] = (*dataSourceImpl)(nil)
 
 type dataSourceImpl struct {
-	typeMapper        utils.TypeMapper
+	typeMapper        datasource.TypeMapper
 	sqlFormatter      rdbms_utils.SQLFormatter
 	connectionManager rdbms_utils.ConnectionManager
 	schemaProvider    rdbms_utils.SchemaProvider
@@ -73,7 +74,7 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("query '%s' error: %w", query, err)
 	}
 
-	defer func() { utils.LogCloserError(logger, rows, "close rows") }()
+	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
 	ydbTypes, err := utils.SelectWhatToYDBTypes(split.Select.What)
 	if err != nil {

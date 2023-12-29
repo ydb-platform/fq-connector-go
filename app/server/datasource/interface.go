@@ -5,6 +5,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -37,4 +39,8 @@ type DataSource[T utils.Acceptor] interface {
 		split *api_service_protos.TSplit,
 		sink paging.Sink[T],
 	)
+}
+
+type TypeMapper interface {
+	SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error)
 }
