@@ -40,8 +40,8 @@ jobs:
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 
       - name: Union coverage
         run: |
-          cat coverage_unit_tests.out | grep -v 'pb.go\|mock.go\|library' > coverage.out
-          cat coverage_integration_tests.out | grep -v 'atomic\|pb.go\|mock.go\|library' >> coverage.out
+          cat coverage_unit_tests.out > coverage.out
+          cat coverage_integration_tests.out | grep -v 'mode: atomic' >> coverage.out
           go tool cover -func=coverage.out
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4-beta
