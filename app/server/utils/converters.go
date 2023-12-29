@@ -3,13 +3,11 @@ package utils
 import (
 	"fmt"
 	"time"
+
+	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
-type ValueType interface {
-	bool | int8 | int16 | int32 | int64 | uint8 | uint16 | uint32 | uint64 | float32 | float64 | string | []byte | time.Time
-}
-
-type ValueConverter[IN ValueType, OUT ValueType] interface {
+type ValueConverter[IN common.ValueType, OUT common.ValueType] interface {
 	Convert(in IN) (OUT, error)
 }
 
@@ -80,7 +78,7 @@ func (BytesConverter) Convert(in []byte) ([]byte, error) { return in, nil }
 type DateConverter struct{}
 
 func (DateConverter) Convert(in time.Time) (uint16, error) {
-	out, err := TimeToYDBDate(&in)
+	out, err := common.TimeToYDBDate(&in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Date: %w", err)
@@ -98,7 +96,7 @@ func (DateToStringConverter) Convert(in time.Time) (string, error) {
 type DatetimeConverter struct{}
 
 func (DatetimeConverter) Convert(in time.Time) (uint32, error) {
-	out, err := TimeToYDBDatetime(&in)
+	out, err := common.TimeToYDBDatetime(&in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Datetime: %w", err)
@@ -116,7 +114,7 @@ func (DatetimeToStringConverter) Convert(in time.Time) (string, error) {
 type TimestampConverter struct{}
 
 func (TimestampConverter) Convert(in time.Time) (uint64, error) {
-	out, err := TimeToYDBTimestamp(&in)
+	out, err := common.TimeToYDBTimestamp(&in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Timestamp: %w", err)

@@ -24,6 +24,7 @@ type Client interface {
 	DescribeTable(
 		ctx context.Context,
 		dsi *api_common.TDataSourceInstance,
+		typeMappingSettings *api_service_protos.TTypeMappingSettings,
 		tableName string,
 	) (*api_service_protos.TDescribeTableResponse, error)
 
@@ -49,11 +50,13 @@ type clientImpl struct {
 func (c *clientImpl) DescribeTable(
 	ctx context.Context,
 	dsi *api_common.TDataSourceInstance,
+	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	request := &api_service_protos.TDescribeTableRequest{
-		DataSourceInstance: dsi,
-		Table:              tableName,
+		DataSourceInstance:  dsi,
+		Table:               tableName,
+		TypeMappingSettings: typeMappingSettings,
 	}
 
 	return c.client.DescribeTable(ctx, request)

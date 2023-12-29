@@ -1,4 +1,4 @@
-package utils
+package common
 
 import (
 	"fmt"
@@ -6,8 +6,15 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 )
+
+func MakePrimitiveType(typeId Ydb.Type_PrimitiveTypeId) *Ydb.Type {
+	return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: typeId}}
+}
+
+func MakeOptionalType(ydbType *Ydb.Type) *Ydb.Type {
+	return &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
+}
 
 func SelectWhatToYDBTypes(selectWhat *api_service_protos.TSelect_TWhat) ([]*Ydb.Type, error) {
 	var ydbTypes []*Ydb.Type
@@ -34,9 +41,9 @@ func YdbTypeToYdbPrimitiveTypeID(ydbType *Ydb.Type) (Ydb.Type_PrimitiveTypeId, e
 			return t.OptionalType.Item.GetTypeId(), nil
 		default:
 			return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED,
-				fmt.Errorf("unexpected type %v: %w", t.OptionalType.Item, common.ErrDataTypeNotSupported)
+				fmt.Errorf("unexpected type %v: %w", t.OptionalType.Item, ErrDataTypeNotSupported)
 		}
 	default:
-		return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED, fmt.Errorf("unexpected type %v: %w", t, common.ErrDataTypeNotSupported)
+		return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED, fmt.Errorf("unexpected type %v: %w", t, ErrDataTypeNotSupported)
 	}
 }

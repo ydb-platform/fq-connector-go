@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
@@ -23,7 +24,7 @@ type columnarBufferFactoryImpl[T utils.Acceptor] struct {
 func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer() (ColumnarBuffer[T], error) {
 	switch cbf.format {
 	case api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING:
-		builders, err := utils.YdbTypesToArrowBuilders(cbf.ydbTypes, cbf.arrowAllocator)
+		builders, err := common.YdbTypesToArrowBuilders(cbf.ydbTypes, cbf.arrowAllocator)
 		if err != nil {
 			return nil, fmt.Errorf("convert Select.What to arrow.Schema: %w", err)
 		}
@@ -53,12 +54,12 @@ func NewColumnarBufferFactory[T utils.Acceptor](
 	format api_service_protos.TReadSplitsRequest_EFormat,
 	selectWhat *api_service_protos.TSelect_TWhat,
 ) (ColumnarBufferFactory[T], error) {
-	ydbTypes, err := utils.SelectWhatToYDBTypes(selectWhat)
+	ydbTypes, err := common.SelectWhatToYDBTypes(selectWhat)
 	if err != nil {
 		return nil, fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
 
-	schema, err := utils.SelectWhatToArrowSchema(selectWhat)
+	schema, err := common.SelectWhatToArrowSchema(selectWhat)
 	if err != nil {
 		return nil, fmt.Errorf("convert Select.What to Arrow schema: %w", err)
 	}

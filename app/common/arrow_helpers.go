@@ -1,7 +1,8 @@
-package utils
+package common
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -9,8 +10,28 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 )
+
+type ValueType interface {
+	bool |
+		int8 | int16 | int32 | int64 |
+		uint8 | uint16 | uint32 | uint64 |
+		float32 | float64 |
+		string | []byte |
+		time.Time
+}
+
+type ArrowArrayType[VT ValueType] interface {
+	*array.Boolean |
+		*array.Int8 | *array.Int16 | *array.Int32 | *array.Int64 |
+		*array.Uint8 | *array.Uint16 | *array.Uint32 | *array.Uint64 |
+		*array.Float32 | *array.Float64 |
+		*array.String | *array.Binary
+
+	Len() int
+	Value(int) VT
+	IsNull(int) bool
+}
 
 type ArrowBuilder[VT ValueType] interface {
 	AppendNull()
@@ -49,7 +70,7 @@ func SelectWhatToArrowSchema(selectWhat *api_service_protos.TSelect_TWhat) (*arr
 		default:
 			err := fmt.Errorf(
 				"only primitive and optional types are supported, got '%T' instead: %w",
-				t, common.ErrDataTypeNotSupported,
+				t, ErrDataTypeNotSupported,
 			)
 
 			return nil, err
@@ -86,7 +107,7 @@ func YdbTypesToArrowBuilders(ydbTypes []*Ydb.Type, arrowAllocator memory.Allocat
 		default:
 			err := fmt.Errorf(
 				"only primitive and optional types are supported, got '%T' instead: %w",
-				t, common.ErrDataTypeNotSupported,
+				t, ErrDataTypeNotSupported,
 			)
 
 			return nil, err
@@ -140,7 +161,7 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 	case Ydb.Type_TIMESTAMP:
 		builder = array.NewUint64Builder(arrowAllocator)
 	default:
-		return nil, fmt.Errorf("register type '%v': %w", typeID, common.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
 	}
 
 	return builder, nil
@@ -188,7 +209,7 @@ func ydbTypeToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (a
 	case Ydb.Type_TIMESTAMP:
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Uint64}
 	default:
-		return arrow.Field{}, fmt.Errorf("register type '%v': %w", typeID, common.ErrDataTypeNotSupported)
+		return arrow.Field{}, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
 	}
 
 	return field, nil

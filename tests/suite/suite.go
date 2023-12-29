@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"fmt"
 	"testing"
 
 	testify_suite "github.com/stretchr/testify/suite"
@@ -12,9 +13,12 @@ type Base struct {
 	testify_suite.Suite
 	*State
 	Connector *connector.Server
+	name      string
 }
 
 func (b *Base) SetupSuite() {
+	fmt.Printf("\n>>>>>>>>>> Suite started: %s <<<<<<<<<<\n", b.name)
+
 	// We want to run a distinct instance of Connector for every suite
 	var err error
 	b.Connector, err = connector.NewServer()
@@ -24,12 +28,14 @@ func (b *Base) SetupSuite() {
 
 func (b *Base) TearDownSuite() {
 	b.Connector.Stop()
+
+	fmt.Printf("\n>>>>>>>>>> Suite stopped: %s <<<<<<<<<<\n", b.name)
 }
 
-// TODO: pass options in order to parametrize test environment launched in suite setup
-func NewBase(t *testing.T, state *State) *Base {
+func NewBase(t *testing.T, state *State, name string) *Base {
 	b := &Base{
 		State: state,
+		name:  name,
 	}
 
 	b.SetT(t)

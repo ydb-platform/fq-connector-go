@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	testify_suite "github.com/stretchr/testify/suite"
 
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
 
@@ -28,4 +30,9 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestSelect(t *testing.T) { testify_suite.Run(t, NewSelectSuite(suite.NewBase(t, state))) }
+func TestSelectClickHouse(t *testing.T) {
+	ds, err := clickhouse.DeriveDataSourceFromDockerCompose(state.EndpointDeterminer)
+	require.NoError(t, err)
+
+	testify_suite.Run(t, NewSelectSuite(suite.NewBase(t, state, "SelectClickHouse"), ds))
+}

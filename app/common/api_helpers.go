@@ -1,6 +1,12 @@
 package common
 
 import (
+	"bytes"
+	"fmt"
+
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -41,4 +47,28 @@ func SchemaToSelectWhatItems(
 	}
 
 	return out
+}
+
+func ReadResponsesToArrowRecords(responses []*api_service_protos.TReadSplitsResponse) ([]arrow.Record, error) {
+	var out []arrow.Record
+
+	for _, resp := range responses {
+		buf := bytes.NewBuffer(resp.GetArrowIpcStreaming())
+
+		reader, err := ipc.NewReader(buf)
+		if err != nil {
+			return nil, fmt.Errorf("new reader: %w", err)
+		}
+
+		for reader.Next() {
+			record := reader.Record()
+
+			record.Retain()
+			out = append(out, record)
+		}
+
+		reader.Release()
+	}
+
+	return out, nil
 }

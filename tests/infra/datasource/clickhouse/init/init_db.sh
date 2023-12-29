@@ -35,8 +35,8 @@ clickhouse client -n <<-EOSQL
         col_17_datetime64 DateTime64(3)
     ) ENGINE = MergeTree ORDER BY id;
     INSERT INTO connector.primitives (*) VALUES 
-        (1, True, 2, 3, 4, 5, 6, 7, 8, 9, 10.10, 11.11, 'az', 'az', now(), now(), now(), '1988-11-20 12:55:08.123') \
-        (2, False, -2, 3, -4, 5, -6, 7, -8, 9, -10.10, -11.11, 'буки', 'буки', now(), now(), now(), now());
+        (1, False, 2, 3, 4, 5, 6, 7, 8, 9, 10.10, 11.11, 'az', 'az', '1988-11-20', '1988-11-20', '1988-11-20 12:55:08', '1988-11-20 12:55:08.123') \
+        (2, True, -2, 3, -4, 5, -6, 7, -8, 9, -10.10, -11.11, 'буки', 'буки', '2023-03-21', '2023-03-21', '2023-03-21 11:21:31', '2023-03-21 11:21:31.456');
 EOSQL
 
 clickhouse client -n <<-EOSQL
@@ -62,7 +62,7 @@ clickhouse client -n <<-EOSQL
         col_17_datetime64 Nullable(DateTime64(3))
     ) ENGINE = MergeTree ORDER BY id;
     INSERT INTO connector.optionals (*) VALUES 
-        (1, True, 2, 3, 4, 5, 6, 7, 8, 9, 10.10, 11.11, 'az', 'az', now(), now(), now(), now()) \
-        (2, False, -2, 3, -4, 5, -6, 7, -8, 9, -10.10, -11.11, 'буки', 'буки', now(), now(), now(), now()) \
+        (1, False, 2, 3, 4, 5, 6, 7, 8, 9, 10.10, 11.11, 'az', 'az', '1988-11-20', '1988-11-20', '1988-11-20 12:55:08', '1988-11-20 12:55:08.123') \
+        (2, True, -2, 3, -4, 5, -6, 7, -8, 9, -10.10, -11.11, 'буки', 'буки', '2023-03-21', '2023-03-21', '2023-03-21 11:21:31', '2023-03-21 11:21:31.456') \
         (3, NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL);
 EOSQL

@@ -11,7 +11,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type Preset struct {
@@ -76,7 +75,7 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	ydbTypes, err := utils.SelectWhatToYDBTypes(split.Select.What)
+	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
 	if err != nil {
 		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
