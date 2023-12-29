@@ -18,12 +18,12 @@ import (
 
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ api_service.Connector_ReadSplitsServer = (*streamMock)(nil)
@@ -142,9 +142,8 @@ func (tc testCaseStreaming) messageParams() (sentMessages, rowsInLastMessage int
 }
 
 func (tc testCaseStreaming) execute(t *testing.T) {
-	logger := utils.NewTestLogger(t)
-	request := &api_service_protos.TReadSplitsRequest{}
-	split := utils.MakeTestSplit()
+	logger := common.NewTestLogger(t)
+	split := rdbms_utils.MakeTestSplit()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -180,8 +179,8 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		rows.On(
 			"MakeTransformer",
 			[]*Ydb.Type{
-				utils.NewPrimitiveType(Ydb.Type_INT32),
-				utils.NewPrimitiveType(Ydb.Type_STRING),
+				rdbms_utils.NewPrimitiveType(Ydb.Type_INT32),
+				rdbms_utils.NewPrimitiveType(Ydb.Type_STRING),
 			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData))
 		rows.On("Next").Return(false).Once()
@@ -191,8 +190,8 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	} else {
 		rows.On("MakeTransformer",
 			[]*Ydb.Type{
-				utils.NewPrimitiveType(Ydb.Type_INT32),
-				utils.NewPrimitiveType(Ydb.Type_STRING),
+				rdbms_utils.NewPrimitiveType(Ydb.Type_INT32),
+				rdbms_utils.NewPrimitiveType(Ydb.Type_STRING),
 			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData) + 1)
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))
@@ -204,7 +203,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 
 	totalMessages, rowsInLastMessage := tc.messageParams()
 
-	expectedColumnarBlocks := utils.DataConverter{}.RowsToColumnBlocks(rows.PredefinedData, tc.rowsPerPage)
+	expectedColumnarBlocks := rdbms_utils.DataConverter{}.RowsToColumnBlocks(rows.PredefinedData, tc.rowsPerPage)
 
 	if tc.sendErr == nil {
 		for sendCallID := 0; sendCallID < totalMessages; sendCallID++ {
@@ -258,7 +257,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	streamer := NewStreamer(logger, stream, request, split, sink, dataSource)
+	streamer := NewStreamer(logger, stream, split, sink, dataSource)
 
 	err = streamer.Run()
 

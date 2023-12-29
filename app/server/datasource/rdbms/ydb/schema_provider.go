@@ -11,12 +11,12 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type schemaProvider struct {
-	typeMapper utils.TypeMapper
+	typeMapper datasource.TypeMapper
 }
 
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
@@ -68,7 +68,7 @@ func (f *schemaProvider) GetSchema(
 }
 
 func NewSchemaProvider(
-	typeMapper utils.TypeMapper,
+	typeMapper datasource.TypeMapper,
 ) rdbms_utils.SchemaProvider {
 	return &schemaProvider{
 		typeMapper: typeMapper,

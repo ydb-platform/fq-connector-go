@@ -15,9 +15,9 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
 
@@ -38,14 +38,14 @@ func (s *serviceConnector) DescribeTable(
 	ctx context.Context,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	logger := utils.AnnotateLogger(s.logger, "DescribeTable", request.DataSourceInstance)
+	logger := common.AnnotateLoggerForUnaryCall(s.logger, "DescribeTable", request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
 		return &api_service_protos.TDescribeTableResponse{
-			Error: utils.NewAPIErrorFromStdError(err),
+			Error: common.NewAPIErrorFromStdError(err),
 		}, nil
 	}
 
@@ -53,31 +53,31 @@ func (s *serviceConnector) DescribeTable(
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
-		out = &api_service_protos.TDescribeTableResponse{Error: utils.NewAPIErrorFromStdError(err)}
+		out = &api_service_protos.TDescribeTableResponse{Error: common.NewAPIErrorFromStdError(err)}
 
 		return out, nil
 	}
 
-	out.Error = utils.NewSuccess()
+	out.Error = common.NewSuccess()
 	logger.Info("request handling finished", zap.String("response", out.String()))
 
 	return out, nil
 }
 
 func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsRequest, stream api_service.Connector_ListSplitsServer) error {
-	logger := utils.AnnotateLogger(s.logger, "ListSplits", nil)
+	logger := common.AnnotateLoggerWithMethod(s.logger, "ListSplits")
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
-			&api_service_protos.TListSplitsResponse{Error: utils.NewAPIErrorFromStdError(err)})
+			&api_service_protos.TListSplitsResponse{Error: common.NewAPIErrorFromStdError(err)})
 	}
 
 	// Make a trivial copy of requested selects
 	totalSplits := 0
 
 	for _, slct := range request.Selects {
-		if err := s.doListSplitsHandleSelect(stream, slct, &totalSplits); err != nil {
+		if err := s.doListSplitsHandleSelect(logger, stream, slct, &totalSplits); err != nil {
 			logger.Error("request handling failed", zap.Error(err))
 
 			return err
@@ -90,21 +90,22 @@ func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsReq
 }
 
 func (s *serviceConnector) doListSplitsHandleSelect(
+	logger *zap.Logger,
 	stream api_service.Connector_ListSplitsServer,
 	slct *api_service_protos.TSelect,
 	totalSplits *int,
 ) error {
-	logger := utils.AnnotateLogger(s.logger, "ListSplits", slct.DataSourceInstance)
+	logger = common.AnnotateLoggerWithDataSourceInstance(logger, slct.DataSourceInstance)
 
 	args := []zap.Field{
 		zap.Int("split_id", *totalSplits),
 	}
-	args = append(args, utils.SelectToFields(slct)...)
+	args = append(args, common.SelectToFields(slct)...)
 
 	logger.Debug("responding selects", args...)
 
 	resp := &api_service_protos.TListSplitsResponse{
-		Error:  utils.NewSuccess(),
+		Error:  common.NewSuccess(),
 		Splits: []*api_service_protos.TSplit{{Select: slct}},
 	}
 
@@ -112,7 +113,7 @@ func (s *serviceConnector) doListSplitsHandleSelect(
 		args := []zap.Field{
 			zap.Int("split_id", *totalSplits),
 		}
-		args = append(args, utils.SelectToFields(split.Select)...)
+		args = append(args, common.SelectToFields(split.Select)...)
 
 		logger.Debug("responding split", args...)
 
@@ -131,8 +132,8 @@ func (*serviceConnector) doListSplitsResponse(
 	stream api_service.Connector_ListSplitsServer,
 	response *api_service_protos.TListSplitsResponse,
 ) error {
-	if !utils.IsSuccess(response.Error) {
-		logger.Error("request handling failed", utils.APIErrorToLogFields(response.Error)...)
+	if !common.IsSuccess(response.Error) {
+		logger.Error("request handling failed", common.APIErrorToLogFields(response.Error)...)
 	}
 
 	if err := stream.Send(response); err != nil {
@@ -146,15 +147,16 @@ func (*serviceConnector) doListSplitsResponse(
 
 func (s *serviceConnector) ReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
-	stream api_service.Connector_ReadSplitsServer) error {
-	logger := utils.AnnotateLogger(s.logger, "ReadSplits", request.DataSourceInstance)
+	stream api_service.Connector_ReadSplitsServer,
+) error {
+	logger := common.AnnotateLoggerWithMethod(s.logger, "ReadSplits")
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	err := s.doReadSplits(logger, request, stream)
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
-		response := &api_service_protos.TReadSplitsResponse{Error: utils.NewAPIErrorFromStdError(err)}
+		response := &api_service_protos.TReadSplitsResponse{Error: common.NewAPIErrorFromStdError(err)}
 
 		if err := stream.Send(response); err != nil {
 			return fmt.Errorf("stream send: %w", err)
@@ -176,7 +178,9 @@ func (s *serviceConnector) doReadSplits(
 	}
 
 	for i, split := range request.Splits {
-		splitLogger := logger.With(zap.Int("split_id", i))
+		splitLogger := common.
+			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
+			With(zap.Int("split_id", i))
 
 		err := s.dataSourceCollection.DoReadSplit(
 			splitLogger,
@@ -252,7 +256,7 @@ func newServiceConnector(
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
 ) (service, error) {
-	queryLoggerFactory := utils.NewQueryLoggerFactory(cfg.Logger)
+	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
 	// TODO: drop deprecated fields after YQ-2057
 	var endpoint *api_common.TEndpoint
@@ -268,7 +272,7 @@ func newServiceConnector(
 		return nil, fmt.Errorf("invalid config: no endpoint")
 	}
 
-	listener, err := net.Listen("tcp", utils.EndpointToString(endpoint))
+	listener, err := net.Listen("tcp", common.EndpointToString(endpoint))
 	if err != nil {
 		return nil, fmt.Errorf("net listen: %w", err)
 	}

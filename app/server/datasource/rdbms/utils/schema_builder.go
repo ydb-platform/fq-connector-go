@@ -8,7 +8,8 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 )
 
 type schemaItem struct {
@@ -18,7 +19,7 @@ type schemaItem struct {
 }
 
 type SchemaBuilder struct {
-	typeMapper          utils.TypeMapper
+	typeMapper          datasource.TypeMapper
 	typeMappingSettings *api_service_protos.TTypeMappingSettings
 	items               []*schemaItem
 }
@@ -32,7 +33,7 @@ func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {
 	var err error
 	item.ydbColumn, err = sb.typeMapper.SQLTypeToYDBColumn(columnName, columnType, sb.typeMappingSettings)
 
-	if err != nil && !errors.Is(err, utils.ErrDataTypeNotSupported) {
+	if err != nil && !errors.Is(err, common.ErrDataTypeNotSupported) {
 		return fmt.Errorf("sql type to ydb column (%s, %s): %w", columnName, columnType, err)
 	}
 
@@ -43,7 +44,7 @@ func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {
 
 func (sb *SchemaBuilder) Build(logger *zap.Logger) (*api_service_protos.TSchema, error) {
 	if len(sb.items) == 0 {
-		return nil, utils.ErrTableDoesNotExist
+		return nil, common.ErrTableDoesNotExist
 	}
 
 	var (
@@ -70,7 +71,7 @@ func (sb *SchemaBuilder) Build(logger *zap.Logger) (*api_service_protos.TSchema,
 }
 
 func NewSchemaBuilder(
-	typeMapper utils.TypeMapper,
+	typeMapper datasource.TypeMapper,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 ) *SchemaBuilder {
 	return &SchemaBuilder{

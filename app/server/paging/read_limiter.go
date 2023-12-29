@@ -5,8 +5,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 // ReadLimiter helps to limitate amount of data returned by Connector server in every read request.
@@ -29,7 +29,7 @@ func (rl *readLimiterRows) addRow() error {
 	if rl.rowsRead >= rl.rowsLimit {
 		return fmt.Errorf("can read only %d line(s) from data source per request: %w",
 			rl.rowsLimit,
-			utils.ErrReadLimitExceeded)
+			common.ErrReadLimitExceeded)
 	}
 
 	rl.rowsRead++

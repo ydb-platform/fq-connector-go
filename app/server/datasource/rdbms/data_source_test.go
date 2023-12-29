@@ -11,10 +11,10 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 func TestReadSplit(t *testing.T) {
@@ -49,7 +49,7 @@ func TestReadSplit(t *testing.T) {
 	}
 
 	t.Run("positive", func(t *testing.T) {
-		logger := utils.NewTestLogger(t)
+		logger := common.NewTestLogger(t)
 
 		connectionManager := &rdbms_utils.ConnectionManagerMock{}
 
@@ -78,7 +78,7 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		rows.On("MakeTransformer",
-			[]*Ydb.Type{utils.NewPrimitiveType(Ydb.Type_INT32), utils.NewPrimitiveType(Ydb.Type_UTF8)},
+			[]*Ydb.Type{rdbms_utils.NewPrimitiveType(Ydb.Type_INT32), rdbms_utils.NewPrimitiveType(Ydb.Type_UTF8)},
 		).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(2)
 		rows.On("Next").Return(false).Once()
@@ -97,8 +97,7 @@ func TestReadSplit(t *testing.T) {
 	})
 
 	t.Run("scan error", func(t *testing.T) {
-		logger := utils.NewTestLogger(t)
-
+		logger := common.NewTestLogger(t)
 		connectionManager := &rdbms_utils.ConnectionManagerMock{}
 
 		preset := &Preset{
@@ -129,8 +128,8 @@ func TestReadSplit(t *testing.T) {
 
 		rows.On("MakeTransformer",
 			[]*Ydb.Type{
-				utils.NewPrimitiveType(Ydb.Type_INT32),
-				utils.NewPrimitiveType(Ydb.Type_UTF8),
+				rdbms_utils.NewPrimitiveType(Ydb.Type_INT32),
+				rdbms_utils.NewPrimitiveType(Ydb.Type_UTF8),
 			},
 		).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(2)

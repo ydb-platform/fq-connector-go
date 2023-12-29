@@ -28,4 +28,4 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-func TestClickHouse(t *testing.T) { testify_suite.Run(t, NewClickHouseSuite(suite.NewBase(t, state))) }
+func TestSelect(t *testing.T) { testify_suite.Run(t, NewSelectSuite(suite.NewBase(t, state))) }

@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
 
@@ -43,7 +43,7 @@ func newServiceMetrics(logger *zap.Logger, cfg *config.TMetricsServerConfig, reg
 	mux.Handle("/metrics", NewHTTPPullerHandler(logger, registry, WithSpack()))
 
 	httpServer := &http.Server{
-		Addr:    utils.EndpointToString(cfg.Endpoint),
+		Addr:    common.EndpointToString(cfg.Endpoint),
 		Handler: mux,
 	}
 

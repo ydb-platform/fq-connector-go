@@ -7,11 +7,12 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 )
 
 type DefaultSchemaProvider struct {
-	typeMapper      utils.TypeMapper
+	typeMapper      datasource.TypeMapper
 	getArgsAndQuery func(request *api_service_protos.TDescribeTableRequest) (string, []any)
 }
 
@@ -30,7 +31,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}
 
-	defer func() { utils.LogCloserError(logger, rows, "close rows") }()
+	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
 	var (
 		columnName string
@@ -62,7 +63,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 }
 
 func NewDefaultSchemaProvider(
-	typeMapper utils.TypeMapper,
+	typeMapper datasource.TypeMapper,
 	getArgsAndQueryFunc func(request *api_service_protos.TDescribeTableRequest) (string, []any),
 ) SchemaProvider {
 	return &DefaultSchemaProvider{

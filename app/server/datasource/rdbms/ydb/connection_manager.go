@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
@@ -20,7 +21,7 @@ var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
 	*sql.DB
-	logger utils.QueryLogger
+	logger common.QueryLogger
 }
 
 type rows struct {
@@ -80,7 +81,7 @@ func (c *connectionManager) Make(
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
 	// TODO: add credentials (iam and basic) support
-	endpoint := utils.EndpointToString(dsi.Endpoint)
+	endpoint := common.EndpointToString(dsi.Endpoint)
 	dsn := sugar.DSN(endpoint, dsi.Database, dsi.UseTls)
 
 	ydbDriver, err := ydb_sdk.Open(ctx, dsn)
@@ -111,7 +112,7 @@ func (c *connectionManager) Make(
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	utils.LogCloserError(logger, conn, "close clickhouse connection")
+	common.LogCloserError(logger, conn, "close clickhouse connection")
 }
 
 func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {

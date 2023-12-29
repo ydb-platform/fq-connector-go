@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
@@ -20,7 +21,7 @@ var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
 	*sql.DB
-	logger utils.QueryLogger
+	logger common.QueryLogger
 }
 
 type rows struct {
@@ -95,7 +96,7 @@ func (c *connectionManager) Make(
 	}
 
 	opts := &clickhouse.Options{
-		Addr: []string{utils.EndpointToString(dsi.GetEndpoint())},
+		Addr: []string{common.EndpointToString(dsi.GetEndpoint())},
 		Auth: clickhouse.Auth{
 			Database: dsi.Database,
 			Username: dsi.Credentials.GetBasic().Username,
@@ -140,7 +141,7 @@ func (c *connectionManager) Make(
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	utils.LogCloserError(logger, conn, "close clickhouse connection")
+	common.LogCloserError(logger, conn, "close clickhouse connection")
 }
 
 func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {

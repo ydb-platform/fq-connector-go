@@ -21,8 +21,8 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 const (
@@ -53,7 +53,7 @@ func runClient(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("unknown instance: %w", err)
 	}
 
-	logger := utils.NewDefaultLogger()
+	logger := common.NewDefaultLogger()
 
 	if err := callServer(logger, cfg); err != nil {
 		return fmt.Errorf("call server: %w", err)
@@ -89,7 +89,7 @@ func makeConnection(logger *zap.Logger, cfg *config.ClientConfig) (*grpc.ClientC
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
-	conn, err := grpc.Dial(utils.EndpointToString(cfg.Endpoint), opts...)
+	conn, err := grpc.Dial(common.EndpointToString(cfg.Endpoint), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %w", err)
 	}
@@ -103,7 +103,7 @@ func callServer(logger *zap.Logger, cfg *config.ClientConfig) error {
 		return fmt.Errorf("grpc dial: %w", err)
 	}
 
-	defer utils.LogCloserError(logger, conn, "connection close")
+	defer common.LogCloserError(logger, conn, "connection close")
 
 	connectorClient := api_service.NewConnectorClient(conn)
 
@@ -150,7 +150,7 @@ func describeTable(
 		return nil, fmt.Errorf("describe table: %w", err)
 	}
 
-	if utils.IsSuccess(resp.Error) {
+	if common.IsSuccess(resp.Error) {
 		logger.Debug("DescribeTable", zap.String("response", resp.String()))
 
 		return resp.Schema, nil
@@ -158,7 +158,7 @@ func describeTable(
 
 	logger.Error("DescribeTable", zap.String("response", resp.String()))
 
-	return nil, utils.NewSTDErrorFromAPIError(resp.Error)
+	return nil, common.NewSTDErrorFromAPIError(resp.Error)
 }
 
 func listSplits(
@@ -203,10 +203,10 @@ func listSplits(
 			return nil, fmt.Errorf("stream list splits: %w", err)
 		}
 
-		if !utils.IsSuccess(resp.Error) {
+		if !common.IsSuccess(resp.Error) {
 			logger.Error("ListSplits", zap.String("response", resp.String()))
 
-			return splits, utils.NewSTDErrorFromAPIError(resp.Error)
+			return splits, common.NewSTDErrorFromAPIError(resp.Error)
 		}
 
 		logger.Debug("ListSplits", zap.String("response", resp.String()))
@@ -247,8 +247,8 @@ func readSplits(
 			return fmt.Errorf("stream list splits: %w", err)
 		}
 
-		if !utils.IsSuccess(resp.Error) {
-			return utils.NewSTDErrorFromAPIError(resp.Error)
+		if !common.IsSuccess(resp.Error) {
+			return common.NewSTDErrorFromAPIError(resp.Error)
 		}
 
 		responses = append(responses, resp)

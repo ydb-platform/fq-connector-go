@@ -9,10 +9,12 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-var _ utils.TypeMapper = typeMapper{}
+var _ datasource.TypeMapper = typeMapper{}
 
 type typeMapper struct {
 }
@@ -90,7 +92,7 @@ func makePrimitiveType(typeName string) (*Ydb.Type, error) {
 	case typeName == Utf8Type:
 		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}, nil
 	default:
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, utils.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
 }
 
@@ -116,7 +118,7 @@ func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils
 
 	out, err := converter.Convert(value)
 	if err != nil {
-		if errors.Is(err, utils.ErrValueOutOfTypeBounds) {
+		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
 			// TODO: write warning to logger
 			builder.AppendNull()
 
@@ -232,6 +234,6 @@ func makeOptionalTransformers(typeName string) (any, func(acceptor any, builder 
 	}
 }
 
-func NewTypeMapper() utils.TypeMapper {
+func NewTypeMapper() datasource.TypeMapper {
 	return typeMapper{}
 }

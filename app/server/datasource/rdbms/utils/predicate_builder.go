@@ -7,7 +7,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
 func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (string, []any, error) {
@@ -27,7 +27,7 @@ func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (str
 	case *Ydb.Value_DoubleValue:
 		return formatter.GetPlaceholder(len(args)), append(args, v.DoubleValue), nil
 	default:
-		return "", args, fmt.Errorf("%w, type: %T", utils.ErrUnimplementedTypedValue, v)
+		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedTypedValue, v)
 	}
 }
 
@@ -60,7 +60,7 @@ func formatArithmeticalExpression(
 	case api_service_protos.TExpression_TArithmeticalExpression_BIT_XOR:
 		operation = " ^ "
 	default:
-		return "", args, fmt.Errorf("%w, op: %d", utils.ErrUnimplementedArithmeticalExpression, op)
+		return "", args, fmt.Errorf("%w, op: %d", common.ErrUnimplementedArithmeticalExpression, op)
 	}
 
 	left, args, err := formatExpression(formatter, args, expression.LeftValue)
@@ -78,7 +78,7 @@ func formatArithmeticalExpression(
 
 func formatExpression(formatter SQLFormatter, args []any, expression *api_service_protos.TExpression) (string, []any, error) {
 	if !formatter.SupportsPushdownExpression(expression) {
-		return "", args, utils.ErrUnsupportedExpression
+		return "", args, common.ErrUnsupportedExpression
 	}
 
 	switch e := expression.Payload.(type) {
@@ -91,7 +91,7 @@ func formatExpression(formatter SQLFormatter, args []any, expression *api_servic
 	case *api_service_protos.TExpression_Null:
 		return formatNull(formatter, args, e.Null)
 	default:
-		return "", args, fmt.Errorf("%w, type: %T", utils.ErrUnimplementedExpression, e)
+		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedExpression, e)
 	}
 }
 
@@ -112,7 +112,7 @@ func formatComparison(formatter SQLFormatter, args []any, comparison *api_servic
 	case api_service_protos.TPredicate_TComparison_G:
 		operation = " > "
 	default:
-		return "", args, fmt.Errorf("%w, op: %d", utils.ErrUnimplementedOperation, op)
+		return "", args, fmt.Errorf("%w, op: %d", common.ErrUnimplementedOperation, op)
 	}
 
 	left, args, err := formatExpression(formatter, args, comparison.LeftValue)
@@ -269,13 +269,13 @@ func formatPredicate(formatter SQLFormatter, args []any, predicate *api_service_
 	case *api_service_protos.TPredicate_BoolExpression:
 		return formatExpression(formatter, args, p.BoolExpression.Value)
 	default:
-		return "", args, fmt.Errorf("%w, type: %T", utils.ErrUnimplementedPredicateType, p)
+		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
 	}
 }
 
 func formatWhereClause(formatter SQLFormatter, where *api_service_protos.TSelect_TWhere) (string, []any, error) {
 	if where.FilterTyped == nil {
-		return "", nil, utils.ErrUnimplemented
+		return "", nil, common.ErrUnimplemented
 	}
 
 	args := make([]any, 0)

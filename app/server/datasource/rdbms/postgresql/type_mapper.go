@@ -10,10 +10,12 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-var _ utils.TypeMapper = typeMapper{}
+var _ datasource.TypeMapper = typeMapper{}
 
 type typeMapper struct{}
 
@@ -45,7 +47,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		case api_service_protos.EDateTimeFormat_YQL_FORMAT:
 			ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DATE}}
 		default:
-			return nil, fmt.Errorf("unexpected date format '%s': %w", rules.GetDateTimeFormat(), utils.ErrDataTypeNotSupported)
+			return nil, fmt.Errorf("unexpected date format '%s': %w", rules.GetDateTimeFormat(), common.ErrDataTypeNotSupported)
 		}
 	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
 	// but it can be supported when the PG-compatible types is added to YDB:
@@ -58,10 +60,10 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		case api_service_protos.EDateTimeFormat_YQL_FORMAT:
 			ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_TIMESTAMP}}
 		default:
-			return nil, fmt.Errorf("unexpected timestamp format '%s': %w", rules.GetDateTimeFormat(), utils.ErrDataTypeNotSupported)
+			return nil, fmt.Errorf("unexpected timestamp format '%s': %w", rules.GetDateTimeFormat(), common.ErrDataTypeNotSupported)
 		}
 	default:
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, utils.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
 	// In PostgreSQL all columns are actually nullable, hence we wrap every T in Optional<T>.
@@ -173,7 +175,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 						cast.Time, builder, cast.Valid)
 				})
 			default:
-				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, utils.ErrDataTypeNotSupported)
+				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)
 			}
 		case pgtype.TimestampOID:
 			acceptors = append(acceptors, new(pgtype.Timestamp))
@@ -202,10 +204,10 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 						cast.Time, builder, cast.Valid)
 				})
 			default:
-				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, utils.ErrDataTypeNotSupported)
+				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)
 			}
 		default:
-			return nil, fmt.Errorf("convert type OID %d: %w", oid, utils.ErrDataTypeNotSupported)
+			return nil, fmt.Errorf("convert type OID %d: %w", oid, common.ErrDataTypeNotSupported)
 		}
 	}
 
@@ -229,7 +231,7 @@ func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils
 
 	out, err := converter.Convert(cast)
 	if err != nil {
-		if errors.Is(err, utils.ErrValueOutOfTypeBounds) {
+		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
 			// TODO: logger ?
 			builder.AppendNull()
 
@@ -244,4 +246,4 @@ func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils
 	return nil
 }
 
-func NewTypeMapper() utils.TypeMapper { return typeMapper{} }
+func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }

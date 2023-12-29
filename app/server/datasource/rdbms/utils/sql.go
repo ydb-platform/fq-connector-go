@@ -8,6 +8,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
@@ -30,7 +31,7 @@ type ConnectionManager interface {
 }
 
 type ConnectionManagerBase struct {
-	QueryLoggerFactory utils.QueryLoggerFactory
+	QueryLoggerFactory common.QueryLoggerFactory
 }
 
 type SQLFormatter interface {

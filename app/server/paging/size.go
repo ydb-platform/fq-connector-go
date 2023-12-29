@@ -7,6 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
@@ -125,6 +126,6 @@ func sizeOfValue(v any) (uint64, acceptorKind, error) {
 	case pgtype.Timestamp:
 		return 16, fixedSize, nil
 	default:
-		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, utils.ErrDataTypeNotSupported)
+		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
 	}
 }

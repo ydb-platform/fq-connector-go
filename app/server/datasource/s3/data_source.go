@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
@@ -30,7 +31,7 @@ func (*dataSource) DescribeTable(
 	_ *zap.Logger,
 	_ *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	return nil, fmt.Errorf("table description is not implemented for schemaless data sources: %w", utils.ErrMethodNotSupported)
+	return nil, fmt.Errorf("table description is not implemented for schemaless data sources: %w", common.ErrMethodNotSupported)
 }
 
 func (ds *dataSource) ReadSplit(ctx context.Context, logger *zap.Logger, split *api_service_protos.TSplit, sink paging.Sink[string]) {
@@ -54,11 +55,11 @@ func (*dataSource) doReadSplit(
 	)
 
 	if bucket = split.Select.DataSourceInstance.GetS3Options().GetBucket(); bucket == "" {
-		return fmt.Errorf("empty field `bucket`: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("empty field `bucket`: %w", common.ErrInvalidRequest)
 	}
 
 	if key = split.Select.From.GetObjectKey(); key == "" {
-		return fmt.Errorf("empty field `key`: %w", utils.ErrInvalidRequest)
+		return fmt.Errorf("empty field `key`: %w", common.ErrInvalidRequest)
 	}
 
 	params := &s3.GetObjectInput{
@@ -105,7 +106,7 @@ func makeAppender(ydbType *Ydb.Type) (func(acceptor string, builder array.Builde
 			return nil
 		}
 	default:
-		return nil, fmt.Errorf("unexpected type %v: %w", typeID, utils.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("unexpected type %v: %w", typeID, common.ErrDataTypeNotSupported)
 	}
 
 	return appender, nil
@@ -136,7 +137,7 @@ func prepareReading(
 	if len(result) != len(selectWhat.Items) {
 		return nil, nil, fmt.Errorf(
 			"requested column with schema mismatch (wanted %d columns, found only %d): %w",
-			len(selectWhat.Items), len(result), utils.ErrInvalidRequest,
+			len(selectWhat.Items), len(result), common.ErrInvalidRequest,
 		)
 	}
 

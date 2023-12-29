@@ -10,10 +10,12 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-var _ utils.TypeMapper = typeMapper{}
+var _ datasource.TypeMapper = typeMapper{}
 
 type typeMapper struct {
 	isFixedString *regexp.Regexp
@@ -95,7 +97,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		ydbType, overflow, err = makeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
 		nullable = overflow || nullable
 	default:
-		err = fmt.Errorf("convert type '%s': %w", typeName, utils.ErrDataTypeNotSupported)
+		err = fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
 	if err != nil {
@@ -121,7 +123,7 @@ func makeYdbDateTimeType(ydbTypeID Ydb.Type_PrimitiveTypeId, format api_service_
 	case api_service_protos.EDateTimeFormat_STRING_FORMAT:
 		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}, false, nil
 	default:
-		return nil, false, fmt.Errorf("unexpected datetime format '%s': %w", format, utils.ErrDataTypeNotSupported)
+		return nil, false, fmt.Errorf("unexpected datetime format '%s': %w", format, common.ErrDataTypeNotSupported)
 	}
 }
 
@@ -191,7 +193,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 			case Ydb.Type_DATE:
 				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter])
 			default:
-				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, utils.ErrDataTypeNotSupported)
+				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
 		case typeName == "Date32":
 			acceptors = append(acceptors, new(*time.Time))
@@ -207,7 +209,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 			case Ydb.Type_DATE:
 				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter])
 			default:
-				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, utils.ErrDataTypeNotSupported)
+				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
 		case isDateTime64.MatchString(typeName):
 			acceptors = append(acceptors, new(*time.Time))
@@ -225,7 +227,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 				appenders = append(appenders,
 					appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter])
 			default:
-				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, utils.ErrDataTypeNotSupported)
+				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
 		case isDateTime.MatchString(typeName):
 			acceptors = append(acceptors, new(*time.Time))
@@ -241,7 +243,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 			case Ydb.Type_DATETIME:
 				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint32, *array.Uint32Builder, utils.DatetimeConverter])
 			default:
-				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, utils.ErrDataTypeNotSupported)
+				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
 		default:
 			return nil, fmt.Errorf("unknown type '%v'", typeName)
@@ -269,7 +271,7 @@ func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils
 
 	out, err := converter.Convert(value)
 	if err != nil {
-		if errors.Is(err, utils.ErrValueOutOfTypeBounds) {
+		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
 			// TODO: write warning to logger
 			builder.AppendNull()
 
@@ -335,7 +337,7 @@ func (dateTime64ToStringConverter) Convert(in time.Time) (string, error) {
 	return utils.TimestampToStringConverter{}.Convert(saturateDateTime(in, minClickHouseDatetime64, maxClickHouseDatetime64))
 }
 
-func NewTypeMapper() utils.TypeMapper {
+func NewTypeMapper() datasource.TypeMapper {
 	return typeMapper{
 		isFixedString: regexp.MustCompile(`FixedString\([0-9]+\)`),
 		isDateTime:    regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`),

@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
@@ -142,7 +143,7 @@ func (s *sinkImpl[T]) respondWith(
 func (s *sinkImpl[T]) unexpectedState(expected ...sinkState) error {
 	return fmt.Errorf(
 		"unexpected state '%v' (expected are '%v'): %w",
-		s.state, expected, utils.ErrInvariantViolation)
+		s.state, expected, common.ErrInvariantViolation)
 }
 
 func NewSink[T utils.Acceptor](

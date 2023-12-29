@@ -10,6 +10,7 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
@@ -44,7 +45,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 
 		return ds.DescribeTable(ctx, logger, request)
 	default:
-		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, utils.ErrDataSourceNotSupported)
+		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
 }
 
@@ -54,39 +55,39 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 ) error {
-	switch kind := request.GetDataSourceInstance().GetKind(); kind {
+	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return err
 		}
 
-		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return readSplit[any](logger, stream, request.GetFormat(), split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
-		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return readSplit[string](logger, stream, request.GetFormat(), split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
-		return fmt.Errorf("unsupported data source type '%v': %w", kind, utils.ErrDataSourceNotSupported)
+		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
 }
 
 func readSplit[T utils.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
-	request *api_service_protos.TReadSplitsRequest,
+	format api_service_protos.TReadSplitsRequest_EFormat,
 	split *api_service_protos.TSplit,
 	dataSource datasource.DataSource[T],
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
 	cfg *config.TServerConfig,
 ) error {
-	logger.Debug("split reading started", utils.SelectToFields(split.Select)...)
+	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
 
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](
 		logger,
 		memoryAllocator,
-		request.Format,
+		format,
 		split.Select.What)
 	if err != nil {
 		return fmt.Errorf("new columnar buffer factory: %w", err)
@@ -109,7 +110,6 @@ func readSplit[T utils.Acceptor](
 	streamer := streaming.NewStreamer(
 		logger,
 		stream,
-		request,
 		split,
 		sink,
 		dataSource,
@@ -131,7 +131,7 @@ func readSplit[T utils.Acceptor](
 }
 
 func NewDataSourceCollection(
-	queryLoggerFactory utils.QueryLoggerFactory,
+	queryLoggerFactory common.QueryLoggerFactory,
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
 	cfg *config.TServerConfig,
