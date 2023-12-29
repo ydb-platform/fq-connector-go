@@ -1,0 +1,4 @@
+ignore:
+  - "api"
+  - "library"
+  - "*_mock.go"
