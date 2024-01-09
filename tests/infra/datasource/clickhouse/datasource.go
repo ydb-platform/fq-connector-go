@@ -53,10 +53,5 @@ func DeriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 		return nil, fmt.Errorf("derive HTTP endpoint: %w", err)
 	}
 
-	return datasource.NewDataSource(
-		map[api_common.EProtocol]*api_common.TDataSourceInstance{
-			api_common.EProtocol_HTTP:   dsiHTTP,
-			api_common.EProtocol_NATIVE: dsiNative,
-		},
-	), nil
+	return &datasource.DataSource{Instances: []*api_common.TDataSourceInstance{dsiHTTP, dsiNative}}, nil
 }

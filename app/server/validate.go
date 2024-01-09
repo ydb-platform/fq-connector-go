@@ -107,7 +107,7 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 
 	switch dsi.GetKind() {
 	case api_common.EDataSourceKind_POSTGRESQL:
-		if dsi.GetPgOptions().Schema == "" {
+		if dsi.GetPgOptions().GetSchema() == "" {
 			return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
 		}
 
