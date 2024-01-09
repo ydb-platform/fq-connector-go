@@ -17,6 +17,7 @@ integration_test: integration_test_env
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH)
 
 integration_test_env:
+	docker-compose -f ./tests/infra/datasource/docker-compose.yaml stop
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v 
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d
 

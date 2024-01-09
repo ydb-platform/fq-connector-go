@@ -6,21 +6,9 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/docker_compose"
 )
-
-type DataSource struct {
-	dsi map[api_common.EProtocol]*api_common.TDataSourceInstance
-}
-
-func (ds *DataSource) GetDataSourceInstance(protocol api_common.EProtocol) (*api_common.TDataSourceInstance, error) {
-	result, exists := ds.dsi[protocol]
-	if !exists {
-		return nil, fmt.Errorf("unexpected protocol %v", protocol)
-	}
-
-	return result, nil
-}
 
 const (
 	serviceName        = "clickhouse"
@@ -31,7 +19,7 @@ const (
 	password           = "password"
 )
 
-func DeriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*DataSource, error) {
+func DeriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
 	var (
 		dsi = &api_common.TDataSourceInstance{
 			Kind:     api_common.EDataSourceKind_CLICKHOUSE,
@@ -65,12 +53,10 @@ func DeriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 		return nil, fmt.Errorf("derive HTTP endpoint: %w", err)
 	}
 
-	out := &DataSource{
-		dsi: map[api_common.EProtocol]*api_common.TDataSourceInstance{
+	return datasource.NewDataSource(
+		map[api_common.EProtocol]*api_common.TDataSourceInstance{
 			api_common.EProtocol_HTTP:   dsiHTTP,
 			api_common.EProtocol_NATIVE: dsiNative,
 		},
-	}
-
-	return out, nil
+	), nil
 }

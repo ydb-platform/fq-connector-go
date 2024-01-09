@@ -123,7 +123,7 @@ func makeYdbDateTimeType(ydbTypeID Ydb.Type_PrimitiveTypeId, format api_service_
 	case api_service_protos.EDateTimeFormat_STRING_FORMAT:
 		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}, false, nil
 	default:
-		return nil, false, fmt.Errorf("unexpected datetime format '%s': %w", format, common.ErrDataTypeNotSupported)
+		return nil, false, fmt.Errorf("unexpected datetime format '%s': %w", format, common.ErrInvalidRequest)
 	}
 }
 
@@ -182,7 +182,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 		case typeName == "Date":
 			acceptors = append(acceptors, new(*time.Time))
 
-			ydbTypeID, err := utils.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
 			if err != nil {
 				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 			}
@@ -198,7 +198,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 		case typeName == "Date32":
 			acceptors = append(acceptors, new(*time.Time))
 
-			ydbTypeID, err := utils.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
 			if err != nil {
 				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 			}
@@ -214,7 +214,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 		case isDateTime64.MatchString(typeName):
 			acceptors = append(acceptors, new(*time.Time))
 
-			ydbTypeID, err := utils.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
 			if err != nil {
 				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 			}
@@ -232,7 +232,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 		case isDateTime.MatchString(typeName):
 			acceptors = append(acceptors, new(*time.Time))
 
-			ydbTypeID, err := utils.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
 			if err != nil {
 				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 			}
@@ -253,7 +253,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (utils.Ro
 	return utils.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
+func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
 	acceptor any,
 	builder array.Builder,
 ) error {

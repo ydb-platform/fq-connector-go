@@ -1,4 +1,4 @@
-package utils
+package common
 
 import (
 	"errors"
@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/ydb-platform/fq-connector-go/app/common"
 )
 
 func TestTimeToYDBDate(t *testing.T) {
@@ -31,12 +29,12 @@ func TestTimeToYDBDate(t *testing.T) {
 		{
 			input:  time.Date(1969, 12, 31, 23, 59, 00, 00, time.UTC),
 			output: 0,
-			err:    common.ErrValueOutOfTypeBounds,
+			err:    ErrValueOutOfTypeBounds,
 		},
 		{
 			input:  time.Date(9999, 01, 01, 00, 00, 00, 00, time.UTC),
 			output: 0,
-			err:    common.ErrValueOutOfTypeBounds,
+			err:    ErrValueOutOfTypeBounds,
 		},
 	}
 
@@ -48,7 +46,7 @@ func TestTimeToYDBDate(t *testing.T) {
 			require.Equal(t, tc.output, output)
 
 			if tc.err != nil {
-				require.True(t, errors.Is(tc.err, common.ErrValueOutOfTypeBounds))
+				require.True(t, errors.Is(tc.err, ErrValueOutOfTypeBounds))
 			} else {
 				require.NoError(t, err)
 			}
@@ -77,12 +75,12 @@ func TestTimeToYDBDatetime(t *testing.T) {
 		{
 			input:  time.Date(1969, 12, 31, 23, 59, 00, 00, time.UTC),
 			output: 0,
-			err:    common.ErrValueOutOfTypeBounds,
+			err:    ErrValueOutOfTypeBounds,
 		},
 		{
 			input:  time.Date(9999, 01, 01, 00, 00, 00, 00, time.UTC),
 			output: 0,
-			err:    common.ErrValueOutOfTypeBounds,
+			err:    ErrValueOutOfTypeBounds,
 		},
 	}
 
@@ -94,7 +92,7 @@ func TestTimeToYDBDatetime(t *testing.T) {
 			require.Equal(t, tc.output, output)
 
 			if tc.err != nil {
-				require.True(t, errors.Is(tc.err, common.ErrValueOutOfTypeBounds))
+				require.True(t, errors.Is(tc.err, ErrValueOutOfTypeBounds))
 			} else {
 				require.NoError(t, err)
 			}
@@ -123,12 +121,12 @@ func TestTimeToYDBTimestamp(t *testing.T) {
 		{
 			input:  time.Date(1969, 12, 31, 23, 59, 00, 00, time.UTC),
 			output: 0,
-			err:    common.ErrValueOutOfTypeBounds,
+			err:    ErrValueOutOfTypeBounds,
 		},
 		{
 			input:  time.Date(29427, 01, 01, 00, 00, 00, 00, time.UTC),
 			output: 0,
-			err:    common.ErrValueOutOfTypeBounds,
+			err:    ErrValueOutOfTypeBounds,
 		},
 	}
 
@@ -140,7 +138,7 @@ func TestTimeToYDBTimestamp(t *testing.T) {
 			require.Equal(t, tc.output, output)
 
 			if tc.err != nil {
-				require.True(t, errors.Is(tc.err, common.ErrValueOutOfTypeBounds))
+				require.True(t, errors.Is(tc.err, ErrValueOutOfTypeBounds))
 			} else {
 				require.NoError(t, err)
 			}

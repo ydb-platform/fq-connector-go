@@ -49,58 +49,54 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service
 		typeName = matches[1]
 	}
 
-	ydbType, err = makePrimitiveType(typeName)
+	ydbType, err = makePrimitiveTypeFromString(typeName)
 	if err != nil {
 		return nil, fmt.Errorf("make type: %w", err)
 	}
 
 	if optional {
-		ydbType = makeOptionalType(ydbType)
+		ydbType = common.MakeOptionalType(ydbType)
 	}
 
 	return &Ydb.Column{Name: columnName, Type: ydbType}, nil
 }
 
-func makePrimitiveType(typeName string) (*Ydb.Type, error) {
+func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 	// TODO: add all types support
 	// Reference table: https://ydb.yandex-team.ru/docs/yql/reference/types/
 	switch {
 	case typeName == BoolType:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_BOOL}}, nil
+		return common.MakePrimitiveType(Ydb.Type_BOOL), nil
 	case typeName == Int8Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT8}}, nil
+		return common.MakePrimitiveType(Ydb.Type_INT8), nil
 	case typeName == Uint8Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT8}}, nil
+		return common.MakePrimitiveType(Ydb.Type_UINT8), nil
 	case typeName == Int16Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT16}}, nil
+		return common.MakePrimitiveType(Ydb.Type_INT16), nil
 	case typeName == Uint16Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT16}}, nil
+		return common.MakePrimitiveType(Ydb.Type_UINT16), nil
 	case typeName == Int32Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}, nil
+		return common.MakePrimitiveType(Ydb.Type_INT32), nil
 	case typeName == Uint32Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT32}}, nil
+		return common.MakePrimitiveType(Ydb.Type_UINT32), nil
 	case typeName == Int64Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}, nil
+		return common.MakePrimitiveType(Ydb.Type_INT64), nil
 	case typeName == Uint64Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT64}}, nil
+		return common.MakePrimitiveType(Ydb.Type_UINT64), nil
 	case typeName == FloatType:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_FLOAT}}, nil
+		return common.MakePrimitiveType(Ydb.Type_FLOAT), nil
 	case typeName == DoubleType:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DOUBLE}}, nil
+		return common.MakePrimitiveType(Ydb.Type_DOUBLE), nil
 	case typeName == StringType:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}, nil
+		return common.MakePrimitiveType(Ydb.Type_STRING), nil
 	case typeName == Utf8Type:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}, nil
+		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
 }
 
-func makeOptionalType(ydbType *Ydb.Type) *Ydb.Type {
-	return &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
-}
-
-func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
+func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
 	acceptor any,
 	builder array.Builder,
 ) error {

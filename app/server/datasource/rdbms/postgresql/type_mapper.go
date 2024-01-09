@@ -154,7 +154,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 		case pgtype.DateOID:
 			acceptors = append(acceptors, new(pgtype.Date))
 
-			ydbTypeID, err := utils.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
 			if err != nil {
 				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 			}
@@ -180,7 +180,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 		case pgtype.TimestampOID:
 			acceptors = append(acceptors, new(pgtype.Timestamp))
 
-			ydbTypeID, err := utils.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
 			if err != nil {
 				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 			}
@@ -214,7 +214,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 	return utils.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func appendValueToArrowBuilder[IN utils.ValueType, OUT utils.ValueType, AB utils.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
+func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
 	value any,
 	builder array.Builder,
 	valid bool,

@@ -1,13 +1,12 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 
-	"github.com/apache/arrow/go/v13/arrow/ipc"
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -67,7 +66,11 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 
 	switch cfg.DataSourceInstance.Kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
-		splits, err = prepareSplits(cl, tableName, cfg.DataSourceInstance)
+		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
+			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
+		}
+
+		splits, err = prepareSplits(cl, cfg.DataSourceInstance, typeMappingSettings, tableName)
 
 		if err != nil {
 			return fmt.Errorf("prepare splits: %w", err)
@@ -86,11 +89,12 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 
 func prepareSplits(
 	cl Client,
-	tableName string,
 	dsi *api_common.TDataSourceInstance,
+	typeMappingSettings *api_service_protos.TTypeMappingSettings,
+	tableName string,
 ) ([]*api_service_protos.TSplit, error) {
 	// DescribeTable
-	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, tableName)
+	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, typeMappingSettings, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("describe table: %w", err)
 	}
@@ -126,38 +130,25 @@ func readSplits(
 		return fmt.Errorf("read splits: %w", err)
 	}
 
-	if err := dumpReadResponses(logger, readSplitsResponses); err != nil {
-		return fmt.Errorf("dump read responses: %w", err)
+	records, err := common.ReadResponsesToArrowRecords(readSplitsResponses)
+	if err != nil {
+		return fmt.Errorf("read responses to arrow records: %w", err)
 	}
+
+	dumpReadResponses(logger, records)
 
 	return nil
 }
 
 func dumpReadResponses(
 	logger *zap.Logger,
-	responses []*api_service_protos.TReadSplitsResponse,
-) error {
-	for _, resp := range responses {
-		buf := bytes.NewBuffer(resp.GetArrowIpcStreaming())
-
-		reader, err := ipc.NewReader(buf)
-		if err != nil {
-			return fmt.Errorf("new reader: %w", err)
+	records []arrow.Record,
+) {
+	for _, record := range records {
+		for i, column := range record.Columns() {
+			logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
 		}
-
-		for reader.Next() {
-			record := reader.Record()
-			logger.Debug("schema", zap.String("schema", record.Schema().String()))
-
-			for i, column := range record.Columns() {
-				logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
-			}
-		}
-
-		reader.Release()
 	}
-
-	return nil
 }
 
 var Cmd = &cobra.Command{
