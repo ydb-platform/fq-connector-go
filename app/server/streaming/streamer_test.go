@@ -18,12 +18,12 @@ import (
 
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 var _ api_service.Connector_ReadSplitsServer = (*streamMock)(nil)

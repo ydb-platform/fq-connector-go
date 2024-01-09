@@ -7,8 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/ydb-platform/fq-connector-go/app/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 // Some acceptors belong to fixed-size types (integers, floats, booleans),
@@ -22,7 +21,7 @@ const (
 	variableSize
 )
 
-type sizePattern[T utils.Acceptor] struct {
+type sizePattern[T Acceptor] struct {
 	// Ordered numbers of acceptors of variable legnth types.
 	// Their size must be estimated every time.
 	varyingSizeIx []int
@@ -46,7 +45,7 @@ func (sp *sizePattern[T]) estimate(acceptors []T) (uint64, error) {
 	return sizeTotal, nil
 }
 
-func newSizePattern[T utils.Acceptor](acceptors []T) (*sizePattern[T], error) {
+func newSizePattern[T Acceptor](acceptors []T) (*sizePattern[T], error) {
 	sp := &sizePattern[T]{}
 
 	for i, acceptor := range acceptors {

@@ -9,9 +9,10 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 var _ datasource.TypeMapper = typeMapper{}
@@ -130,7 +131,7 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	return nil
 }
 
-func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (utils.RowTransformer[any], error) {
+func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
@@ -161,7 +162,7 @@ func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (utils.RowTransf
 		appenders = append(appenders, appender)
 	}
 
-	return utils.NewRowTransformer[any](acceptors, appenders, nil), nil
+	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
 func makePrimitiveTransformers(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {

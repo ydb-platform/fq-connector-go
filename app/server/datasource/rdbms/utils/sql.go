@@ -8,8 +8,8 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type Connection interface {
@@ -22,7 +22,7 @@ type Rows interface {
 	Err() error
 	Next() bool
 	Scan(dest ...any) error
-	MakeTransformer(ydbTypes []*Ydb.Type) (utils.RowTransformer[any], error)
+	MakeTransformer(ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error)
 }
 
 type ConnectionManager interface {

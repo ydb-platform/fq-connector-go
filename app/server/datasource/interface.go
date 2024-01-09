@@ -10,10 +10,9 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-type Factory[T utils.Acceptor] interface {
+type Factory[T paging.Acceptor] interface {
 	Make(
 		logger *zap.Logger,
 		dataSourceType api_common.EDataSourceKind,
@@ -22,8 +21,8 @@ type Factory[T utils.Acceptor] interface {
 
 // DataSource is an abstraction over external data storage that is available for data and metadata extraction.
 // All new data sources must implement this interface.
-// The types of data extracted from the data source are parametrized via [T utils.Acceptor] interface.
-type DataSource[T utils.Acceptor] interface {
+// The types of data extracted from the data source are parametrized via [T paging.Acceptor] interface.
+type DataSource[T paging.Acceptor] interface {
 	// DescribeTable returns metadata about a table (or similar entity in non-relational data sources)
 	// located within a particular database in a data source cluster.
 	DescribeTable(

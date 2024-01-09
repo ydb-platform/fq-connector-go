@@ -4,7 +4,6 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ Sink[any] = (*SinkMock)(nil)
@@ -13,7 +12,7 @@ type SinkMock struct {
 	mock.Mock
 }
 
-func (m *SinkMock) AddRow(transformer utils.RowTransformer[any]) error {
+func (m *SinkMock) AddRow(transformer RowTransformer[any]) error {
 	args := m.Called(transformer)
 
 	return args.Error(0)
@@ -38,7 +37,7 @@ type ColumnarBufferMock struct {
 }
 
 //nolint:unused
-func (*ColumnarBufferMock) addRow(_ utils.RowTransformer[any]) error {
+func (*ColumnarBufferMock) addRow(_ RowTransformer[any]) error {
 	panic("not implemented") // TODO: Implement
 }
 

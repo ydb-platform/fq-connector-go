@@ -8,13 +8,12 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ DataSource[any] = (*DataSourceMock[any])(nil)
 
 //nolint:revive
-type DataSourceMock[T utils.Acceptor] struct {
+type DataSourceMock[T paging.Acceptor] struct {
 	mock.Mock
 }
 

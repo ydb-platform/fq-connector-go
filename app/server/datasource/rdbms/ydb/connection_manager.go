@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 var _ rdbms_utils.Connection = (*Connection)(nil)
@@ -28,7 +28,7 @@ type rows struct {
 	*sql.Rows
 }
 
-func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (utils.RowTransformer[any], error) {
+func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
 	columns, err := r.ColumnTypes()
 	if err != nil {
 		return nil, fmt.Errorf("column types: %w", err)

@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 )
 
 var _ Connection = (*ConnectionMock)(nil)
@@ -89,13 +89,13 @@ func (m *RowsMock) Scan(dest ...any) error {
 	return args.Error(0)
 }
 
-func (m *RowsMock) MakeTransformer(ydbType []*Ydb.Type) (utils.RowTransformer[any], error) {
+func (m *RowsMock) MakeTransformer(ydbType []*Ydb.Type) (paging.RowTransformer[any], error) {
 	args := m.Called(ydbType)
 
 	return args.Get(0).(*RowTransformerMock), args.Error(1)
 }
 
-var _ utils.RowTransformer[any] = (*RowTransformerMock)(nil)
+var _ paging.RowTransformer[any] = (*RowTransformerMock)(nil)
 
 type RowTransformerMock struct {
 	mock.Mock

@@ -8,8 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type sinkState int8
@@ -23,7 +22,7 @@ const (
 var _ Sink[any] = (*sinkImpl[any])(nil)
 var _ Sink[string] = (*sinkImpl[string])(nil)
 
-type sinkImpl[T utils.Acceptor] struct {
+type sinkImpl[T Acceptor] struct {
 	currBuffer     ColumnarBuffer[T]        // accumulates incoming rows
 	resultQueue    chan *ReadResult[T]      // outgoing buffer queue
 	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
@@ -34,7 +33,7 @@ type sinkImpl[T utils.Acceptor] struct {
 	ctx            context.Context          // client context
 }
 
-func (s *sinkImpl[T]) AddRow(rowTransformer utils.RowTransformer[T]) error {
+func (s *sinkImpl[T]) AddRow(rowTransformer RowTransformer[T]) error {
 	if s.state != operational {
 		panic(s.unexpectedState(operational))
 	}
@@ -146,7 +145,7 @@ func (s *sinkImpl[T]) unexpectedState(expected ...sinkState) error {
 		s.state, expected, common.ErrInvariantViolation)
 }
 
-func NewSink[T utils.Acceptor](
+func NewSink[T Acceptor](
 	ctx context.Context,
 	logger *zap.Logger,
 	trafficTracker *TrafficTracker[T],

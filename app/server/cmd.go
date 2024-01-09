@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 var Cmd = &cobra.Command{
