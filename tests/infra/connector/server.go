@@ -10,8 +10,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/client"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type Server struct {

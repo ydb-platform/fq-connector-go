@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 var _ rdbms_utils.Connection = (*Connection)(nil)

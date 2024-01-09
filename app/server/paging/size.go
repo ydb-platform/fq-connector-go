@@ -7,7 +7,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/ydb-platform/fq-connector-go/app/common"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 // Some acceptors belong to fixed-size types (integers, floats, booleans),

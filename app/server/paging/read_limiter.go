@@ -5,8 +5,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 // ReadLimiter helps to limitate amount of data returned by Connector server in every read request.

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 func TestTrafficTracker(t *testing.T) {
