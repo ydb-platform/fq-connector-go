@@ -80,6 +80,9 @@ func (c *connectionManager) Make(
 	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	// TODO: add credentials (iam and basic) support
 	endpoint := common.EndpointToString(dsi.Endpoint)
 	dsn := sugar.DSN(endpoint, dsi.Database, dsi.UseTls)
@@ -95,6 +98,9 @@ func (c *connectionManager) Make(
 	}
 
 	conn := sql.OpenDB(ydbConn)
+	if err := conn.Ping(); err != nil {
+		return nil, fmt.Errorf("conn ping: %w", err)
+	}
 
 	const (
 		maxIdleConns    = 5
