@@ -42,11 +42,11 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     INSERT INTO primitives VALUES (
         false, 2, 3, DEFAULT, DEFAULT, 6, 7, 8, DEFAULT, DEFAULT, 11, 12, DEFAULT, DEFAULT,
         15.15, 16.16, 17.17, 18.18, 'az', 'az', 'az', 'az',
-        current_timestamp, current_timestamp);
+        '1988-11-20 12:55:28.123456', '1988-11-20');
     INSERT INTO primitives VALUES (
         true, -2, -3, DEFAULT, DEFAULT, -6, -7, -8, DEFAULT, DEFAULT, -11, -12, DEFAULT, DEFAULT,
         -15.15, -16.16, -17.17, -18.18, 'буки', 'буки', 'буки', 'буки',
-        current_timestamp, current_timestamp);
+        '1988-11-20 12:55:28.123456', '1988-11-20');
     INSERT INTO primitives VALUES (
         NULL, NULL, NULL, DEFAULT, DEFAULT, NULL,
         NULL, NULL, DEFAULT, DEFAULT, NULL, NULL,
