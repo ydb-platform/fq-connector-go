@@ -12,6 +12,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
@@ -77,7 +78,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 }
 
 //nolint:gocyclo
-func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransformer[any], error) {
+func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(oids))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(oids))
 
@@ -211,7 +212,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (utils.RowTransfor
 		}
 	}
 
-	return utils.NewRowTransformer[any](acceptors, appenders, nil), nil
+	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
 func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](

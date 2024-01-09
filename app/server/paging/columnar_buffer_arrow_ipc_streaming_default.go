@@ -11,12 +11,11 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ ColumnarBuffer[any] = (*columnarBufferArrowIPCStreamingDefault[any])(nil)
 
-type columnarBufferArrowIPCStreamingDefault[T utils.Acceptor] struct {
+type columnarBufferArrowIPCStreamingDefault[T Acceptor] struct {
 	arrowAllocator memory.Allocator
 	builders       []array.Builder
 	schema         *arrow.Schema
@@ -26,7 +25,7 @@ type columnarBufferArrowIPCStreamingDefault[T utils.Acceptor] struct {
 // AddRow saves a row obtained from the datasource into the buffer
 //
 //nolint:unused
-func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer utils.RowTransformer[T]) error {
+func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTransformer[T]) error {
 	if len(cb.builders) != len(transformer.GetAcceptors()) {
 		return fmt.Errorf(
 			"expected %v values in a row, got %v instead",

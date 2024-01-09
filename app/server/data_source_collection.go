@@ -17,7 +17,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 type DataSourceCollection struct {
@@ -72,7 +71,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	}
 }
 
-func readSplit[T utils.Acceptor](
+func readSplit[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	format api_service_protos.TReadSplitsRequest_EFormat,

@@ -18,7 +18,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 var _ datasource.DataSource[string] = (*dataSource)(nil)
@@ -155,7 +154,7 @@ func transformCSV(
 		return fmt.Errorf("get wanted columns ids: %w", err)
 	}
 
-	transformer := utils.NewRowTransformer[string](nil, appenders, wantedColumnIds)
+	transformer := paging.NewRowTransformer[string](nil, appenders, wantedColumnIds)
 
 	for {
 		row, err := csvReader.Read()

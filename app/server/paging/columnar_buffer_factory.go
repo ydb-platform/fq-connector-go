@@ -10,10 +10,9 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/common"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-type columnarBufferFactoryImpl[T utils.Acceptor] struct {
+type columnarBufferFactoryImpl[T Acceptor] struct {
 	arrowAllocator memory.Allocator
 	logger         *zap.Logger
 	format         api_service_protos.TReadSplitsRequest_EFormat
@@ -48,7 +47,7 @@ func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer() (ColumnarBuffer[T], error)
 	}
 }
 
-func NewColumnarBufferFactory[T utils.Acceptor](
+func NewColumnarBufferFactory[T Acceptor](
 	logger *zap.Logger,
 	arrowAllocator memory.Allocator,
 	format api_service_protos.TReadSplitsRequest_EFormat,

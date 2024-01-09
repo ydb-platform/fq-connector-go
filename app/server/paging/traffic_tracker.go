@@ -9,7 +9,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-type TrafficTracker[T utils.Acceptor] struct {
+type TrafficTracker[T Acceptor] struct {
 	pagination  *config.TPagingConfig
 	sizePattern *sizePattern[T]
 
@@ -114,7 +114,7 @@ func (tt *TrafficTracker[T]) DumpStats(total bool) *api_service_protos.TReadSpli
 	return result
 }
 
-func NewTrafficTracker[T utils.Acceptor](pagination *config.TPagingConfig) *TrafficTracker[T] {
+func NewTrafficTracker[T Acceptor](pagination *config.TPagingConfig) *TrafficTracker[T] {
 	tt := &TrafficTracker[T]{
 		pagination: pagination,
 		bytesTotal: utils.NewCounter[uint64](),

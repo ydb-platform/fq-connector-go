@@ -11,10 +11,9 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
-type Streamer[T utils.Acceptor] struct {
+type Streamer[T paging.Acceptor] struct {
 	stream     api_service.Connector_ReadSplitsServer
 	dataSource datasource.DataSource[T]
 	split      *api_service_protos.TSplit
@@ -112,7 +111,7 @@ func (s *Streamer[T]) Run() error {
 	return nil
 }
 
-func NewStreamer[T utils.Acceptor](
+func NewStreamer[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	split *api_service_protos.TSplit,
