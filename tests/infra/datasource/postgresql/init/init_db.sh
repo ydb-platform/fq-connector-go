@@ -54,3 +54,14 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         NULL, NULL, NULL, NULL, NULL, NULL
         );
 EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS datetime;
+    CREATE TABLE datetime (
+        col_01_timestamp timestamp,
+        col_02_date date
+    );
+    INSERT INTO datetime VALUES ('1950-05-27 01:02:03.111111', '1950-05-27');
+    INSERT INTO datetime VALUES ('1988-11-20 12:55:28.123000', '1988-11-20');
+    INSERT INTO datetime VALUES ('2023-03-21 11:21:31.456000', '2023-03-21');
+EOSQL

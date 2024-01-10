@@ -41,17 +41,47 @@ func (b *Base) TearDownSuite() {
 	fmt.Printf("\n>>>>>>>>>> Suite stopped: %s <<<<<<<<<<\n", b.name)
 }
 
-func (b *Base) ReadTable(tableName string, table *datasource.Table, dsi *api_common.TDataSourceInstance) {
+type validateTableOptions struct {
+	typeMappingSettings *api_service_protos.TTypeMappingSettings
+}
+
+func newDefaultValidateTableOptions() *validateTableOptions {
+	return &validateTableOptions{
+		typeMappingSettings: &api_service_protos.TTypeMappingSettings{
+			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
+		},
+	}
+}
+
+type ValidateTableOption interface {
+	apply(o *validateTableOptions)
+}
+
+type withDateTimeFormatOption struct {
+	val api_service_protos.EDateTimeFormat
+}
+
+func (o withDateTimeFormatOption) apply(options *validateTableOptions) {
+	options.typeMappingSettings.DateTimeFormat = o.val
+}
+
+func WithDateTimeFormat(val api_service_protos.EDateTimeFormat) ValidateTableOption {
+	return withDateTimeFormatOption{val: val}
+}
+
+func (b *Base) ValidateTable(table *datasource.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
+	options := newDefaultValidateTableOptions()
+	for _, option := range customOptions {
+		option.apply(options)
+	}
+
+	b.Require().NotEmpty(table.Name)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// TODO: parametrize test
-	typeMappingSettings := &api_service_protos.TTypeMappingSettings{
-		DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
-	}
-
 	// describe table
-	describeTableResponse, err := b.Connector.Client().DescribeTable(ctx, dsi, typeMappingSettings, tableName)
+	describeTableResponse, err := b.Connector.Client().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
 	b.Require().NoError(err)
 	b.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
 	b.Require().True(
@@ -69,7 +99,7 @@ func (b *Base) ReadTable(tableName string, table *datasource.Table, dsi *api_com
 		DataSourceInstance: dsi,
 		What:               common.SchemaToSelectWhatItems(table.SchemaYdb, nil),
 		From: &api_service_protos.TSelect_TFrom{
-			Table: tableName,
+			Table: table.Name,
 		},
 	}
 

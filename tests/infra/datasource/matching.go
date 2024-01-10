@@ -78,7 +78,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		expected, ok := expectedRaw.([]*EXPECTED)
 		require.True(
 			t, ok,
-			fmt.Sprintf("invalid type for column %v: %T (%v)", columnName, expectedRaw, expectedRaw),
+			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expected, expectedRaw),
 		)
 		require.Equal(t, len(expected), actual.Len(),
 			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
@@ -108,6 +108,10 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 			fmt.Sprintf("invalid type for column %v: %T (%v)", columnName, expectedRaw, expectedRaw),
 		)
 
+		require.Equal(t, len(expected), actual.Len(),
+			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
+		)
+
 		for j := 0; j < len(expected); j++ {
 			require.Equal(
 				t, expected[j], actual.Value(j),
@@ -117,6 +121,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 }
 
 type Table struct {
+	Name      string
 	SchemaYdb *api_service_protos.TSchema
 	Records   []*Record // Large tables may consist of multiple records
 }

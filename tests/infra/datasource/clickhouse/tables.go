@@ -11,8 +11,11 @@ import (
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 )
 
+// key - test case name
+// value - table description
 var tables = map[string]*datasource.Table{
 	"simple": {
+		Name: "simple",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
 				{
@@ -46,6 +49,7 @@ var tables = map[string]*datasource.Table{
 		},
 	},
 	"primitives": {
+		Name: "primitives",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
 				{
@@ -156,13 +160,13 @@ var tables = map[string]*datasource.Table{
 					},
 					[]*uint32{
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
-							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 8, 0, time.UTC))),
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
 							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
 					},
 					[]*uint64{
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 8, 123000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 456000000, time.UTC))),
 					},
@@ -171,6 +175,7 @@ var tables = map[string]*datasource.Table{
 		},
 	},
 	"optionals": {
+		Name: "optionals",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
 				{
@@ -286,18 +291,123 @@ var tables = map[string]*datasource.Table{
 					},
 					[]*uint32{
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
-							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 8, 0, time.UTC))),
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
 							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
 						nil,
 					},
 					[]*uint64{
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 8, 123000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 456000000, time.UTC))),
 						nil,
 					},
+				},
+			},
+		},
+	},
+	"datetime_format_yql": {
+		Name: "datetime",
+		SchemaYdb: &api_service_protos.TSchema{
+			Columns: []*Ydb.Column{
+				{
+					Name: "id",
+					Type: common.MakePrimitiveType(Ydb.Type_INT32),
+				},
+				{
+					Name: "col_01_date",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				},
+				{
+					Name: "col_02_date32",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				},
+				{
+					Name: "col_03_datetime",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
+				},
+				{
+					Name: "col_04_datetime64",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				},
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				// In YQL mode, CH time values exceeding YQL date/datetime/timestamp type bounds
+				// are handled in two ways:
+				// 1. if value exceeds CH own type bounds, min or max time is returned
+				// 2. if value exceeds only YQL type bounds, nil is returned
+				Columns: []any{
+					[]int32{1, 2, 3},
+					[]*uint16{
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
+					},
+					[]*uint16{
+						nil,
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
+					},
+					[]*uint32{
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+					},
+					[]*uint64{
+						nil,
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 456000000, time.UTC))),
+					},
+				},
+			},
+		},
+	},
+	"datetime_format_string": {
+		Name: "datetime",
+		SchemaYdb: &api_service_protos.TSchema{
+			Columns: []*Ydb.Column{
+				{
+					Name: "id",
+					Type: common.MakePrimitiveType(Ydb.Type_INT32),
+				},
+				{
+					Name: "col_01_date",
+					Type: (common.MakePrimitiveType(Ydb.Type_UTF8)),
+				},
+				{
+					Name: "col_02_date32",
+					Type: (common.MakePrimitiveType(Ydb.Type_UTF8)),
+				},
+				{
+					Name: "col_03_datetime",
+					Type: (common.MakePrimitiveType(Ydb.Type_UTF8)),
+				},
+				{
+					Name: "col_04_datetime64",
+					Type: (common.MakePrimitiveType(Ydb.Type_UTF8)),
+				},
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				// In string mode, CH time values exceeding YQL date/datetime/timestamp type bounds
+				// are saturated to the epoch start 1970.01.01 because Connector tries to imitate
+				// ClickHouse behavior.
+				Columns: []any{
+					[]int32{1, 2, 3},
+					[]string{"1970-01-01", "1988-11-20", "2023-03-21"},
+					[]string{"1950-05-27", "1988-11-20", "2023-03-21"},
+					[]string{"1970-01-01T00:00:00Z", "1988-11-20T12:55:28Z", "2023-03-21T11:21:31Z"},
+					// FIXME: precision will change after YQ-2768
+					[]string{"1950-05-27T01:02:03.111Z", "1988-11-20T12:55:28.123Z", "2023-03-21T11:21:31.456Z"},
 				},
 			},
 		},
