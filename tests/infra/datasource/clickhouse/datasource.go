@@ -19,7 +19,7 @@ const (
 	password           = "password"
 )
 
-func DeriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
+func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
 	var (
 		dsi = &api_common.TDataSourceInstance{
 			Kind:     api_common.EDataSourceKind_CLICKHOUSE,
