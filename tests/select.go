@@ -12,8 +12,8 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 // Basic Connector functions:
@@ -21,22 +21,19 @@ import (
 // * working with primitive and optional types
 type SelectSuite struct {
 	*suite.Base
-	protocols  []api_common.EProtocol
 	dataSource *datasource.DataSource
+	tables     map[string]*datasource.Table
 }
 
-func (s *SelectSuite) TestSimpleTable() {
-	for tableName, table := range clickhouse.Tables {
-		for _, protocol := range s.protocols {
-			s.doTestSimpleTable(tableName, table, protocol)
+func (s *SelectSuite) TestSimpleSelect() {
+	for _, dsi := range s.dataSource.Instances {
+		for tableName, table := range s.tables {
+			s.doTestSimpleSelect(tableName, table, dsi)
 		}
 	}
 }
 
-func (s *SelectSuite) doTestSimpleTable(tableName string, table *datasource.Table, protocol api_common.EProtocol) {
-	dsi, err := s.dataSource.GetDataSourceInstance(protocol)
-	s.Require().NoError(err)
-
+func (s *SelectSuite) doTestSimpleSelect(tableName string, table *datasource.Table, dsi *api_common.TDataSourceInstance) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -48,10 +45,15 @@ func (s *SelectSuite) doTestSimpleTable(tableName string, table *datasource.Tabl
 	// describe table
 	describeTableResponse, err := s.Connector.Client().DescribeTable(ctx, dsi, typeMappingSettings, tableName)
 	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
+	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
 	s.Require().True(
 		proto.Equal(table.SchemaYdb, describeTableResponse.Schema),
-		fmt.Sprintf("expected: %v\nactual:   %v\n", table.SchemaYdb, describeTableResponse.Schema),
+		fmt.Sprintf(
+			"expected: %v\nactual:   %v\ndiff:    %v\n",
+			table.SchemaYdb,
+			describeTableResponse.Schema,
+			tests_utils.MustProtobufDifference(table.SchemaYdb, describeTableResponse.Schema),
+		),
 	)
 
 	// list splits
@@ -79,14 +81,15 @@ func (s *SelectSuite) doTestSimpleTable(tableName string, table *datasource.Tabl
 	table.MatchRecords(s.T(), records)
 }
 
-func NewSelectSuite(baseSuite *suite.Base, dataSource *datasource.DataSource) *SelectSuite {
+func NewSelectSuite(
+	baseSuite *suite.Base,
+	dataSource *datasource.DataSource,
+	tables map[string]*datasource.Table,
+) *SelectSuite {
 	result := &SelectSuite{
-		Base: baseSuite,
-		protocols: []api_common.EProtocol{
-			api_common.EProtocol_HTTP,
-			api_common.EProtocol_NATIVE,
-		},
+		Base:       baseSuite,
 		dataSource: dataSource,
+		tables:     tables,
 	}
 
 	return result

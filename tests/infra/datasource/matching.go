@@ -88,7 +88,14 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 			if expected[j] != nil {
 				require.Equal(
 					t, *expected[j], actual.Value(j),
-					fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual))
+					fmt.Sprintf(
+						"expected val: %v\nactual val: %v\ncolumn:  %v\nexpected: %v\nactual:  %v\n",
+						*expected[j],
+						actual.Value(j),
+						columnName,
+						expected,
+						actual),
+				)
 			} else {
 				require.True(t, actual.IsNull(j),
 					fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual))

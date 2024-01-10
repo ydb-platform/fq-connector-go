@@ -43,6 +43,7 @@ jobs:
           cat coverage_unit_tests.out > coverage.out
           cat coverage_integration_tests.out | grep -v 'mode: atomic' >> coverage.out
           go tool cover -func=coverage.out
+          rm coverage_unit_tests.out coverage_integration_tests.out
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4-beta
         with:
