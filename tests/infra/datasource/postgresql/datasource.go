@@ -17,7 +17,7 @@ const (
 	schema       = "public"
 )
 
-func DeriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
+func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
 	dsi := &api_common.TDataSourceInstance{
 		Kind:     api_common.EDataSourceKind_POSTGRESQL,
 		Database: database,

@@ -11,7 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 )
 
-var Tables = map[string]*datasource.Table{
+var tables = map[string]*datasource.Table{
 	"simple": {
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
