@@ -25,9 +25,22 @@ type Base struct {
 	name      string
 }
 
-func (b *Base) SetupSuite() {
-	fmt.Printf("\n>>>>>>>>>> Suite started: %s <<<<<<<<<<\n", b.name)
+func (b *Base) BeforeTest(_, testName string) {
+	fmt.Printf("\n>>>>>>>>>> TEST STARTED: %s/%s <<<<<<<<<<\n\n", b.name, testName)
+}
 
+func (b *Base) TearDownTest() {
+	if b.T().Failed() {
+		// Do not launch other tests if this test failed
+		b.T().FailNow()
+	}
+}
+
+func (b *Base) BeforeSuite(_ string) {
+	fmt.Printf("\n>>>>>>>>>> SUITE STARTED: %s <<<<<<<<<<\n", b.name)
+}
+
+func (b *Base) SetupSuite() {
 	// We want to run a distinct instance of Connector for every suite
 	var err error
 	b.Connector, err = connector.NewServer()
@@ -43,6 +56,7 @@ func (b *Base) TearDownSuite() {
 
 type validateTableOptions struct {
 	typeMappingSettings *api_service_protos.TTypeMappingSettings
+	predicate           *api_service_protos.TPredicate
 }
 
 func newDefaultValidateTableOptions() *validateTableOptions {
@@ -69,7 +83,27 @@ func WithDateTimeFormat(val api_service_protos.EDateTimeFormat) ValidateTableOpt
 	return withDateTimeFormatOption{val: val}
 }
 
-func (b *Base) ValidateTable(table *datasource.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
+type withPredicateOption struct {
+	val *api_service_protos.TPredicate
+}
+
+func (o withPredicateOption) apply(options *validateTableOptions) {
+	options.predicate = o.val
+}
+
+func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
+	return &withPredicateOption{
+		val: val,
+	}
+}
+
+func (b *Base) ValidateTable(ds *datasource.DataSource, table *datasource.Table, customOptions ...ValidateTableOption) {
+	for _, dsi := range ds.Instances {
+		b.doValidateTable(table, dsi, customOptions...)
+	}
+}
+
+func (b *Base) doValidateTable(table *datasource.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
 	options := newDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.apply(options)
@@ -101,6 +135,12 @@ func (b *Base) ValidateTable(table *datasource.Table, dsi *api_common.TDataSourc
 		From: &api_service_protos.TSelect_TFrom{
 			Table: table.Name,
 		},
+	}
+
+	if options.predicate != nil {
+		slct.Where = &api_service_protos.TSelect_TWhere{
+			FilterTyped: options.predicate,
+		}
 	}
 
 	listSplitsResponses, err := b.Connector.Client().ListSplits(ctx, slct)

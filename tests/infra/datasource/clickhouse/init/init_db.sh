@@ -81,3 +81,18 @@ clickhouse client -n <<-EOSQL
         (2, '1988-11-20', '1988-11-20', '1988-11-20 12:55:28', '1988-11-20 12:55:28.123') \
         (3, '2023-03-21', '2023-03-21', '2023-03-21 11:21:31', '2023-03-21 11:21:31.456');
 EOSQL
+
+# Feel free to add new columns to this table to test new filters
+clickhouse client -n <<-EOSQL
+    DROP TABLE IF EXISTS connector.pushdown;
+    CREATE TABLE connector.pushdown (
+        id Int32,
+        col_01_int32 Nullable(Int32),
+        col_02_string Nullable(String)
+    ) ENGINE = MergeTree ORDER BY id;
+    INSERT INTO connector.pushdown (*) VALUES 
+        (1, 10, 'a') \
+        (2, 20, 'b') \
+        (3, 30, 'c') \
+        (4, NULL, NULL);
+EOSQL
