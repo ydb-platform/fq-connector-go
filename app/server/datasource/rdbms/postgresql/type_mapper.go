@@ -51,7 +51,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 			return nil, fmt.Errorf("unexpected date format '%s': %w", rules.GetDateTimeFormat(), common.ErrDataTypeNotSupported)
 		}
 	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
-	// but it can be supported when the PG-compatible types is added to YDB:
+	// but it can be supported when the PG-compatible types are added to YDB:
 	// https://st.yandex-team.ru/YQ-2285
 	// case "time":
 	case "timestamp without time zone":

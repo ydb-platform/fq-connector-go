@@ -1,8 +1,7 @@
 package postgresql
 
 import (
-	"github.com/stretchr/testify/require"
-
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
@@ -12,11 +11,33 @@ type Suite struct {
 	dataSource *datasource.DataSource
 }
 
-func (s *Suite) TestSimpleSelect() {
+func (s *Suite) TestSelect() {
+	testCaseNames := []string{"simple", "primitives"}
+
 	for _, dsi := range s.dataSource.Instances {
-		for tableName, table := range tables {
-			s.ReadTable(tableName, table, dsi)
+		for _, testCase := range testCaseNames {
+			s.ValidateTable(tables[testCase], dsi)
 		}
+	}
+}
+
+func (s *Suite) TestDatetimeFormatYQL() {
+	for _, dsi := range s.dataSource.Instances {
+		s.ValidateTable(
+			tables["datetime_format_yql"],
+			dsi,
+			suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
+		)
+	}
+}
+
+func (s *Suite) TestDatetimeFormatString() {
+	for _, dsi := range s.dataSource.Instances {
+		s.ValidateTable(
+			tables["datetime_format_string"],
+			dsi,
+			suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
+		)
 	}
 }
 
@@ -24,7 +45,7 @@ func NewSuite(
 	baseSuite *suite.Base,
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
-	require.NoError(baseSuite.T(), err)
+	baseSuite.Require().NoError(err)
 
 	result := &Suite{
 		Base:       baseSuite,

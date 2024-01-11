@@ -126,5 +126,6 @@ func (TimestampConverter) Convert(in time.Time) (uint64, error) {
 type TimestampToStringConverter struct{}
 
 func (TimestampToStringConverter) Convert(in time.Time) (string, error) {
+	// FIXME: YQ-2768
 	return in.UTC().Format("2006-01-02T15:04:05.000Z"), nil
 }

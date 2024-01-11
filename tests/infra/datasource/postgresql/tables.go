@@ -13,6 +13,7 @@ import (
 
 var tables = map[string]*datasource.Table{
 	"simple": {
+		Name: "simple",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
 				{
@@ -46,6 +47,7 @@ var tables = map[string]*datasource.Table{
 		},
 	},
 	"primitives": {
+		Name: "primitives",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
 				{
@@ -264,10 +266,79 @@ var tables = map[string]*datasource.Table{
 					},
 					[]*uint16{
 						ptr.Uint16(common.MustTimeToYDBType[uint16](
-							common.TimeToYDBDate, time.Date(1988, 11, 20, 12, 55, 8, 0, time.UTC))),
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
 						ptr.Uint16(common.MustTimeToYDBType[uint16](
 							common.TimeToYDBDate, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
 						nil,
+					},
+				},
+			},
+		},
+	},
+	"datetime_format_yql": {
+		Name: "datetime",
+		SchemaYdb: &api_service_protos.TSchema{
+			Columns: []*Ydb.Column{
+				{
+					Name: "col_01_timestamp",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				},
+				{
+					Name: "col_02_date",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				},
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
+				// are returned as NULL
+				Columns: []any{
+					[]*uint64{
+						nil,
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 456000000, time.UTC))),
+					},
+					[]*uint16{
+						nil,
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
+					},
+				},
+			},
+		},
+	},
+	"datetime_format_string": {
+		Name: "datetime",
+		SchemaYdb: &api_service_protos.TSchema{
+			Columns: []*Ydb.Column{
+				{
+					Name: "col_01_timestamp",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				},
+				{
+					Name: "col_02_date",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				},
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
+				// are returned without saturating them to the epoch start
+				Columns: []any{
+					[]*string{
+						// FIXME: precision will change after YQ-2768
+						ptr.String("1950-05-27T01:02:03.111Z"),
+						ptr.String("1988-11-20T12:55:28.123Z"),
+						ptr.String("2023-03-21T11:21:31.456Z"),
+					},
+					[]*string{
+						ptr.String("1950-05-27"),
+						ptr.String("1988-11-20"),
+						ptr.String("2023-03-21"),
 					},
 				},
 			},
