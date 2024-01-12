@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/client"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -72,7 +73,15 @@ func (s *Server) Stop() {
 
 func NewServer() (*Server, error) {
 	cfg := server.NewDefaultConfig()
-	logger := common.NewDefaultLogger()
+	cfg.Logger = &config.TLoggerConfig{
+		LogLevel:              config.ELogLevel_DEBUG,
+		EnableSqlQueryLogging: true,
+	}
+
+	logger, err := common.NewLoggerFromConfig(cfg.Logger)
+	if err != nil {
+		return nil, fmt.Errorf("new logger from config: %w", err)
+	}
 
 	launcher, err := server.NewLauncher(logger, cfg)
 	if err != nil {

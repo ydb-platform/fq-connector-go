@@ -12,9 +12,11 @@ lint:
 unit_test:
 	go test -v ./app/...
 
-integration_test: integration_test_env
-	go test -c -o fq-connector-go-tests ./tests
+integration_test: integration_test_build
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH)
+
+integration_test_build: 
+	go test -c -o fq-connector-go-tests ./tests
 
 integration_test_env:
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml stop

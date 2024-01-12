@@ -179,8 +179,8 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		rows.On(
 			"MakeTransformer",
 			[]*Ydb.Type{
-				rdbms_utils.NewPrimitiveType(Ydb.Type_INT32),
-				rdbms_utils.NewPrimitiveType(Ydb.Type_STRING),
+				common.MakePrimitiveType(Ydb.Type_INT32),
+				common.MakePrimitiveType(Ydb.Type_STRING),
 			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData))
 		rows.On("Next").Return(false).Once()
@@ -190,8 +190,8 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	} else {
 		rows.On("MakeTransformer",
 			[]*Ydb.Type{
-				rdbms_utils.NewPrimitiveType(Ydb.Type_INT32),
-				rdbms_utils.NewPrimitiveType(Ydb.Type_STRING),
+				common.MakePrimitiveType(Ydb.Type_INT32),
+				common.MakePrimitiveType(Ydb.Type_STRING),
 			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData) + 1)
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))

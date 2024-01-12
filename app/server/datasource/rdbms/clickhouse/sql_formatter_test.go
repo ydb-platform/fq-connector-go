@@ -61,7 +61,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: "col",
-									Type: rdbms_utils.NewPrimitiveType(ydb.Type_INT32),
+									Type: common.MakePrimitiveType(ydb.Type_INT32),
 								},
 							},
 						},
@@ -362,7 +362,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: `0; DROP TABLE information_schema.columns`,
-									Type: rdbms_utils.NewPrimitiveType(ydb.Type_INT32),
+									Type: common.MakePrimitiveType(ydb.Type_INT32),
 								},
 							},
 						},
@@ -385,7 +385,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
 									Name: `0"; DROP TABLE information_schema.columns;`,
-									Type: rdbms_utils.NewPrimitiveType(ydb.Type_INT32),
+									Type: common.MakePrimitiveType(ydb.Type_INT32),
 								},
 							},
 						},

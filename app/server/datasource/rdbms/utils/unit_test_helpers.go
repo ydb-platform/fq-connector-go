@@ -5,15 +5,8 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
-
-func NewPrimitiveType(t Ydb.Type_PrimitiveTypeId) *Ydb.Type {
-	return &Ydb.Type{
-		Type: &Ydb.Type_TypeId{
-			TypeId: t,
-		},
-	}
-}
 
 // NewDefaultWhat generates default What field with a pair of columns
 func NewDefaultWhat() *api_service_protos.TSelect_TWhat {
@@ -23,7 +16,7 @@ func NewDefaultWhat() *api_service_protos.TSelect_TWhat {
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "col0",
-						Type: NewPrimitiveType(Ydb.Type_INT32),
+						Type: common.MakePrimitiveType(Ydb.Type_INT32),
 					},
 				},
 			},
@@ -31,7 +24,7 @@ func NewDefaultWhat() *api_service_protos.TSelect_TWhat {
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "col1",
-						Type: NewPrimitiveType(Ydb.Type_STRING),
+						Type: common.MakePrimitiveType(Ydb.Type_STRING),
 					},
 				},
 			},
@@ -51,7 +44,7 @@ func NewInt32ValueExpression(val int32) *api_service_protos.TExpression {
 	return &api_service_protos.TExpression{
 		Payload: &api_service_protos.TExpression_TypedValue{
 			TypedValue: &Ydb.TypedValue{
-				Type: NewPrimitiveType(Ydb.Type_INT32),
+				Type: common.MakePrimitiveType(Ydb.Type_INT32),
 				Value: &Ydb.Value{
 					Value: &Ydb.Value_Int32Value{
 						Int32Value: val,
@@ -66,7 +59,7 @@ func NewUint64ValueExpression(val uint64) *api_service_protos.TExpression {
 	return &api_service_protos.TExpression{
 		Payload: &api_service_protos.TExpression_TypedValue{
 			TypedValue: &Ydb.TypedValue{
-				Type: NewPrimitiveType(Ydb.Type_UINT64),
+				Type: common.MakePrimitiveType(Ydb.Type_UINT64),
 				Value: &Ydb.Value{
 					Value: &Ydb.Value_Uint64Value{
 						Uint64Value: val,
@@ -81,7 +74,7 @@ func NewTextValueExpression(val string) *api_service_protos.TExpression {
 	return &api_service_protos.TExpression{
 		Payload: &api_service_protos.TExpression_TypedValue{
 			TypedValue: &Ydb.TypedValue{
-				Type: NewPrimitiveType(Ydb.Type_UTF8),
+				Type: common.MakePrimitiveType(Ydb.Type_UTF8),
 				Value: &Ydb.Value{
 					Value: &Ydb.Value_TextValue{
 						TextValue: val,

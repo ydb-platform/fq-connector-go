@@ -16,6 +16,19 @@ func MakeOptionalType(ydbType *Ydb.Type) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
 }
 
+func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
+	out := &Ydb.TypedValue{Type: ydbType, Value: &Ydb.Value{}}
+
+	switch v := value.(type) {
+	case int32:
+		out.Value.Value = &Ydb.Value_Int32Value{Int32Value: v}
+	default:
+		panic(fmt.Sprintf("unexpected type %T", value))
+	}
+
+	return out
+}
+
 func SelectWhatToYDBTypes(selectWhat *api_service_protos.TSelect_TWhat) ([]*Ydb.Type, error) {
 	var ydbTypes []*Ydb.Type
 

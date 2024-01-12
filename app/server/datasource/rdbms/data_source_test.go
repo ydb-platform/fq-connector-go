@@ -78,7 +78,7 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		rows.On("MakeTransformer",
-			[]*Ydb.Type{rdbms_utils.NewPrimitiveType(Ydb.Type_INT32), rdbms_utils.NewPrimitiveType(Ydb.Type_UTF8)},
+			[]*Ydb.Type{common.MakePrimitiveType(Ydb.Type_INT32), common.MakePrimitiveType(Ydb.Type_UTF8)},
 		).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(2)
 		rows.On("Next").Return(false).Once()
@@ -128,8 +128,8 @@ func TestReadSplit(t *testing.T) {
 
 		rows.On("MakeTransformer",
 			[]*Ydb.Type{
-				rdbms_utils.NewPrimitiveType(Ydb.Type_INT32),
-				rdbms_utils.NewPrimitiveType(Ydb.Type_UTF8),
+				common.MakePrimitiveType(Ydb.Type_INT32),
+				common.MakePrimitiveType(Ydb.Type_UTF8),
 			},
 		).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(2)

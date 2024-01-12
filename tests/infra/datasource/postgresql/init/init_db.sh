@@ -65,3 +65,17 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     INSERT INTO datetime VALUES ('1988-11-20 12:55:28.123000', '1988-11-20');
     INSERT INTO datetime VALUES ('2023-03-21 11:21:31.456000', '2023-03-21');
 EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS pushdown;
+    CREATE TABLE pushdown (
+        id int,
+        col_01_int int,
+        col_02_text text
+    );
+    INSERT INTO pushdown (id, col_01_int, col_02_text) VALUES \
+        (1, 10, 'a'), \
+        (2, 20, 'b'), \
+        (3, 30, 'c'), \
+        (4, NULL, NULL);
+EOSQL
