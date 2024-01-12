@@ -1,4 +1,7 @@
 ignore:
   - "api"
+  - "app/config"
   - "library"
   - "*_mock.go"
+  - "*_test.go"
+  - "tests"
