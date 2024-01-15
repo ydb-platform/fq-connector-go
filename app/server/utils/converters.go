@@ -126,6 +126,10 @@ func (TimestampConverter) Convert(in time.Time) (uint64, error) {
 type TimestampToStringConverter struct{}
 
 func (TimestampToStringConverter) Convert(in time.Time) (string, error) {
-	// FIXME: YQ-2768
-	return in.UTC().Format("2006-01-02T15:04:05.000Z"), nil
+	// Using accuracy of 9 decimal places is enough for supported data sources
+	// Max accuracy of date/time formats:
+	// PostgreSQL - 1 microsecond (10^-6 s)
+	// ClickHouse - 1 nanosecond  (10^-9 s)
+	// Trailing zeros are omitted
+	return in.UTC().Format("2006-01-02T15:04:05.999999999Z"), nil
 }
