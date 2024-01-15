@@ -74,7 +74,7 @@ func (s *Server) Stop() {
 func NewServer() (*Server, error) {
 	cfg := server.NewDefaultConfig()
 	cfg.Logger = &config.TLoggerConfig{
-		LogLevel:              config.ELogLevel_DEBUG,
+		LogLevel:              config.ELogLevel_ERROR,
 		EnableSqlQueryLogging: true,
 	}
 

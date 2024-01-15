@@ -20,7 +20,9 @@ integration_test_build:
 
 integration_test_env:
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml stop
-	docker-compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v 
+	docker-compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v
+	chmod +x ./tests/infra/datasource/postgresql/init/init_db.sh
+	chmod +x ./tests/infra/datasource/clickhouse/init/init_db.sh
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d
 
 test_coverage: integration_test_env
