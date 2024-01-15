@@ -330,8 +330,7 @@ var tables = map[string]*datasource.Table{
 				// are returned without saturating them to the epoch start
 				Columns: []any{
 					[]*string{
-						// FIXME: precision will change after YQ-2768
-						ptr.String("1950-05-27T01:02:03.111Z"),
+						ptr.String("1950-05-27T01:02:03.111111Z"),
 						ptr.String("1988-11-20T12:55:28.123Z"),
 						ptr.String("2023-03-21T11:21:31.456Z"),
 					},

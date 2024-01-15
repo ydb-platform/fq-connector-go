@@ -362,9 +362,9 @@ var tables = map[string]*datasource.Table{
 					[]*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456780, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 456000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 987654320, time.UTC))),
 					},
 				},
 			},
@@ -406,8 +406,7 @@ var tables = map[string]*datasource.Table{
 					[]string{"1970-01-01", "1988-11-20", "2023-03-21"},
 					[]string{"1950-05-27", "1988-11-20", "2023-03-21"},
 					[]string{"1970-01-01T00:00:00Z", "1988-11-20T12:55:28Z", "2023-03-21T11:21:31Z"},
-					// FIXME: precision will change after YQ-2768
-					[]string{"1950-05-27T01:02:03.111Z", "1988-11-20T12:55:28.123Z", "2023-03-21T11:21:31.456Z"},
+					[]string{"1950-05-27T01:02:03.1111Z", "1988-11-20T12:55:28.12345678Z", "2023-03-21T11:21:31.98765432Z"},
 				},
 			},
 		},
