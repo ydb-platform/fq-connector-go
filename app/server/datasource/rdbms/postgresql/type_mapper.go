@@ -21,55 +21,48 @@ var _ datasource.TypeMapper = typeMapper{}
 type typeMapper struct{}
 
 func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
-	var ydbType *Ydb.Type
+	var (
+		ydbType *Ydb.Type
+		err     error
+	)
 
 	// Reference table: https://wiki.yandex-team.ru/rtmapreduce/yql-streams-corner/connectors/lld-02-tipy-dannyx/
 	switch typeName {
 	case "boolean", "bool":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_BOOL}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
 	case "smallint", "int2", "smallserial", "serial2":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT16}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT16)
 	case "integer", "int", "int4", "serial", "serial4":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT32)
 	case "bigint", "int8", "bigserial", "serial8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
 	case "real", "float4":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_FLOAT}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT)
 	case "double precision", "float8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DOUBLE}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
 	case "bytea":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "character", "character varying", "text":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case "date":
-		switch rules.GetDateTimeFormat() {
-		case api_service_protos.EDateTimeFormat_STRING_FORMAT:
-			ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}
-		case api_service_protos.EDateTimeFormat_YQL_FORMAT:
-			ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DATE}}
-		default:
-			return nil, fmt.Errorf("unexpected date format '%s': %w", rules.GetDateTimeFormat(), common.ErrDataTypeNotSupported)
-		}
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
 	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
 	// but it can be supported when the PG-compatible types are added to YDB:
 	// https://st.yandex-team.ru/YQ-2285
 	// case "time":
 	case "timestamp without time zone":
-		switch rules.GetDateTimeFormat() {
-		case api_service_protos.EDateTimeFormat_STRING_FORMAT:
-			ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}
-		case api_service_protos.EDateTimeFormat_YQL_FORMAT:
-			ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_TIMESTAMP}}
-		default:
-			return nil, fmt.Errorf("unexpected timestamp format '%s': %w", rules.GetDateTimeFormat(), common.ErrDataTypeNotSupported)
-		}
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
+	if err != nil {
+		return nil, fmt.Errorf("convert type '%s': %w", typeName, err)
+	}
+
 	// In PostgreSQL all columns are actually nullable, hence we wrap every T in Optional<T>.
 	// See this issue for details: https://st.yandex-team.ru/YQ-2256
-	ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
+	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
 		Name: columnName,

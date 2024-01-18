@@ -1,6 +1,7 @@
 package ydb
 
 import (
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
@@ -16,6 +17,22 @@ func (s *Suite) TestSelect() {
 	for _, tableName := range testCaseNames {
 		s.ValidateTable(s.dataSource, tables[tableName])
 	}
+}
+
+func (s *Suite) TestDatetimeFormatYQL() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_yql"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
+	)
+}
+
+func (s *Suite) TestDatetimeFormatString() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_string"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
+	)
 }
 
 func NewSuite(

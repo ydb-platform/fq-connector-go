@@ -51,52 +51,43 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// Reference table: https://wiki.yandex-team.ru/rtmapreduce/yql-streams-corner/connectors/lld-02-tipy-dannyx/
 	switch {
 	case typeName == "Bool":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_BOOL}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
 	case typeName == "Int8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT8}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT8)
 	case typeName == "UInt8":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT8}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_UINT8)
 	case typeName == "Int16":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT16}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT16)
 	case typeName == "UInt16":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT16}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_UINT16)
 	case typeName == "Int32":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT32)
 	case typeName == "UInt32":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT32}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_UINT32)
 	case typeName == "Int64":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_INT64}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
 	case typeName == "UInt64":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UINT64}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_UINT64)
 	case typeName == "Float32":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_FLOAT}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT)
 	case typeName == "Float64":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_DOUBLE}}
+		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
 	// String/FixedString are binary in ClickHouse, so we map it to YDB's String instead of UTF8:
 	// https://ydb.tech/en/docs/yql/reference/types/primitive#string
 	// https://clickhouse.com/docs/en/sql-reference/data-types/string#encodings
-	case typeName == "String":
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}
-	case tm.isFixedString.MatchString(typeName):
-		ydbType = &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_STRING}}
-	case typeName == "Date":
-		var overflow bool
-		ydbType, overflow, err = makeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
-		nullable = overflow || nullable
-	case typeName == "Date32":
+	case typeName == "String", tm.isFixedString.MatchString(typeName):
+		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
+	case typeName == "Date", typeName == "Date32":
 		// NOTE: ClickHouse's Date32 value range is much more wide than YDB's Date value range
-		var overflow bool
-		ydbType, overflow, err = makeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
-		nullable = overflow || nullable
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
+		nullable = rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT || nullable
 	case tm.isDateTime64.MatchString(typeName):
 		// NOTE: ClickHouse's DateTime64 value range is much more wide than YDB's Timestamp value range
-		var overflow bool
-		ydbType, overflow, err = makeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
-		nullable = overflow || nullable
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
+		nullable = rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT || nullable
 	case tm.isDateTime.MatchString(typeName):
-		var overflow bool
-		ydbType, overflow, err = makeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
-		nullable = overflow || nullable
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
+		nullable = rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT || nullable
 	default:
 		err = fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -107,25 +98,13 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 
 	// If the column is nullable, wrap it into YQL's optional
 	if nullable {
-		ydbType = &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
+		ydbType = common.MakeOptionalType(ydbType)
 	}
 
 	return &Ydb.Column{
 		Name: columnName,
 		Type: ydbType,
 	}, nil
-}
-
-func makeYdbDateTimeType(ydbTypeID Ydb.Type_PrimitiveTypeId, format api_service_protos.EDateTimeFormat) (*Ydb.Type, bool, error) {
-	switch format {
-	case api_service_protos.EDateTimeFormat_YQL_FORMAT:
-		// type marked as nullable because ClickHouse's type value range is much more wide than YDB's type value range
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: ydbTypeID}}, true, nil
-	case api_service_protos.EDateTimeFormat_STRING_FORMAT:
-		return &Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: Ydb.Type_UTF8}}, false, nil
-	default:
-		return nil, false, fmt.Errorf("unexpected datetime format '%s': %w", format, common.ErrInvalidRequest)
-	}
 }
 
 //nolint:funlen,gocyclo

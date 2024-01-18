@@ -2,6 +2,7 @@ package ydb
 
 import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"time"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -46,10 +47,15 @@ var tables = map[string]*datasource.Table{
 			},
 		},
 	},
+
 	"primitives": {
 		Name: "primitives",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
+				{ // TODO: find out why the order is wrong
+					Name: "col_16_timestamp",
+					Type: common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
+				},
 				{
 					Name: "id",
 					Type: common.MakePrimitiveType(Ydb.Type_INT8),
@@ -106,11 +112,24 @@ var tables = map[string]*datasource.Table{
 					Name: "col_13_utf8",
 					Type: common.MakePrimitiveType(Ydb.Type_UTF8),
 				},
+				{
+					Name: "col_14_date",
+					Type: common.MakePrimitiveType(Ydb.Type_DATE),
+				},
+				{
+					Name: "col_15_datetime",
+					Type: common.MakePrimitiveType(Ydb.Type_DATETIME),
+				},
 			},
 		},
 		Records: []*datasource.Record{
 			{
 				Columns: []any{
+					[]uint64{
+						common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC),
+						),
+					},
 					[]int8{1},
 					[]uint8{0}, // []bool{false}
 					[]int8{1},
@@ -125,14 +144,29 @@ var tables = map[string]*datasource.Table{
 					[]float64{-10.10},
 					[][]byte{[]byte("ая")},
 					[]string{"az"},
+					[]uint16{
+						common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
+						),
+					},
+					[]uint32{
+						common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC),
+						),
+					},
 				},
 			},
 		},
 	},
+
 	"optionals": {
 		Name: "optionals",
 		SchemaYdb: &api_service_protos.TSchema{
 			Columns: []*Ydb.Column{
+				{
+					Name: "col_16_timestamp",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				},
 				{
 					Name: "id",
 					Type: common.MakePrimitiveType(Ydb.Type_INT8),
@@ -189,11 +223,25 @@ var tables = map[string]*datasource.Table{
 					Name: "col_13_utf8",
 					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				},
+				{
+					Name: "col_14_date",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				},
+				{
+					Name: "col_15_datetime",
+					Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
+				},
 			},
 		},
 		Records: []*datasource.Record{
 			{
 				Columns: []any{
+					[]*uint64{
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC),
+						)),
+						nil,
+					},
 					[]int8{1, 2},
 					[]*uint8{ptr.Uint8(1), nil}, // []*bool{true, nil}
 					[]*int8{ptr.Int8(1), nil},
@@ -208,6 +256,99 @@ var tables = map[string]*datasource.Table{
 					[]*float64{ptr.Float64(-10.10), nil},
 					[]*[]byte{ptr.T[[]byte]([]byte("ая")), nil},
 					[]*string{ptr.String("az"), nil},
+					[]*uint16{
+						ptr.Uint16(common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
+						)),
+						nil,
+					},
+					[]*uint32{
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC),
+						)),
+						nil,
+					},
+				},
+			},
+		},
+	},
+
+	"datetime_format_yql": {
+		Name: "datetime",
+		SchemaYdb: &api_service_protos.TSchema{
+			Columns: []*Ydb.Column{
+				{
+					Name: "id",
+					Type: common.MakePrimitiveType(Ydb.Type_INT8),
+				},
+				{
+					Name: "col_01_date",
+					Type: common.MakePrimitiveType(Ydb.Type_DATE),
+				},
+				{
+					Name: "col_02_datetime",
+					Type: common.MakePrimitiveType(Ydb.Type_DATETIME),
+				},
+				{
+					Name: "col_03_timestamp",
+					Type: common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
+				},
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				Columns: []any{
+					[]int8{1},
+					[]uint16{
+						common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
+						),
+					},
+
+					[]uint32{
+						common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC),
+						),
+					},
+					[]uint64{
+						common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC),
+						),
+					},
+				},
+			},
+		},
+	},
+
+	"datetime_format_string": {
+		Name: "datetime",
+		SchemaYdb: &api_service_protos.TSchema{
+			Columns: []*Ydb.Column{
+				{
+					Name: "id",
+					Type: common.MakePrimitiveType(Ydb.Type_INT8),
+				},
+				{
+					Name: "col_01_date",
+					Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+				},
+				{
+					Name: "col_02_datetime",
+					Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+				},
+				{
+					Name: "col_03_timestamp",
+					Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+				},
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				Columns: []any{
+					[]int8{1},
+					[]string{"1988-11-20"},
+					[]string{"1988-11-20T12:55:28Z"},
+					[]string{"1988-11-20T12:55:28.123456Z"},
 				},
 			},
 		},
