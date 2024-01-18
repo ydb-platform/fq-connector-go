@@ -140,7 +140,7 @@ func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTrans
 			typeName = matches[1]
 		}
 
-		acceptor, appender, err := makeTransformer(typeName)
+		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName)
 		if err != nil {
 			return nil, fmt.Errorf("make transformer: %w", err)
 		}
@@ -152,7 +152,7 @@ func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTrans
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func makeTransformer(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
+func makeAcceptorAndAppenderFromSQLType(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case BoolType:
 		return new(*bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil

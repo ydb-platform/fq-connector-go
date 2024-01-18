@@ -35,10 +35,12 @@ services:
       - ./postgresql/init:/docker-entrypoint-initdb.d
 
   ydb:
-    build: ./ydb/init
+    image: ghcr.io/ydb-platform/local-ydb:nightly
     container_name: ${USER}-fq-connector-go-tests-ydb
     hostname: localhost
-    environment:
-      YDB_DEFAULT_LOG_LEVEL: ERROR
     ports:
       - '2136:2136'
+    environment:
+      YDB_DEFAULT_LOG_LEVEL: ERROR
+    volumes:
+      - ./ydb/init/init_ydb:/init_ydb
