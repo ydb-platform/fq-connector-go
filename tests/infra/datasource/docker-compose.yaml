@@ -41,4 +41,4 @@ services:
     environment:
       YDB_DEFAULT_LOG_LEVEL: ERROR
     ports:
-      - '2136'
+      - '2136:2136'
