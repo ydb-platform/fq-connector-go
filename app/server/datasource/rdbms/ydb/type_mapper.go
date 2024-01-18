@@ -136,24 +136,11 @@ func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTrans
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
 	for _, typeName := range typeNames {
-		optional := false
 		if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
-			optional = true
 			typeName = matches[1]
 		}
 
-		var (
-			acceptor any
-			appender func(acceptor any, builder array.Builder) error
-			err      error
-		)
-
-		if !optional {
-			acceptor, appender, err = makePrimitiveTransformers(typeName)
-		} else {
-			acceptor, appender, err = makeOptionalTransformers(typeName)
-		}
-
+		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName)
 		if err != nil {
 			return nil, fmt.Errorf("make transformer: %w", err)
 		}
@@ -165,40 +152,7 @@ func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTrans
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func makePrimitiveTransformers(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
-	switch typeName {
-	case BoolType:
-		return new(bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
-	case Int8Type:
-		return new(int8), appendValueToArrowBuilder[int8, int8, *array.Int8Builder, utils.Int8Converter], nil
-	case Int16Type:
-		return new(int16), appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter], nil
-	case Int32Type:
-		return new(int32), appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter], nil
-	case Int64Type:
-		return new(int64), appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter], nil
-	case Uint8Type:
-		return new(uint8), appendValueToArrowBuilder[uint8, uint8, *array.Uint8Builder, utils.Uint8Converter], nil
-	case Uint16Type:
-		return new(uint16), appendValueToArrowBuilder[uint16, uint16, *array.Uint16Builder, utils.Uint16Converter], nil
-	case Uint32Type:
-		return new(uint32), appendValueToArrowBuilder[uint32, uint32, *array.Uint32Builder, utils.Uint32Converter], nil
-	case Uint64Type:
-		return new(uint64), appendValueToArrowBuilder[uint64, uint64, *array.Uint64Builder, utils.Uint64Converter], nil
-	case FloatType:
-		return new(float32), appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter], nil
-	case DoubleType:
-		return new(float64), appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter], nil
-	case StringType:
-		return new([]byte), appendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder, utils.BytesConverter], nil
-	case Utf8Type:
-		return new(string), appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter], nil
-	default:
-		return nil, nil, fmt.Errorf("unknown primitive type '%v'", typeName)
-	}
-}
-
-func makeOptionalTransformers(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
+func makeAcceptorAndAppenderFromSQLType(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case BoolType:
 		return new(*bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
@@ -227,7 +181,7 @@ func makeOptionalTransformers(typeName string) (any, func(acceptor any, builder 
 	case Utf8Type:
 		return new(*string), appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter], nil
 	default:
-		return nil, nil, fmt.Errorf("unknown primitive type '%v'", typeName)
+		return nil, nil, fmt.Errorf("unknown type '%v'", typeName)
 	}
 }
 

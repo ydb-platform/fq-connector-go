@@ -98,7 +98,7 @@ func (c *connectionManager) Make(
 	}
 
 	conn := sql.OpenDB(ydbConn)
-	if err := conn.Ping(); err != nil {
+	if err := conn.PingContext(ctx); err != nil {
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
