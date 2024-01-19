@@ -66,6 +66,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	return &Ydb.Column{Name: columnName, Type: ydbType}, nil
 }
 
+//nolint:gocyclo
 func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
 	// TODO: add all types support
 	// Reference table: https://ydb.yandex-team.ru/docs/yql/reference/types/
@@ -167,7 +168,11 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func makeAcceptorAndAppenderFromSQLType(typeName string, ydbTypeID Ydb.Type_PrimitiveTypeId) (any, func(acceptor any, builder array.Builder) error, error) {
+//nolint:gocyclo
+func makeAcceptorAndAppenderFromSQLType(
+	typeName string,
+	ydbTypeID Ydb.Type_PrimitiveTypeId,
+) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case BoolType:
 		return new(*bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
@@ -202,7 +207,8 @@ func makeAcceptorAndAppenderFromSQLType(typeName string, ydbTypeID Ydb.Type_Prim
 		case Ydb.Type_UTF8:
 			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter], nil
 		default:
-			return nil, nil, fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
+			return nil, nil,
+				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
 		}
 	case DatetimeType:
 		switch ydbTypeID {
@@ -211,16 +217,19 @@ func makeAcceptorAndAppenderFromSQLType(typeName string, ydbTypeID Ydb.Type_Prim
 		case Ydb.Type_UTF8:
 			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DatetimeToStringConverter], nil
 		default:
-			return nil, nil, fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
+			return nil, nil,
+				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
 		}
 	case TimestampType:
 		switch ydbTypeID {
 		case Ydb.Type_TIMESTAMP:
 			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter], nil
 		case Ydb.Type_UTF8:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter], nil
+			return new(*time.Time),
+				appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter], nil
 		default:
-			return nil, nil, fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
+			return nil, nil,
+				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
 		}
 	default:
 		return nil, nil, fmt.Errorf("unknown type '%v'", typeName)

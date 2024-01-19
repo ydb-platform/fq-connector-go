@@ -1,13 +1,14 @@
 package ydb
 
 import (
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"time"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 // key - test case name

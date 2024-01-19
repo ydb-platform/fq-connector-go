@@ -80,14 +80,14 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	case typeName == "Date", typeName == "Date32":
 		// NOTE: ClickHouse's Date32 value range is much more wide than YDB's Date value range
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
-		nullable = rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT || nullable
+		nullable = nullable || rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT
 	case tm.isDateTime64.MatchString(typeName):
 		// NOTE: ClickHouse's DateTime64 value range is much more wide than YDB's Timestamp value range
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
-		nullable = rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT || nullable
+		nullable = nullable || rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT
 	case tm.isDateTime.MatchString(typeName):
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
-		nullable = rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT || nullable
+		nullable = nullable || rules.GetDateTimeFormat() == api_service_protos.EDateTimeFormat_YQL_FORMAT
 	default:
 		err = fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
