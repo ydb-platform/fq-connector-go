@@ -15,6 +15,8 @@ import (
 )
 
 // Record is somewhat equivalent to arrow.Record
+// Store columns in map because order of columns in some datasource is undefined
+// (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record struct {
 	Columns map[string]any
 }
@@ -144,7 +146,7 @@ func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_
 func (tb *Table) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(schema.Columns), len(tb.Schema.Columns),
 		fmt.Sprintf(
-			"incorrect number of columnd, expected: %d\nactual:   %d\n",
+			"incorrect number of column, expected: %d\nactual:   %d\n",
 			len(tb.Schema.Columns),
 			len(schema.Columns),
 		))
