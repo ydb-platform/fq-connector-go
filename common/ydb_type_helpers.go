@@ -60,3 +60,14 @@ func YdbTypeToYdbPrimitiveTypeID(ydbType *Ydb.Type) (Ydb.Type_PrimitiveTypeId, e
 		return Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED, fmt.Errorf("unexpected type %v: %w", t, ErrDataTypeNotSupported)
 	}
 }
+
+func MakeYdbDateTimeType(ydbTypeID Ydb.Type_PrimitiveTypeId, format api_service_protos.EDateTimeFormat) (*Ydb.Type, error) {
+	switch format {
+	case api_service_protos.EDateTimeFormat_YQL_FORMAT:
+		return MakePrimitiveType(ydbTypeID), nil
+	case api_service_protos.EDateTimeFormat_STRING_FORMAT:
+		return MakePrimitiveType(Ydb.Type_UTF8), nil
+	default:
+		return nil, fmt.Errorf("unexpected datetime format '%s': %w", format, ErrInvalidRequest)
+	}
+}

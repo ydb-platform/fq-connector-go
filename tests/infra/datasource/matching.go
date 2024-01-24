@@ -15,18 +15,26 @@ import (
 )
 
 // Record is somewhat equivalent to arrow.Record
+// Store columns in map because order of columns in some datasource is undefined
+// (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record struct {
-	Columns []any
+	Columns map[string]any
 }
 
-func (r *Record) MatchRecord(t *testing.T, schema *api_service_protos.TSchema, record arrow.Record) {
+type TableSchema struct {
+	Columns map[string]*Ydb.Type
+}
+
+func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
 	for i, arrowField := range record.Schema().Fields() {
+		columnName := schema.Columns[i].Name
 		ydbType := schema.Columns[i].Type
+
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
-			matchColumns(t, arrowField, r.Columns[i], record.Column(i), false)
+			matchColumns(t, arrowField, r.Columns[columnName], record.Column(i), false)
 		case *Ydb.Type_OptionalType:
-			matchColumns(t, arrowField, r.Columns[i], record.Column(i), true)
+			matchColumns(t, arrowField, r.Columns[columnName], record.Column(i), true)
 		default:
 			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", ydbType))
 		}
@@ -121,16 +129,34 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 }
 
 type Table struct {
-	Name      string
-	SchemaYdb *api_service_protos.TSchema
-	Records   []*Record // Large tables may consist of multiple records
+	Name    string
+	Schema  *TableSchema
+	Records []*Record // Large tables may consist of multiple records
 }
 
-func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record) {
+func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Records), len(records))
 
 	for i := range tb.Records {
-		tb.Records[i].MatchRecord(t, tb.SchemaYdb, records[i])
+		tb.Records[i].MatchRecord(t, records[i], schema)
 		records[i].Release()
+	}
+}
+
+func (tb *Table) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
+	require.Equal(t, len(schema.Columns), len(tb.Schema.Columns),
+		fmt.Sprintf(
+			"incorrect number of column, expected: %d\nactual:   %d\n",
+			len(tb.Schema.Columns),
+			len(schema.Columns),
+		))
+
+	for _, column := range schema.Columns {
+		require.Equal(t, column.Type, tb.Schema.Columns[column.Name],
+			fmt.Sprintf(
+				"incorrect column types, expected: %v\nactual:   %v\n",
+				tb.Schema,
+				schema,
+			))
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -23,22 +24,25 @@ type typeMapper struct {
 var isOptional = regexp.MustCompile(`Optional<(\w+)>$`)
 
 const (
-	BoolType   = "Bool"
-	Int8Type   = "Int8"
-	Uint8Type  = "Uint8"
-	Int16Type  = "Int16"
-	Uint16Type = "Uint16"
-	Int32Type  = "Int32"
-	Uint32Type = "Uint32"
-	Int64Type  = "Int64"
-	Uint64Type = "Uint64"
-	FloatType  = "Float"
-	DoubleType = "Double"
-	StringType = "String"
-	Utf8Type   = "Utf8"
+	BoolType      = "Bool"
+	Int8Type      = "Int8"
+	Uint8Type     = "Uint8"
+	Int16Type     = "Int16"
+	Uint16Type    = "Uint16"
+	Int32Type     = "Int32"
+	Uint32Type    = "Uint32"
+	Int64Type     = "Int64"
+	Uint64Type    = "Uint64"
+	FloatType     = "Float"
+	DoubleType    = "Double"
+	StringType    = "String"
+	Utf8Type      = "Utf8"
+	DateType      = "Date"
+	DatetimeType  = "Datetime"
+	TimestampType = "Timestamp"
 )
 
-func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
@@ -50,7 +54,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service
 		typeName = matches[1]
 	}
 
-	ydbType, err = makePrimitiveTypeFromString(typeName)
+	ydbType, err = makePrimitiveTypeFromString(typeName, rules)
 	if err != nil {
 		return nil, fmt.Errorf("make type: %w", err)
 	}
@@ -62,36 +66,43 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _ *api_service
 	return &Ydb.Column{Name: columnName, Type: ydbType}, nil
 }
 
-func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
+//nolint:gocyclo
+func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
 	// TODO: add all types support
 	// Reference table: https://ydb.yandex-team.ru/docs/yql/reference/types/
-	switch {
-	case typeName == BoolType:
+	switch typeName {
+	case BoolType:
 		return common.MakePrimitiveType(Ydb.Type_BOOL), nil
-	case typeName == Int8Type:
+	case Int8Type:
 		return common.MakePrimitiveType(Ydb.Type_INT8), nil
-	case typeName == Uint8Type:
+	case Uint8Type:
 		return common.MakePrimitiveType(Ydb.Type_UINT8), nil
-	case typeName == Int16Type:
+	case Int16Type:
 		return common.MakePrimitiveType(Ydb.Type_INT16), nil
-	case typeName == Uint16Type:
+	case Uint16Type:
 		return common.MakePrimitiveType(Ydb.Type_UINT16), nil
-	case typeName == Int32Type:
+	case Int32Type:
 		return common.MakePrimitiveType(Ydb.Type_INT32), nil
-	case typeName == Uint32Type:
+	case Uint32Type:
 		return common.MakePrimitiveType(Ydb.Type_UINT32), nil
-	case typeName == Int64Type:
+	case Int64Type:
 		return common.MakePrimitiveType(Ydb.Type_INT64), nil
-	case typeName == Uint64Type:
+	case Uint64Type:
 		return common.MakePrimitiveType(Ydb.Type_UINT64), nil
-	case typeName == FloatType:
+	case FloatType:
 		return common.MakePrimitiveType(Ydb.Type_FLOAT), nil
-	case typeName == DoubleType:
+	case DoubleType:
 		return common.MakePrimitiveType(Ydb.Type_DOUBLE), nil
-	case typeName == StringType:
+	case StringType:
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
-	case typeName == Utf8Type:
+	case Utf8Type:
 		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
+	case DateType:
+		return common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
+	case DatetimeType:
+		return common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
+	case TimestampType:
+		return common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -131,16 +142,21 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	return nil
 }
 
-func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTransformer[any], error) {
+func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
-	for _, typeName := range typeNames {
+	for i, typeName := range typeNames {
 		if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
 			typeName = matches[1]
 		}
 
-		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName)
+		ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+		if err != nil {
+			return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
+		}
+
+		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName, ydbTypeID)
 		if err != nil {
 			return nil, fmt.Errorf("make transformer: %w", err)
 		}
@@ -152,7 +168,11 @@ func transformerFromSQLTypes(typeNames []string, _ []*Ydb.Type) (paging.RowTrans
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func makeAcceptorAndAppenderFromSQLType(typeName string) (any, func(acceptor any, builder array.Builder) error, error) {
+//nolint:gocyclo
+func makeAcceptorAndAppenderFromSQLType(
+	typeName string,
+	ydbTypeID Ydb.Type_PrimitiveTypeId,
+) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case BoolType:
 		return new(*bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
@@ -180,6 +200,37 @@ func makeAcceptorAndAppenderFromSQLType(typeName string) (any, func(acceptor any
 		return new(*[]byte), appendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder, utils.BytesConverter], nil
 	case Utf8Type:
 		return new(*string), appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter], nil
+	case DateType:
+		switch ydbTypeID {
+		case Ydb.Type_DATE:
+			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter], nil
+		case Ydb.Type_UTF8:
+			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter], nil
+		default:
+			return nil, nil,
+				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
+		}
+	case DatetimeType:
+		switch ydbTypeID {
+		case Ydb.Type_DATETIME:
+			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint32, *array.Uint32Builder, utils.DatetimeConverter], nil
+		case Ydb.Type_UTF8:
+			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DatetimeToStringConverter], nil
+		default:
+			return nil, nil,
+				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
+		}
+	case TimestampType:
+		switch ydbTypeID {
+		case Ydb.Type_TIMESTAMP:
+			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter], nil
+		case Ydb.Type_UTF8:
+			return new(*time.Time),
+				appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter], nil
+		default:
+			return nil, nil,
+				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
+		}
 	default:
 		return nil, nil, fmt.Errorf("unknown type '%v'", typeName)
 	}

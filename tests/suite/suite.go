@@ -7,15 +7,14 @@ import (
 	"time"
 
 	testify_suite "github.com/stretchr/testify/suite"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/connector"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
-	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type Base struct {
@@ -118,20 +117,15 @@ func (b *Base) doValidateTable(table *datasource.Table, dsi *api_common.TDataSou
 	describeTableResponse, err := b.Connector.Client().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
 	b.Require().NoError(err)
 	b.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
-	b.Require().True(
-		proto.Equal(table.SchemaYdb, describeTableResponse.Schema),
-		fmt.Sprintf(
-			"expected: %v\nactual:   %v\ndiff:    %v\n",
-			table.SchemaYdb,
-			describeTableResponse.Schema,
-			tests_utils.MustProtobufDifference(table.SchemaYdb, describeTableResponse.Schema),
-		),
-	)
+
+	// verify schema
+	schema := describeTableResponse.Schema
+	table.MatchSchema(b.T(), schema)
 
 	// list splits
 	slct := &api_service_protos.TSelect{
 		DataSourceInstance: dsi,
-		What:               common.SchemaToSelectWhatItems(table.SchemaYdb, nil),
+		What:               common.SchemaToSelectWhatItems(schema, nil),
 		From: &api_service_protos.TSelect_TFrom{
 			Table: table.Name,
 		},
@@ -157,7 +151,7 @@ func (b *Base) doValidateTable(table *datasource.Table, dsi *api_common.TDataSou
 	b.Require().NoError(err)
 
 	// verify data
-	table.MatchRecords(b.T(), records)
+	table.MatchRecords(b.T(), records, schema)
 }
 
 func NewBase(t *testing.T, state *State, name string) *Base {
