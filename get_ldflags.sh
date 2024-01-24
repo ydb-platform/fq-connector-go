@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "-X 'github.com/ydb-platform/fq-connector-go/app/version.HasInfo=true' \
+echo "-X 'github.com/ydb-platform/fq-connector-go/app/version.InfoSource=git' \
       -X 'github.com/ydb-platform/fq-connector-go/app/version.Branch=$(git rev-parse --abbrev-ref HEAD)' \
       -X 'github.com/ydb-platform/fq-connector-go/app/version.CommitHash=$(git rev-parse HEAD)' \
       -X 'github.com/ydb-platform/fq-connector-go/app/version.Tag=$(git describe --tags)' \

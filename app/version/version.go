@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	HasInfo       string
+	InfoSource    string
 	Tag           string
 	Author        string
 	CommitHash    string
@@ -27,15 +27,18 @@ var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "version of current build",
 	Run: func(cmd *cobra.Command, args []string) {
-		if HasInfo == "true" {
-			fmt.Println(GetInfo())
-		} else {
+		switch InfoSource {
+		case "git":
+			fmt.Println(GetGitInfo())
+		case "arcadia":
+			fmt.Println(GetArcadiaInfo())
+		default:
 			fmt.Println("No information provided")
 		}
 	},
 }
 
-func GetInfo() string {
+func GetGitInfo() string {
 	sb := strings.Builder{}
 
 	sb.WriteString("Git info:\n")
@@ -55,6 +58,15 @@ func GetInfo() string {
 	sb.WriteString(fmt.Sprintf("\tCompiler: %s\n", PathToGo))
 	sb.WriteString("\tCompiler version:\n")
 	sb.WriteString(fmt.Sprintf("\t\t%s\n", GoVersion))
+
+	return sb.String()
+}
+
+func GetArcadiaInfo() string {
+	sb := strings.Builder{}
+
+	sb.WriteString("Arcadia info:\n")
+	sb.WriteString(fmt.Sprintf("\tTag: %s\n", Tag))
 
 	return sb.String()
 }
