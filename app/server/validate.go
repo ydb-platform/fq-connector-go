@@ -101,10 +101,6 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 		logger.Warn("connector will use insecure connection to access data source")
 	}
 
-	if dsi.Protocol == api_common.EProtocol_PROTOCOL_UNSPECIFIED {
-		return fmt.Errorf("protocol field is empty: %w", common.ErrInvalidRequest)
-	}
-
 	switch dsi.GetKind() {
 	case api_common.EDataSourceKind_POSTGRESQL:
 		if dsi.GetPgOptions().GetSchema() == "" {

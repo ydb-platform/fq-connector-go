@@ -10,6 +10,6 @@ data_source_instance {
         port: 2136
     }
     database: "local"
-    protocol: NATIVE
+    use_tls: false
 }
 

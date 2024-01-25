@@ -1,0 +1,21 @@
+endpoint {
+    host: "localhost"
+    port: 50051
+}
+
+data_source_instance {
+    kind: YDB
+    endpoint {
+        host: "ydb-ru-prestable.yandex.net"
+        port: 2135
+    }
+    database: "/ru-prestable/ydb_home/woodey/ydb144"
+    credentials {
+        token {
+            type: "IAM"
+            value: "..."
+        }
+    }
+    use_tls: false
+}
+
