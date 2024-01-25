@@ -48,12 +48,7 @@ func GetGitInfo() string {
 	sb.WriteString(fmt.Sprintf("\tAuthor: %s\n", Author))
 	sb.WriteString(fmt.Sprintf("\tSummary: %s\n", CommitMessage))
 	sb.WriteString(fmt.Sprintf("\tCommit Date: %s\n\n", CommitDate))
-	sb.WriteString("Other info:\n")
-	sb.WriteString(fmt.Sprintf("\tBuilt by: %s\n", Username))
-	sb.WriteString(fmt.Sprintf("\tBuilding location: %s\n", BuildLocation))
-	sb.WriteString(fmt.Sprintf("\tHostname: %s\n", Hostname))
-	sb.WriteString("\tHost information:\n")
-	sb.WriteString(fmt.Sprintf("\t\t%s\n\n", HostInfo))
+	sb.WriteString(GetCommonInfo())
 	sb.WriteString("Build info:\n")
 	sb.WriteString(fmt.Sprintf("\tCompiler: %s\n", PathToGo))
 	sb.WriteString("\tCompiler version:\n")
@@ -67,6 +62,20 @@ func GetArcadiaInfo() string {
 
 	sb.WriteString("Arcadia info:\n")
 	sb.WriteString(fmt.Sprintf("\tTag: %s\n", Tag))
+	sb.WriteString(GetCommonInfo())
+
+	return sb.String()
+}
+
+func GetCommonInfo() string {
+	sb := strings.Builder{}
+
+	sb.WriteString("Other info:\n")
+	sb.WriteString(fmt.Sprintf("\tBuilt by: %s\n", Username))
+	sb.WriteString(fmt.Sprintf("\tBuilding location: %s\n", BuildLocation))
+	sb.WriteString(fmt.Sprintf("\tHostname: %s\n", Hostname))
+	sb.WriteString("\tHost information:\n")
+	sb.WriteString(fmt.Sprintf("\t\t%s\n\n", HostInfo))
 
 	return sb.String()
 }
