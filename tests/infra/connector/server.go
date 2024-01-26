@@ -9,7 +9,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/ydb-platform/fq-connector-go/app/client"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -18,7 +17,7 @@ import (
 type Server struct {
 	launcher    *server.Launcher
 	logger      *zap.Logger
-	client      client.Client
+	client      common.ClientBuffering
 	operational bool
 	mutex       sync.Mutex
 }
@@ -56,7 +55,7 @@ func (s *Server) handleStartError(err error) {
 	}
 }
 
-func (s *Server) Client() client.Client {
+func (s *Server) Client() common.ClientBuffering {
 	return s.client
 }
 
@@ -88,7 +87,7 @@ func NewServer() (*Server, error) {
 		return nil, fmt.Errorf("new server launcher: %w", err)
 	}
 
-	cl, err := client.NewClientFromServerConfig(logger, cfg)
+	cl, err := common.NewClientBufferingFromServerConfig(logger, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("new client: %w", err)
 	}

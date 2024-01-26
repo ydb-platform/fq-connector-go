@@ -107,12 +107,6 @@ func NewSTDErrorFromAPIError(apiErr *api_service_protos.TError) error {
 	return errors.New(apiErr.Message)
 }
 
-type StreamResponse interface {
-	*api_service_protos.TListSplitsResponse | *api_service_protos.TReadSplitsResponse
-
-	GetError() *api_service_protos.TError
-}
-
 func AllStreamResponsesSuccessfull[T StreamResponse](responses []T) bool {
 	for _, resp := range responses {
 		if resp.GetError().Status != Ydb.StatusIds_SUCCESS {
