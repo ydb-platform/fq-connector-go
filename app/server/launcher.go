@@ -87,7 +87,7 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 	return l, nil
 }
 
-func StartLauncherAndWaitForSignalOrError(logger *zap.Logger, l *Launcher) {
+func startLauncherAndWaitForSignalOrError(logger *zap.Logger, l *Launcher) {
 	errChan := l.Start()
 
 	signalChan := make(chan os.Signal, 1)
