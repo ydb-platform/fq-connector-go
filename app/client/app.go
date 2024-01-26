@@ -88,7 +88,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 }
 
 func prepareSplits(
-	cl common.ClientBuffering,
+	cl *common.ClientBuffering,
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
@@ -122,7 +122,7 @@ func prepareSplits(
 
 func readSplits(
 	logger *zap.Logger,
-	cl common.ClientBuffering,
+	cl *common.ClientBuffering,
 	splits []*api_service_protos.TSplit,
 ) error {
 	readSplitsResponses, err := cl.ReadSplits(context.Background(), splits)

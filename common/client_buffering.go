@@ -12,25 +12,11 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 )
 
-type ClientBuffering interface {
+type ClientBuffering struct {
 	clientBasic
-
-	ListSplits(
-		ctx context.Context,
-		slct *api_service_protos.TSelect,
-	) ([]*api_service_protos.TListSplitsResponse, error)
-
-	ReadSplits(
-		ctx context.Context,
-		splits []*api_service_protos.TSplit,
-	) ([]*api_service_protos.TReadSplitsResponse, error)
 }
 
-type clientBufferingImpl struct {
-	clientBasicImpl
-}
-
-func (c *clientBasicImpl) ListSplits(
+func (c *ClientBuffering) ListSplits(
 	ctx context.Context,
 	slct *api_service_protos.TSelect,
 ) ([]*api_service_protos.TListSplitsResponse, error) {
@@ -46,7 +32,7 @@ func (c *clientBasicImpl) ListSplits(
 	return dumpStream[*api_service_protos.TListSplitsResponse](rcvStream)
 }
 
-func (c *clientBasicImpl) ReadSplits(
+func (c *ClientBuffering) ReadSplits(
 	ctx context.Context,
 	splits []*api_service_protos.TSplit,
 ) ([]*api_service_protos.TReadSplitsResponse, error) {
@@ -86,7 +72,7 @@ func dumpStream[T StreamResponse](rcvStream stream[T]) ([]T, error) {
 	return responses, nil
 }
 
-func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TClientConfig) (ClientBuffering, error) {
+func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TClientConfig) (*ClientBuffering, error) {
 	conn, err := makeConnection(logger, clientCfg)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %w", err)
@@ -94,15 +80,15 @@ func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 
 	grpcClient := api_service.NewConnectorClient(conn)
 
-	return &clientBufferingImpl{
-		clientBasicImpl: clientBasicImpl{
+	return &ClientBuffering{
+		clientBasic: clientBasic{
 			client: grpcClient,
 			conn:   conn,
 			logger: logger},
 	}, nil
 }
 
-func NewClientBufferingFromServerConfig(logger *zap.Logger, serverCfg *config.TServerConfig) (ClientBuffering, error) {
+func NewClientBufferingFromServerConfig(logger *zap.Logger, serverCfg *config.TServerConfig) (*ClientBuffering, error) {
 	clientCfg := &config.TClientConfig{
 		Endpoint: serverCfg.ConnectorServer.Endpoint,
 	}

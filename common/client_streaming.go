@@ -6,7 +6,11 @@ import (
 	"io"
 	"sync"
 
+	"go.uber.org/zap"
+
+	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 )
 
 type StreamResponse interface {
@@ -24,30 +28,14 @@ type StreamResult[T StreamResponse] struct {
 	Err      error
 }
 
-type ClientStreaming interface {
+type ClientStreaming struct {
 	clientBasic
-
-	ListSplits(
-		ctx context.Context,
-		slct *api_service_protos.TSelect,
-	) (<-chan *StreamResult[*api_service_protos.TListSplitsResponse], error)
-
-	ReadSplits(
-		ctx context.Context,
-		splits []*api_service_protos.TSplit,
-	) (<-chan *StreamResult[*api_service_protos.TReadSplitsResponse], error)
-}
-
-var _ ClientStreaming = (*clientStreamingImpl)(nil)
-
-type clientStreamingImpl struct {
-	clientBasicImpl
 
 	wg       *sync.WaitGroup
 	exitChan chan struct{}
 }
 
-func (c *clientStreamingImpl) ListSplits(
+func (c *ClientStreaming) ListSplits(
 	ctx context.Context,
 	slct *api_service_protos.TSelect,
 ) (<-chan *StreamResult[*api_service_protos.TListSplitsResponse], error) {
@@ -69,7 +57,7 @@ func (c *clientStreamingImpl) ListSplits(
 	return out, nil
 }
 
-func (c *clientStreamingImpl) ReadSplits(
+func (c *ClientStreaming) ReadSplits(
 	ctx context.Context,
 	splits []*api_service_protos.TSplit,
 ) (<-chan *StreamResult[*api_service_protos.TReadSplitsResponse], error) {
@@ -126,7 +114,35 @@ func streamToChannel[T StreamResponse](in stream[T], out chan<- *StreamResult[T]
 	}
 }
 
-func (c *clientStreamingImpl) Close() {
+func (c *ClientStreaming) Close() {
 	c.wg.Wait()
-	c.clientBasicImpl.Close()
+	c.clientBasic.Close()
+}
+
+func NewClientStreamingFromClientConfig(logger *zap.Logger, clientCfg *config.TClientConfig) (*ClientStreaming, error) {
+	conn, err := makeConnection(logger, clientCfg)
+	if err != nil {
+		return nil, fmt.Errorf("grpc dial: %w", err)
+	}
+
+	grpcClient := api_service.NewConnectorClient(conn)
+
+	return &ClientStreaming{
+		clientBasic: clientBasic{
+			client: grpcClient,
+			conn:   conn,
+			logger: logger},
+	}, nil
+}
+
+func NewClientStreamingFromServerConfig(logger *zap.Logger, serverCfg *config.TServerConfig) (*ClientStreaming, error) {
+	clientCfg := &config.TClientConfig{
+		Endpoint: serverCfg.ConnectorServer.Endpoint,
+	}
+
+	if serverCfg.ConnectorServer.Tls != nil {
+		return nil, fmt.Errorf("TLS connections are not implemented yet")
+	}
+
+	return NewClientStreamingFromClientConfig(logger, clientCfg)
 }

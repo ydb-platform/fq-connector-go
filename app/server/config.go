@@ -18,6 +18,13 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			PrefetchQueueCapacity: 2,
 		}
 	}
+
+	if c.Logger == nil {
+		c.Logger = &config.TLoggerConfig{
+			LogLevel:              config.ELogLevel_INFO,
+			EnableSqlQueryLogging: false,
+		}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {

@@ -11,26 +11,13 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
-type clientBasic interface {
-	DescribeTable(
-		ctx context.Context,
-		dsi *api_common.TDataSourceInstance,
-		typeMappingSettings *api_service_protos.TTypeMappingSettings,
-		tableName string,
-	) (*api_service_protos.TDescribeTableResponse, error)
-
-	Close()
-}
-
-var _ clientBasic = (*clientBasicImpl)(nil)
-
-type clientBasicImpl struct {
+type clientBasic struct {
 	client api_service.ConnectorClient
 	conn   *grpc.ClientConn
 	logger *zap.Logger
 }
 
-func (c *clientBasicImpl) DescribeTable(
+func (c *clientBasic) DescribeTable(
 	ctx context.Context,
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
@@ -45,6 +32,6 @@ func (c *clientBasicImpl) DescribeTable(
 	return c.client.DescribeTable(ctx, request)
 }
 
-func (c *clientBasicImpl) Close() {
+func (c *clientBasic) Close() {
 	LogCloserError(c.logger, c.conn, "client GRPC connection")
 }

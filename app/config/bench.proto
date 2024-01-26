@@ -1,0 +1,36 @@
+syntax = "proto3";
+package NYql.Connector.App.Config;
+
+import "ydb/library/yql/providers/generic/connector/api/common/data_source.proto";
+import "ydb/library/yql/providers/generic/connector/api/common/endpoint.proto";
+import "app/config/server.proto";
+
+option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
+
+message TBenchmarkConfig {
+    // We can either connect to remote Connector server 
+    // or run our own server within the same process.
+    oneof server {
+        NYql.NConnector.NApi.TEndpoint server_remote = 1;
+        TServerConfig server_local = 2;
+    }
+
+    // A data source instance from which we'll read the data 
+    NYql.NConnector.NApi.TDataSourceInstance data_source_instance = 3;
+
+    // A table from which we'll read the data
+    string table = 4;
+
+    // A list of test cases that will be executed during benchmark session
+    repeated TBenchmarkTestCase test_cases = 5;
+}
+
+message TBenchmarkTestCase {
+    TBenchmarkServerParams server_params = 1;  
+}
+
+// TBenchmarkServerParams contains server config params that we'll be applied 
+// to built-in server during start
+message TBenchmarkServerParams {
+    TPagingConfig paging = 1; 
+}

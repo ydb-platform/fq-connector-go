@@ -10,8 +10,9 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/fq-connector-go/tests/infra/connector"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -20,7 +21,7 @@ import (
 type Base struct {
 	testify_suite.Suite
 	*State
-	Connector *connector.Server
+	Connector *server.Embedded
 	name      string
 }
 
@@ -42,7 +43,13 @@ func (b *Base) BeforeSuite(_ string) {
 func (b *Base) SetupSuite() {
 	// We want to run a distinct instance of Connector for every suite
 	var err error
-	b.Connector, err = connector.NewServer()
+
+	loggerCfg := &config.TLoggerConfig{
+		LogLevel:              config.ELogLevel_DEBUG,
+		EnableSqlQueryLogging: true,
+	}
+
+	b.Connector, err = server.NewEmbedded(server.WithLoggingConfig(loggerCfg))
 	b.Require().NoError(err)
 	b.Connector.Start()
 }
@@ -114,7 +121,7 @@ func (b *Base) doValidateTable(table *datasource.Table, dsi *api_common.TDataSou
 	defer cancel()
 
 	// describe table
-	describeTableResponse, err := b.Connector.Client().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
+	describeTableResponse, err := b.Connector.ClientBuffering().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
 	b.Require().NoError(err)
 	b.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
 
@@ -137,13 +144,13 @@ func (b *Base) doValidateTable(table *datasource.Table, dsi *api_common.TDataSou
 		}
 	}
 
-	listSplitsResponses, err := b.Connector.Client().ListSplits(ctx, slct)
+	listSplitsResponses, err := b.Connector.ClientBuffering().ListSplits(ctx, slct)
 	b.Require().NoError(err)
 	b.Require().Len(listSplitsResponses, 1)
 
 	// read splits
 	splits := common.ListSplitsResponsesToSplits(listSplitsResponses)
-	readSplitsResponses, err := b.Connector.Client().ReadSplits(ctx, splits)
+	readSplitsResponses, err := b.Connector.ClientBuffering().ReadSplits(ctx, splits)
 	b.Require().NoError(err)
 	b.Require().Len(readSplitsResponses, 1)
 
