@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -87,7 +88,21 @@ func (c *connectionManager) Make(
 	endpoint := common.EndpointToString(dsi.Endpoint)
 	dsn := sugar.DSN(endpoint, dsi.Database, dsi.UseTls)
 
-	ydbDriver, err := ydb_sdk.Open(ctx, dsn)
+	var (
+		sb   strings.Builder
+		cred ydb_sdk.Option
+	)
+
+	if dsi.Credentials.GetToken() != nil {
+		sb.WriteString(fmt.Sprintf("%s %s", dsi.Credentials.GetToken().Type, dsi.Credentials.GetToken().Value))
+		cred = ydb_sdk.WithAccessTokenCredentials(sb.String())
+	} else {
+		cred = ydb_sdk.WithAnonymousCredentials()
+	}
+
+	ydbDriver, err := ydb_sdk.Open(ctx, dsn,
+		cred,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
