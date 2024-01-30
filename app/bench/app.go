@@ -3,6 +3,7 @@ package bench
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -46,26 +47,23 @@ func runBenchmarks(_ *cobra.Command, args []string) error {
 
 	logger := common.NewDefaultLogger()
 
-	// prepare test case runners
-	testCasesRunners := make([]*testCaseRunner, 0, len(cfg.TestCases))
-	for _, tc := range cfg.TestCases {
+	for i, tc := range cfg.TestCases {
+		// prepare test case
 		tcr, err := newTestCaseRunner(logger, &cfg, tc)
 		if err != nil {
 			return fmt.Errorf("new test case runner: %w", err)
 		}
 
-		testCasesRunners = append(testCasesRunners, tcr)
-	}
+		fmt.Println(">>>>>>>>>>>>>>>>>>> " + tcr.name() + " <<<<<<<<<<<<<<<<<<<<")
 
-	// and run them
-	for i, tcr := range testCasesRunners {
+		// run it
 		if err := tcr.run(); err != nil {
 			return fmt.Errorf("failed to run test case #%d: %w", i, err)
 		}
 
 		report := tcr.finish()
 
-		if err := report.saveToFile(cfg.ResultDir); err != nil {
+		if err := report.saveToFile(filepath.Join(cfg.ResultDir, tcr.name())); err != nil {
 			return fmt.Errorf("failed to save report #%d: %w", i, err)
 		}
 	}

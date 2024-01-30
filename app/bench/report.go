@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -52,21 +51,14 @@ func (r *report) String() string {
 	return builder.String()
 }
 
-func (r *report) saveToFile(dir string) error {
-	fileName := fmt.Sprintf(
-		"bytes_per_page_%s-prefetch_queue_capacity_%d",
-		humanize.Bytes(r.TestCaseConfig.GetServerParams().Paging.BytesPerPage),
-		r.TestCaseConfig.GetServerParams().Paging.PrefetchQueueCapacity,
-	)
-	fullPath := filepath.Join(dir, fileName)
-
+func (r *report) saveToFile(filename string) error {
 	dump, err := json.MarshalIndent(r, "", "    ")
 	if err != nil {
 		return fmt.Errorf("json marshal indent: %w", err)
 	}
 
-	if err := os.WriteFile(fullPath, dump, 0644); err != nil {
-		return fmt.Errorf("write file '%s': %w", fullPath, err)
+	if err := os.WriteFile(filename, dump, 0644); err != nil {
+		return fmt.Errorf("write file '%s': %w", filename, err)
 	}
 
 	return nil

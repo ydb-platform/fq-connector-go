@@ -33,8 +33,7 @@ type StreamResult[T StreamResponse] struct {
 type ClientStreaming struct {
 	clientBasic
 
-	wg       sync.WaitGroup
-	exitChan chan struct{}
+	wg sync.WaitGroup
 }
 
 func (c *ClientStreaming) ListSplits(
@@ -54,7 +53,7 @@ func (c *ClientStreaming) ListSplits(
 
 	c.wg.Add(1)
 
-	go streamToChannel[*api_service_protos.TListSplitsResponse](rcvStream, out, &c.wg, c.exitChan)
+	go streamToChannel[*api_service_protos.TListSplitsResponse](ctx, rcvStream, out, &c.wg)
 
 	return out, nil
 }
@@ -77,39 +76,32 @@ func (c *ClientStreaming) ReadSplits(
 
 	c.wg.Add(1)
 
-	go streamToChannel[*api_service_protos.TReadSplitsResponse](rcvStream, out, &c.wg, c.exitChan)
+	go streamToChannel[*api_service_protos.TReadSplitsResponse](ctx, rcvStream, out, &c.wg)
 
 	return out, nil
 }
 
-func streamToChannel[T StreamResponse](in stream[T], out chan<- *StreamResult[T], wg *sync.WaitGroup, exitChan <-chan struct{}) {
+func streamToChannel[T StreamResponse](ctx context.Context, in stream[T], out chan<- *StreamResult[T], wg *sync.WaitGroup) {
 	defer wg.Done()
+	defer close(out)
 
 	for {
-		var (
-			result   *StreamResult[T]
-			finished bool
-		)
-
 		msg, err := in.Recv()
 		if err != nil {
 			if err != io.EOF {
-				result = &StreamResult[T]{Response: nil, Err: fmt.Errorf("stream recv: %w", err)}
+				select {
+				case out <- &StreamResult[T]{Response: nil, Err: fmt.Errorf("stream recv: %w", err)}:
+				case <-ctx.Done():
+					return
+				}
 			}
 
-			finished = true
-		} else {
-			result = &StreamResult[T]{Response: msg, Err: nil}
+			return
 		}
 
 		select {
-		case <-exitChan:
-			return
-		case out <- result:
-		}
-
-		if finished {
-			close(out)
+		case out <- &StreamResult[T]{Response: msg, Err: nil}:
+		case <-ctx.Done():
 			return
 		}
 	}

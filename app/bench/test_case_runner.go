@@ -6,6 +6,7 @@ import (
 
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server"
@@ -28,10 +29,13 @@ func newTestCaseRunner(
 	testCase *config.TBenchmarkTestCase,
 ) (*testCaseRunner, error) {
 	srv, err := server.NewEmbedded(
-		server.WithLoggingConfig(&config.TLoggerConfig{
+		server.WithLoggerConfig(&config.TLoggerConfig{
 			LogLevel: config.ELogLevel_ERROR,
 		}),
 		server.WithPagingConfig(testCase.ServerParams.Paging),
+		server.WithPprofServerConfig(&config.TPprofServerConfig{
+			Endpoint: &api_common.TEndpoint{Host: "localhost", Port: 50052},
+		}),
 	)
 
 	if err != nil {
@@ -145,4 +149,12 @@ func (tcr *testCaseRunner) finish() *report {
 	tcr.cancel()                      // terminate requests
 	tcr.srv.Stop()                    // terminate server
 	return tcr.reportGenerator.stop() // obtain final report
+}
+
+func (tcr *testCaseRunner) name() string {
+	return fmt.Sprintf(
+		"bytes_per_page_%d-prefetch_queue_capacity_%d",
+		tcr.testCase.ServerParams.Paging.BytesPerPage,
+		tcr.testCase.ServerParams.Paging.PrefetchQueueCapacity,
+	)
 }

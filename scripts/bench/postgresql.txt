@@ -34,7 +34,15 @@ test_cases: [
                 prefetch_queue_capacity: 2
             }
         }
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 16777216
+                prefetch_queue_capacity: 4
+            }
+        }
     }
 ]
 
-result_dir: "/home/vitalyisaev/projects/fq-connector-go/app/bench/results"
+result_dir: "/home/vitalyisaev/projects/fq-connector-go/scripts/bench/postgresql/results"

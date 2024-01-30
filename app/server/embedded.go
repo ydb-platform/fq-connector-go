@@ -76,8 +76,6 @@ type ServerOption interface {
 	apply(cfg *config.TServerConfig)
 }
 
-var _ ServerOption = (*withPagingConfig)(nil)
-
 type withPagingConfig struct {
 	pagingConfig *config.TPagingConfig
 }
@@ -90,8 +88,6 @@ func WithPagingConfig(pagingConfig *config.TPagingConfig) ServerOption {
 	return &withPagingConfig{pagingConfig: pagingConfig}
 }
 
-var _ ServerOption = (*withLoggerConfig)(nil)
-
 type withLoggerConfig struct {
 	loggerConfig *config.TLoggerConfig
 }
@@ -100,8 +96,20 @@ func (o *withLoggerConfig) apply(cfg *config.TServerConfig) {
 	cfg.Logger = o.loggerConfig
 }
 
-func WithLoggingConfig(loggerConfig *config.TLoggerConfig) ServerOption {
+func WithLoggerConfig(loggerConfig *config.TLoggerConfig) ServerOption {
 	return &withLoggerConfig{loggerConfig: loggerConfig}
+}
+
+type withPprofServerConfig struct {
+	pprofServerConfig *config.TPprofServerConfig
+}
+
+func (o *withPprofServerConfig) apply(cfg *config.TServerConfig) {
+	cfg.PprofServer = o.pprofServerConfig
+}
+
+func WithPprofServerConfig(pprofServerConfig *config.TPprofServerConfig) ServerOption {
+	return &withPprofServerConfig{pprofServerConfig: pprofServerConfig}
 }
 
 func NewEmbedded(options ...ServerOption) (*Embedded, error) {

@@ -49,7 +49,7 @@ func (b *Base) SetupSuite() {
 		EnableSqlQueryLogging: true,
 	}
 
-	b.Connector, err = server.NewEmbedded(server.WithLoggingConfig(loggerCfg))
+	b.Connector, err = server.NewEmbedded(server.WithLoggerConfig(loggerCfg))
 	b.Require().NoError(err)
 	b.Connector.Start()
 }
