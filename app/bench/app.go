@@ -10,16 +10,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func runBenchmarks(_ *cobra.Command, args []string) error {
-	var (
-		configPath = args[0]
-		cfg        config.TBenchmarkConfig
-	)
-
-	if err := common.NewConfigFromPrototextFile[*config.TBenchmarkConfig](configPath, &cfg); err != nil {
-		return fmt.Errorf("unknown instance: %w", err)
-	}
-
+func validateConfig(cfg *config.TBenchmarkConfig) error {
 	if cfg.GetServerRemote() != nil {
 		return fmt.Errorf("not ready to work with remote connector")
 	}
@@ -28,8 +19,34 @@ func runBenchmarks(_ *cobra.Command, args []string) error {
 		return fmt.Errorf("you must provide local configuration for connector")
 	}
 
-	// prepare test case runners
+	if cfg.GetDataSourceInstance() == nil {
+		return fmt.Errorf("you must provide data source instance")
+	}
+
+	if cfg.GetResultDir() == "" {
+		return fmt.Errorf("empty result dir")
+	}
+
+	return nil
+}
+
+func runBenchmarks(_ *cobra.Command, args []string) error {
+	var (
+		configPath = args[0]
+		cfg        config.TBenchmarkConfig
+	)
+
+	if err := common.NewConfigFromPrototextFile[*config.TBenchmarkConfig](configPath, &cfg); err != nil {
+		return fmt.Errorf("new config from prototext file '%s': %w", configPath, err)
+	}
+
+	if err := validateConfig(&cfg); err != nil {
+		return fmt.Errorf("validate config: %v", err)
+	}
+
 	logger := common.NewDefaultLogger()
+
+	// prepare test case runners
 	testCasesRunners := make([]*testCaseRunner, 0, len(cfg.TestCases))
 	for _, tc := range cfg.TestCases {
 		tcr, err := newTestCaseRunner(logger, &cfg, tc)
@@ -57,8 +74,8 @@ func runBenchmarks(_ *cobra.Command, args []string) error {
 }
 
 var Cmd = &cobra.Command{
-	Use:   "client",
-	Short: "client for Connector testing and debugging purposes",
+	Use:   "bench",
+	Short: "Benchmarking tool to test performance of Connector installations",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := runBenchmarks(cmd, args); err != nil {
 			fmt.Println(err)

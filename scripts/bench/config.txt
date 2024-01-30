@@ -1,0 +1,40 @@
+server_local: {
+    endpoint: {
+        host: "localhost"
+        port: 50051
+    }
+}
+
+data_source_instance {
+    kind: POSTGRESQL
+    endpoint {
+        host: "localhost"
+        port: 5432
+    }
+    database: "tpch"
+    credentials {
+        basic {
+            username: "admin"
+            password: "password"
+        }
+    }
+    protocol: NATIVE
+    pg_options: {
+        schema: "public"
+    }
+}
+
+table: "lineitem"
+
+test_cases: [
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        }
+    }
+]
+
+result_dir: "/home/vitalyisaev/projects/fq-connector-go/app/bench/results"

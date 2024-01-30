@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  postgresql:
+    image: postgres:15.3
+    container_name: fq-connector-go-bench-postgresql
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: tpch
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./postgresql/data/:/var/lib/postgresql/data/

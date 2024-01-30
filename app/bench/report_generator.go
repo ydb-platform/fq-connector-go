@@ -85,6 +85,7 @@ func newReportGenerator(logger *zap.Logger) *reportGenerator {
 	agg := &reportGenerator{
 		startTime: time.Now(),
 		exitChan:  make(chan struct{}),
+		logger:    logger,
 	}
 
 	return agg

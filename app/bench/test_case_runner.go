@@ -61,7 +61,9 @@ func (tcr *testCaseRunner) run() error {
 	describeTableResponse, err := tcr.srv.ClientStreaming().DescribeTable(
 		tcr.ctx,
 		tcr.cfg.DataSourceInstance,
-		nil,
+		&api_service_protos.TTypeMappingSettings{
+			DateTimeFormat: api_service_protos.EDateTimeFormat_STRING_FORMAT,
+		},
 		tcr.cfg.Table,
 	)
 
@@ -83,7 +85,7 @@ func (tcr *testCaseRunner) run() error {
 	}
 
 	if err := tcr.listAndReadSplits(slct); err != nil {
-		return fmt.Errorf("list and read splits: %w", common.NewSTDErrorFromAPIError(describeTableResponse.Error))
+		return fmt.Errorf("list and read splits: %w", err)
 	}
 
 	return nil
@@ -119,7 +121,12 @@ func (tcr *testCaseRunner) readSplits(splits []*api_service_protos.TSplit) error
 		return fmt.Errorf("read splits: %w", err)
 	}
 
-	for result := range resultChan {
+	for {
+		result, ok := <-resultChan
+		if !ok {
+			break
+		}
+
 		if result.Err != nil {
 			return fmt.Errorf("list splits result: %w", result.Err)
 		}
@@ -127,6 +134,8 @@ func (tcr *testCaseRunner) readSplits(splits []*api_service_protos.TSplit) error
 		if !common.IsSuccess(result.Response.Error) {
 			return fmt.Errorf("list splits result: %w", common.NewSTDErrorFromAPIError(result.Response.Error))
 		}
+
+		tcr.reportGenerator.registerResponse(result.Response)
 	}
 
 	return nil

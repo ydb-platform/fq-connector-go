@@ -14,7 +14,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 )
 
-func makeConnection(logger *zap.Logger, cfg *config.TClientConfig) (*grpc.ClientConn, error) {
+func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 
 	if cfg.Tls != nil {
@@ -40,6 +40,8 @@ func makeConnection(logger *zap.Logger, cfg *config.TClientConfig) (*grpc.Client
 
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
+
+	opts = append(opts, additionalOpts...)
 
 	conn, err := grpc.Dial(EndpointToString(cfg.Endpoint), opts...)
 	if err != nil {

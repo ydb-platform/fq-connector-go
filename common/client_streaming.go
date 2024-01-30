@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"sync"
 
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -31,7 +33,7 @@ type StreamResult[T StreamResponse] struct {
 type ClientStreaming struct {
 	clientBasic
 
-	wg       *sync.WaitGroup
+	wg       sync.WaitGroup
 	exitChan chan struct{}
 }
 
@@ -52,7 +54,7 @@ func (c *ClientStreaming) ListSplits(
 
 	c.wg.Add(1)
 
-	go streamToChannel[*api_service_protos.TListSplitsResponse](rcvStream, out, c.wg, c.exitChan)
+	go streamToChannel[*api_service_protos.TListSplitsResponse](rcvStream, out, &c.wg, c.exitChan)
 
 	return out, nil
 }
@@ -75,7 +77,7 @@ func (c *ClientStreaming) ReadSplits(
 
 	c.wg.Add(1)
 
-	go streamToChannel[*api_service_protos.TReadSplitsResponse](rcvStream, out, c.wg, c.exitChan)
+	go streamToChannel[*api_service_protos.TReadSplitsResponse](rcvStream, out, &c.wg, c.exitChan)
 
 	return out, nil
 }
@@ -95,8 +97,6 @@ func streamToChannel[T StreamResponse](in stream[T], out chan<- *StreamResult[T]
 				result = &StreamResult[T]{Response: nil, Err: fmt.Errorf("stream recv: %w", err)}
 			}
 
-			close(out)
-
 			finished = true
 		} else {
 			result = &StreamResult[T]{Response: msg, Err: nil}
@@ -109,6 +109,7 @@ func streamToChannel[T StreamResponse](in stream[T], out chan<- *StreamResult[T]
 		}
 
 		if finished {
+			close(out)
 			return
 		}
 	}
@@ -120,7 +121,10 @@ func (c *ClientStreaming) Close() {
 }
 
 func NewClientStreamingFromClientConfig(logger *zap.Logger, clientCfg *config.TClientConfig) (*ClientStreaming, error) {
-	conn, err := makeConnection(logger, clientCfg)
+	conn, err := makeConnection(logger, clientCfg, grpc.WithDefaultCallOptions(
+		grpc.MaxCallRecvMsgSize(math.MaxInt64),
+	))
+
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %w", err)
 	}
