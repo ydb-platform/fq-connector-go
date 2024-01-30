@@ -1,11 +1,15 @@
 package bench
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -47,9 +51,35 @@ func runBenchmarks(_ *cobra.Command, args []string) error {
 
 	logger := common.NewDefaultLogger()
 
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	errChan := make(chan error, 1)
+
+	go func() {
+		errChan <- runTestCases(ctx, logger, &cfg)
+	}()
+
+	var err error
+
+	select {
+	case sig := <-signalChan:
+		logger.Info("interrupting signal", zap.Any("value", sig))
+		cancel()        // make requests terminate
+		err = <-errChan // wait for goroutine to stop
+	case err = <-errChan:
+	}
+
+	return fmt.Errorf("run test cases: %w", err)
+}
+
+func runTestCases(ctx context.Context, logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
 	for i, tc := range cfg.TestCases {
 		// prepare test case
-		tcr, err := newTestCaseRunner(logger, &cfg, tc)
+		tcr, err := newTestCaseRunner(ctx, logger, cfg, tc)
 		if err != nil {
 			return fmt.Errorf("new test case runner: %w", err)
 		}

@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 )
 
 // reportGenerator is responsible for collecting reading stats
@@ -16,6 +17,8 @@ type reportGenerator struct {
 	bytesInternal atomic.Uint64 // total amount of data in internal representation (Go type system)
 	bytesArrow    atomic.Uint64 // total amount of data in Arrow format
 	rows          atomic.Uint64 // total number of rows read
+
+	testCase *config.TBenchmarkTestCase
 
 	exitChan chan struct{}
 	wg       sync.WaitGroup
@@ -65,6 +68,7 @@ func (agg *reportGenerator) makeReport() *report {
 		BytesArrowRate:     bytesArrowRate,
 		RowsTotal:          agg.rows.Load(),
 		RowsRate:           rowsRate,
+		TestCaseConfig:     agg.testCase,
 	}
 
 	return r
@@ -81,11 +85,12 @@ func (agg *reportGenerator) stop() *report {
 	return finalReport
 }
 
-func newReportGenerator(logger *zap.Logger) *reportGenerator {
+func newReportGenerator(logger *zap.Logger, testCase *config.TBenchmarkTestCase) *reportGenerator {
 	agg := &reportGenerator{
 		startTime: time.Now(),
 		exitChan:  make(chan struct{}),
 		logger:    logger,
+		testCase:  testCase,
 	}
 
 	return agg

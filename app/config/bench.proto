@@ -29,7 +29,12 @@ message TBenchmarkConfig {
 }
 
 message TBenchmarkTestCase {
+    // Custom server parameters that may vary
     TBenchmarkServerParams server_params = 1;  
+
+    // List of columns that will be read from the tables.
+    // If empty, all the columns will be read.
+    repeated string columns = 2;
 }
 
 // TBenchmarkServerParams contains server config params that we'll be applied 

@@ -1,0 +1,222 @@
+server_local: {
+    endpoint: {
+        host: "localhost"
+        port: 50051
+    }
+}
+
+data_source_instance {
+    kind: POSTGRESQL
+    endpoint {
+        host: "localhost"
+        port: 5432
+    }
+    database: "tpch"
+    credentials {
+        basic {
+            username: "admin"
+            password: "password"
+        }
+    }
+    protocol: NATIVE
+    pg_options: {
+        schema: "public"
+    }
+}
+
+table: "lineitem"
+
+test_cases: [
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
+            "l_receiptdate", "l_shipinstruct", "l_shipmode", "l_comment"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
+            "l_receiptdate", "l_shipinstruct", "l_shipmode" 
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
+            "l_receiptdate", "l_shipinstruct"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
+            "l_receiptdate" 
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate" 
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax", "l_returnflg"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount", "l_tax"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
+            "l_discount"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey", "l_suppkey"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey", "l_partkey"
+        ]
+    },
+    {
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        },
+        columns: [
+            "l_orderkey" 
+        ]
+    }
+]
+
+result_dir: "/home/vitalyisaev/projects/fq-connector-go/scripts/bench/postgresql/results"

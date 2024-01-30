@@ -19,11 +19,11 @@ type testCaseRunner struct {
 	srv             *server.Embedded
 	reportGenerator *reportGenerator
 	ctx             context.Context
-	cancel          context.CancelFunc
 	logger          *zap.Logger
 }
 
 func newTestCaseRunner(
+	ctx context.Context,
 	logger *zap.Logger,
 	cfg *config.TBenchmarkConfig,
 	testCase *config.TBenchmarkTestCase,
@@ -42,16 +42,13 @@ func newTestCaseRunner(
 		return nil, fmt.Errorf("new server embedded: %w", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-
 	tcr := &testCaseRunner{
 		logger:          logger,
 		cfg:             cfg,
 		testCase:        testCase,
 		srv:             srv,
 		ctx:             ctx,
-		cancel:          cancel,
-		reportGenerator: newReportGenerator(logger),
+		reportGenerator: newReportGenerator(logger, testCase),
 	}
 
 	return tcr, nil
@@ -82,7 +79,7 @@ func (tcr *testCaseRunner) run() error {
 	// launch split listing
 	slct := &api_service_protos.TSelect{
 		DataSourceInstance: tcr.cfg.DataSourceInstance,
-		What:               common.SchemaToSelectWhatItems(describeTableResponse.Schema, nil),
+		What:               common.SchemaToSelectWhatItems(describeTableResponse.Schema, tcr.makeColumnWhitelist()),
 		From: &api_service_protos.TSelect_TFrom{
 			Table: tcr.cfg.Table,
 		},
@@ -93,6 +90,20 @@ func (tcr *testCaseRunner) run() error {
 	}
 
 	return nil
+}
+
+func (tcr *testCaseRunner) makeColumnWhitelist() map[string]struct{} {
+	// if list is empty, read all columns
+	if len(tcr.testCase.Columns) == 0 {
+		return nil
+	}
+
+	out := make(map[string]struct{}, len(tcr.testCase.Columns))
+	for _, col := range tcr.testCase.Columns {
+		out[col] = struct{}{}
+	}
+
+	return out
 }
 
 func (tcr *testCaseRunner) listAndReadSplits(slct *api_service_protos.TSelect) error {
@@ -146,15 +157,15 @@ func (tcr *testCaseRunner) readSplits(splits []*api_service_protos.TSplit) error
 }
 
 func (tcr *testCaseRunner) finish() *report {
-	tcr.cancel()                      // terminate requests
 	tcr.srv.Stop()                    // terminate server
 	return tcr.reportGenerator.stop() // obtain final report
 }
 
 func (tcr *testCaseRunner) name() string {
 	return fmt.Sprintf(
-		"bytes_per_page_%d-prefetch_queue_capacity_%d",
+		"bytes_per_page_%d-prefetch_queue_capacity_%d-columns_%d",
 		tcr.testCase.ServerParams.Paging.BytesPerPage,
 		tcr.testCase.ServerParams.Paging.PrefetchQueueCapacity,
+		len(tcr.testCase.Columns),
 	)
 }
