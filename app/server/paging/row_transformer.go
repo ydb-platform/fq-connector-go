@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"golang.org/x/sync/errgroup"
 )
 
 // Acceptor is a fundamental type class that is used during data extraction from the data source
@@ -39,12 +40,23 @@ func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(builders []array.Build
 			}
 		}
 	} else {
+		var errGroup errgroup.Group
+
 		for i, acceptor := range rt.acceptors {
-			if err := rt.appenders[i](acceptor, builders[i]); err != nil {
-				return fmt.Errorf(
-					"append acceptor %#v of %d column to arrow builder %#v: %w",
-					acceptor, i, builders[i], err)
-			}
+			i, acceptor := i, acceptor
+			errGroup.Go(
+				func() error {
+					if err := rt.appenders[i](acceptor, builders[i]); err != nil {
+						return fmt.Errorf(
+							"append acceptor %#v of %d column to arrow builder %#v: %w",
+							acceptor, i, builders[i], err)
+					}
+					return nil
+				})
+		}
+
+		if err := errGroup.Wait(); err != nil {
+			return fmt.Errorf("err group wait: %w", err)
 		}
 	}
 
