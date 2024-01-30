@@ -12,35 +12,14 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func Run(logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
-	if cfg.GetServerRemote() != nil {
-		return fmt.Errorf("not ready to work with remote connector")
-	}
-
-	if cfg.GetServerLocal() == nil {
-		return fmt.Errorf("you must provide local configuration for connector")
-	}
-
-	for _, tc := range cfg.TestCases {
-		tcr, err := newTestCaseRunner(logger, cfg, tc)
-		if err != nil {
-			return fmt.Errorf("new test case runner: %w", err)
-		}
-
-		tcr.start()
-	}
-
-	return nil
-}
-
 type testCaseRunner struct {
-	logger          *zap.Logger
 	cfg             *config.TBenchmarkConfig
 	testCase        *config.TBenchmarkTestCase
 	srv             *server.Embedded
-	statsAggregator *statsAggregator
+	reportGenerator *reportGenerator
 	ctx             context.Context
 	cancel          context.CancelFunc
+	logger          *zap.Logger
 }
 
 func newTestCaseRunner(
@@ -59,8 +38,6 @@ func newTestCaseRunner(
 		return nil, fmt.Errorf("new server embedded: %w", err)
 	}
 
-	srv.Start()
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	tcr := &testCaseRunner{
@@ -70,18 +47,16 @@ func newTestCaseRunner(
 		srv:             srv,
 		ctx:             ctx,
 		cancel:          cancel,
-		statsAggregator: newStatsAggregator(logger),
+		reportGenerator: newReportGenerator(logger),
 	}
 
 	return tcr, nil
 }
 
-func (tcr *testCaseRunner) start() {
-	tcr.srv.Start()
-	tcr.statsAggregator.start()
-}
-
 func (tcr *testCaseRunner) run() error {
+	tcr.srv.Start()
+	tcr.reportGenerator.start()
+
 	// get table schema
 	describeTableResponse, err := tcr.srv.ClientStreaming().DescribeTable(
 		tcr.ctx,
@@ -157,8 +132,8 @@ func (tcr *testCaseRunner) readSplits(splits []*api_service_protos.TSplit) error
 	return nil
 }
 
-func (tcr *testCaseRunner) stop() {
-	tcr.cancel()
-	tcr.srv.Stop()
-	tcr.statsAggregator.stop()
+func (tcr *testCaseRunner) finish() *report {
+	tcr.cancel()                      // terminate requests
+	tcr.srv.Stop()                    // terminate server
+	return tcr.reportGenerator.stop() // obtain final report
 }

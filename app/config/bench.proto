@@ -23,6 +23,9 @@ message TBenchmarkConfig {
 
     // A list of test cases that will be executed during benchmark session
     repeated TBenchmarkTestCase test_cases = 5;
+
+    // Directory to store benchmark results
+    string result_dir = 6;
 }
 
 message TBenchmarkTestCase {

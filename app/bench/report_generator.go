@@ -1,7 +1,6 @@
 package bench
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -11,8 +10,8 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
-// statsAggregator is responsible for collecting reading stats
-type statsAggregator struct {
+// reportGenerator is responsible for collecting reading stats
+type reportGenerator struct {
 	startTime     time.Time
 	bytesInternal atomic.Uint64 // total amount of data in internal representation (Go type system)
 	bytesArrow    atomic.Uint64 // total amount of data in Arrow format
@@ -23,12 +22,12 @@ type statsAggregator struct {
 	logger   *zap.Logger
 }
 
-func (agg *statsAggregator) start() {
+func (agg *reportGenerator) start() {
 	agg.wg.Add(1)
 	go agg.progress()
 }
 
-func (agg *statsAggregator) registerResponse(response *api_service_protos.TReadSplitsResponse) {
+func (agg *reportGenerator) registerResponse(response *api_service_protos.TReadSplitsResponse) {
 	agg.bytesInternal.Add(response.Stats.Bytes)
 	agg.bytesArrow.Add(uint64(len(response.GetArrowIpcStreaming())))
 	agg.rows.Add(response.Stats.Rows)
@@ -36,13 +35,13 @@ func (agg *statsAggregator) registerResponse(response *api_service_protos.TReadS
 
 const reportPeriod = 5 * time.Second
 
-func (agg *statsAggregator) progress() {
+func (agg *reportGenerator) progress() {
 	defer agg.wg.Done()
 
 	for {
 		select {
 		case <-time.After(reportPeriod):
-			agg.logger.Info("INTERMEDIATE RESULT: " + agg.dumpReport())
+			agg.logger.Info("INTERMEDIATE RESULT: " + agg.makeReport().String())
 		case <-agg.exitChan:
 			return
 		}
@@ -51,29 +50,39 @@ func (agg *statsAggregator) progress() {
 
 const megabyte = 1 << 20
 
-func (agg *statsAggregator) dumpReport() string {
+func (agg *reportGenerator) makeReport() *report {
 	secondsSinceStart := float32(time.Since(agg.startTime).Seconds())
 
 	bytesInternalRate := float32(agg.bytesInternal.Load()) / secondsSinceStart / megabyte
 	bytesArrowRate := float32(agg.bytesArrow.Load()) / secondsSinceStart / megabyte
 	rowsRate := float32(agg.rows.Load()) / secondsSinceStart
 
-	msg := fmt.Sprintf(
-		"bytes internal rate = %.2f MB/sec, bytes arrow rate = %.2f MB/sec, rows rate = %.2f rows/sec",
-		bytesInternalRate, bytesArrowRate, rowsRate,
-	)
+	r := &report{
+		StartTime:          jsonTime{agg.startTime},
+		BytesInternalTotal: agg.bytesInternal.Load(),
+		BytesInternalRate:  bytesInternalRate,
+		BytesArrowTotal:    agg.bytesArrow.Load(),
+		BytesArrowRate:     bytesArrowRate,
+		RowsTotal:          agg.rows.Load(),
+		RowsRate:           rowsRate,
+	}
 
-	return msg
-
+	return r
 }
 
-func (agg *statsAggregator) stop() {
+func (agg *reportGenerator) stop() *report {
 	close(agg.exitChan)
-	agg.logger.Info("FINAL RESULT: " + agg.dumpReport())
+	agg.wg.Wait()
+
+	finalReport := agg.makeReport()
+	finalReport.StopTime = &jsonTime{time.Now()}
+
+	agg.logger.Info("FINAL RESULT: " + finalReport.String())
+	return finalReport
 }
 
-func newStatsAggregator(logger *zap.Logger) *statsAggregator {
-	agg := &statsAggregator{
+func newReportGenerator(logger *zap.Logger) *reportGenerator {
+	agg := &reportGenerator{
 		startTime: time.Now(),
 		exitChan:  make(chan struct{}),
 	}
