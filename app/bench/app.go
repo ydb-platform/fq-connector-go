@@ -73,7 +73,11 @@ func runBenchmarks(_ *cobra.Command, args []string) error {
 	case err = <-errChan:
 	}
 
-	return fmt.Errorf("run test cases: %w", err)
+	if err != nil {
+		return fmt.Errorf("run test cases: %w", err)
+	}
+
+	return nil
 }
 
 func runTestCases(ctx context.Context, logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
@@ -93,7 +97,7 @@ func runTestCases(ctx context.Context, logger *zap.Logger, cfg *config.TBenchmar
 
 		report := tcr.finish()
 
-		if err := report.saveToFile(filepath.Join(cfg.ResultDir, tcr.name())); err != nil {
+		if err := report.saveToFile(filepath.Join(cfg.ResultDir, tcr.name()+".json")); err != nil {
 			return fmt.Errorf("failed to save report #%d: %w", i, err)
 		}
 	}
