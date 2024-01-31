@@ -3,12 +3,17 @@ package utils
 import (
 	"fmt"
 	"time"
+	"unsafe"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type ValueConverter[IN common.ValueType, OUT common.ValueType] interface {
 	Convert(in IN) (OUT, error)
+}
+
+type ValuePtrConverter[IN common.ValueType, OUT common.ValueType] interface {
+	Convert(in *IN) (OUT, error)
 }
 
 type BoolConverter struct{}
@@ -89,8 +94,71 @@ func (DateConverter) Convert(in time.Time) (uint16, error) {
 
 type DateToStringConverter struct{}
 
-func (DateToStringConverter) Convert(in time.Time) (string, error) {
+func (DateToStringConverter) Convert(in *time.Time) (string, error) {
 	return in.Format("2006-01-02"), nil
+}
+
+func absInt(x int) int {
+	if x < 0 {
+		return -x
+	}
+
+	return x
+}
+
+//go:linkname decomposeDate time.(*Time).date
+func decomposeDate(*time.Time, bool) (year int, month int, day int, dayOfYear int)
+
+//go:linkname formatBits strconv.formatBits
+func formatBits([]byte, uint64, int, bool, bool) (b []byte, s string)
+
+type DateToStringConverterV2 struct{}
+
+func (DateToStringConverterV2) Convert(in *time.Time) (string, error) {
+	buf := make([]byte, 0, 11)
+
+	year, month, day, _ := decomposeDate(in, true)
+
+	// year
+
+	if year < 0 {
+		buf = append(buf, byte('-'))
+	}
+
+	absYear := absInt(year)
+
+	switch {
+	case absYear < 10:
+		buf = append(buf, []byte("000")...)
+	case absYear < 100:
+		buf = append(buf, []byte("00")...)
+	case absYear < 1000:
+		buf = append(buf, byte('0'))
+	}
+
+	buf, _ = formatBits(buf, uint64(absYear), 10, false, true)
+
+	// month
+
+	buf = append(buf, byte('-'))
+	if month < 10 {
+		buf = append(buf, byte('0'))
+	}
+
+	buf, _ = formatBits(buf, uint64(month), 10, false, true)
+
+	// day
+
+	buf = append(buf, byte('-'))
+	if day < 10 {
+		buf = append(buf, byte('0'))
+	}
+
+	buf, _ = formatBits(buf, uint64(day), 10, false, true)
+
+	p := unsafe.SliceData(buf)
+
+	return unsafe.String(p, len(buf)), nil
 }
 
 type DatetimeConverter struct{}
@@ -107,7 +175,7 @@ func (DatetimeConverter) Convert(in time.Time) (uint32, error) {
 
 type DatetimeToStringConverter struct{}
 
-func (DatetimeToStringConverter) Convert(in time.Time) (string, error) {
+func (DatetimeToStringConverter) Convert(in *time.Time) (string, error) {
 	return in.UTC().Format("2006-01-02T15:04:05Z"), nil
 }
 
@@ -125,7 +193,7 @@ func (TimestampConverter) Convert(in time.Time) (uint64, error) {
 
 type TimestampToStringConverter struct{}
 
-func (TimestampToStringConverter) Convert(in time.Time) (string, error) {
+func (TimestampToStringConverter) Convert(in *time.Time) (string, error) {
 	// Using accuracy of 9 decimal places is enough for supported data sources
 	// Max accuracy of date/time formats:
 	// PostgreSQL - 1 microsecond (10^-6 s)

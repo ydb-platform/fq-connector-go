@@ -158,8 +158,9 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter](
-						cast.Time, builder, cast.Valid)
+					return appendValuePtrToArrowBuilder[
+						time.Time, string, *array.StringBuilder, utils.DateToStringConverterV2](
+						&cast.Time, builder, cast.Valid)
 				})
 			case Ydb.Type_DATE:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
@@ -184,11 +185,11 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Timestamp)
 
-					return appendValueToArrowBuilder[
+					return appendValuePtrToArrowBuilder[
 						time.Time,
 						string,
 						*array.StringBuilder,
-						utils.TimestampToStringConverter](cast.Time, builder, cast.Valid)
+						utils.TimestampToStringConverter](&cast.Time, builder, cast.Valid)
 				})
 			case Ydb.Type_TIMESTAMP:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
@@ -208,7 +209,12 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
+func appendValueToArrowBuilder[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+	CONV utils.ValueConverter[IN, OUT],
+](
 	value any,
 	builder array.Builder,
 	valid bool,
@@ -220,6 +226,43 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	}
 
 	cast := value.(IN)
+
+	var converter CONV
+
+	out, err := converter.Convert(cast)
+	if err != nil {
+		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
+			// TODO: logger ?
+			builder.AppendNull()
+
+			return nil
+		}
+
+		return fmt.Errorf("convert value: %w", err)
+	}
+
+	builder.(AB).Append(out)
+
+	return nil
+}
+
+func appendValuePtrToArrowBuilder[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+	CONV utils.ValuePtrConverter[IN, OUT],
+](
+	value any,
+	builder array.Builder,
+	valid bool,
+) error {
+	if !valid {
+		builder.AppendNull()
+
+		return nil
+	}
+
+	cast := value.(*IN)
 
 	var converter CONV
 

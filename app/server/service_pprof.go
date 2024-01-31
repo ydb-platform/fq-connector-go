@@ -35,7 +35,7 @@ func (s *servicePprof) stop() {
 	defer cancel()
 
 	err := s.httpServer.Shutdown(ctx)
-	if err != nil {
+	if err != nil && err != ctx.Err() {
 		s.logger.Error("shutdown http server", zap.Error(err))
 	}
 }
