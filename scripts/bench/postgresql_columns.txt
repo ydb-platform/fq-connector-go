@@ -36,7 +36,7 @@ test_cases: [
         },
         columns: [
             "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
-            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate",
             "l_receiptdate", "l_shipinstruct", "l_shipmode", "l_comment"
         ]
     },
@@ -49,8 +49,8 @@ test_cases: [
         },
         columns: [
             "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
-            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
-            "l_receiptdate", "l_shipinstruct", "l_shipmode" 
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate",
+            "l_receiptdate", "l_shipinstruct", "l_shipmode"
         ]
     },
     {
@@ -62,7 +62,7 @@ test_cases: [
         },
         columns: [
             "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
-            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate",
             "l_receiptdate", "l_shipinstruct"
         ]
     },
@@ -75,8 +75,8 @@ test_cases: [
         },
         columns: [
             "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
-            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate", 
-            "l_receiptdate" 
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate", "l_commitdate",
+            "l_receiptdate"
         ]
     },
     {
@@ -100,7 +100,7 @@ test_cases: [
         },
         columns: [
             "l_orderkey", "l_partkey", "l_suppkey", "l_linenumber", "l_quantity", "l_extendedprice",
-            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate" 
+            "l_discount", "l_tax", "l_returnflg", "l_linestatus", "l_shipdate"
         ]
     },
     {
@@ -214,7 +214,7 @@ test_cases: [
             }
         },
         columns: [
-            "l_orderkey" 
+            "l_orderkey"
         ]
     }
 ]

@@ -37,6 +37,7 @@ type report struct {
 	BytesArrowRate     float32 `json:"bytes_arrow_rate"`
 	RowsTotal          uint64  `json:"rows_total"`
 	RowsRate           float32 `json:"rows_rate"`
+	CPUUtilization     float64 `json:"cpu_utilization"`
 }
 
 func (r *report) String() string {
@@ -49,6 +50,7 @@ func (r *report) String() string {
 	builder.WriteString(fmt.Sprintf("bytes arrow rate = %.2f MB/sec, ", r.BytesArrowRate))
 	builder.WriteString(fmt.Sprintf("rows total = %d, ", r.RowsTotal))
 	builder.WriteString(fmt.Sprintf("rows rate = %.2f rows/sec, ", r.RowsRate))
+	builder.WriteString(fmt.Sprintf("cpu utilization = %.2f%%", r.CPUUtilization))
 
 	return builder.String()
 }
