@@ -15,7 +15,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func validateConfig(cfg *config.TBenchmarkConfig) error {
+func validateConfig(logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
 	if cfg.GetServerRemote() != nil {
 		return fmt.Errorf("not ready to work with remote connector")
 	}
@@ -32,6 +32,14 @@ func validateConfig(cfg *config.TBenchmarkConfig) error {
 		return fmt.Errorf("empty result dir")
 	}
 
+	if _, err := os.Stat(cfg.GetResultDir()); os.IsNotExist(err) {
+		logger.Debug("trying to create directory", zap.String("path", cfg.GetResultDir()))
+
+		if err := os.MkdirAll(cfg.GetResultDir(), 0700); err != nil {
+			return fmt.Errorf("make directory %s: %w", cfg.GetResultDir(), err)
+		}
+	}
+
 	return nil
 }
 
@@ -39,17 +47,16 @@ func runBenchmarks(_ *cobra.Command, args []string) error {
 	var (
 		configPath = args[0]
 		cfg        config.TBenchmarkConfig
+		logger     = common.NewDefaultLogger()
 	)
 
 	if err := common.NewConfigFromPrototextFile[*config.TBenchmarkConfig](configPath, &cfg); err != nil {
 		return fmt.Errorf("new config from prototext file '%s': %w", configPath, err)
 	}
 
-	if err := validateConfig(&cfg); err != nil {
+	if err := validateConfig(logger, &cfg); err != nil {
 		return fmt.Errorf("validate config: %v", err)
 	}
-
-	logger := common.NewDefaultLogger()
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
