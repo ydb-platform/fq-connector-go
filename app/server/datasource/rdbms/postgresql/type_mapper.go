@@ -158,8 +158,8 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter](
-						cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[*time.Time, string, *array.StringBuilder, utils.DateToStringConverterV2](
+						&cast.Time, builder, cast.Valid)
 				})
 			case Ydb.Type_DATE:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
@@ -185,7 +185,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 					cast := acceptor.(*pgtype.Timestamp)
 
 					return appendValueToArrowBuilder[
-						time.Time,
+						*time.Time,
 						string,
 						*array.StringBuilder,
 						utils.TimestampToStringConverter](cast.Time, builder, cast.Valid)
