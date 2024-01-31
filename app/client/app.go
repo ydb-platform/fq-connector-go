@@ -3,13 +3,11 @@ package client
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/encoding/prototext"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -22,32 +20,19 @@ const (
 	outputFormat = api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING
 )
 
-func newConfigFromPath(configPath string) (*config.TClientConfig, error) {
-	data, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("read file %v: %w", configPath, err)
-	}
-
-	var cfg config.TClientConfig
-
-	if err := prototext.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("prototext unmarshal `%v`: %w", string(data), err)
-	}
-
-	return &cfg, nil
-}
-
 func runClient(_ *cobra.Command, args []string) error {
-	configPath := args[0]
+	var (
+		configPath = args[0]
+		cfg        config.TClientConfig
+	)
 
-	cfg, err := newConfigFromPath(configPath)
-	if err != nil {
+	if err := common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
 		return fmt.Errorf("unknown instance: %w", err)
 	}
 
 	logger := common.NewDefaultLogger()
 
-	if err := callServer(logger, cfg); err != nil {
+	if err := callServer(logger, &cfg); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 
@@ -55,7 +40,7 @@ func runClient(_ *cobra.Command, args []string) error {
 }
 
 func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
-	cl, err := NewClientFromClientConfig(logger, cfg)
+	cl, err := common.NewClientBufferingFromClientConfig(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
 	}
@@ -88,7 +73,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 }
 
 func prepareSplits(
-	cl Client,
+	cl *common.ClientBuffering,
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
@@ -122,7 +107,7 @@ func prepareSplits(
 
 func readSplits(
 	logger *zap.Logger,
-	cl Client,
+	cl *common.ClientBuffering,
 	splits []*api_service_protos.TSplit,
 ) error {
 	readSplitsResponses, err := cl.ReadSplits(context.Background(), splits)

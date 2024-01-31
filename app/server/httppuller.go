@@ -28,16 +28,16 @@ type spackOption struct {
 
 func (*spackOption) isOption() {}
 
-func WithSpack() Option {
+func WithSpack() HTTPPullerOption {
 	return &spackOption{}
 }
 
-type Option interface {
+type HTTPPullerOption interface {
 	isOption()
 }
 
 // NewHTTPPullerHandler returns new HTTP handler to expose gathered metrics using metrics dumper
-func NewHTTPPullerHandler(logger *zap.Logger, r MetricsStreamer, opts ...Option) http.Handler {
+func NewHTTPPullerHandler(logger *zap.Logger, r MetricsStreamer, opts ...HTTPPullerOption) http.Handler {
 	h := handler{
 		registry:     r,
 		streamFormat: headers.TypeApplicationJSON,

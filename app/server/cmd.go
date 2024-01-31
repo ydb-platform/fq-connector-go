@@ -52,7 +52,7 @@ func runFromCLI(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("new launcher: %w", err)
 	}
 
-	StartLauncherAndWaitForSignalOrError(logger, l)
+	startLauncherAndWaitForSignalOrError(logger, l)
 
 	return nil
 }
