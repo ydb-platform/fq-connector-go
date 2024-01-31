@@ -281,7 +281,7 @@ var (
 	maxClickHouseDatetime64 = time.Date(2299, time.December, 31, 23, 59, 59, 99999999, time.UTC)
 )
 
-func saturateDateTime(in, min, max time.Time) time.Time {
+func saturateDateTime(in, min, max time.Time) *time.Time {
 	if in.Before(min) {
 		in = min
 	}
@@ -290,19 +290,19 @@ func saturateDateTime(in, min, max time.Time) time.Time {
 		in = max
 	}
 
-	return in
+	return &in
 }
 
 type dateToStringConverter struct{}
 
 func (dateToStringConverter) Convert(in time.Time) (string, error) {
-	return utils.DateToStringConverter{}.Convert(saturateDateTime(in, minClickHouseDate, maxClickHouseDate))
+	return utils.DateToStringConverterV2{}.Convert(saturateDateTime(in, minClickHouseDate, maxClickHouseDate))
 }
 
 type date32ToStringConverter struct{}
 
 func (date32ToStringConverter) Convert(in time.Time) (string, error) {
-	return utils.DateToStringConverter{}.Convert(saturateDateTime(in, minClickHouseDate32, maxClickHouseDate32))
+	return utils.DateToStringConverterV2{}.Convert(saturateDateTime(in, minClickHouseDate32, maxClickHouseDate32))
 }
 
 type dateTimeToStringConverter struct{}

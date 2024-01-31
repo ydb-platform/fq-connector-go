@@ -18,7 +18,7 @@ type ValueType interface {
 		uint8 | uint16 | uint32 | uint64 |
 		float32 | float64 |
 		string | []byte |
-		time.Time
+		time.Time | *time.Time
 }
 
 type ArrowArrayType[VT ValueType] interface {

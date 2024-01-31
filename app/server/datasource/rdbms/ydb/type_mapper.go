@@ -205,7 +205,7 @@ func makeAcceptorAndAppenderFromSQLType(
 		case Ydb.Type_DATE:
 			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter], nil
 		case Ydb.Type_UTF8:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter], nil
+			return new(*time.Time), appendValueToArrowBuilder[*time.Time, string, *array.StringBuilder, utils.DateToStringConverterV2], nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -213,9 +213,11 @@ func makeAcceptorAndAppenderFromSQLType(
 	case DatetimeType:
 		switch ydbTypeID {
 		case Ydb.Type_DATETIME:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint32, *array.Uint32Builder, utils.DatetimeConverter], nil
+			return new(*time.Time), appendValueToArrowBuilder[
+				time.Time, uint32, *array.Uint32Builder, utils.DatetimeConverter], nil
 		case Ydb.Type_UTF8:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DatetimeToStringConverter], nil
+			return new(*time.Time), appendValueToArrowBuilder[
+				*time.Time, string, *array.StringBuilder, utils.DatetimeToStringConverter], nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -226,7 +228,7 @@ func makeAcceptorAndAppenderFromSQLType(
 			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter], nil
 		case Ydb.Type_UTF8:
 			return new(*time.Time),
-				appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter], nil
+				appendValueToArrowBuilder[*time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter], nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
