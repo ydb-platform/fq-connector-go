@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -24,11 +25,13 @@ type Connection struct {
 	logger common.QueryLogger
 }
 
+var _ rdbms_utils.Rows = (*rows)(nil)
+
 type rows struct {
 	*sql.Rows
 }
 
-func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
+func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	columns, err := r.ColumnTypes()
 	if err != nil {
 		return nil, fmt.Errorf("column types: %w", err)
@@ -39,7 +42,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (paging.RowTransformer[any],
 		typeNames = append(typeNames, column.DatabaseTypeName())
 	}
 
-	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes)
+	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes, cc)
 	if err != nil {
 		return nil, fmt.Errorf("transformer from sql types: %w", err)
 	}

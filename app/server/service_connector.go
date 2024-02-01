@@ -16,6 +16,7 @@ import (
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
@@ -290,6 +291,7 @@ func newServiceConnector(
 			queryLoggerFactory,
 			memory.DefaultAllocator,
 			paging.NewReadLimiterFactory(cfg.ReadLimit),
+			conversion.NewCollection(cfg.Conversion),
 			cfg),
 		logger:     logger,
 		grpcServer: grpcServer,

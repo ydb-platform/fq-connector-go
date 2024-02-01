@@ -44,12 +44,19 @@ func (b *Base) SetupSuite() {
 	// We want to run a distinct instance of Connector for every suite
 	var err error
 
-	loggerCfg := &config.TLoggerConfig{
-		LogLevel:              config.ELogLevel_DEBUG,
-		EnableSqlQueryLogging: true,
-	}
-
-	b.Connector, err = server.NewEmbedded(server.WithLoggerConfig(loggerCfg))
+	b.Connector, err = server.NewEmbedded(
+		server.WithLoggerConfig(
+			&config.TLoggerConfig{
+				LogLevel:              config.ELogLevel_ERROR,
+				EnableSqlQueryLogging: true,
+			},
+		),
+		server.WithConversionConfig(
+			&config.TConversionConfig{
+				UseUnsafeConverters: true,
+			},
+		),
+	)
 	b.Require().NoError(err)
 	b.Connector.Start()
 }

@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
@@ -17,9 +18,10 @@ import (
 var _ datasource.Factory[any] = (*dataSourceFactory)(nil)
 
 type dataSourceFactory struct {
-	clickhouse Preset
-	postgresql Preset
-	ydb        Preset
+	clickhouse          Preset
+	postgresql          Preset
+	ydb                 Preset
+	converterCollection conversion.Collection
 }
 
 func (dsf *dataSourceFactory) Make(
@@ -28,16 +30,19 @@ func (dsf *dataSourceFactory) Make(
 ) (datasource.DataSource[any], error) {
 	switch dataSourceType {
 	case api_common.EDataSourceKind_CLICKHOUSE:
-		return NewDataSource(logger, &dsf.clickhouse), nil
+		return NewDataSource(logger, &dsf.clickhouse, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_POSTGRESQL:
-		return NewDataSource(logger, &dsf.postgresql), nil
+		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_YDB:
-		return NewDataSource(logger, &dsf.ydb), nil
+		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
 }
-func NewDataSourceFactory(qlf common.QueryLoggerFactory) datasource.Factory[any] {
+func NewDataSourceFactory(
+	qlf common.QueryLoggerFactory,
+	converterCollection conversion.Collection,
+) datasource.Factory[any] {
 	connManagerCfg := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
 	}
@@ -65,5 +70,6 @@ func NewDataSourceFactory(qlf common.QueryLoggerFactory) datasource.Factory[any]
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 		},
+		converterCollection: converterCollection,
 	}
 }

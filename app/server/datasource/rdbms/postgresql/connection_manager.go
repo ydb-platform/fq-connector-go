@@ -11,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -28,7 +29,7 @@ func (r rows) Close() error {
 	return nil
 }
 
-func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
+func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	fields := r.FieldDescriptions()
 
 	oids := make([]uint32, 0, len(fields))
@@ -36,7 +37,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type) (paging.RowTransformer[any],
 		oids = append(oids, field.DataTypeOID)
 	}
 
-	return transformerFromOIDs(oids, ydbTypes)
+	return transformerFromOIDs(oids, ydbTypes, cc)
 }
 
 type Connection struct {

@@ -113,6 +113,18 @@ func WithPprofServerConfig(pprofServerConfig *config.TPprofServerConfig) Embedde
 	return &withPprofServerConfig{pprofServerConfig: pprofServerConfig}
 }
 
+type withConversionConfig struct {
+	conversionConfig *config.TConversionConfig
+}
+
+func (o *withConversionConfig) apply(cfg *config.TServerConfig) {
+	cfg.Conversion = o.conversionConfig
+}
+
+func WithConversionConfig(conversionConfig *config.TConversionConfig) EmbeddedOption {
+	return &withConversionConfig{conversionConfig: conversionConfig}
+}
+
 func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
 	cfg := NewDefaultConfig()
 	for _, o := range options {

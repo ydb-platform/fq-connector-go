@@ -10,9 +10,10 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -108,41 +109,80 @@ func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTyp
 	}
 }
 
-func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
-	acceptor any,
-	builder array.Builder,
-) error {
-	cast := acceptor.(**IN)
+func appendToBuilderWithValueConverter[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+](
+	conv conversion.ValueConverter[IN, OUT],
+) func(acceptor any, builder array.Builder) error {
+	return func(acceptor any, builder array.Builder) error {
+		doublePtr := acceptor.(**IN)
 
-	if *cast == nil {
-		builder.AppendNull()
-
-		return nil
-	}
-
-	value := **cast
-
-	var converter CONV
-
-	out, err := converter.Convert(value)
-	if err != nil {
-		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-			// TODO: write warning to logger
+		if *doublePtr == nil {
 			builder.AppendNull()
 
 			return nil
 		}
 
-		return fmt.Errorf("convert value %v: %w", value, err)
+		value := **doublePtr
+
+		out, err := conv.Convert(value)
+		if err != nil {
+			if errors.Is(err, common.ErrValueOutOfTypeBounds) {
+				// TODO: write warning to logger
+				builder.AppendNull()
+
+				return nil
+			}
+
+			return fmt.Errorf("convert value %v: %w", value, err)
+		}
+
+		//nolint:forcetypeassert
+		builder.(AB).Append(out)
+
+		return nil
 	}
-
-	//nolint:forcetypeassert
-	builder.(AB).Append(out)
-
-	return nil
 }
 
-func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
+func appendToBuilderWithValuePtrConverter[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+](
+	conv conversion.ValuePtrConverter[IN, OUT],
+) func(acceptor any, builder array.Builder) error {
+	return func(acceptor any, builder array.Builder) error {
+		doublePtr := acceptor.(**IN)
+
+		ptr := *doublePtr
+		if ptr == nil {
+			builder.AppendNull()
+
+			return nil
+		}
+
+		out, err := conv.Convert(ptr)
+		if err != nil {
+			if errors.Is(err, common.ErrValueOutOfTypeBounds) {
+				// TODO: write warning to logger
+				builder.AppendNull()
+
+				return nil
+			}
+
+			return fmt.Errorf("convert value %v: %w", ptr, err)
+		}
+
+		//nolint:forcetypeassert
+		builder.(AB).Append(out)
+
+		return nil
+	}
+}
+
+func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
@@ -156,7 +196,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 			return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 		}
 
-		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName, ydbTypeID)
+		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName, ydbTypeID, cc)
 		if err != nil {
 			return nil, fmt.Errorf("make transformer: %w", err)
 		}
@@ -172,40 +212,41 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 func makeAcceptorAndAppenderFromSQLType(
 	typeName string,
 	ydbTypeID Ydb.Type_PrimitiveTypeId,
+	cc conversion.Collection,
 ) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case BoolType:
-		return new(*bool), appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter], nil
+		return new(*bool), appendToBuilderWithValueConverter[bool, uint8, *array.Uint8Builder](cc.Bool()), nil
 	case Int8Type:
-		return new(*int8), appendValueToArrowBuilder[int8, int8, *array.Int8Builder, utils.Int8Converter], nil
+		return new(*int8), appendToBuilderWithValueConverter[int8, int8, *array.Int8Builder](cc.Int8()), nil
 	case Int16Type:
-		return new(*int16), appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter], nil
+		return new(*int16), appendToBuilderWithValueConverter[int16, int16, *array.Int16Builder](cc.Int16()), nil
 	case Int32Type:
-		return new(*int32), appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter], nil
+		return new(*int32), appendToBuilderWithValueConverter[int32, int32, *array.Int32Builder](cc.Int32()), nil
 	case Int64Type:
-		return new(*int64), appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter], nil
+		return new(*int64), appendToBuilderWithValueConverter[int64, int64, *array.Int64Builder](cc.Int64()), nil
 	case Uint8Type:
-		return new(*uint8), appendValueToArrowBuilder[uint8, uint8, *array.Uint8Builder, utils.Uint8Converter], nil
+		return new(*uint8), appendToBuilderWithValueConverter[uint8, uint8, *array.Uint8Builder](cc.Uint8()), nil
 	case Uint16Type:
-		return new(*uint16), appendValueToArrowBuilder[uint16, uint16, *array.Uint16Builder, utils.Uint16Converter], nil
+		return new(*uint16), appendToBuilderWithValueConverter[uint16, uint16, *array.Uint16Builder](cc.Uint16()), nil
 	case Uint32Type:
-		return new(*uint32), appendValueToArrowBuilder[uint32, uint32, *array.Uint32Builder, utils.Uint32Converter], nil
+		return new(*uint32), appendToBuilderWithValueConverter[uint32, uint32, *array.Uint32Builder](cc.Uint32()), nil
 	case Uint64Type:
-		return new(*uint64), appendValueToArrowBuilder[uint64, uint64, *array.Uint64Builder, utils.Uint64Converter], nil
+		return new(*uint64), appendToBuilderWithValueConverter[uint64, uint64, *array.Uint64Builder](cc.Uint64()), nil
 	case FloatType:
-		return new(*float32), appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter], nil
+		return new(*float32), appendToBuilderWithValueConverter[float32, float32, *array.Float32Builder](cc.Float32()), nil
 	case DoubleType:
-		return new(*float64), appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter], nil
+		return new(*float64), appendToBuilderWithValueConverter[float64, float64, *array.Float64Builder](cc.Float64()), nil
 	case StringType:
-		return new(*[]byte), appendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder, utils.BytesConverter], nil
+		return new(*[]byte), appendToBuilderWithValueConverter[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()), nil
 	case Utf8Type:
-		return new(*string), appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter], nil
+		return new(*string), appendToBuilderWithValueConverter[string, string, *array.StringBuilder](cc.String()), nil
 	case DateType:
 		switch ydbTypeID {
 		case Ydb.Type_DATE:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter], nil
+			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint16, *array.Uint16Builder](cc.Date()), nil
 		case Ydb.Type_UTF8:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter], nil
+			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, string, *array.StringBuilder](cc.DateToString()), nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -213,9 +254,11 @@ func makeAcceptorAndAppenderFromSQLType(
 	case DatetimeType:
 		switch ydbTypeID {
 		case Ydb.Type_DATETIME:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint32, *array.Uint32Builder, utils.DatetimeConverter], nil
+			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
 		case Ydb.Type_UTF8:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DatetimeToStringConverter], nil
+			return new(*time.Time),
+				appendToBuilderWithValuePtrConverter[time.Time, string, *array.StringBuilder](cc.DatetimeToString()),
+				nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -223,10 +266,11 @@ func makeAcceptorAndAppenderFromSQLType(
 	case TimestampType:
 		switch ydbTypeID {
 		case Ydb.Type_TIMESTAMP:
-			return new(*time.Time), appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter], nil
+			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
 		case Ydb.Type_UTF8:
 			return new(*time.Time),
-				appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.TimestampToStringConverter], nil
+				appendToBuilderWithValuePtrConverter[time.Time, string, *array.StringBuilder](cc.TimestampToString()),
+				nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)

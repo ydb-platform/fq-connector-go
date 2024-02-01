@@ -23,8 +23,10 @@ message TServerConfig {
     TPprofServerConfig pprof_server = 6;
     // Metrics server config
     TMetricsServerConfig metrics_server = 7;
-    // Paging settings
+    // Paging config
     TPagingConfig paging = 8;
+    // Data types conversion config
+    TConversionConfig conversion = 9;
 }
 
 // TConnectorServerConfig - configuration of the main GRPC server
@@ -103,4 +105,11 @@ message TPagingConfig {
     // waiting for the client readiness for the data consumption.
     // Tune this carefully cause this may cause service OOMs. 
     uint32 prefetch_queue_capacity = 3;
+}
+
+// TConversionConfig configures some aspects of the data conversion process
+// between the data source native type system, Go type system and Arrow type system
+message TConversionConfig {
+    // Enables microoptimized code that can potentially crash the service
+    bool use_unsafe_converters = 1;
 }

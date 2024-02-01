@@ -10,9 +10,9 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -71,7 +71,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 }
 
 //nolint:gocyclo
-func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
+func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(oids))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(oids))
 
@@ -82,52 +82,49 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Bool)
 
-				return appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter](cast.Bool, builder, cast.Valid)
+				return appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder](cast.Bool, builder, cast.Valid, cc.Bool())
 			})
 		case pgtype.Int2OID:
 			acceptors = append(acceptors, new(pgtype.Int2))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Int2)
 
-				return appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter](cast.Int16, builder, cast.Valid)
+				return appendValueToArrowBuilder[int16, int16, *array.Int16Builder](cast.Int16, builder, cast.Valid, cc.Int16())
 			})
 		case pgtype.Int4OID:
 			acceptors = append(acceptors, new(pgtype.Int4))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Int4)
 
-				return appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter](cast.Int32, builder, cast.Valid)
+				return appendValueToArrowBuilder[int32, int32, *array.Int32Builder](cast.Int32, builder, cast.Valid, cc.Int32())
 			})
 		case pgtype.Int8OID:
 			acceptors = append(acceptors, new(pgtype.Int8))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Int8)
 
-				return appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter](cast.Int64, builder, cast.Valid)
+				return appendValueToArrowBuilder[int64, int64, *array.Int64Builder](cast.Int64, builder, cast.Valid, cc.Int64())
 			})
 		case pgtype.Float4OID:
 			acceptors = append(acceptors, new(pgtype.Float4))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Float4)
 
-				return appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter](
-					cast.Float32, builder, cast.Valid)
+				return appendValueToArrowBuilder[float32, float32, *array.Float32Builder](cast.Float32, builder, cast.Valid, cc.Float32())
 			})
 		case pgtype.Float8OID:
 			acceptors = append(acceptors, new(pgtype.Float8))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Float8)
 
-				return appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter](
-					cast.Float64, builder, cast.Valid)
+				return appendValueToArrowBuilder[float64, float64, *array.Float64Builder](cast.Float64, builder, cast.Valid, cc.Float64())
 			})
 		case pgtype.TextOID, pgtype.BPCharOID, pgtype.VarcharOID:
 			acceptors = append(acceptors, new(pgtype.Text))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Text)
 
-				return appendValueToArrowBuilder[string, string, *array.StringBuilder, utils.StringConverter](
-					cast.String, builder, cast.Valid)
+				return appendValueToArrowBuilder[string, string, *array.StringBuilder](cast.String, builder, cast.Valid, cc.String())
 			})
 		case pgtype.ByteaOID:
 			acceptors = append(acceptors, new(*[]byte))
@@ -158,15 +155,15 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, utils.DateToStringConverter](
-						cast.Time, builder, cast.Valid)
+					return appendValuePtrToArrowBuilder[time.Time, string, *array.StringBuilder](
+						&cast.Time, builder, cast.Valid, cc.DateToString())
 				})
 			case Ydb.Type_DATE:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter](
-						cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder](
+						cast.Time, builder, cast.Valid, cc.Date())
 				})
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)
@@ -184,18 +181,17 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Timestamp)
 
-					return appendValueToArrowBuilder[
+					return appendValuePtrToArrowBuilder[
 						time.Time,
 						string,
-						*array.StringBuilder,
-						utils.TimestampToStringConverter](cast.Time, builder, cast.Valid)
+						*array.StringBuilder](&cast.Time, builder, cast.Valid, cc.TimestampToString())
 				})
 			case Ydb.Type_TIMESTAMP:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Timestamp)
 
-					return appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter](
-						cast.Time, builder, cast.Valid)
+					return appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder](
+						cast.Time, builder, cast.Valid, cc.Timestamp())
 				})
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)
@@ -208,10 +204,15 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type) (paging.RowTransfo
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
+func appendValueToArrowBuilder[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+](
 	value any,
 	builder array.Builder,
 	valid bool,
+	conv conversion.ValueConverter[IN, OUT],
 ) error {
 	if !valid {
 		builder.AppendNull()
@@ -221,9 +222,42 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 
 	cast := value.(IN)
 
-	var converter CONV
+	out, err := conv.Convert(cast)
+	if err != nil {
+		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
+			// TODO: logger ?
+			builder.AppendNull()
 
-	out, err := converter.Convert(cast)
+			return nil
+		}
+
+		return fmt.Errorf("convert value: %w", err)
+	}
+
+	builder.(AB).Append(out)
+
+	return nil
+}
+
+func appendValuePtrToArrowBuilder[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+](
+	value any,
+	builder array.Builder,
+	valid bool,
+	conv conversion.ValuePtrConverter[IN, OUT],
+) error {
+	if !valid {
+		builder.AppendNull()
+
+		return nil
+	}
+
+	cast := value.(*IN)
+
+	out, err := conv.Convert(cast)
 	if err != nil {
 		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
 			// TODO: logger ?
