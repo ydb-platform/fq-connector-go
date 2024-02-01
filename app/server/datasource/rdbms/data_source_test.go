@@ -11,6 +11,8 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -47,6 +49,7 @@ func TestReadSplit(t *testing.T) {
 			},
 		},
 	}
+	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})
 
 	t.Run("positive", func(t *testing.T) {
 		logger := common.NewTestLogger(t)
@@ -90,7 +93,7 @@ func TestReadSplit(t *testing.T) {
 		sink.On("AddRow", transformer).Return(nil).Times(2)
 		sink.On("Finish").Return().Once()
 
-		dataSource := NewDataSource(logger, preset)
+		dataSource := NewDataSource(logger, preset, converterCollection)
 		dataSource.ReadSplit(ctx, logger, split, sink)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink)
@@ -144,7 +147,7 @@ func TestReadSplit(t *testing.T) {
 		})).Return().Once()
 		sink.On("Finish").Return().Once()
 
-		datasource := NewDataSource(logger, preset)
+		datasource := NewDataSource(logger, preset, converterCollection)
 		datasource.ReadSplit(ctx, logger, split, sink)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink)

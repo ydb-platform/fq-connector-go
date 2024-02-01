@@ -25,6 +25,12 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			EnableSqlQueryLogging: false,
 		}
 	}
+
+	if c.Conversion == nil {
+		c.Conversion = &config.TConversionConfig{
+			UseUnsafeConverters: false,
+		}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {
@@ -42,6 +48,10 @@ func validateServerConfig(c *config.TServerConfig) error {
 
 	if err := validatePagingConfig(c.Paging); err != nil {
 		return fmt.Errorf("validate `paging`: %w", err)
+	}
+
+	if err := validateConversionConfig(c.Conversion); err != nil {
+		return fmt.Errorf("validate `conversion`: %w", err)
 	}
 
 	return nil
@@ -141,6 +151,14 @@ func validatePagingConfig(c *config.TPagingConfig) error {
 
 	if c.BytesPerPage > maxInterconnectMessageSize {
 		return fmt.Errorf("`bytes_per_page` limit exceeds the limits of interconnect system used by YDB engine")
+	}
+
+	return nil
+}
+
+func validateConversionConfig(c *config.TConversionConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
 	}
 
 	return nil

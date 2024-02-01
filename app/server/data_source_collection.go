@@ -11,6 +11,7 @@ import (
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
@@ -133,10 +134,11 @@ func NewDataSourceCollection(
 	queryLoggerFactory common.QueryLoggerFactory,
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
+	converterCollection conversion.Collection,
 	cfg *config.TServerConfig,
 ) *DataSourceCollection {
 	return &DataSourceCollection{
-		rdbms:              rdbms.NewDataSourceFactory(queryLoggerFactory),
+		rdbms:              rdbms.NewDataSourceFactory(queryLoggerFactory, converterCollection),
 		memoryAllocator:    memoryAllocator,
 		readLimiterFactory: readLimiterFactory,
 		cfg:                cfg,

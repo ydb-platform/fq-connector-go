@@ -36,6 +36,11 @@ func newTestCaseRunner(
 		server.WithPprofServerConfig(&config.TPprofServerConfig{
 			Endpoint: &api_common.TEndpoint{Host: "localhost", Port: 50052},
 		}),
+		server.WithConversionConfig(
+			&config.TConversionConfig{
+				UseUnsafeConverters: true,
+			},
+		),
 	)
 
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -23,11 +24,12 @@ type Preset struct {
 var _ datasource.DataSource[any] = (*dataSourceImpl)(nil)
 
 type dataSourceImpl struct {
-	typeMapper        datasource.TypeMapper
-	sqlFormatter      rdbms_utils.SQLFormatter
-	connectionManager rdbms_utils.ConnectionManager
-	schemaProvider    rdbms_utils.SchemaProvider
-	logger            *zap.Logger
+	typeMapper          datasource.TypeMapper
+	sqlFormatter        rdbms_utils.SQLFormatter
+	connectionManager   rdbms_utils.ConnectionManager
+	schemaProvider      rdbms_utils.SchemaProvider
+	converterCollection conversion.Collection
+	logger              *zap.Logger
 }
 
 func (ds *dataSourceImpl) DescribeTable(
@@ -80,7 +82,7 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
 
-	transformer, err := rows.MakeTransformer(ydbTypes)
+	transformer, err := rows.MakeTransformer(ydbTypes, ds.converterCollection)
 	if err != nil {
 		return fmt.Errorf("make transformer: %w", err)
 	}
@@ -121,12 +123,14 @@ func (ds *dataSourceImpl) ReadSplit(
 func NewDataSource(
 	logger *zap.Logger,
 	preset *Preset,
+	converterCollection conversion.Collection,
 ) datasource.DataSource[any] {
 	return &dataSourceImpl{
-		logger:            logger,
-		sqlFormatter:      preset.SQLFormatter,
-		connectionManager: preset.ConnectionManager,
-		typeMapper:        preset.TypeMapper,
-		schemaProvider:    preset.SchemaProvider,
+		logger:              logger,
+		sqlFormatter:        preset.SQLFormatter,
+		connectionManager:   preset.ConnectionManager,
+		typeMapper:          preset.TypeMapper,
+		schemaProvider:      preset.SchemaProvider,
+		converterCollection: converterCollection,
 	}
 }

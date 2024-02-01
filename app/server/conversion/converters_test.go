@@ -1,4 +1,4 @@
-package utils
+package conversion
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ func TestDateToStringConverter(t *testing.T) {
 
 	const format = "2006-01-02"
 
-	var converter DateToStringConverterV2
+	var converter dateToStringConverterUnsafe
 
 	for _, tc := range testCases {
 		tc := tc
@@ -39,8 +39,8 @@ func TestDateToStringConverter(t *testing.T) {
 func BenchmarkDateToStringConverter(b *testing.B) {
 	t := time.Now()
 
-	b.Run("V1", func(b *testing.B) {
-		var converter DateToStringConverter
+	b.Run("Default", func(b *testing.B) {
+		var converter dateToStringConverter
 
 		for i := 0; i < b.N; i++ {
 			out, err := converter.Convert(&t)
@@ -51,8 +51,8 @@ func BenchmarkDateToStringConverter(b *testing.B) {
 		}
 	})
 
-	b.Run("V2", func(b *testing.B) {
-		var converter DateToStringConverterV2
+	b.Run("Unsafe", func(b *testing.B) {
+		var converter dateToStringConverterUnsafe
 
 		for i := 0; i < b.N; i++ {
 			out, err := converter.Convert(&t)

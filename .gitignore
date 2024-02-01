@@ -3,3 +3,5 @@ fq-connector-go-tests
 coverage*
 scripts/bench/postgresql
 __pycache__
+*.png
+*.test

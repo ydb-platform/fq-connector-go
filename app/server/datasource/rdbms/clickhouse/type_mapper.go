@@ -10,9 +10,9 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -108,7 +108,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 }
 
 //nolint:funlen,gocyclo
-func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.RowTransformer[any], error) {
+func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 	isNullable := regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+)\)`)
@@ -124,41 +124,41 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 		switch {
 		case typeName == "Bool":
 			acceptors = append(acceptors, new(*bool))
-			appenders = append(appenders, appendValueToArrowBuilder[bool, uint8, *array.Uint8Builder, utils.BoolConverter])
+			appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
 		case typeName == "Int8":
 			acceptors = append(acceptors, new(*int8))
-			appenders = append(appenders, appendValueToArrowBuilder[int8, int8, *array.Int8Builder, utils.Int8Converter])
+			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
 		case typeName == "Int16":
 			acceptors = append(acceptors, new(*int16))
-			appenders = append(appenders, appendValueToArrowBuilder[int16, int16, *array.Int16Builder, utils.Int16Converter])
+			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
 		case typeName == "Int32":
 			acceptors = append(acceptors, new(*int32))
-			appenders = append(appenders, appendValueToArrowBuilder[int32, int32, *array.Int32Builder, utils.Int32Converter])
+			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
 		case typeName == "Int64":
 			acceptors = append(acceptors, new(*int64))
-			appenders = append(appenders, appendValueToArrowBuilder[int64, int64, *array.Int64Builder, utils.Int64Converter])
+			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
 		case typeName == "UInt8":
 			acceptors = append(acceptors, new(*uint8))
-			appenders = append(appenders, appendValueToArrowBuilder[uint8, uint8, *array.Uint8Builder, utils.Uint8Converter])
+			appenders = append(appenders, makeAppender[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
 		case typeName == "UInt16":
 			acceptors = append(acceptors, new(*uint16))
-			appenders = append(appenders, appendValueToArrowBuilder[uint16, uint16, *array.Uint16Builder, utils.Uint16Converter])
+			appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
 		case typeName == "UInt32":
 			acceptors = append(acceptors, new(*uint32))
-			appenders = append(appenders, appendValueToArrowBuilder[uint32, uint32, *array.Uint32Builder, utils.Uint32Converter])
+			appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
 		case typeName == "UInt64":
 			acceptors = append(acceptors, new(*uint64))
-			appenders = append(appenders, appendValueToArrowBuilder[uint64, uint64, *array.Uint64Builder, utils.Uint64Converter])
+			appenders = append(appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
 		case typeName == "Float32":
 			acceptors = append(acceptors, new(*float32))
-			appenders = append(appenders, appendValueToArrowBuilder[float32, float32, *array.Float32Builder, utils.Float32Converter])
+			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
 		case typeName == "Float64":
 			acceptors = append(acceptors, new(*float64))
-			appenders = append(appenders, appendValueToArrowBuilder[float64, float64, *array.Float64Builder, utils.Float64Converter])
+			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
 		case typeName == "String", isFixedString.MatchString(typeName):
-			// Looks like []byte would be a better choice here, but clickhouse driver prefers string
+			// Looks like []byte would be a better option here, but clickhouse driver prefers string
 			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, appendValueToArrowBuilder[string, []byte, *array.BinaryBuilder, utils.StringToBytesConverter])
+			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		case typeName == "Date":
 			acceptors = append(acceptors, new(*time.Time))
 
@@ -169,9 +169,10 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateToStringConverter])
+				appenders = append(appenders,
+					makeAppender[time.Time, string, *array.StringBuilder](dateToStringConverter{conv: cc.DateToString()}))
 			case Ydb.Type_DATE:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter])
+				appenders = append(appenders, makeAppender[time.Time, uint16, *array.Uint16Builder](cc.Date()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
@@ -185,9 +186,10 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, date32ToStringConverter])
+				appenders = append(appenders,
+					makeAppender[time.Time, string, *array.StringBuilder](date32ToStringConverter{conv: cc.DateToString()}))
 			case Ydb.Type_DATE:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder, utils.DateConverter])
+				appenders = append(appenders, makeAppender[time.Time, uint16, *array.Uint16Builder](cc.Date()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
@@ -202,10 +204,9 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
 				appenders = append(appenders,
-					appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateTime64ToStringConverter])
+					makeAppender[time.Time, string, *array.StringBuilder](dateTime64ToStringConverter{conv: cc.TimestampToString()}))
 			case Ydb.Type_TIMESTAMP:
-				appenders = append(appenders,
-					appendValueToArrowBuilder[time.Time, uint64, *array.Uint64Builder, utils.TimestampConverter])
+				appenders = append(appenders, makeAppender[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
@@ -219,9 +220,10 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, string, *array.StringBuilder, dateTimeToStringConverter])
+				appenders = append(appenders,
+					makeAppender[time.Time, string, *array.StringBuilder](dateTimeToStringConverter{conv: cc.DatetimeToString()}))
 			case Ydb.Type_DATETIME:
-				appenders = append(appenders, appendValueToArrowBuilder[time.Time, uint32, *array.Uint32Builder, utils.DatetimeConverter])
+				appenders = append(appenders, makeAppender[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbTypes[i], typeName, common.ErrDataTypeNotSupported)
 			}
@@ -233,9 +235,20 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type) (paging.R
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT], CONV utils.ValueConverter[IN, OUT]](
+func makeAppender[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+](conv conversion.ValueConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
+	return func(acceptor any, builder array.Builder) error {
+		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
+	}
+}
+
+func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
 	acceptor any,
 	builder array.Builder,
+	conv conversion.ValueConverter[IN, OUT],
 ) error {
 	cast := acceptor.(**IN)
 
@@ -247,9 +260,7 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 
 	value := **cast
 
-	var converter CONV
-
-	out, err := converter.Convert(value)
+	out, err := conv.Convert(value)
 	if err != nil {
 		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
 			// TODO: write warning to logger
@@ -293,28 +304,36 @@ func saturateDateTime(in, min, max time.Time) *time.Time {
 	return &in
 }
 
-type dateToStringConverter struct{}
-
-func (dateToStringConverter) Convert(in time.Time) (string, error) {
-	return utils.DateToStringConverterV2{}.Convert(saturateDateTime(in, minClickHouseDate, maxClickHouseDate))
+type dateToStringConverter struct {
+	conv conversion.ValuePtrConverter[time.Time, string]
 }
 
-type date32ToStringConverter struct{}
-
-func (date32ToStringConverter) Convert(in time.Time) (string, error) {
-	return utils.DateToStringConverterV2{}.Convert(saturateDateTime(in, minClickHouseDate32, maxClickHouseDate32))
+func (c dateToStringConverter) Convert(in time.Time) (string, error) {
+	return c.conv.Convert(saturateDateTime(in, minClickHouseDate, maxClickHouseDate))
 }
 
-type dateTimeToStringConverter struct{}
-
-func (dateTimeToStringConverter) Convert(in time.Time) (string, error) {
-	return utils.DatetimeToStringConverter{}.Convert(saturateDateTime(in, minClickHouseDatetime, maxClickHouseDatetime))
+type date32ToStringConverter struct {
+	conv conversion.ValuePtrConverter[time.Time, string]
 }
 
-type dateTime64ToStringConverter struct{}
+func (c date32ToStringConverter) Convert(in time.Time) (string, error) {
+	return c.conv.Convert(saturateDateTime(in, minClickHouseDate32, maxClickHouseDate32))
+}
 
-func (dateTime64ToStringConverter) Convert(in time.Time) (string, error) {
-	return utils.TimestampToStringConverter{}.Convert(saturateDateTime(in, minClickHouseDatetime64, maxClickHouseDatetime64))
+type dateTimeToStringConverter struct {
+	conv conversion.ValuePtrConverter[time.Time, string]
+}
+
+func (c dateTimeToStringConverter) Convert(in time.Time) (string, error) {
+	return c.conv.Convert(saturateDateTime(in, minClickHouseDatetime, maxClickHouseDatetime))
+}
+
+type dateTime64ToStringConverter struct {
+	conv conversion.ValuePtrConverter[time.Time, string]
+}
+
+func (c dateTime64ToStringConverter) Convert(in time.Time) (string, error) {
+	return c.conv.Convert(saturateDateTime(in, minClickHouseDatetime64, maxClickHouseDatetime64))
 }
 
 func NewTypeMapper() datasource.TypeMapper {
