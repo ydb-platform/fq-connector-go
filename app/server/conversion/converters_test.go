@@ -1,6 +1,7 @@
 package conversion
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -8,30 +9,36 @@ import (
 )
 
 func TestDateToStringConverter(t *testing.T) {
-	type testCase struct {
-		in time.Time
-	}
-
-	testCases := []testCase{
-		{
-			in: time.Date(1950, 5, 27, 0, 0, 0, 0, time.UTC),
-		},
-		{
-			in: time.Date(-1, 1, 1, 0, 0, 0, 0, time.UTC),
-		},
+	testCases := []time.Time{
+		time.Date(math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, time.UTC),
+		time.Date(0, 0, 0, 0, 0, 0, 0, time.UTC),
+		time.Date(math.MinInt, math.MinInt, math.MinInt, math.MinInt, math.MinInt, math.MinInt, math.MinInt, time.UTC),
+		time.Date(1950, 5, 27, 0, 0, 0, 0, time.UTC),
+		time.Date(-1, 1, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(100500, 5, 20, -12, -55, -8, 0, time.UTC),
+		time.Date(1988, 11, 20, 12, 55, 8, 0, time.UTC),
+		time.Date(100, 2, 3, 4, 5, 6, 7, time.UTC),
+		time.Date(10, 2, 3, 4, 5, 6, 7, time.UTC),
+		time.Date(1, 2, 3, 4, 5, 6, 7, time.UTC),
+		time.Date(-100500, -10, -35, -8, -2000, -300000, -50404040, time.UTC),
 	}
 
 	const format = "2006-01-02"
 
-	var converter dateToStringConverterUnsafe
+	var (
+		converterUnsafe  dateToStringConverterUnsafe
+		converterDefault dateToStringConverter
+	)
 
 	for _, tc := range testCases {
 		tc := tc
-		t.Run(tc.in.Format(format), func(t *testing.T) {
-			actual, err := converter.Convert(&tc.in)
+		t.Run(tc.Format(format), func(t *testing.T) {
+			// Check equivalence of results produced by default and unsafe converters
+			expectedOut, err := converterDefault.Convert(&tc)
 			require.NoError(t, err)
-			// check equivalence
-			require.Equal(t, tc.in.Format(format), actual)
+			actualOut, err := converterUnsafe.Convert(&tc)
+			require.NoError(t, err)
+			require.Equal(t, expectedOut, actualOut)
 		})
 	}
 }
@@ -61,5 +68,29 @@ func BenchmarkDateToStringConverter(b *testing.B) {
 			}
 			_ = out
 		}
+	})
+}
+
+func FuzzDateToStringConverter(f *testing.F) {
+	var (
+		converterUnsafe  dateToStringConverterUnsafe
+		converterDefault dateToStringConverter
+	)
+
+	f.Add(100500, 5, 20, -12, -55, -8, 0)
+	f.Add(1988, 11, 20, 12, 55, 8, 0)
+	f.Add(100, 2, 3, 4, 5, 6, 7)
+	f.Add(10, 2, 3, 4, 5, 6, 7)
+	f.Add(1, 2, 3, 4, 5, 6, 7)
+	f.Add(-1, 1, 1, 0, 0, 0, 0)
+	f.Add(-100500, -10, -35, -8, -2000, -300000, -50404040)
+
+	f.Fuzz(func(t *testing.T, year int, month int, day int, hour int, min int, sec int, nsec int) {
+		in := time.Date(year, time.Month(month), day, hour, min, sec, nsec, time.UTC)
+		expectedOut, err := converterDefault.Convert(&in)
+		require.NoError(t, err)
+		actualOut, err := converterUnsafe.Convert(&in)
+		require.NoError(t, err)
+		require.Equal(t, expectedOut, actualOut)
 	})
 }
