@@ -34,7 +34,7 @@ func (sp *sizePattern[T]) estimate(acceptors []T) (uint64, error) {
 	sizeTotal := sp.fixedSizeTotal
 
 	for _, ix := range sp.varyingSizeIx {
-		sizeVariable, _, err := sizeOfValue(acceptors[ix])
+		sizeVariable, _, err := sizeOfValueBloated(acceptors[ix])
 		if err != nil {
 			return 0, fmt.Errorf("size of value #%d: %w", ix, err)
 		}
@@ -49,7 +49,7 @@ func newSizePattern[T Acceptor](acceptors []T) (*sizePattern[T], error) {
 	sp := &sizePattern[T]{}
 
 	for i, acceptor := range acceptors {
-		size, kind, err := sizeOfValue(acceptor)
+		size, kind, err := sizeOfValueBloated(acceptor)
 		if err != nil {
 			return nil, fmt.Errorf("estimate size of value #%d: %w", i, err)
 		}
@@ -67,8 +67,10 @@ func newSizePattern[T Acceptor](acceptors []T) (*sizePattern[T], error) {
 	return sp, nil
 }
 
+// TODO: take money for empty []byte and string? at least 24 bytes
+//
 //nolint:gocyclo
-func sizeOfValue(v any) (uint64, acceptorKind, error) {
+func sizeOfValueReflection(v any) (uint64, acceptorKind, error) {
 	reflected := reflect.ValueOf(v)
 
 	// for nil values
@@ -123,6 +125,83 @@ func sizeOfValue(v any) (uint64, acceptorKind, error) {
 	case pgtype.Date:
 		return 16, fixedSize, nil
 	case pgtype.Timestamp:
+		return 16, fixedSize, nil
+	default:
+		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
+	}
+}
+
+// TODO: take money for empty []byte and string? at least 24 bytes
+//
+//nolint:gocyclo
+func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
+	switch t := v.(type) {
+	case bool, *bool, **bool:
+		return 1, fixedSize, nil
+	case int8, *int8, **int8,
+		uint8, *uint8, **uint8:
+		return 1, fixedSize, nil
+	case int16, *int16, **int16,
+		uint16, *uint16, **uint16:
+		return 2, fixedSize, nil
+	case int32, *int32, **int32,
+		uint32, *uint32, **uint32,
+		float32, *float32, **float32:
+		return 4, fixedSize, nil
+	case int64, *int64, **int64,
+		uint64, *uint64, **uint64,
+		float64, *float64, **float64:
+		return 8, fixedSize, nil
+	case time.Time, *time.Time, **time.Time:
+		// time.Time and all its derivatives consist of two 8-byte ints:
+		// https://cs.opensource.google/go/go/+/refs/tags/go1.21.4:src/time/time.go;l=141-142
+		// Location is ignored.
+		return 16, fixedSize, nil
+	case []byte:
+		return uint64(len(t)), variableSize, nil
+	case *[]byte:
+		if t == nil {
+			return 0, variableSize, nil
+		}
+
+		return uint64(len(*t)), variableSize, nil
+	case **[]byte:
+		if t == nil || *t == nil {
+			return 0, variableSize, nil
+		}
+
+		return uint64(len(**t)), variableSize, nil
+	case string:
+		return uint64(len(t)), variableSize, nil
+	case *string:
+		if t == nil {
+			return 0, variableSize, nil
+		}
+
+		return uint64(len(*t)), variableSize, nil
+	case **string:
+		if t == nil || *t == nil {
+			return 0, variableSize, nil
+		}
+
+		return uint64(len(**t)), variableSize, nil
+	case *pgtype.Bool:
+		return 1, fixedSize, nil
+	case *pgtype.Int2:
+		return 2, fixedSize, nil
+	case *pgtype.Int4:
+		return 4, fixedSize, nil
+	case *pgtype.Int8:
+		return 8, fixedSize, nil
+	case *pgtype.Float4:
+		return 4, fixedSize, nil
+	case *pgtype.Float8:
+		return 8, fixedSize, nil
+	case *pgtype.Text:
+		return uint64(len(t.String)), variableSize, nil
+	case *pgtype.Date:
+		return 16, fixedSize, nil
+	case *pgtype.Timestamp:
 		return 16, fixedSize, nil
 	default:
 		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)

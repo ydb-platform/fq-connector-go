@@ -6,7 +6,16 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 )
+
+type sizeFn func(any) (uint64, acceptorKind, error)
+
+var sizeFns = map[string]sizeFn{
+	"sizeOfValueReflection": sizeOfValueReflection,
+	"sizeOfValueBloated":    sizeOfValueBloated,
+}
 
 type testCaseSize[Type any] struct {
 	value        Type
@@ -15,30 +24,34 @@ type testCaseSize[Type any] struct {
 }
 
 func (tc testCaseSize[Type]) execute(t *testing.T) {
-	name := reflect.TypeOf(tc.value).Name()
+	typeName := reflect.TypeOf(tc.value).Name()
 
-	t.Run(name, func(t *testing.T) {
-		x0 := tc.value
-		x1 := new(Type)
-		*x1 = x0
-		x2 := new(*Type)
-		*x2 = x1
+	for fnName, fn := range sizeFns {
+		fnName, fn := fnName, fn
 
-		size0, kind0, err := sizeOfValue(x0)
-		require.NoError(t, err)
-		require.Equal(t, size0, tc.expectedSize)
-		require.Equal(t, kind0, tc.expectedKind)
+		t.Run(fnName+"_"+typeName, func(t *testing.T) {
+			x0 := tc.value
+			x1 := new(Type)
+			*x1 = x0
+			x2 := new(*Type)
+			*x2 = x1
 
-		size1, kind1, err := sizeOfValue(x1)
-		require.NoError(t, err)
-		require.Equal(t, size1, tc.expectedSize)
-		require.Equal(t, kind1, tc.expectedKind)
+			size0, kind0, err := fn(x0)
+			require.NoError(t, err)
+			require.Equal(t, size0, tc.expectedSize)
+			require.Equal(t, kind0, tc.expectedKind)
 
-		size2, kind2, err := sizeOfValue(x2)
-		require.NoError(t, err)
-		require.Equal(t, size2, tc.expectedSize)
-		require.Equal(t, kind2, tc.expectedKind)
-	})
+			size1, kind1, err := fn(x1)
+			require.NoError(t, err)
+			require.Equal(t, size1, tc.expectedSize)
+			require.Equal(t, kind1, tc.expectedKind)
+
+			size2, kind2, err := fn(x2)
+			require.NoError(t, err)
+			require.Equal(t, size2, tc.expectedSize)
+			require.Equal(t, kind2, tc.expectedKind)
+		})
+	}
 }
 
 func TestSize(t *testing.T) {
@@ -66,5 +79,20 @@ func TestSize(t *testing.T) {
 
 	for _, tc := range testCases {
 		tc.execute(t)
+	}
+}
+
+func BenchmarkSizeOfValue(b *testing.B) {
+	for fnName, fn := range sizeFns {
+		b.Run(fnName, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_, _, _ = fn(true)
+				_, _, _ = fn(ptr.Bool(true))
+				_, _, _ = fn(int64(123))
+				_, _, _ = fn(ptr.Int64(123))
+				_, _, _ = fn(string("abcde"))
+				_, _, _ = fn(ptr.String("abcde"))
+			}
+		})
 	}
 }
