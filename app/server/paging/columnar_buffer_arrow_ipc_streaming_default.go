@@ -41,6 +41,7 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTrans
 
 // ToResponse returns all the accumulated data and clears buffer
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_protos.TReadSplitsResponse, error) {
+	// chunk consists of columns
 	chunk := make([]arrow.Array, 0, len(cb.builders))
 
 	// prepare arrow record
