@@ -150,10 +150,12 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 		builder = array.NewFloat64Builder(arrowAllocator)
 	case Ydb.Type_STRING:
 		builder = array.NewBinaryBuilder(arrowAllocator, arrow.BinaryTypes.Binary)
+		builder.(*array.BinaryBuilder).ReserveData(1 << 20)
 	case Ydb.Type_UTF8:
 		// TODO: what about LargeString?
 		// https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow4Type4type12LARGE_STRINGE
 		builder = array.NewStringBuilder(arrowAllocator)
+		builder.(*array.StringBuilder).ReserveData(1 << 20)
 	case Ydb.Type_DATE:
 		builder = array.NewUint16Builder(arrowAllocator)
 	case Ydb.Type_DATETIME:
@@ -163,6 +165,8 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 	default:
 		return nil, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
 	}
+
+	builder.Reserve(1 << 10)
 
 	return builder, nil
 }
