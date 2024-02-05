@@ -219,4 +219,4 @@ test_cases: [
     }
 ]
 
-result_dir: "/home/vitalyisaev/projects/fq-connector-go/scripts/bench/postgresql/results/columns"
+result_dir: "/home/vitalyisaev/projects/fq-connector-go/scripts/bench/clickhouse/results/columns"
