@@ -34,7 +34,6 @@ func (c *connectionManager) Make(
 	default:
 		return nil, fmt.Errorf("can not run ClickHouse connection with protocol '%v'", dsi.Protocol)
 	}
-
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {

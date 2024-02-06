@@ -70,7 +70,7 @@ func (c *connectionHTTP) Query(ctx context.Context, query string, args ...any) (
 }
 
 func makeConnectionHTTP(
-	ctx context.Context,
+	_ context.Context,
 	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 	queryLogger common.QueryLogger,
