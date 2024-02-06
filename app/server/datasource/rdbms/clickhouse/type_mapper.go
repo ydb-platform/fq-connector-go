@@ -275,6 +275,10 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	//nolint:forcetypeassert
 	builder.(AB).Append(out)
 
+	// Without that ClickHouse native driver would return invalid values for NULLABLE(bool) columns;
+	// TODO: research it.
+	*cast = nil
+
 	return nil
 }
 

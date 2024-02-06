@@ -19,9 +19,6 @@ data_source_instance {
         }
     }
     protocol: NATIVE
-    pg_options: {
-        schema: "public"
-    }
 }
 
 table: "lineitem"
