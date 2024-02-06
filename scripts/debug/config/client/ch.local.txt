@@ -6,14 +6,15 @@ endpoint {
 data_source_instance {
     kind: CLICKHOUSE
     endpoint {
-        host: "localhost"
-        port: 9000
+        host: "vitalyisaev-nux"
+        port: 8123
     }
     database: "dqrun"
     credentials {
         basic {
-            username: "crab"
-            password: "qwerty12345"
+            username: "admin"
+            password: "password"
         }
     }
+    protocol: HTTP
 }
