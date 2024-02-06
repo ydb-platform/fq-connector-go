@@ -18,9 +18,9 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ rdbms_utils.Connection = (*connectionImpl)(nil)
+var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
-type connectionImpl struct {
+type connectionNative struct {
 	driver.Conn
 	logger common.QueryLogger
 }
@@ -47,7 +47,7 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 	return transformer, nil
 }
 
-func (c *connectionImpl) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *connectionNative) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.Conn.Query(ctx, query, args...)
@@ -111,5 +111,5 @@ func makeConnectionNative(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionImpl{Conn: conn, logger: queryLogger}, nil
+	return &connectionNative{Conn: conn, logger: queryLogger}, nil
 }
