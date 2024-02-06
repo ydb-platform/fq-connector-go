@@ -68,7 +68,7 @@ def make_dataframe_from_connector_benchmarks() -> pd.DataFrame:
             client="connector",
         ),
         ConnectorBenchmarkReport(
-            result_dir=Path("/home/vitalyisaev/troubles/YQ-2837/ch_columns_final"),
+            result_dir=Path("/home/vitalyisaev/troubles/YQ-2837/pg_columns_final"),
             version="v0.1.3",
             datasource="PG",
             client="connector",
@@ -118,48 +118,61 @@ def make_dataframe_from_native_benchmarks() -> pd.DataFrame:
     return df
 
 
-# def draw_subplot(
-#     df_: pd.DataFrame, label: str, y_column: str, ax: matplotlib.figure.Figure
-# ) -> matplotlib.figure.Figure:
-#     ax.set_ylabel(label)
-#     ax.set_xlabel("Number of columns to SELECT")
-#
-#     keys = {
-#         "baseline": "red",
-#         "optimized": "blue",
-#     }
-#
-#     for key, color in keys.items():
-#         df = df_.loc[df_["key"] == key]
-#         ax.plot(df["columns"], df[y_column], color=color, label=key)
-#
-#     return ax
-#
-#
-# def draw_plot(df: pd.DataFrame) -> pd.Series:
-#     fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
-#     fig.subplots_adjust(bottom=0.25, wspace=0.5)
-#     draw_subplot(df, "Throughput, MB/sec", "bytes_internal_rate", axes[0])
-#     draw_subplot(df, "Throughput, rows/sec", "rows_rate", axes[1])
-#     ax = draw_subplot(df, "CPU Utilization, %", "cpu_utilization", axes[2])
-#
-#     handles, labels = ax.get_legend_handles_labels()
-#     fig.legend(handles, labels, loc="lower right")
-#     fig.suptitle("Reading TPC-H S-10 Lineitem from PostgreSQL", fontsize=14)
-#
-#     fig.savefig("report.png")
-
-
-# def draw_subplot(
-#     df: pd.DataFrame, title: str, ax: matplotlib.figure.Figure
-# ) -> matplotlib.figure.Figure:
-
-#     pass
+@ticker.FuncFormatter
+def million_frac_formatter(x, pos):
+    return "%.1f M" % (x / 1e6)
 
 
 @ticker.FuncFormatter
-def million_formatter(x, pos):
-    return "%.1f M" % (x / 1e6)
+def million_int_formatter(x, pos):
+    return "%d M" % (x / 1e6)
+
+
+def draw_columnar_subplot_datasource(
+    ax: matplotlib.figure.Figure,
+    df: pd.DataFrame,
+    datasource_df: pd.DataFrame,
+    label: str,
+    y_column: str,
+) -> matplotlib.figure.Figure:
+    ax.set_ylabel(label)
+    ax.set_xlabel("Number of columns to SELECT")
+
+    if datasource_df[y_column].max() > 1000000:
+        ax.yaxis.set_major_formatter(million_int_formatter)
+
+    ax.set_ylim([df[y_column].min(), df[y_column].max()])
+
+    for client in pd.unique(datasource_df["client"]):
+        client_df = datasource_df[datasource_df["client"] == client]
+        ax.plot(client_df["columns"], client_df[y_column], label=client)
+
+    return ax
+
+
+def draw_columnar_plot_datasource(df: pd.DataFrame, datasource: str):
+    datasource_df = df[df["datasource"] == datasource]
+    fig, axes = plt.subplots(nrows=1, ncols=3, figsize=(12, 4))
+    fig.subplots_adjust(bottom=0.25, wspace=0.5)
+    draw_columnar_subplot_datasource(
+        axes[0], df, datasource_df, "Throughput, MB/sec", "bytes_internal_rate"
+    )
+    draw_columnar_subplot_datasource(
+        axes[1], df, datasource_df, "Throughput, rows/sec", "rows_rate"
+    )
+    ax = draw_columnar_subplot_datasource(
+        axes[2], df, datasource_df, "CPU Utilization, %", "cpu_utilization"
+    )
+
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower right")
+    fig.suptitle(f"Reading TPC-H S-10 Lineitem from {datasource}", fontsize=14)
+    fig.savefig(f"plot_columnar_{datasource}.png")
+
+
+def draw_columnar_plot(df: pd.DataFrame):
+    for datasource in ["CH", "PG"]:
+        draw_columnar_plot_datasource(df, datasource)
 
 
 def draw_overall_plot(src: pd.DataFrame):
@@ -173,7 +186,6 @@ def draw_overall_plot(src: pd.DataFrame):
 
     for i, datasource in enumerate(pd.unique(df["datasource"])):
         datasource_df = df[df["datasource"] == datasource]
-        print(datasource_df)
 
         colors = [
             "blue" if "connector" in client else "red"
@@ -191,12 +203,12 @@ def draw_overall_plot(src: pd.DataFrame):
 
         if not once:
             ax.set_ylabel("Throughput, rows/sec")
-            ax.yaxis.set_major_formatter(million_formatter)
+            ax.yaxis.set_major_formatter(million_frac_formatter)
             once = True
 
         ax.set_title(datasource)
 
-    fig.savefig("overall_plot.png")
+    fig.savefig("plot_overall.png")
 
 
 def make_overall_dataframe() -> pd.DataFrame:
@@ -210,6 +222,7 @@ def main():
     df = make_overall_dataframe()
     print(df)
     draw_overall_plot(df)
+    draw_columnar_plot(df)
 
 
 if __name__ == "__main__":
