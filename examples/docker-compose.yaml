@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+
+  postgresql:
+    image: postgres
+    container_name: fq-example-postgresql
+    environment:
+      POSTGRES_DB: connector
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - ./postgresql/init:/docker-entrypoint-initdb.d
+
+  fq-connector-go:
+    image: ghcr.io/ydb-platform/fq-connector-go:latest
+    container_name: fq-example-connector
+
+  ydb:
+    image: ghcr.io/ydb-platform/local-ydb:nightly
+    container_name: fq-example-ydb
+    hostname: localhost
+    ports:
+      - '2136:2136'
+      - '8765:8765'
+    environment:
+      GRPC_TLS_PORT: 2135
+      GRPC_PORT: 2136
+      MON_PORT: 8765
+      YDB_DEFAULT_LOG_LEVEL: NOTICE
+      FQ_CONNECTOR_ENDPOINT: grpc://fq-connector-go:50051 
