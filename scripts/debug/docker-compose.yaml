@@ -19,7 +19,6 @@ services:
       - /tmp/yq-connector/clickhouse/logs:/var/log/clickhouse-server
       - ./clickhouse/init:/docker-entrypoint-initdb.d
       # - ./clickhouse/config/z_log_disable.xml:/etc/clickhouse-server/config.d/z_log_disable.xml
-    network_mode: "host"
     ulimits:
       nproc: 65535
       nofile:
@@ -30,7 +29,7 @@ services:
     image: postgres
     container_name: fq-connector-postgresql
     ports:
-      - '5432:5432'
+      - '15432:5432'
     environment:
       POSTGRES_DB: dqrun
       POSTGRES_USER: admin
