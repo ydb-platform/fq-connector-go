@@ -3,7 +3,7 @@ version: '3'
 services:
 
   clickhouse:
-    image: clickhouse/clickhouse-server
+    image: clickhouse/clickhouse-server:23
     container_name: ${USER}-fq-connector-go-tests-clickhouse
     ports:
       - '8123'

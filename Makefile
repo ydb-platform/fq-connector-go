@@ -18,12 +18,14 @@ integration_test: integration_test_build
 integration_test_build: 
 	go test -c -o fq-connector-go-tests ./tests
 
-integration_test_env:
+integration_test_env_clean:
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml stop
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v
+
+integration_test_env_run: integration_test_env_clean
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d
 
-test_coverage: integration_test_env
+test_coverage: integration_test_env_run
 	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/...
 	go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.coverprofile=coverage_integration_tests.out 
