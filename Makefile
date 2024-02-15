@@ -4,7 +4,7 @@ build:
 	go build -o fq-connector-go ./app
 
 run: build
-	./fq-connector-go server -c ./example.conf	
+	./fq-connector-go server -c ./examples/config.debug.txt	
 
 lint:
 	golangci-lint run --fix ./app/... ./common/... ./tests/...
@@ -35,6 +35,9 @@ test_coverage: integration_test_env_run
 	
 build_image_base: 
 	docker build -t ghcr.io/ydb-platform/fq-connector-go:base -f ./Dockerfile.base .
+
+build_image_release: 
+	docker build -t ghcr.io/ydb-platform/fq-connector-go:latest -f ./Dockerfile.release .
 
 cloc:
 	cloc ./app ./common ./tests --git 
