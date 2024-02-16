@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	app_server_config "github.com/ydb-platform/fq-connector-go/app/server/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -126,7 +127,7 @@ func WithConversionConfig(conversionConfig *config.TConversionConfig) EmbeddedOp
 }
 
 func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
-	cfg := NewDefaultConfig()
+	cfg := app_server_config.NewDefaultConfig()
 	for _, o := range options {
 		o.apply(cfg)
 	}

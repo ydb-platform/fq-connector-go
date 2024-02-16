@@ -1,11 +1,14 @@
-package server
+package config
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
+	"sigs.k8s.io/yaml"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -177,7 +180,7 @@ func fileMustExist(path string) error {
 	return nil
 }
 
-func newConfigFromPath(configPath string) (*config.TServerConfig, error) {
+func newConfigFromPrototextFile(configPath string) (*config.TServerConfig, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("read file %v: %w", configPath, err)
@@ -194,13 +197,71 @@ func newConfigFromPath(configPath string) (*config.TServerConfig, error) {
 		return nil, fmt.Errorf("prototext unmarshal `%v`: %w", string(data), err)
 	}
 
-	fillServerConfigDefaults(&cfg)
+	return &cfg, nil
+}
 
-	if err := validateServerConfig(&cfg); err != nil {
-		return nil, fmt.Errorf("validate config: %w", err)
+func newConfigFromYAMLFile(configPath string) (*config.TServerConfig, error) {
+	dataYAML, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("read file %v: %w", configPath, err)
+	}
+
+	// convert YAML to JSON
+
+	dataJSON, err := yaml.YAMLToJSON(dataYAML)
+	if err != nil {
+		return nil, fmt.Errorf("convert YAML to JSON: %w", err)
+	}
+
+	var cfg config.TServerConfig
+
+	// than parse JSON
+
+	unmarshaller := protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+	}
+
+	if err := unmarshaller.Unmarshal(dataJSON, &cfg); err != nil {
+		return nil, fmt.Errorf("protojson unmarshal `%v`: %w", string(dataJSON), err)
 	}
 
 	return &cfg, nil
+}
+
+func NewConfigFromFile(configPath string) (*config.TServerConfig, error) {
+	var parsers = map[string]func(string) (*config.TServerConfig, error){
+		"yaml":      newConfigFromYAMLFile,
+		"prototext": newConfigFromPrototextFile,
+	}
+
+	var (
+		err  error
+		errs []error
+		cfg  *config.TServerConfig
+	)
+
+	// Hopefully at least one of parser will succeed
+	for key, parser := range parsers {
+		cfg, err = parser(configPath)
+		if err == nil {
+			break
+		}
+
+		errs = append(errs, fmt.Errorf("config parser '%s': %w", key, err))
+	}
+
+	if cfg == nil {
+		err := errors.Join(errs...)
+		return nil, err
+	}
+
+	fillServerConfigDefaults(cfg)
+
+	if err := validateServerConfig(cfg); err != nil {
+		return nil, fmt.Errorf("validate config: %w", err)
+	}
+
+	return cfg, nil
 }
 
 const (

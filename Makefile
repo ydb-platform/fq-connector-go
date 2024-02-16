@@ -4,13 +4,13 @@ build:
 	go build -o fq-connector-go ./app
 
 run: build
-	./fq-connector-go server -c ./examples/config.debug.txt	
+	./fq-connector-go server -c ./app/server/config/config.debug.yaml	
 
 lint:
 	golangci-lint run --fix ./app/... ./common/... ./tests/...
 
 unit_test:
-	go test -v ./app/...
+	go test ./app/...
 
 integration_test: integration_test_build
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/ydb-platform/fq-connector-go/app/server/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -37,7 +38,7 @@ func runFromCLI(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("get config flag: %v", err)
 	}
 
-	cfg, err := newConfigFromPath(configPath)
+	cfg, err := config.NewConfigFromFile(configPath)
 	if err != nil {
 		return fmt.Errorf("new config: %w", err)
 	}
