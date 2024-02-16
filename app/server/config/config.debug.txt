@@ -23,5 +23,5 @@ paging {
 }
 
 conversion {
-    use_unsafe_converters: false
+    use_unsafe_converters: true
 }
