@@ -32,7 +32,7 @@ docker run -d \
     --name=connector \
     -p 50051:50051 \
     -p 6060:6060 \
-    -v /tmp/example.conf:/usr/local/etc/fq-connector.conf \
+    -v /tmp/example.conf:/usr/local/etc/fq-connector-go.conf \
     ghcr.io/ydb-platform/fq-connector-go:latest
 ```
 
