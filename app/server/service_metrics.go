@@ -48,7 +48,7 @@ func newServiceMetrics(logger *zap.Logger, cfg *config.TMetricsServerConfig, reg
 	}
 
 	// TODO: TLS
-	logger.Warn("metrics server will use insecure connections")
+	logger.Warn("server will use insecure connections")
 
 	return &serviceMetrics{
 		httpServer: httpServer,
