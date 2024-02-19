@@ -2,7 +2,7 @@ FROM ghcr.io/ydb-platform/fq-connector-go:base
 
 LABEL org.opencontainers.image.source=https://github.com/ydb-platform/fq-connector-go
 
-COPY examples/config.debug.txt /usr/local/etc/fq-connector-go.conf
+COPY app/server/config/config.debug.yaml /usr/local/etc/fq-connector-go.conf
 COPY fq-connector-go /usr/local/bin/fq-connector-go
 
 CMD ["/usr/local/bin/fq-connector-go", "server", "-c", "/usr/local/etc/fq-connector-go.conf"]
