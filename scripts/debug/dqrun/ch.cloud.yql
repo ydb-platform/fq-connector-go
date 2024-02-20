@@ -1,1 +1,1 @@
-SELECT * FROM clickhouse_streaming.example_1;
+SELECT * FROM clickhouse_dev.example_1;

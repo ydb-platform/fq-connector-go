@@ -1,0 +1,13 @@
+connector_server:
+    endpoint:
+        host: "0.0.0.0"
+        port: 50051
+
+    tls:
+        ca: "./scripts/debug/tls/root.crt"
+        key: "./scripts/debug/tls/localhost.key"
+        cert: "./scripts/debug/tls/localhost.crt"
+
+logger:
+    log_level: TRACE
+    enable_sql_query_logging: true
