@@ -68,3 +68,9 @@ jobs:
           docker tag ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }} ghcr.io/ydb-platform/fq-connector-go:latest
           docker push ghcr.io/ydb-platform/fq-connector-go:${{ github.event.inputs.tag }}
           docker push ghcr.io/ydb-platform/fq-connector-go:latest
+      - name: Make release on Github
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            fq-connector-go-${{ github.event.inputs.tag }}-$GOOS-$GOARCH.tar.gz
