@@ -2,9 +2,6 @@ connector_server:
   endpoint:
     host: "0.0.0.0"
     port: 50051
-  tls:
-    cert: "/usr/local/etc/tls/tls.crt"
-    key: "/usr/local/etc/tls/tls.key"
 
 logger:
   log_level: INFO
