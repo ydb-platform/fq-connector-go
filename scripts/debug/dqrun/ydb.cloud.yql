@@ -1,0 +1,1 @@
+SELECT * FROM ydb_dev.example_1;
