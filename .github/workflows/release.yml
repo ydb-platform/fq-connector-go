@@ -61,7 +61,8 @@ jobs:
       - name: Build binary package
         run: |
           cp ./app/server/config/config.prod.yaml fq-connector-go.yaml
-          tar czf fq-connector-go-${{ github.event.inputs.tag }}-${{ env.GOOS }}-${{ env.GOARCH }}.tar.gz fq-connector-go fq-connector-go.yaml
+          cp ./examples/systemd/fq-connector-go.service .
+          tar czf fq-connector-go-${{ github.event.inputs.tag }}-${{ env.GOOS }}-${{ env.GOARCH }}.tar.gz fq-connector-go fq-connector-go.yaml fq-connector-go.service
       - name: Build and push Docker image
         run: |
           docker login --username vitalyisaev2 --password ${{ secrets.GHCR_TOKEN }} ghcr.io
