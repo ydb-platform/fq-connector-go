@@ -1,19 +1,21 @@
 endpoint {
-    host: "localhost"
+    host: "connector.yqv2-dev.cloud.yandex.net"
     port: 50051
 }
+
+tls: {}
 
 data_source_instance {
     kind: YDB
     endpoint {
-        host: "ydb-ru-prestable.yandex.net"
+        host: "ydb.serverless.yandexcloud.net"
         port: 2135
     }
-    database: "/ru-prestable/ydb_home/woodey/ydb144"
+    database: "/ru-central1/b1gtl2kg13him37quoo6/etnejle6hb72cdr6aqps"
     credentials {
         token {
             type: "IAM"
-            value: "..."
+            value: ""
         }
     }
     use_tls: false
