@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 Restart=always
 RestartSec=10
-ExecStart=/usr/local/bin/fq-connector-go server -c /usr/local/etc/fq-connector-go.yaml
+ExecStart=/opt/ydb/bin/fq-connector-go server -c /opt/ydb/cfg/fq-connector-go.yaml
 
 [Install]
 WantedBy=multi-user.target
