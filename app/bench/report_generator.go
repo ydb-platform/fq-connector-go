@@ -1,8 +1,5 @@
 package bench
 
-// #include <time.h>
-import "C"
-
 import (
 	"sync"
 	"sync/atomic"
@@ -16,11 +13,11 @@ import (
 
 // reportGenerator is responsible for collecting reading stats
 type reportGenerator struct {
-	startTime     time.Time
-	startTicks    C.long
-	bytesInternal atomic.Uint64 // total amount of data in internal representation (Go type system)
-	bytesArrow    atomic.Uint64 // total amount of data in Arrow format
-	rows          atomic.Uint64 // total number of rows read
+	startTime             time.Time
+	bytesInternal         atomic.Uint64 // total amount of data in internal representation (Go type system)
+	bytesArrow            atomic.Uint64 // total amount of data in Arrow format
+	rows                  atomic.Uint64 // total number of rows read
+	cpuUtilizationMonitor cpuUtilizationMonitor
 
 	testCase *config.TBenchmarkTestCase
 
@@ -64,10 +61,6 @@ func (agg *reportGenerator) makeReport() *report {
 	bytesArrowRate := float32(agg.bytesArrow.Load()) / secondsSinceStart / megabyte
 	rowsRate := float32(agg.rows.Load()) / secondsSinceStart
 
-	clockSeconds := float64(C.clock()-agg.startTicks) / float64(C.CLOCKS_PER_SEC)
-	realSeconds := time.Since(agg.startTime).Seconds()
-	cpuUtilization := clockSeconds / realSeconds * 100
-
 	r := &report{
 		StartTime:          jsonTime{agg.startTime},
 		BytesInternalTotal: agg.bytesInternal.Load(),
@@ -77,7 +70,7 @@ func (agg *reportGenerator) makeReport() *report {
 		RowsTotal:          agg.rows.Load(),
 		RowsRate:           rowsRate,
 		TestCaseConfig:     agg.testCase,
-		CPUUtilization:     cpuUtilization,
+		CPUUtilization:     agg.cpuUtilizationMonitor.getPercentage(),
 	}
 
 	return r
@@ -97,11 +90,11 @@ func (agg *reportGenerator) stop() *report {
 
 func newReportGenerator(logger *zap.Logger, testCase *config.TBenchmarkTestCase) *reportGenerator {
 	agg := &reportGenerator{
-		startTime:  time.Now(),
-		startTicks: C.clock(),
-		exitChan:   make(chan struct{}),
-		logger:     logger,
-		testCase:   testCase,
+		startTime:             time.Now(),
+		cpuUtilizationMonitor: NewCPUUtilizationMonitor(),
+		exitChan:              make(chan struct{}),
+		logger:                logger,
+		testCase:              testCase,
 	}
 
 	return agg
