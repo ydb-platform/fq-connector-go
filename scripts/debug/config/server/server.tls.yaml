@@ -1,7 +1,7 @@
 connector_server:
     endpoint:
         host: "0.0.0.0"
-        port: 50051
+        port: 2130
 
     tls:
         ca: "./scripts/debug/tls/root.crt"

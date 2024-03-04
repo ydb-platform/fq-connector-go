@@ -1,7 +1,7 @@
 server_local: {
     endpoint: {
         host: "localhost"
-        port: 50051
+        port: 2130
     }
 }
 

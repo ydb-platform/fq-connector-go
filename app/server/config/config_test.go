@@ -46,7 +46,7 @@ func TestConfig(t *testing.T) {
 			require.NotNil(t, cfg)
 
 			require.Equal(t, "0.0.0.0", cfg.ConnectorServer.Endpoint.Host)
-			require.Equal(t, uint32(50051), cfg.ConnectorServer.Endpoint.Port)
+			require.Equal(t, uint32(2130), cfg.ConnectorServer.Endpoint.Port)
 			require.Equal(t, config.ELogLevel_DEBUG, cfg.Logger.LogLevel)
 			require.Equal(t, true, cfg.Logger.EnableSqlQueryLogging)
 			require.Equal(t, "0.0.0.0", cfg.PprofServer.Endpoint.Host)
