@@ -265,7 +265,7 @@ func NewConfigFromFile(configPath string) (*config.TServerConfig, error) {
 }
 
 const (
-	defaultPortConnector = 50051
+	defaultPortConnector = 2130
 	defaultPortPprof     = 6060
 	defaultHost          = "localhost"
 )

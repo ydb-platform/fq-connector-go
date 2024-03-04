@@ -13,7 +13,7 @@ services:
       GRPC_PORT: 2136
       MON_PORT: 8765
       YDB_DEFAULT_LOG_LEVEL: NOTICE
-      FQ_CONNECTOR_ENDPOINT: grpc://fq-connector-go:50051 
+      FQ_CONNECTOR_ENDPOINT: grpc://fq-connector-go:2130 
 
   postgresql:
     image: postgres

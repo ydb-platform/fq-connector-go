@@ -1,6 +1,6 @@
 endpoint {
     host: "localhost"
-    port: 50051
+    port: 2130
 }
 
 data_source_instance {
