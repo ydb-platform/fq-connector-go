@@ -17,7 +17,7 @@ Currently supported data sources:
 
 Use this command to run Connector with [default configuration](https://github.com/ydb-platform/fq-connector-go/blob/main/example.conf):
 
-```
+```bash
 docker run -d \
     --name=connector \
     -p 2130:2130 \
@@ -27,7 +27,7 @@ docker run -d \
 
 Or you can mount custom configuration into container:
 
-```
+```bash
 docker run -d \
     --name=connector \
     -p 2130:2130 \
@@ -36,3 +36,8 @@ docker run -d \
     ghcr.io/ydb-platform/fq-connector-go:latest
 ```
 
+### Genereate API
+
+```bash
+./generate.py --ydb-repo=path/to/ydb/repo --connector-repo=path/to/fq-connector-go/repo
+```
