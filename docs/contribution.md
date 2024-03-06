@@ -54,7 +54,7 @@ make run
 
 ### ConnectionManager
 
-Начать стоит с реализации интерфейса `Connection` и `ConnectionManager`. Здесь вам нужно просто научиться по параметрам, пришедшим в структуре типа `TDataSourceInstance`, конструировать сетевое соединение к базе. Наиболее хрестоматийные примеры можно посмотреть в папках [clickhouse](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/clickhouse/connection_manager.go) и [postgresql](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/postgresql/connection_manager.go).
+Начать стоит с реализации интерфейса `СonnectionManager`. Здесь вам нужно просто научиться по параметрам, пришедшим в структуре типа `TDataSourceInstance`, конструировать сетевое соединение к базе. Наиболее хрестоматийные примеры можно посмотреть в папках [clickhouse](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/clickhouse/connection_manager.go) и [postgresql](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/postgresql/connection_manager.go).
 
 > [!IMPORTANT]
 > Для работы с внешними источниками данных вам потребуется драйвер - библиотека на языке Go, которая реализует протокол взаимодействия с базой. Существуют важные нюансы при выборе библиотек:
@@ -65,3 +65,15 @@ make run
 Некоторые источники данных предоставляют несколько сетевых интерфейсов для доступа данных: например, к ClickHouse можно подключиться как по TCP-протоколу, так и по HTTP-протоколу. Изучите ваш источник данных в этом отношении. В большинстве случаев достаточно только реализации `NATIVE` (то есть TCP-протокола).
 
 Иногда при соединении с источником требуется указать какие-то особенные параметры, например, у PostgreSQL есть понятие схемы (что-то вроде пространства имён для таблиц). Если вам недостаточно параметров, уже присутствующих в структуре [TDataSourceInstance](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L65-L86), вы можете добавить в опциональное поле `options` новую структуру, описывающую специфику вашего источника.
+
+### Connection и Rows
+
+`ConnectionManager` должен возвращать абстракцию соединения - [Connection](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/utils/sql.go#L16). Соединение умеет выполнять запросы (метод `Query`). Результатом обработки запроса является интерфейс [Rows](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/utils/sql.go#L21-L27). Фактически это итератор, очень сильно напоминающий `sql.Rows`. С помощью него мы можем вычитывать данные из соединения с РСУБД потоково, строчка за строчкой.
+
+У `Rows` есть очень важный метод `MakeTransformer`, который вовзвращает шаблонный интерфейс `RowsTransformer[Acceptor]`.  
+(...)
+
+### О системах типов
+
+Метаданные и данные внутри `fq-connector-go` описываются сразу в 4 системах типов:
+(...)
