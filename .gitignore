@@ -4,5 +4,4 @@ coverage*
 scripts/bench/postgresql
 scripts/bench/clickhouse
 __pycache__
-*.png
 *.test

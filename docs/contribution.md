@@ -4,9 +4,9 @@
 
 ### DataSource
 
-Внешние источники данных в сервисе `fq-connector-go` скрываются за интерфейсом [DataSource](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/interface.go#L25). У него всего-навсего два метода: метод для описания метаданных таблицы и для извлечения данных. Несмотря на лаконичность интерфейса, имплементировать его придётся постепенно, по частям, добавляя новую функциональность. 
+Внешние источники данных в сервисе `fq-connector-go` скрываются за интерфейсом [DataSource](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/datasource#DataSource). У него всего-навсего два метода: метод для описания метаданных таблицы и для извлечения данных. Несмотря на лаконичность интерфейса, имплементировать его придётся постепенно, по частям, добавляя новую функциональность. 
 
-Логика работы с реляционными СУБД может быть в значительной степени обобщена и переиспользована в коде, относящемся к разным источникам. Поэтому имплементация `DataSource` для РСУБД у нас на данный момент [одна](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/data_source.go) - в ней меняются только источнико-специфичные части, которые параметризуют поведение `rdbms.dataSourceImpl` с помощью структуры [Preset](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/data_source.go#L17):
+Логика работы с реляционными СУБД может быть в значительной степени обобщена и переиспользована в коде, относящемся к разным источникам. Поэтому имплементация `DataSource` для РСУБД у нас на данный момент [одна](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/data_source.go#L26) - в ней меняются только источнико-специфичные части, которые параметризуют поведение `rdbms.dataSourceImpl` с помощью структуры [Preset](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/datasource/rdbms#Preset):
 
 * `ConnectionManager` отвечает за работу с сетевыми соединениями.
 * `SQLFormatter` рендерит запросы к источнику на принятом у него диалекте SQL.
@@ -68,20 +68,29 @@ make run
 
 ### Connection и Rows
 
-`ConnectionManager` должен возвращать абстракцию соединения - [Connection](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/utils/sql.go#L16). Соединение умеет выполнять запросы (метод `Query`). Результатом обработки запроса является интерфейс [Rows](https://github.com/ydb-platform/fq-connector-go/blob/v0.2.5/app/server/datasource/rdbms/utils/sql.go#L21-L27). Фактически это итератор, сильно напоминающий по интерфейсу `sql.Rows`. С помощью него мы можем вычитывать данные из соединения с РСУБД потоково, строчка за строчкой.
+`ConnectionManager` должен возвращать абстракцию соединения - [Connection](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/datasource/rdbms/utils#Connection). Соединение умеет выполнять запросы (метод `Query`). Результатом обработки запроса является интерфейс [Rows](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/datasource/rdbms/utils#Rows). Фактически это итератор, сильно напоминающий по интерфейсу `sql.Rows`. С помощью него мы можем вычитывать данные из соединения с РСУБД потоково, строчка за строчкой.
 
 У `Rows` есть важный метод - `MakeTransformer`, который возвращает шаблонный интерфейс `RowsTransformer[Acceptor]`. Он заслуживает отдельного раздела. В остальном работа с `Rows` практически не отличается от работы с `sql.Rows` из стандартной библиотеки.
 
-### О трансформациях данных и метаданных
+### О трансформации данных и метаданных
 
 Основное назначение коннектора - выступать в роли слоя абстракции между YDB и внешним источником данных. Он должен превращать (трансформировать) данные из внешних систем в формат, поддерживаемый YDB, а также описывать эти данные в понятной YDB системе типов. 
 
 С точки зрения работы с метаданными такой системой типов является [система типов](https://ydb.tech/docs/ru/yql/reference/types/) языка YQL. Описания типов хранятся в [Public Protobuf API YDB](https://github.com/ydb-platform/ydb/blob/main/ydb/public/api/protos/ydb_value.proto). Это означает, что по запросу от YDB (метод `DescribeTable`) коннектор должен извлечь из источника данных схему нужной таблицы в системе типов источника и предоставить её в системе типов YQL.
 
-В качестве формата передачи данных используется колоночный формат [Apache Arrow (тип IPC Streaming)](https://arrow.apache.org/docs/cpp/api/ipc.html). В Arrow используется собственная [система типов](https://arrow.apache.org/docs/cpp/api/datatype.html). При этом мы вычитываем данные из соединения с внешним источником данных в объекты-приёмники, которые описываются в системе типов Go: `rows.Scan(acceptors...)`.
+В качестве формата передачи данных используется колоночный формат [Apache Arrow (тип IPC Streaming)](https://arrow.apache.org/docs/cpp/api/ipc.html). Колоночное представление данных часто встречается в аналитических СУБД, поскольку позволяет экономить IO. В Arrow используется собственная [система типов](https://arrow.apache.org/docs/cpp/api/datatype.html). При этом мы вычитываем данные из соединения с внешним источником данных в объекты-приёмники, которые описываются в системе типов Go: `rows.Scan(acceptors...)`. Уже позднее эти объекты накапливаются в колоночных буферах [ColumnarBuffer](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/paging#ColumnarBuffer), те, в свою очередь, сериализуются и отправляются по сети в сторону YDB в формате Arrow.
 
-Подводя итоги, можно сказать, что в коннекторе встречаются сразу 4 системы типов:
+Таким образом в коннекторе встречаются сразу 4 системы типов:
 * Система типов YDB (YQL).
 * Система типов источника данных.
 * Система типов Apache Arrow.
 * Система типов языка Go.
+
+![Type Mapping](./type_mapping.png)
+
+Код, выполняющий *трансформацию* между этими системами типов, традиционно сконцентрирован в файлах `type_mapper.go` ([PG](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/postgresql/type_mapper.go), [CH](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/clickhouse/type_mapper.go)). 
+
+Ещё один смысл, вкладываемый в термин *трансформации* данных - это  преобразование данных из строкового в колоночное представление. Логика перекладывания данных из элементов строки (row) в колоночные буфера реализована однократно для всех источников данных в функции [RowTransformerDefault.AppendToArrowBuilders](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/paging#RowTransformerDefault.AppendToArrowBuilders).
+
+
+![Data transformation](./append_to_arrow_builders.png)
