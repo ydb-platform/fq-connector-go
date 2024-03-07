@@ -47,7 +47,7 @@ func (b *Base) SetupSuite() {
 	b.Connector, err = server.NewEmbedded(
 		server.WithLoggerConfig(
 			&config.TLoggerConfig{
-				LogLevel:              config.ELogLevel_ERROR,
+				LogLevel:              config.ELogLevel_DEBUG,
 				EnableSqlQueryLogging: true,
 			},
 		),

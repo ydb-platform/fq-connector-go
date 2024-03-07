@@ -7,6 +7,7 @@
 package service
 
 import (
+	"fmt"
 	context "context"
 	protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	grpc "google.golang.org/grpc"
@@ -249,6 +250,7 @@ type connectorListSplitsServer struct {
 }
 
 func (x *connectorListSplitsServer) Send(m *protos.TListSplitsResponse) error {
+	fmt.Printf("LIST SPLITS SEND: %d %v\n", len(m.Splits), m.Error)
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -270,6 +272,7 @@ type connectorReadSplitsServer struct {
 }
 
 func (x *connectorReadSplitsServer) Send(m *protos.TReadSplitsResponse) error {
+	fmt.Printf("READ SPLITS SEND: %d %v\n", len(m.GetArrowIpcStreaming()), m.Error)
 	return x.ServerStream.SendMsg(m)
 }
 
