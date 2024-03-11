@@ -40,6 +40,7 @@ services:
     hostname: localhost
     ports:
       - '2136:2136'
+      - '8765:8765'
     environment:
       YDB_DEFAULT_LOG_LEVEL: ERROR
     volumes:
