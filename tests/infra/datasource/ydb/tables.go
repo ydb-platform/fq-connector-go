@@ -3,6 +3,8 @@ package ydb
 import (
 	"time"
 
+	"golang.org/x/exp/constraints"
+
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
@@ -363,6 +365,22 @@ var tables = map[string]*datasource.Table{
 			},
 		},
 	},
+
+	"large": {
+		Name: "large",
+		Schema: &datasource.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id": common.MakePrimitiveType(Ydb.Type_INT32),
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id": makeRange[int32](0, 1005),
+				},
+			},
+		},
+	},
 }
 
 func pushdownSchemaYdb() *datasource.TableSchema {
@@ -373,4 +391,13 @@ func pushdownSchemaYdb() *datasource.TableSchema {
 			"col_02_text": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 		},
 	}
+}
+
+func makeRange[T constraints.Integer](min, max T) []T {
+	result := make([]T, max-min+1)
+	for i := range result {
+		result[i] = min + T(i)
+	}
+
+	return result
 }

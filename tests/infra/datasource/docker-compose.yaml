@@ -45,3 +45,5 @@ services:
       YDB_DEFAULT_LOG_LEVEL: ERROR
     volumes:
       - ./ydb/init/init_ydb:/init_ydb
+      - ./ydb/init/01_basic.sh:/01_basic.sh
+      - ./ydb/init/02_large.sh:/02_large.sh
