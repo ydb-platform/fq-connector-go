@@ -51,7 +51,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
-	out, err := c.DB.QueryContext(ctx, query, args...)
+	out, err := c.DB.QueryContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.ScanQueryMode), query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

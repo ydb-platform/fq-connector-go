@@ -229,6 +229,16 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
+func (s *Suite) TestLargeTable() {
+	// For tables larger than 1000 rows, scan queries must be used,
+	// otherwise output will be truncated.
+	// https://ydb.tech/docs/en/concepts/scan_query
+	s.ValidateTable(
+		s.dataSource,
+		tables["large"],
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base,
 ) *Suite {
