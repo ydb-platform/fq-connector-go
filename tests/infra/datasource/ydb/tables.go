@@ -218,4 +218,159 @@ var tables = map[string]*datasource.Table{
 			},
 		},
 	},
+
+	"pushdown_comparison_L": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{1},
+					"col_01_int":  []*int32{ptr.Int32(10)},
+					"col_02_text": []*string{ptr.T("a")},
+				},
+			},
+		},
+	},
+
+	"pushdown_comparison_LE": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{1, 2},
+					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20)},
+					"col_02_text": []*string{ptr.T("a"), ptr.T("b")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_EQ": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{2},
+					"col_01_int":  []*int32{ptr.Int32(20)},
+					"col_02_text": []*string{ptr.T("b")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_GE": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{2, 3},
+					"col_01_int":  []*int32{ptr.Int32(20), ptr.Int32(30)},
+					"col_02_text": []*string{ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_G": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{1, 2, 3},
+					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"col_02_text": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NE": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{2, 3, 4},
+					"col_01_int":  []*int32{ptr.Int32(20), ptr.Int32(30), nil},
+					"col_02_text": []*string{ptr.T("b"), ptr.T("c"), nil},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NULL": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{4},
+					"col_01_int":  []*int32{nil},
+					"col_02_text": []*string{nil},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NOT_NULL": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{1, 2, 3},
+					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"col_02_text": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_conjunction": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{2, 3},
+					"col_01_int":  []*int32{ptr.Int32(20), ptr.Int32(30)},
+					"col_02_text": []*string{ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_disjunction": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{1, 2, 3},
+					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"col_02_text": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_negation": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":          []int32{4},
+					"col_01_int":  []*int32{nil},
+					"col_02_text": []*string{nil},
+				},
+			},
+		},
+	},
+}
+
+func pushdownSchemaYdb() *datasource.TableSchema {
+	return &datasource.TableSchema{
+		Columns: map[string]*Ydb.Type{
+			"id":          common.MakePrimitiveType(Ydb.Type_INT32),
+			"col_01_int":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+			"col_02_text": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+		},
+	}
 }

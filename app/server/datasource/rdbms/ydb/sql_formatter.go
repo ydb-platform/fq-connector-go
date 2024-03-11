@@ -12,7 +12,6 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 type sqlFormatter struct {
 }
 
-// TODO: for pushdown feature
 func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
