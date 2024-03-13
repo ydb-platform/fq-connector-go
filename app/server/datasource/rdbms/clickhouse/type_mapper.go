@@ -48,7 +48,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		typeName = matches[1]
 	}
 
-	// Reference table: https://wiki.yandex-team.ru/rtmapreduce/yql-streams-corner/connectors/lld-02-tipy-dannyx/
+	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 	switch {
 	case typeName == "Bool":
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)

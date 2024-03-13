@@ -54,7 +54,7 @@ func SelectWhatToArrowSchema(selectWhat *api_service_protos.TSelect_TWhat) (*arr
 			err   error
 		)
 
-		// Reference table: https://wiki.yandex-team.ru/rtmapreduce/yql-streams-corner/connectors/lld-02-tipy-dannyx
+		// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 		switch t := ydbType.Type.(type) {
 		// Primitive types
 		case *Ydb.Type_TypeId:
