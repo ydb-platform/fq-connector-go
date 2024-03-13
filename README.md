@@ -21,3 +21,4 @@ Currently supported data sources:
     * [For quickstart](https://ydb.tech/docs/ru/getting_started/self_hosted/ydb_docker#zapusk-ydb-federated-query-v-docker) 
     * For production environment: [YDB](https://ydb.tech/docs/ru/deploy/manual/deploy-ydb-federated-query) | [Connector](https://ydb.tech/docs/ru/deploy/manual/connector)
 * [Contribution guide](./docs/contribution.md)
+* [Type mapping table](./docs/type_mapping_table.md)
