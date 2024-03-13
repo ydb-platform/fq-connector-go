@@ -4,10 +4,10 @@
 
 ### Objectives
 
-Service `fq-connector-go` is a part of YDB Federative Query system.
+Service `fq-connector-go` is a part of YDB Federated Query system.
 It's an extension point making YDB capable of interaction with various external data sources.
-You can deploy `fq-connector-go` alongside with YDB in order to query and join YDB tables 
-with the data extracted from the external sources.
+You can deploy `fq-connector-go` alongside with YDB in order to query and handle
+data extracted from the external sources.
 
 Currently supported data sources:
 * ClickHouse
@@ -16,29 +16,8 @@ Currently supported data sources:
 
 ### Usage 
 
-Use this command to run Connector with [default configuration](https://github.com/ydb-platform/fq-connector-go/blob/main/example.conf):
-
-```bash
-docker run -d \
-    --name=connector \
-    -p 2130:2130 \
-    -p 6060:6060 \
-    ghcr.io/ydb-platform/fq-connector-go:latest
-```
-
-Or you can mount custom configuration into container:
-
-```bash
-docker run -d \
-    --name=connector \
-    -p 2130:2130 \
-    -p 6060:6060 \
-    -v /path/to/config.yaml:/opt/ydb/cfg/fq-connector-go.yaml \
-    ghcr.io/ydb-platform/fq-connector-go:latest
-```
-
-### Genereate API
-
-```bash
-./generate.py --ydb-repo=path/to/ydb/repo --connector-repo=path/to/fq-connector-go/repo
-```
+* [Architecture overview](https://ydb.tech/docs/ru/concepts/federated_query/architecture)
+* YDB Federated Query deployment:
+    * [For quickstart](https://ydb.tech/docs/ru/getting_started/self_hosted/ydb_docker#zapusk-ydb-federated-query-v-docker) 
+    * For production environment: [YDB](https://ydb.tech/docs/ru/deploy/manual/deploy-ydb-federated-query) | [Connector](https://ydb.tech/docs/ru/deploy/manual/connector)
+* [Contribution guide](./docs/contribution.md)
