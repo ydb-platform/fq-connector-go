@@ -26,7 +26,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		err     error
 	)
 
-	// Reference table: https://wiki.yandex-team.ru/rtmapreduce/yql-streams-corner/connectors/lld-02-tipy-dannyx/
+	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 	switch typeName {
 	case "boolean", "bool":
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
