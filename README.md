@@ -1,6 +1,7 @@
 ![Build](https://github.com/ydb-platform/fq-connector-go/actions/workflows/build.yml/badge.svg)
 ![Linter](https://github.com/ydb-platform/fq-connector-go/actions/workflows/lint.yml/badge.svg)
 [![Release](https://img.shields.io/github/v/release/ydb-platform/fq-connector-go.svg?style=flat-square)](https://github.com/ydb-platform/fq-connector-go/releases)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ydb-platform/fq-connector-go)](https://goreportcard.com/report/github.com/ydb-platform/fq-connector-go)
 [![Coverage](https://codecov.io/github/ydb-platform/fq-connector-go/graph/badge.svg?token=RCXN9X391Y)](https://codecov.io/github/ydb-platform/fq-connector-go)
 
 ### Objectives

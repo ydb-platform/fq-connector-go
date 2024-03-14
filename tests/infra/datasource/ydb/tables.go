@@ -381,6 +381,24 @@ var tables = map[string]*datasource.Table{
 			},
 		},
 	},
+
+	"parent/child": {
+		Name: "parent/child",
+		Schema: &datasource.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":  common.MakePrimitiveType(Ydb.Type_INT8),
+				"col": common.MakePrimitiveType(Ydb.Type_UTF8),
+			},
+		},
+		Records: []*datasource.Record{
+			{
+				Columns: map[string]any{
+					"id":  []int8{1, 2, 3, 4, 5},
+					"col": []string{"a", "b", "c", "d", "e"},
+				},
+			},
+		},
+	},
 }
 
 func pushdownSchemaYdb() *datasource.TableSchema {

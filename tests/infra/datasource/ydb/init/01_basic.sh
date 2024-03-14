@@ -102,4 +102,18 @@
         (3, 30, "c"),
         (4, NULL, NULL);
     COMMIT;
+
+    CREATE TABLE `parent/child` (
+        id INT8 NOT NULL,
+        col UTF8 NOT NULL,
+        PRIMARY KEY (id)
+    );
+    COMMIT;
+    INSERT INTO `parent/child` (id, col) VALUES
+      (1, "a"),
+      (2, "b"),
+      (3, "c"),
+      (4, "d"),
+      (5, "e");
+    COMMIT;
   '

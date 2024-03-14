@@ -239,6 +239,15 @@ func (s *Suite) TestLargeTable() {
 	)
 }
 
+func (s *Suite) TestTableInFolder() {
+	// YDB allows to emplace tables in folders.
+	// In this test case there is a folder called `parent` with a table called `child`
+	s.ValidateTable(
+		s.dataSource,
+		tables["parent/child"],
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base,
 ) *Suite {
