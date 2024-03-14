@@ -5,19 +5,21 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
+	"strings"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-func makeRandomString(n int) string {
+func makeRandomString(n int, start int) string {
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = letterBytes[start%len(letterBytes)]
+		start++
 	}
 	return string(b)
 }
@@ -29,8 +31,10 @@ func makeConnection(ctx context.Context, endpoint string, database string, useTl
 
 	var cred ydb_sdk.Option
 	if token != "" {
+		log.Println("Using access token credentials")
 		cred = ydb_sdk.WithAccessTokenCredentials(token)
 	} else {
+		log.Println("Using anonymous credentials")
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
 
@@ -60,7 +64,7 @@ func createTable(ctx context.Context, conn *sql.DB) error {
 	)
 	`
 
-	_, err := conn.ExecContext(ctx, query)
+	_, err := conn.ExecContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.SchemeQueryMode), query)
 	if err != nil {
 		return fmt.Errorf("exec context: %w", err)
 	}
@@ -68,22 +72,47 @@ func createTable(ctx context.Context, conn *sql.DB) error {
 	return nil
 }
 
-func insertIntoTable(ctx context.Context, conn *sql.DB) error {
-	log.Println("inserting into table...")
-	const items = 10
-	const dataLength = 10
+const dataLength = 1024
 
-	query := `INSERT INTO large (id, data) VALUES (?, ?)`
+func prepareBulkInsert(start int, rowsPerBatch int) string {
+	var sb strings.Builder
+	sb.WriteString("INSERT INTO large (id, data) VALUES")
 
-	stmt, err := conn.PrepareContext(ctx, query)
-	if err != nil {
-		return fmt.Errorf("prepare query: %w", err)
+	for i := 0; i < rowsPerBatch; i++ {
+		sb.WriteString(fmt.Sprintf(" (%d, \"%s\")", start+i, makeRandomString(dataLength, start+i)))
+		if i != rowsPerBatch-1 {
+			sb.WriteString(",")
+		}
 	}
 
-	defer stmt.Close()
+	return sb.String()
+}
 
-	for i := 0; i < items; i++ {
-		if _, err := stmt.ExecContext(ctx, uint64(i), makeRandomString(dataLength)); err != nil {
+const (
+	batches      = 1 << 7
+	rowsPerBatch = 1 << 10
+)
+
+func insertIntoTable(ctx context.Context, conn *sql.DB) error {
+	log.Println("inserting into table...")
+
+	log.Println("expected lines: ", batches*rowsPerBatch)
+	log.Println("expected size: ", batches*rowsPerBatch*dataLength)
+
+	for batch := 0; batch < batches; batch++ {
+		total := batch * rowsPerBatch
+		log.Println("total rows inserted", total)
+
+		query := prepareBulkInsert(total, rowsPerBatch)
+
+		_, err := conn.ExecContext(ctx, query)
+		if err != nil {
+
+			// duplicate key is OK
+			if ydb_sdk.IsOperationError(err, Ydb.StatusIds_PRECONDITION_FAILED) && strings.Contains(err.Error(), "Conflict with existing key") {
+				continue
+			}
+
 			return fmt.Errorf("exec: %w", err)
 		}
 	}
@@ -94,9 +123,9 @@ func insertIntoTable(ctx context.Context, conn *sql.DB) error {
 func selectFromTable(ctx context.Context, conn *sql.DB) error {
 	log.Println("selecting from table...")
 
-	query := `SELECT * FROM large`
+	query := `SELECT id, data FROM large`
 
-	rows, err := conn.QueryContext(ctx, query)
+	rows, err := conn.QueryContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.ScanQueryMode), query)
 	if err != nil {
 		return fmt.Errorf("query: %w", err)
 	}
@@ -108,13 +137,16 @@ func selectFromTable(ctx context.Context, conn *sql.DB) error {
 		data string
 	)
 
-	for rows.Next() {
-		if err := rows.Scan(&id, &data); err != nil {
-			return fmt.Errorf("scan: %w", err)
-		}
+	for cont := true; cont; cont = rows.NextResultSet() {
 
-		log.Println(id, data)
+		for rows.Next() {
+			if err := rows.Scan(&id, &data); err != nil {
+				return fmt.Errorf("scan: %w", err)
+			}
+		}
 	}
+
+	log.Println("LAST scanned key", id, len(data))
 
 	return nil
 }
