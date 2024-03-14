@@ -89,6 +89,7 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	// FIXME: use https://pkg.go.dev/database/sql#Rows.NextResultSet
 	// Very important! Possible data loss.
+	// See https://stackoverflow.com/a/70262398/2361497
 	for rows.Next() {
 		if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
 			return fmt.Errorf("rows scan error: %w", err)
