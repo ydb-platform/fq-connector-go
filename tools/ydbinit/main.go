@@ -21,20 +21,24 @@ func makeRandomString(n int, start int) string {
 		b[i] = letterBytes[start%len(letterBytes)]
 		start++
 	}
+
 	return string(b)
 }
 
-func makeConnection(ctx context.Context, endpoint string, database string, useTls bool, token string) (*sql.DB, error) {
-	dsn := sugar.DSN(endpoint, database, useTls)
+func makeConnection(ctx context.Context, endpoint string, database string, useTLS bool, token string) (*sql.DB, error) {
+	dsn := sugar.DSN(endpoint, database, useTLS)
 
 	log.Println("connecting to database", dsn)
 
 	var cred ydb_sdk.Option
+
 	if token != "" {
 		log.Println("Using access token credentials")
+
 		cred = ydb_sdk.WithAccessTokenCredentials(token)
 	} else {
 		log.Println("Using anonymous credentials")
+
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
 
@@ -57,7 +61,7 @@ func createTable(ctx context.Context, conn *sql.DB) error {
 	log.Println("creating table...")
 
 	query := `
-	CREATE TABLE IF NOT EXISTS large (
+	CREATE TABLE large (
 		id Uint64,
 		data String,
 		PRIMARY KEY (id)
@@ -76,10 +80,12 @@ const dataLength = 1024
 
 func prepareBulkInsert(start int, rowsPerBatch int) string {
 	var sb strings.Builder
+
 	sb.WriteString("INSERT INTO large (id, data) VALUES")
 
 	for i := 0; i < rowsPerBatch; i++ {
 		sb.WriteString(fmt.Sprintf(" (%d, \"%s\")", start+i, makeRandomString(dataLength, start+i)))
+
 		if i != rowsPerBatch-1 {
 			sb.WriteString(",")
 		}
@@ -89,8 +95,8 @@ func prepareBulkInsert(start int, rowsPerBatch int) string {
 }
 
 const (
-	batches      = 1 << 7
-	rowsPerBatch = 1 << 10
+	batches      = 1 << 11
+	rowsPerBatch = 1 << 6
 )
 
 func insertIntoTable(ctx context.Context, conn *sql.DB) error {
@@ -107,9 +113,9 @@ func insertIntoTable(ctx context.Context, conn *sql.DB) error {
 
 		_, err := conn.ExecContext(ctx, query)
 		if err != nil {
-
 			// duplicate key is OK
-			if ydb_sdk.IsOperationError(err, Ydb.StatusIds_PRECONDITION_FAILED) && strings.Contains(err.Error(), "Conflict with existing key") {
+			if ydb_sdk.IsOperationError(err, Ydb.StatusIds_PRECONDITION_FAILED) &&
+				strings.Contains(err.Error(), "Conflict with existing key") {
 				continue
 			}
 
@@ -138,7 +144,6 @@ func selectFromTable(ctx context.Context, conn *sql.DB) error {
 	)
 
 	for cont := true; cont; cont = rows.NextResultSet() {
-
 		for rows.Next() {
 			if err := rows.Scan(&id, &data); err != nil {
 				return fmt.Errorf("scan: %w", err)
@@ -154,7 +159,7 @@ func selectFromTable(ctx context.Context, conn *sql.DB) error {
 const (
 	endpoint string = "localhost:2136"
 	database        = "local"
-	useTls          = false
+	useTLS          = false
 )
 
 func run() error {
@@ -162,7 +167,7 @@ func run() error {
 
 	ctx := context.Background()
 
-	conn, err := makeConnection(ctx, endpoint, database, useTls, token)
+	conn, err := makeConnection(ctx, endpoint, database, useTLS, token)
 	if err != nil {
 		return fmt.Errorf("make connection: %w", err)
 	}

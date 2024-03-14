@@ -23,6 +23,10 @@ type rows struct {
 	pgx.Rows
 }
 
+func (rows) NextResultSet() bool {
+	return false
+}
+
 func (r rows) Close() error {
 	r.Rows.Close()
 

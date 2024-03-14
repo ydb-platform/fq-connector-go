@@ -68,6 +68,10 @@ func (m *RowsMock) Next() bool {
 	return m.Called().Bool(0)
 }
 
+func (m *RowsMock) NextResultSet() bool {
+	return m.Called().Bool(0)
+}
+
 func (m *RowsMock) Scan(dest ...any) error {
 	args := m.Called(dest...)
 

@@ -87,16 +87,15 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("make transformer: %w", err)
 	}
 
-	// FIXME: use https://pkg.go.dev/database/sql#Rows.NextResultSet
-	// Very important! Possible data loss.
-	// See https://stackoverflow.com/a/70262398/2361497
-	for rows.Next() {
-		if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
-			return fmt.Errorf("rows scan error: %w", err)
-		}
+	for cont := true; cont; cont = rows.NextResultSet() {
+		for rows.Next() {
+			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
+				return fmt.Errorf("rows scan error: %w", err)
+			}
 
-		if err := sink.AddRow(transformer); err != nil {
-			return fmt.Errorf("add row to paging writer: %w", err)
+			if err := sink.AddRow(transformer); err != nil {
+				return fmt.Errorf("add row to paging writer: %w", err)
+			}
 		}
 	}
 

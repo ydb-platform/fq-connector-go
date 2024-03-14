@@ -22,6 +22,7 @@ type Rows interface {
 	Close() error
 	Err() error
 	Next() bool
+	NextResultSet() bool
 	Scan(dest ...any) error
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
