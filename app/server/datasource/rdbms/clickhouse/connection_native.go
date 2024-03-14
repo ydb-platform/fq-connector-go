@@ -31,6 +31,10 @@ type rowsNative struct {
 	driver.Rows
 }
 
+func (rowsNative) NextResultSet() bool {
+	return false
+}
+
 func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	columns := r.ColumnTypes()
 
