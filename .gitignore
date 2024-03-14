@@ -1,7 +1,10 @@
 fq-connector-go
 fq-connector-go-tests
+ydbinit
+
 coverage*
 scripts/bench/postgresql
 scripts/bench/clickhouse
 __pycache__
 *.test
+

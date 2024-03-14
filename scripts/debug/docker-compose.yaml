@@ -39,6 +39,19 @@ services:
       - /tmp/yq-connector/postgresql/data/:/var/lib/postgresql/data/
       - ./postgresql/init:/docker-entrypoint-initdb.d
 
+  ydb:
+    image: ghcr.io/ydb-platform/local-ydb:nightly
+    container_name: fq-connector-ydb
+    hostname: localhost
+    ports:
+      - '2136:2136'
+      - '8765:8765'
+    environment:
+      GRPC_TLS_PORT: 2135
+      GRPC_PORT: 2136
+      MON_PORT: 8765
+      YDB_DEFAULT_LOG_LEVEL: NOTICE
+
   minio:
     image: minio/minio:latest
     container_name: fq-connector-minio

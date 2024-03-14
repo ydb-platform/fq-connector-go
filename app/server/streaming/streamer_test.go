@@ -188,6 +188,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))
 		rows.On("Err").Return(nil).Once()
 		rows.On("Close").Return(nil).Once()
+		rows.On("NextResultSet").Return(false).Once()
 	} else {
 		rows.On("MakeTransformer",
 			[]*Ydb.Type{
@@ -200,6 +201,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		rows.On("Scan", transformer.GetAcceptors()...).Return(tc.scanErr).Once()
 		rows.On("Err").Return(nil).Once()
 		rows.On("Close").Return(nil).Once()
+		rows.On("NextResultSet").Return(false).Once()
 	}
 
 	totalMessages, rowsInLastMessage := tc.messageParams()
