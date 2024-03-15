@@ -1,1 +1,1 @@
-SELECT * FROM mr_nvme_testing_01_ydb_native.types;
+SELECT * FROM ydb_local.simple;
