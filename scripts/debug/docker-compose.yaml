@@ -51,6 +51,10 @@ services:
       GRPC_PORT: 2136
       MON_PORT: 8765
       YDB_DEFAULT_LOG_LEVEL: NOTICE
+    volumes:
+      - ./ydb/init/init_ydb:/init_ydb
+      - ./ydb/init/01_basic.sh:/01_basic.sh
+      - ./ydb/init/02_large.sh:/01_large.sh
 
   minio:
     image: minio/minio:latest
