@@ -16,7 +16,7 @@ Currently supported data sources:
 * PostgreSQL
 * YDB
 
-### Usage 
+### Documentation 
 
 * [Architecture overview](https://ydb.tech/docs/ru/concepts/federated_query/architecture)
 * YDB Federated Query deployment:
