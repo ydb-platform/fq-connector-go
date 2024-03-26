@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+
 	"github.com/go-mysql-org/go-mysql/client"
 
 	"go.uber.org/zap"

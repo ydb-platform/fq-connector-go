@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"io"
+
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
@@ -10,7 +12,7 @@ import (
 
 type rows struct {
 	result *mysql.Result
-	resIdx int
+	resIdx *int
 }
 
 func (rows) Close() error {
@@ -22,11 +24,14 @@ func (rows) Err() error {
 }
 
 func (r rows) Next() bool {
-	if r.result == nil || r.resIdx == len(r.result.Resultset.Values) {
+	if r.result == nil {
 		return false
 	}
 
-	r.resIdx++
+	*r.resIdx++
+	if *r.resIdx == r.result.Resultset.RowNumber() {
+		return false
+	}
 
 	return true
 }
@@ -35,10 +40,32 @@ func (rows) NextResultSet() bool {
 	return false
 }
 
-func (rows) Scan(_ ...any) error {
+func (r rows) Scan(dest ...any) error {
+	if *r.resIdx >= r.result.Resultset.RowNumber() {
+		return io.EOF
+	}
+
+	for i := 0; i < r.result.Resultset.ColumnNumber(); i++ {
+		value, err := r.result.Resultset.GetValue(*r.resIdx, i)
+		if err != nil {
+			return err
+		}
+
+		switch dest[i].(type) {
+		case *string:
+			*dest[i].(*string) = string(value.([]byte))
+		case *int:
+			*dest[i].(*int) = value.(int)
+		case *uint:
+			*dest[i].(*uint) = value.(uint)
+		case *bool:
+			*dest[i].(*bool) = value.(bool)
+		}
+	}
+
 	return nil
 }
 
-func (rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (rows) MakeTransformer(_ []*Ydb.Type, _ conversion.Collection) (paging.RowTransformer[any], error) {
 	return paging.NewRowTransformer[any](make([]any, 0), make([]func(acceptor any, builder array.Builder) error, 0), nil), nil
 }
