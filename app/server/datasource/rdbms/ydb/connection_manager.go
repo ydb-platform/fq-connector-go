@@ -89,6 +89,8 @@ func (c *connectionManager) Make(
 
 	if dsi.Credentials.GetToken() != nil {
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
+	} else if dsi.Credentials.GetBasic() != nil {
+		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
 	} else {
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
