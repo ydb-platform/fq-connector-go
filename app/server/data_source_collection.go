@@ -28,7 +28,9 @@ type DataSourceCollection struct {
 }
 
 func (dsc *DataSourceCollection) DescribeTable(
-	ctx context.Context, logger *zap.Logger, request *api_service_protos.TDescribeTableRequest,
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	kind := request.GetDataSourceInstance().GetKind()
 
