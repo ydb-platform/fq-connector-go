@@ -95,17 +95,17 @@ func prepareBulkInsert(start int, rowsPerBatch int) string {
 }
 
 const (
-	batches      = 1 << 11
+	batches      = 1 << 17
 	rowsPerBatch = 1 << 6
 )
 
-func insertIntoTable(ctx context.Context, conn *sql.DB) error {
+func insertIntoTable(ctx context.Context, conn *sql.DB, startIx int) error {
 	log.Println("inserting into table...")
 
 	log.Println("expected lines: ", batches*rowsPerBatch)
 	log.Println("expected size: ", batches*rowsPerBatch*dataLength)
 
-	for batch := 0; batch < batches; batch++ {
+	for batch := startIx / rowsPerBatch; batch < batches; batch++ {
 		total := batch * rowsPerBatch
 		log.Println("total rows inserted", total)
 
@@ -160,6 +160,7 @@ const (
 	endpoint string = "localhost:2136"
 	database        = "local"
 	useTLS          = false
+	startIx         = 0
 )
 
 func run() error {
@@ -178,7 +179,7 @@ func run() error {
 		return fmt.Errorf("create table: %w", err)
 	}
 
-	if err := insertIntoTable(ctx, conn); err != nil {
+	if err := insertIntoTable(ctx, conn, startIx); err != nil {
 		return fmt.Errorf("insert into table: %w", err)
 	}
 

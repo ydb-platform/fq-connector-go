@@ -81,9 +81,6 @@ func (c *connectionManager) Make(
 	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
 	// TODO: add credentials (iam and basic) support
 	endpoint := common.EndpointToString(dsi.Endpoint)
 	dsn := sugar.DSN(endpoint, dsi.Database, dsi.UseTls)
@@ -92,6 +89,8 @@ func (c *connectionManager) Make(
 
 	if dsi.Credentials.GetToken() != nil {
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
+	} else if dsi.Credentials.GetBasic() != nil {
+		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
 	} else {
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
@@ -107,7 +106,11 @@ func (c *connectionManager) Make(
 	}
 
 	conn := sql.OpenDB(ydbConn)
-	if err := conn.PingContext(ctx); err != nil {
+
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if err := conn.PingContext(pingCtx); err != nil {
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
