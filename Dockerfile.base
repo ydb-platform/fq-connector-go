@@ -2,4 +2,4 @@ FROM alpine
 
 LABEL org.opencontainers.image.source=https://github.com/ydb-platform/fq-connector-go
 
-RUN apk add libc6-compat busybox-extras && apk cache clean
+RUN apk add libc6-compat busybox-extras bind-tools && apk cache clean
