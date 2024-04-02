@@ -8,8 +8,10 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
@@ -95,7 +97,9 @@ func (c *connectionManager) Make(
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
 
-	ydbDriver, err := ydb_sdk.Open(ctx, dsn, cred)
+	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
+
+	ydbDriver, err := ydb_sdk.Open(ctx, dsn, cred, ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())))
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
@@ -106,6 +110,8 @@ func (c *connectionManager) Make(
 	}
 
 	conn := sql.OpenDB(ydbConn)
+
+	logger.Debug("Pinging database")
 
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -123,6 +129,8 @@ func (c *connectionManager) Make(
 	conn.SetMaxIdleConns(maxIdleConns)
 	conn.SetMaxOpenConns(maxOpenConns)
 	conn.SetConnMaxLifetime(connMaxLifetime)
+
+	logger.Debug("Connection is ready")
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
