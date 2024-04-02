@@ -55,7 +55,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
 		}
 
-		splits, err = prepareSplits(cl, cfg.DataSourceInstance, typeMappingSettings, tableName)
+		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName)
 
 		if err != nil {
 			return fmt.Errorf("prepare splits: %w", err)
@@ -73,11 +73,14 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 }
 
 func prepareSplits(
+	logger *zap.Logger,
 	cl *common.ClientBuffering,
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
 ) ([]*api_service_protos.TSplit, error) {
+	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
+
 	// DescribeTable
 	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, typeMappingSettings, tableName)
 	if err != nil {
@@ -88,6 +91,8 @@ func prepareSplits(
 		return nil, fmt.Errorf("describe table: %v", describeTableResponse.Error)
 	}
 
+	logger.Info("Table scheme", zap.String("result", describeTableResponse.Schema.String()))
+
 	// ListSplits - we want to SELECT *
 	slct := &api_service_protos.TSelect{
 		DataSourceInstance: dsi,
@@ -97,10 +102,14 @@ func prepareSplits(
 		},
 	}
 
+	logger.Debug("Listing splits", zap.String("select", slct.String()))
+
 	listSplitsResponse, err := cl.ListSplits(context.TODO(), slct)
 	if err != nil {
 		return nil, fmt.Errorf("list splits: %w", err)
 	}
+
+	logger.Info("Splits list", zap.Any("splits", listSplitsResponse))
 
 	return common.ListSplitsResponsesToSplits(listSplitsResponse), nil
 }
@@ -110,10 +119,14 @@ func readSplits(
 	cl *common.ClientBuffering,
 	splits []*api_service_protos.TSplit,
 ) error {
+	logger.Debug("Reading splits")
+
 	readSplitsResponses, err := cl.ReadSplits(context.Background(), splits)
 	if err != nil {
 		return fmt.Errorf("read splits: %w", err)
 	}
+
+	logger.Debug("Obtained read splits responses", zap.Int("count", len(readSplitsResponses)))
 
 	records, err := common.ReadResponsesToArrowRecords(readSplitsResponses)
 	if err != nil {

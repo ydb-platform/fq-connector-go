@@ -36,9 +36,11 @@ func (f *schemaProvider) GetSchema(
 
 	desc := options.Description{}
 	prefix := path.Join(db.Name(), request.Table)
-	cl := db.Table()
+	tableClient := db.Table()
 
-	err = cl.Do(
+	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
+
+	err = tableClient.Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			desc, err = s.DescribeTable(ctx, prefix)
