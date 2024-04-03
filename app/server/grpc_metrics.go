@@ -2,15 +2,51 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
+
+type errorGetter interface {
+	GetError() *api_service_protos.TError
+}
+
+// extractErrorCodeStr is used to fill sensor representing the number of succesfull/failed responses.
+// There are two kinds of errors in the system:
+// 1. transport errors (e. g. client stream interrupted, so we failed to send response)
+// 2. logical errors
+func extractErrorCodeStr(response any, err error) string {
+	grpcStatusCode := status.Code(err)
+
+	// transport error happened
+	if grpcStatusCode != codes.OK {
+		return grpcStatusCode.String()
+	}
+
+	// check possible logical error
+	eg, ok := response.(errorGetter)
+	if !ok {
+		panic(fmt.Sprintf("failed to cast response of type %T to errorGetter", response))
+	}
+
+	ydbStatus := eg.GetError().Status
+	if ydbStatus != Ydb.StatusIds_SUCCESS {
+		return ydbStatus.String()
+	}
+
+	// return "OK" for backward compatibility with Solomon monitoring plots
+	return "OK"
+}
 
 func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 	requestCount := registry.CounterVec("requests_total", []string{"protocol", "endpoint"})
@@ -73,12 +109,10 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 		defer deferFunc(startTime, opName)
 
 		resp, err := handler(ctx, req)
-
-		code := status.Code(err)
 		statusCount.With(map[string]string{
 			"protocol": "grpc",
 			"endpoint": opName,
-			"status":   code.String(),
+			"status":   extractErrorCodeStr(resp, err),
 		}).Inc()
 
 		responseBytes.With(map[string]string{
@@ -196,8 +230,7 @@ func (s serverStreamWithMessagesCount) SendMsg(m any) error {
 		s.sentBytes.Add(int64(proto.Size(m.(proto.Message))))
 	}
 
-	code := status.Code(err)
-	s.getStatusCounter(code.String()).Inc()
+	s.getStatusCounter(extractErrorCodeStr(m, err)).Inc()
 
 	return err
 }
@@ -210,8 +243,7 @@ func (s serverStreamWithMessagesCount) RecvMsg(m any) error {
 		s.receivedBytes.Add(int64(proto.Size(m.(proto.Message))))
 	}
 
-	code := status.Code(err)
-	s.getStatusCounter(code.String()).Inc()
+	s.getStatusCounter(extractErrorCodeStr(m, err)).Inc()
 
 	return err
 }
