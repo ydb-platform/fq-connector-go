@@ -8,12 +8,17 @@ option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
 
 // Connector client configuration
 message TClientConfig {
-    // Connector service instance network address we connect to
-    NYql.NConnector.NApi.TEndpoint endpoint = 1;
+    // Connector GRPC API endpoint to connect
+    NYql.NConnector.NApi.TEndpoint connector_server_endpoint = 4;
     // TLS credentials for Connector
     TClientTLSConfig tls = 2;
     // Data source instance we read data from
     NYql.NConnector.NApi.TDataSourceInstance data_source_instance = 3;
+
+    // Solomon metrics endpoint to connect
+    NYql.NConnector.NApi.TEndpoint metrics_server_endpoint = 5;
+
+    reserved 1;
 }
 
 message TClientTLSConfig {
