@@ -21,16 +21,22 @@ type errorGetter interface {
 	GetError() *api_service_protos.TError
 }
 
-// extractErrorCodeStr is used to fill sensor representing the number of succesfull/failed responses.
+// maybeRegisterStatusCode is used to fill sensor representing the number of succesfull/failed responses.
 // There are two kinds of errors in the system:
 // 1. transport errors (e. g. client stream interrupted, so we failed to send response)
 // 2. logical errors
-func extractErrorCodeStr(response any, err error) string {
+func maybeRegisterStatusCode(statusCount metrics.CounterVec, opName string, streamingMethod bool, response any, err error) {
 	grpcStatusCode := status.Code(err)
 
 	// transport error happened
 	if grpcStatusCode != codes.OK {
-		return grpcStatusCode.String()
+		statusCount.With(map[string]string{
+			"protocol": "grpc",
+			"endpoint": opName,
+			"status":   grpcStatusCode.String(),
+		}).Inc()
+
+		return
 	}
 
 	// check possible logical error
@@ -39,13 +45,31 @@ func extractErrorCodeStr(response any, err error) string {
 		panic(fmt.Sprintf("failed to cast response of type %T to errorGetter", response))
 	}
 
-	ydbStatus := eg.GetError().Status
-	if ydbStatus != Ydb.StatusIds_SUCCESS {
-		return ydbStatus.String()
+	if eg.GetError() == nil {
+		// All unary methods responses must have errors filled
+		if !streamingMethod {
+			panic(fmt.Sprintf("message of type %T has no filled error", response))
+		}
+
+		// Streaming methods do not fill errors in the middle of the stream, but only in terminating message
+		return
 	}
 
-	// return "OK" for backward compatibility with Solomon monitoring plots
-	return "OK"
+	ydbStatus := eg.GetError().Status
+	var ydbStatusStr string
+	if ydbStatus != Ydb.StatusIds_SUCCESS {
+		// convert YDB status code to string
+		ydbStatusStr = ydbStatus.String()
+	} else {
+		// return "OK" for backward compatibility with Solomon monitoring plots
+		ydbStatusStr = "OK"
+	}
+
+	statusCount.With(map[string]string{
+		"protocol": "grpc",
+		"endpoint": opName,
+		"status":   ydbStatusStr,
+	}).Inc()
 }
 
 func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
@@ -109,11 +133,8 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 		defer deferFunc(startTime, opName)
 
 		resp, err := handler(ctx, req)
-		statusCount.With(map[string]string{
-			"protocol": "grpc",
-			"endpoint": opName,
-			"status":   extractErrorCodeStr(resp, err),
-		}).Inc()
+
+		maybeRegisterStatusCode(statusCount, opName, false, resp, err)
 
 		responseBytes.With(map[string]string{
 			"protocol": "grpc",
@@ -202,13 +223,8 @@ func StreamServerMetrics(registry metrics.Registry) grpc.StreamServerInterceptor
 				"protocol": "grpc",
 				"endpoint": opName,
 			}),
-			getStatusCounter: func(code string) metrics.Counter {
-				return statusCount.With(map[string]string{
-					"protocol": "grpc",
-					"endpoint": opName,
-					"status":   code,
-				})
-			},
+			statusCount: statusCount,
+			method:      opName,
 		})
 	}
 }
@@ -219,7 +235,8 @@ type serverStreamWithMessagesCount struct {
 	receivedStreamMessages metrics.Counter
 	sentBytes              metrics.Counter
 	receivedBytes          metrics.Counter
-	getStatusCounter       func(string) metrics.Counter
+	statusCount            metrics.CounterVec
+	method                 string
 }
 
 func (s serverStreamWithMessagesCount) SendMsg(m any) error {
@@ -230,7 +247,7 @@ func (s serverStreamWithMessagesCount) SendMsg(m any) error {
 		s.sentBytes.Add(int64(proto.Size(m.(proto.Message))))
 	}
 
-	s.getStatusCounter(extractErrorCodeStr(m, err)).Inc()
+	maybeRegisterStatusCode(s.statusCount, s.method, true, m, err)
 
 	return err
 }
@@ -243,7 +260,8 @@ func (s serverStreamWithMessagesCount) RecvMsg(m any) error {
 		s.receivedBytes.Add(int64(proto.Size(m.(proto.Message))))
 	}
 
-	s.getStatusCounter(extractErrorCodeStr(m, err)).Inc()
+	// No need to register errors while receiving requests
+	// maybeRegisterStatusCode(s.statusCount, s.method, true, m, err)
 
 	return err
 }
