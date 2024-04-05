@@ -272,7 +272,7 @@ func (s *Suite) TestMissingDataSource() {
 		Protocol: api_common.EProtocol_NATIVE,
 	}
 
-	suite.TestMissingDataSource(s.Base, dsi, tables["simple"])
+	suite.TestMissingDataSource(s.Base, dsi)
 }
 
 func NewSuite(

@@ -251,9 +251,14 @@ func (s *Suite) TestMissingDataSource() {
 		},
 		UseTls:   false,
 		Protocol: api_common.EProtocol_NATIVE,
+		Options: &api_common.TDataSourceInstance_PgOptions{
+			PgOptions: &api_common.TPostgreSQLDataSourceOptions{
+				Schema: "public",
+			},
+		},
 	}
 
-	suite.TestMissingDataSource(s.Base, dsi, tables["simple"])
+	suite.TestMissingDataSource(s.Base, dsi)
 }
 
 func NewSuite(

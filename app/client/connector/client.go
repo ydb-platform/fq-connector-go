@@ -14,10 +14,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	outputFormat = api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING
-)
-
 func runClient(cmd *cobra.Command, _ []string) error {
 	configPath, err := cmd.Flags().GetString(configFlag)
 	if err != nil {

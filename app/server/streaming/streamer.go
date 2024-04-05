@@ -63,7 +63,7 @@ func (s *Streamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
 
 	resp.Stats = result.Stats
 
-	// if stream is finished, assign successfull operation code
+	// if stream is finished, assign successful operation code
 	if result.IsTerminalMessage {
 		resp.Error = common.NewSuccess()
 	}

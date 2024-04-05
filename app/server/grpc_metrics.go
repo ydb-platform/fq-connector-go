@@ -56,6 +56,7 @@ func maybeRegisterStatusCode(statusCount metrics.CounterVec, opName string, stre
 	}
 
 	ydbStatus := eg.GetError().Status
+
 	var ydbStatusStr string
 	if ydbStatus != Ydb.StatusIds_SUCCESS {
 		// convert YDB status code to string

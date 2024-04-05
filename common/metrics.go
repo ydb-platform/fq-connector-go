@@ -31,8 +31,8 @@ func (ms *MetricsSnapshot) FindStatusSensors(typ, method, name, status string) [
 
 	var out []StatusSensor
 
-	for _, item_ := range metrics {
-		item, ok := item_.(map[string]any)
+	for _, itemUntyped := range metrics {
+		item, ok := itemUntyped.(map[string]any)
 		if !ok {
 			panic("invalid response")
 		}
@@ -58,10 +58,10 @@ func (ms *MetricsSnapshot) FindStatusSensors(typ, method, name, status string) [
 	return out
 }
 
-func getJSON(url string, target interface{}) error {
-	r, err := retryablehttp.Get(url)
+func getJSON(u url.URL, target any) error {
+	r, err := retryablehttp.Get(u.String())
 	if err != nil {
-		return fmt.Errorf("GET %s: %w", url, err)
+		return fmt.Errorf("GET %s: %w", u.String(), err)
 	}
 
 	defer r.Body.Close()
@@ -69,29 +69,25 @@ func getJSON(url string, target interface{}) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-func buildURL(endpoint *api_common.TEndpoint, useTLS bool) (string, error) {
-	var url url.URL
+func buildURL(endpoint *api_common.TEndpoint, useTLS bool) url.URL {
+	var u url.URL
 
 	if useTLS {
-		url.Scheme = "https"
+		u.Scheme = "https"
 	} else {
-		url.Scheme = "http"
+		u.Scheme = "http"
 	}
-	url.Host = EndpointToString(endpoint)
-	url.Path = "metrics"
 
-	return url.String(), nil
+	u.Host = EndpointToString(endpoint)
+	u.Path = "metrics"
+
+	return u
 }
 
 func NewMetricsSnapshot(endpoint *api_common.TEndpoint, useTLS bool) (*MetricsSnapshot, error) {
-	url, err := buildURL(endpoint, useTLS)
-	if err != nil {
-		return nil, fmt.Errorf("build URL: %w", err)
-	}
-
 	mp := &MetricsSnapshot{}
 
-	if err := getJSON(url, &mp.data); err != nil {
+	if err := getJSON(buildURL(endpoint, useTLS), &mp.data); err != nil {
 		return nil, fmt.Errorf("get JSON: %w", err)
 	}
 

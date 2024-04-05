@@ -25,7 +25,7 @@ func TestPositiveStats(s *Base, dataSource *datasource.DataSource, table *dataso
 	snapshot2, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
-	// Successfull status codes incremented by N, where N is a number of data source instances
+	// Successful status codes incremented by N, where N is a number of data source instances
 	describeTableStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "OK")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(len(dataSource.Instances)), describeTableStatusOK)
@@ -39,7 +39,7 @@ func TestPositiveStats(s *Base, dataSource *datasource.DataSource, table *dataso
 	s.Require().Equal(float64(len(dataSource.Instances)), readSplitsStatusOK)
 }
 
-func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance, table *datasource.Table) {
+func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
 	// read some table to "heat" metrics
 	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
 	s.Require().NoError(err)
