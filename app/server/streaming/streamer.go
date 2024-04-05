@@ -11,6 +11,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type Streamer[T paging.Acceptor] struct {
@@ -61,6 +62,11 @@ func (s *Streamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
 	}
 
 	resp.Stats = result.Stats
+
+	// if stream is finished, assign successful operation code
+	if result.IsTerminalMessage {
+		resp.Error = common.NewSuccess()
+	}
 
 	dumpReadSplitsResponse(s.logger, resp)
 

@@ -2,15 +2,76 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
+
+type errorGetter interface {
+	GetError() *api_service_protos.TError
+}
+
+// maybeRegisterStatusCode is used to fill sensor representing the number of succesfull/failed responses.
+// There are two kinds of errors in the system:
+// 1. transport errors (e. g. client stream interrupted, so we failed to send response)
+// 2. logical errors
+func maybeRegisterStatusCode(statusCount metrics.CounterVec, opName string, streamingMethod bool, response any, err error) {
+	grpcStatusCode := status.Code(err)
+
+	// transport error happened
+	if grpcStatusCode != codes.OK {
+		statusCount.With(map[string]string{
+			"protocol": "grpc",
+			"endpoint": opName,
+			"status":   grpcStatusCode.String(),
+		}).Inc()
+
+		return
+	}
+
+	// check possible logical error
+	eg, ok := response.(errorGetter)
+	if !ok {
+		panic(fmt.Sprintf("failed to cast response of type %T to errorGetter", response))
+	}
+
+	if eg.GetError() == nil {
+		// All unary methods responses must have errors filled
+		if !streamingMethod {
+			panic(fmt.Sprintf("message of type %T has no filled error", response))
+		}
+
+		// Streaming methods do not fill errors in the middle of the stream, but only in terminating message
+		return
+	}
+
+	ydbStatus := eg.GetError().Status
+
+	var ydbStatusStr string
+	if ydbStatus != Ydb.StatusIds_SUCCESS {
+		// convert YDB status code to string
+		ydbStatusStr = ydbStatus.String()
+	} else {
+		// return "OK" for backward compatibility with Solomon monitoring plots
+		ydbStatusStr = "OK"
+	}
+
+	statusCount.With(map[string]string{
+		"protocol": "grpc",
+		"endpoint": opName,
+		"status":   ydbStatusStr,
+	}).Inc()
+}
 
 func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 	requestCount := registry.CounterVec("requests_total", []string{"protocol", "endpoint"})
@@ -74,12 +135,7 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 
 		resp, err := handler(ctx, req)
 
-		code := status.Code(err)
-		statusCount.With(map[string]string{
-			"protocol": "grpc",
-			"endpoint": opName,
-			"status":   code.String(),
-		}).Inc()
+		maybeRegisterStatusCode(statusCount, opName, false, resp, err)
 
 		responseBytes.With(map[string]string{
 			"protocol": "grpc",
@@ -168,13 +224,8 @@ func StreamServerMetrics(registry metrics.Registry) grpc.StreamServerInterceptor
 				"protocol": "grpc",
 				"endpoint": opName,
 			}),
-			getStatusCounter: func(code string) metrics.Counter {
-				return statusCount.With(map[string]string{
-					"protocol": "grpc",
-					"endpoint": opName,
-					"status":   code,
-				})
-			},
+			statusCount: statusCount,
+			method:      opName,
 		})
 	}
 }
@@ -185,7 +236,8 @@ type serverStreamWithMessagesCount struct {
 	receivedStreamMessages metrics.Counter
 	sentBytes              metrics.Counter
 	receivedBytes          metrics.Counter
-	getStatusCounter       func(string) metrics.Counter
+	statusCount            metrics.CounterVec
+	method                 string
 }
 
 func (s serverStreamWithMessagesCount) SendMsg(m any) error {
@@ -196,8 +248,7 @@ func (s serverStreamWithMessagesCount) SendMsg(m any) error {
 		s.sentBytes.Add(int64(proto.Size(m.(proto.Message))))
 	}
 
-	code := status.Code(err)
-	s.getStatusCounter(code.String()).Inc()
+	maybeRegisterStatusCode(s.statusCount, s.method, true, m, err)
 
 	return err
 }
@@ -210,8 +261,8 @@ func (s serverStreamWithMessagesCount) RecvMsg(m any) error {
 		s.receivedBytes.Add(int64(proto.Size(m.(proto.Message))))
 	}
 
-	code := status.Code(err)
-	s.getStatusCounter(code.String()).Inc()
+	// No need to register errors while receiving requests
+	// maybeRegisterStatusCode(s.statusCount, s.method, true, m, err)
 
 	return err
 }

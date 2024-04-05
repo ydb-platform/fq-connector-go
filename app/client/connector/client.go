@@ -1,9 +1,8 @@
-package client
+package connector
 
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/spf13/cobra"
@@ -15,16 +14,18 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	tableName    = "primitives"
-	outputFormat = api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING
-)
+func runClient(cmd *cobra.Command, _ []string) error {
+	configPath, err := cmd.Flags().GetString(configFlag)
+	if err != nil {
+		return fmt.Errorf("get config flag: %v", err)
+	}
 
-func runClient(_ *cobra.Command, args []string) error {
-	var (
-		configPath = args[0]
-		cfg        config.TClientConfig
-	)
+	tableName, err := cmd.Flags().GetString(tableFlag)
+	if err != nil {
+		return fmt.Errorf("get table flag: %v", err)
+	}
+
+	var cfg config.TClientConfig
 
 	if err := common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
 		return fmt.Errorf("unknown instance: %w", err)
@@ -32,14 +33,14 @@ func runClient(_ *cobra.Command, args []string) error {
 
 	logger := common.NewDefaultLogger()
 
-	if err := callServer(logger, &cfg); err != nil {
+	if err := callServer(logger, &cfg, tableName); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 
 	return nil
 }
 
-func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
+func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string) error {
 	cl, err := common.NewClientBufferingFromClientConfig(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("grpc dial: %w", err)
@@ -147,15 +148,4 @@ func dumpReadResponses(
 			logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
 		}
 	}
-}
-
-var Cmd = &cobra.Command{
-	Use:   "client",
-	Short: "client for Connector testing and debugging purposes",
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := runClient(cmd, args); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	},
 }

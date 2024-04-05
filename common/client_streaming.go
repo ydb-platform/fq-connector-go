@@ -133,7 +133,7 @@ func NewClientStreamingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 
 func NewClientStreamingFromServerConfig(logger *zap.Logger, serverCfg *config.TServerConfig) (*ClientStreaming, error) {
 	clientCfg := &config.TClientConfig{
-		Endpoint: serverCfg.ConnectorServer.Endpoint,
+		ConnectorServerEndpoint: serverCfg.ConnectorServer.Endpoint,
 	}
 
 	if serverCfg.ConnectorServer.Tls != nil {

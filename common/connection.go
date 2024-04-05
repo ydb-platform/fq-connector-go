@@ -43,7 +43,7 @@ func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpt
 
 	opts = append(opts, additionalOpts...)
 
-	conn, err := grpc.Dial(EndpointToString(cfg.Endpoint), opts...)
+	conn, err := grpc.Dial(EndpointToString(cfg.ConnectorServerEndpoint), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %w", err)
 	}

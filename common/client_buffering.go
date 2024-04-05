@@ -90,7 +90,7 @@ func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 
 func NewClientBufferingFromServerConfig(logger *zap.Logger, serverCfg *config.TServerConfig) (*ClientBuffering, error) {
 	clientCfg := &config.TClientConfig{
-		Endpoint: serverCfg.ConnectorServer.Endpoint,
+		ConnectorServerEndpoint: serverCfg.ConnectorServer.Endpoint,
 	}
 
 	if serverCfg.ConnectorServer.Tls != nil {

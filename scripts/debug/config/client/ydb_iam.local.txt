@@ -1,6 +1,11 @@
-endpoint {
-    host: "connector.yqv2-dev.cloud.yandex.net"
-    port: 50051
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
 }
 
 tls: {}
