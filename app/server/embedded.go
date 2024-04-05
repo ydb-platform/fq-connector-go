@@ -55,7 +55,7 @@ func (s *Embedded) handleStartError(err error) {
 			s.logger.Fatal("launcher start", zap.Error(err))
 		}
 	} else {
-		s.logger.Warn("launcher start", zap.Error(err))
+		s.logger.Debug("service termination", zap.Error(err))
 	}
 }
 
