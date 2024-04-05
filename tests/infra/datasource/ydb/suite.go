@@ -3,6 +3,7 @@ package ydb
 import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
@@ -246,6 +247,32 @@ func (s *Suite) TestTableInFolder() {
 		s.dataSource,
 		tables["parent/child"],
 	)
+}
+
+// Set of tests validating stats
+
+func (s *Suite) TestPositiveStats() {
+	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
+}
+
+func (s *Suite) TestMissingDataSource() {
+	dsi := &api_common.TDataSourceInstance{
+		Kind:     api_common.EDataSourceKind_YDB,
+		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 2136},
+		Database: "it's not important",
+		Credentials: &api_common.TCredentials{
+			Payload: &api_common.TCredentials_Basic{
+				Basic: &api_common.TCredentials_TBasic{
+					Username: "it's not important",
+					Password: "it's not important",
+				},
+			},
+		},
+		UseTls:   false,
+		Protocol: api_common.EProtocol_NATIVE,
+	}
+
+	suite.TestMissingDataSource(s.Base, dsi, tables["simple"])
 }
 
 func NewSuite(

@@ -1,8 +1,6 @@
 package clickhouse
 
 import (
-	"context"
-
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -265,41 +263,13 @@ func (s *Suite) TestPushdownBetween() {
 // Set of tests validating stats
 
 func (s *Suite) TestPositiveStats() {
-	// read some table to "heat" metrics
-	s.ValidateTable(s.dataSource, tables["simple"])
-
-	// get stats snapshot before table reading
-	snapshot1, err := s.Connector.MetricsSnapshot()
-	s.Require().NoError(err)
-
-	// read some table
-	s.ValidateTable(s.dataSource, tables["simple"])
-
-	// get stats snapshot after table reading
-	snapshot2, err := s.Connector.MetricsSnapshot()
-	s.Require().NoError(err)
-
-	// Successfull status codes incremented by N, where N is a number of data source instances
-	describeTableStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "OK")
-	s.Require().NoError(err)
-	s.Require().Equal(float64(len(s.dataSource.Instances)), describeTableStatusOK)
-
-	listSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ListSplits", "stream_status_total", "OK")
-	s.Require().NoError(err)
-	s.Require().Equal(float64(len(s.dataSource.Instances)), listSplitsStatusOK)
-
-	readSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ReadSplits", "stream_status_total", "OK")
-	s.Require().NoError(err)
-	s.Require().Equal(float64(len(s.dataSource.Instances)), readSplitsStatusOK)
+	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }
 
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
-		Kind: api_common.EDataSourceKind_CLICKHOUSE,
-		Endpoint: &api_common.TEndpoint{
-			Host: "missing_data_source",
-			Port: 12345,
-		},
+		Kind:     api_common.EDataSourceKind_CLICKHOUSE,
+		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 12345},
 		Database: "it's not important",
 		Credentials: &api_common.TCredentials{
 			Payload: &api_common.TCredentials_Basic{
@@ -313,28 +283,7 @@ func (s *Suite) TestMissingDataSource() {
 		Protocol: api_common.EProtocol_NATIVE,
 	}
 
-	// read some table to "heat" metrics
-	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
-	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
-
-	// get stats snapshot before table reading
-	snapshot1, err := s.Connector.MetricsSnapshot()
-	s.Require().NoError(err)
-
-	// read some table
-	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
-	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
-
-	// get stats snapshot after table reading
-	snapshot2, err := s.Connector.MetricsSnapshot()
-	s.Require().NoError(err)
-
-	// errors count incremented by one
-	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "INTERNAL_ERROR")
-	s.Require().NoError(err)
-	s.Require().Equal(float64(1), describeTableStatusErr)
+	suite.TestMissingDataSource(s.Base, dsi, tables["simple"])
 }
 
 func NewSuite(

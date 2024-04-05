@@ -134,7 +134,6 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 
 		resp, err := handler(ctx, req)
 
-		fmt.Println(">>>>>>> REGISTER STATUS UNARY <<<<<<<<")
 		maybeRegisterStatusCode(statusCount, opName, false, resp, err)
 
 		responseBytes.With(map[string]string{
