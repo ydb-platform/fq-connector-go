@@ -274,13 +274,17 @@ func (s *Suite) TestPositiveStats() {
 
 	// Successfull status codes incremented by N
 	// where N is a number of data source instances
-	describeTableStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "status_total", "OK", "DescribeTable")
+	describeTableStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "OK")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(len(s.dataSource.Instances)), describeTableStatusOK)
 
-	listSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "stream_status_total", "OK", "ListSplits")
+	listSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ListSplits", "stream_status_total", "OK")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(len(s.dataSource.Instances)), listSplitsStatusOK)
+
+	readSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ReadSplits", "stream_status_total", "OK")
+	s.Require().NoError(err)
+	s.Require().Equal(float64(len(s.dataSource.Instances)), readSplitsStatusOK)
 }
 
 func NewSuite(

@@ -23,7 +23,7 @@ type StatusSensor struct {
 	Value  float64
 }
 
-func (ms *MetricsSnapshot) FindStatusSensors(typ, name, status, method string) []StatusSensor {
+func (ms *MetricsSnapshot) FindStatusSensors(typ, method, name, status string) []StatusSensor {
 	metrics, ok := ms.data["metrics"].([]any)
 	if !ok {
 		panic("invalid response")
@@ -98,13 +98,13 @@ func NewMetricsSnapshot(endpoint *api_common.TEndpoint, useTLS bool) (*MetricsSn
 	return mp, nil
 }
 
-func DiffStatusSensors(oldSnapshot, newSnapshot *MetricsSnapshot, typ, name, status, method string) (float64, error) {
-	oldSensors := oldSnapshot.FindStatusSensors(typ, name, status, method)
+func DiffStatusSensors(oldSnapshot, newSnapshot *MetricsSnapshot, typ, method, name, status string) (float64, error) {
+	oldSensors := oldSnapshot.FindStatusSensors(typ, method, name, status)
 	if len(oldSensors) != 1 {
 		return 0, fmt.Errorf("unexpected number of sensors in old snapshot: %d", len(oldSensors))
 	}
 
-	newSensors := newSnapshot.FindStatusSensors(typ, name, status, method)
+	newSensors := newSnapshot.FindStatusSensors(typ, method, name, status)
 	if len(newSensors) != 1 {
 		return 0, fmt.Errorf("unexpected number of sensors in old snapshot: %d", len(newSensors))
 	}

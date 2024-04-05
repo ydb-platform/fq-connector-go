@@ -37,7 +37,7 @@ func callServer(_ *zap.Logger, cfg *config.TClientConfig) error {
 		return fmt.Errorf("new metrics provider: %w", err)
 	}
 
-	result := mp.FindStatusSensors("RATE", "status_total", "OK")
+	result := mp.FindStatusSensors("RATE", "DescribeTable", "status_total", "OK")
 
 	fmt.Println(result)
 
