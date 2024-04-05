@@ -56,6 +56,14 @@ func (b *Base) SetupSuite() {
 				UseUnsafeConverters: true,
 			},
 		),
+		server.WithMetricsServerConfig(
+			&config.TMetricsServerConfig{
+				Endpoint: &api_common.TEndpoint{
+					Host: "localhost",
+					Port: 8766,
+				},
+			},
+		),
 	)
 	b.Require().NoError(err)
 	b.Connector.Start()

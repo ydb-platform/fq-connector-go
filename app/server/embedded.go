@@ -21,6 +21,7 @@ type Embedded struct {
 	logger          *zap.Logger
 	clientBuffering *common.ClientBuffering
 	clientStreaming *common.ClientStreaming
+	cfg             *config.TServerConfig
 	operational     bool
 	mutex           sync.Mutex
 }
@@ -62,6 +63,19 @@ func (s *Embedded) ClientBuffering() *common.ClientBuffering { return s.clientBu
 
 func (s *Embedded) ClientStreaming() *common.ClientStreaming { return s.clientStreaming }
 
+func (s *Embedded) MetricsSnapshot() (*common.MetricsSnapshot, error) {
+	if s.cfg.MetricsServer == nil {
+		return nil, fmt.Errorf("metrics server is not initialized")
+	}
+
+	mp, err := common.NewMetricsSnapshot(s.cfg.MetricsServer.Endpoint, s.cfg.Tls != nil)
+	if err != nil {
+		return nil, fmt.Errorf("new metrics provider: %w", err)
+	}
+
+	return mp, nil
+}
+
 func (s *Embedded) Stop() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -71,59 +85,6 @@ func (s *Embedded) Stop() {
 		s.clientBuffering.Close()
 		s.operational = false
 	}
-}
-
-// EmbeddedOption parametrizes initialization of an embedded Connector server
-type EmbeddedOption interface {
-	apply(cfg *config.TServerConfig)
-}
-
-type withPagingConfig struct {
-	pagingConfig *config.TPagingConfig
-}
-
-func (o *withPagingConfig) apply(cfg *config.TServerConfig) {
-	cfg.Paging = o.pagingConfig
-}
-
-func WithPagingConfig(pagingConfig *config.TPagingConfig) EmbeddedOption {
-	return &withPagingConfig{pagingConfig: pagingConfig}
-}
-
-type withLoggerConfig struct {
-	loggerConfig *config.TLoggerConfig
-}
-
-func (o *withLoggerConfig) apply(cfg *config.TServerConfig) {
-	cfg.Logger = o.loggerConfig
-}
-
-func WithLoggerConfig(loggerConfig *config.TLoggerConfig) EmbeddedOption {
-	return &withLoggerConfig{loggerConfig: loggerConfig}
-}
-
-type withPprofServerConfig struct {
-	pprofServerConfig *config.TPprofServerConfig
-}
-
-func (o *withPprofServerConfig) apply(cfg *config.TServerConfig) {
-	cfg.PprofServer = o.pprofServerConfig
-}
-
-func WithPprofServerConfig(pprofServerConfig *config.TPprofServerConfig) EmbeddedOption {
-	return &withPprofServerConfig{pprofServerConfig: pprofServerConfig}
-}
-
-type withConversionConfig struct {
-	conversionConfig *config.TConversionConfig
-}
-
-func (o *withConversionConfig) apply(cfg *config.TServerConfig) {
-	cfg.Conversion = o.conversionConfig
-}
-
-func WithConversionConfig(conversionConfig *config.TConversionConfig) EmbeddedOption {
-	return &withConversionConfig{conversionConfig: conversionConfig}
 }
 
 func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
@@ -158,6 +119,7 @@ func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
 		operational:     true,
 		clientBuffering: clientBuffering,
 		clientStreaming: clientStreaming,
+		cfg:             cfg,
 	}
 
 	return sn, nil

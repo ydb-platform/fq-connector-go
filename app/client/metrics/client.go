@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"fmt"
-	"net/url"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -32,35 +31,13 @@ func runClient(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
-func buildURL(cfg *config.TClientConfig) (string, error) {
-	if cfg.MetricsServerEndpoint == nil {
-		return "", fmt.Errorf("empty metrics_server_endpoint field")
-	}
-
-	var url url.URL
-
-	url.Scheme = "http"
-	url.Host = common.EndpointToString(cfg.MetricsServerEndpoint)
-	url.Path = "metrics"
-
-	return url.String(), nil
-}
-
-func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
-	url, err := buildURL(cfg)
-	if err != nil {
-		return fmt.Errorf("build URL: %w", err)
-	}
-
-	mp, err := common.NewMetricsProvider(url)
+func callServer(_ *zap.Logger, cfg *config.TClientConfig) error {
+	mp, err := common.NewMetricsSnapshot(cfg.MetricsServerEndpoint, false)
 	if err != nil {
 		return fmt.Errorf("new metrics provider: %w", err)
 	}
 
-	result, err := mp.Find("RATE", "status_total")
-	if err != nil {
-		return fmt.Errorf("find: %w", err)
-	}
+	result := mp.FindStatusSensors("RATE", "status_total", "OK")
 
 	fmt.Println(result)
 
