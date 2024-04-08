@@ -286,6 +286,16 @@ func (s *Suite) TestMissingDataSource() {
 	suite.TestMissingDataSource(s.Base, dsi)
 }
 
+func (s *Suite) TestInvalidLogin() {
+	for _, dsi := range s.dataSource.Instances {
+		if dsi.Protocol == api_common.EProtocol_HTTP {
+			// won't fix until github.com/ClickHouse/clickhouse-go/v2 will be updated to v2.21.0
+			continue
+		}
+		suite.TestInvalidLogin(s.Base, dsi)
+	}
+}
+
 func NewSuite(
 	baseSuite *suite.Base,
 ) *Suite {

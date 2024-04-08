@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	ch_proto "github.com/ClickHouse/ch-go/proto"
+	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
 
@@ -50,7 +52,30 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 }
 
 func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
+	if err == nil {
+		panic("nil error")
+	}
+
+	// check ClickHouse-specific errors
+
 	var status Ydb.StatusIds_StatusCode
+
+	chErr := &clickhouse_proto.Exception{}
+	if errors.As(err, &chErr) {
+		switch chErr.Code {
+		case int32(ch_proto.ErrAuthenticationFailed):
+			status = Ydb.StatusIds_UNAUTHORIZED
+		default:
+			status = Ydb.StatusIds_INTERNAL_ERROR
+		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: chErr.Message,
+		}
+	}
+
+	// check general errors that could happen within connector logic
 
 	switch {
 	case errors.Is(err, ErrTableDoesNotExist):
