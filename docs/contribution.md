@@ -90,7 +90,7 @@ make run
 Затем подготовьте файл с конфигурацией клиента [по примеру](https://github.com/ydb-platform/fq-connector-go/blob/main/scripts/debug/config/client/pg.local.txt) и попробуйте сходить в коннектор:
 
 ```
-./fq-connector-go client ./your/config.txt
+./fq-connector-go client connector --config ./your/config.txt --table some_table_name
 ```
 
 Если в коде сервиса не будет ошибок, вы получите какие-то ответы (в соответствии с данными, "зашитыми" в заглушках). После этого можно приступать к наполнению `DataSource` источнико-специфичным кодом.
