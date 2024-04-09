@@ -21,6 +21,14 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 			Database: database,
 			UseTls:   false,
 			Protocol: api_common.EProtocol_NATIVE,
+			Credentials: &api_common.TCredentials{
+				Payload: &api_common.TCredentials_Basic{
+					Basic: &api_common.TCredentials_TBasic{
+						Username: "admin",
+						Password: "password",
+					},
+				},
+			},
 		}
 
 		err error

@@ -43,6 +43,8 @@ services:
       - '8765:8765'
     environment:
       YDB_DEFAULT_LOG_LEVEL: ERROR
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
     volumes:
       - ./ydb/init/init_ydb:/init_ydb
       - ./ydb/init/01_basic.sh:/01_basic.sh
