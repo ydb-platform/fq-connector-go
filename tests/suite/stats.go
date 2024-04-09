@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -60,6 +61,64 @@ func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
 
 	// errors count incremented by one
 	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "INTERNAL_ERROR")
+	s.Require().NoError(err)
+	s.Require().Equal(float64(1), describeTableStatusErr)
+}
+
+func TestInvalidLogin(s *Base, dsiSrc *api_common.TDataSourceInstance, table *datasource.Table) {
+	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
+
+	dsi.Credentials.GetBasic().Username = "wrong"
+
+	// read some table to "heat" metrics
+	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status, resp.Error.String())
+
+	// get stats snapshot before table reading
+	snapshot1, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// read some table
+	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status)
+
+	// get stats snapshot after table reading
+	snapshot2, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// errors count incremented by one
+	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "UNAUTHORIZED")
+	s.Require().NoError(err)
+	s.Require().Equal(float64(1), describeTableStatusErr)
+}
+
+func TestInvalidPassword(s *Base, dsiSrc *api_common.TDataSourceInstance, table *datasource.Table) {
+	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
+
+	dsi.Credentials.GetBasic().Password = "wrong"
+
+	// read some table to "heat" metrics
+	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status, resp.Error.String())
+
+	// get stats snapshot before table reading
+	snapshot1, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// read some table
+	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status)
+
+	// get stats snapshot after table reading
+	snapshot2, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// errors count incremented by one
+	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "UNAUTHORIZED")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }

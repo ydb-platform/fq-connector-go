@@ -111,7 +111,7 @@ func makeConnectionNative(
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if err = conn.Ping(pingCtx); err != nil {
+	if err := conn.Ping(pingCtx); err != nil {
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
