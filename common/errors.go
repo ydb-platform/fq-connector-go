@@ -6,6 +6,7 @@ import (
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
 
@@ -51,14 +52,15 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 	return apiErr.Status == Ydb.StatusIds_SUCCESS
 }
 
+//nolint:gocyclo
 func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
 	}
 
-	// check ClickHouse-specific errors
-
 	var status Ydb.StatusIds_StatusCode
+
+	// check datasource-specific errors
 
 	chErr := &clickhouse_proto.Exception{}
 	if errors.As(err, &chErr) {
@@ -72,6 +74,26 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		return &api_service_protos.TError{
 			Status:  status,
 			Message: chErr.Message,
+		}
+	}
+
+	pgConnectError := &pgconn.ConnectError{}
+	if errors.As(err, &pgConnectError) {
+		pgError, ok := pgConnectError.Unwrap().(*pgconn.PgError)
+		if ok {
+			// Hopefully these code will be exported some day
+			// https://github.com/jackc/pgx/issues/1984
+			switch pgError.Code {
+			case "28P01":
+				status = Ydb.StatusIds_UNAUTHORIZED
+			default:
+				status = Ydb.StatusIds_INTERNAL_ERROR
+			}
+
+			return &api_service_protos.TError{
+				Status:  status,
+				Message: chErr.Message,
+			}
 		}
 	}
 

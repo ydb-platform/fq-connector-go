@@ -292,6 +292,7 @@ func (s *Suite) TestInvalidLogin() {
 			// won't fix until github.com/ClickHouse/clickhouse-go/v2 will be updated to v2.21.0
 			continue
 		}
+
 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
 }
@@ -302,6 +303,7 @@ func (s *Suite) TestInvalidPassword() {
 			// won't fix until github.com/ClickHouse/clickhouse-go/v2 will be updated to v2.21.0
 			continue
 		}
+
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
