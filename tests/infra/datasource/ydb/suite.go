@@ -275,6 +275,18 @@ func (s *Suite) TestMissingDataSource() {
 	suite.TestMissingDataSource(s.Base, dsi)
 }
 
+func (s *Suite) TestInvalidLogin() {
+	for _, dsi := range s.dataSource.Instances {
+		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
+	}
+}
+
+func (s *Suite) TestInvalidPassword() {
+	for _, dsi := range s.dataSource.Instances {
+		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
+	}
+}
+
 func NewSuite(
 	baseSuite *suite.Base,
 ) *Suite {

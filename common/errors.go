@@ -7,7 +7,8 @@ import (
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -35,7 +36,7 @@ var (
 
 func NewSuccess() *api_service_protos.TError {
 	return &api_service_protos.TError{
-		Status:  Ydb.StatusIds_SUCCESS,
+		Status:  ydb_proto.StatusIds_SUCCESS,
 		Message: "succeeded",
 	}
 }
@@ -45,11 +46,11 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 		return true
 	}
 
-	if apiErr.Status == Ydb.StatusIds_STATUS_CODE_UNSPECIFIED {
+	if apiErr.Status == ydb_proto.StatusIds_STATUS_CODE_UNSPECIFIED {
 		panic("status uninitialized")
 	}
 
-	return apiErr.Status == Ydb.StatusIds_SUCCESS
+	return apiErr.Status == ydb_proto.StatusIds_SUCCESS
 }
 
 //nolint:gocyclo
@@ -58,7 +59,7 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		panic("nil error")
 	}
 
-	var status Ydb.StatusIds_StatusCode
+	var status ydb_proto.StatusIds_StatusCode
 
 	// check datasource-specific errors
 
@@ -66,9 +67,9 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	if errors.As(err, &chErr) {
 		switch chErr.Code {
 		case int32(ch_proto.ErrAuthenticationFailed):
-			status = Ydb.StatusIds_UNAUTHORIZED
+			status = ydb_proto.StatusIds_UNAUTHORIZED
 		default:
-			status = Ydb.StatusIds_INTERNAL_ERROR
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
 		}
 
 		return &api_service_protos.TError{
@@ -85,9 +86,9 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 			// https://github.com/jackc/pgx/issues/1984
 			switch pgError.Code {
 			case "28P01":
-				status = Ydb.StatusIds_UNAUTHORIZED
+				status = ydb_proto.StatusIds_UNAUTHORIZED
 			default:
-				status = Ydb.StatusIds_INTERNAL_ERROR
+				status = ydb_proto.StatusIds_INTERNAL_ERROR
 			}
 
 			return &api_service_protos.TError{
@@ -97,40 +98,51 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
+	if ydb.IsYdbError(err) {
+		for status := range ydb_proto.StatusIds_StatusCode_name {
+			if ydb.IsOperationError(err, ydb_proto.StatusIds_StatusCode(status)) {
+				return &api_service_protos.TError{
+					Status:  ydb_proto.StatusIds_StatusCode(status),
+					Message: chErr.Message,
+				}
+			}
+		}
+	}
+
 	// check general errors that could happen within connector logic
 
 	switch {
 	case errors.Is(err, ErrTableDoesNotExist):
-		status = Ydb.StatusIds_NOT_FOUND
+		status = ydb_proto.StatusIds_NOT_FOUND
 	case errors.Is(err, ErrReadLimitExceeded):
 		// Return BAD_REQUEST to avoid retrying
-		status = Ydb.StatusIds_BAD_REQUEST
+		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrInvalidRequest):
-		status = Ydb.StatusIds_BAD_REQUEST
+		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrDataSourceNotSupported):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrDataTypeNotSupported):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrValueOutOfTypeBounds):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedTypedValue):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedExpression):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedOperation):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedPredicateType):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplemented):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedArithmeticalExpression):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrEmptyTableName):
-		status = Ydb.StatusIds_BAD_REQUEST
+		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrPageSizeExceeded):
-		status = Ydb.StatusIds_INTERNAL_ERROR
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	default:
-		status = Ydb.StatusIds_INTERNAL_ERROR
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	}
 
 	return &api_service_protos.TError{
@@ -156,7 +168,7 @@ func NewSTDErrorFromAPIError(apiErr *api_service_protos.TError) error {
 
 func AllStreamResponsesSuccessfull[T StreamResponse](responses []T) bool {
 	for _, resp := range responses {
-		if resp.GetError().Status != Ydb.StatusIds_SUCCESS {
+		if resp.GetError().Status != ydb_proto.StatusIds_SUCCESS {
 			return false
 		}
 	}
