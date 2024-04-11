@@ -12,6 +12,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 func fillServerConfigDefaults(c *config.TServerConfig) {
@@ -32,6 +33,15 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Conversion == nil {
 		c.Conversion = &config.TConversionConfig{
 			UseUnsafeConverters: false,
+		}
+	}
+
+	if c.Datasources == nil {
+		c.Datasources = &config.TDatasourcesConfig{
+			Ydb: &config.TYdbConfig{
+				OpenConnectionTimeout: "5s",
+				PingConnectionTimeout: "5s",
+			},
 		}
 	}
 }
@@ -55,6 +65,10 @@ func validateServerConfig(c *config.TServerConfig) error {
 
 	if err := validateConversionConfig(c.Conversion); err != nil {
 		return fmt.Errorf("validate `conversion`: %w", err)
+	}
+
+	if err := validateDatasourcesConfig(c.Datasources); err != nil {
+		return fmt.Errorf("validate `datasources`: %w", err)
 	}
 
 	return nil
@@ -162,6 +176,34 @@ func validatePagingConfig(c *config.TPagingConfig) error {
 func validateConversionConfig(c *config.TConversionConfig) error {
 	if c == nil {
 		return fmt.Errorf("required section is missing")
+	}
+
+	return nil
+}
+
+func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if err := validateYdbConfig(c.Ydb); err != nil {
+		return fmt.Errorf("validate `ydb`: %w", err)
+	}
+
+	return nil
+}
+
+func validateYdbConfig(c *config.TYdbConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if _, err := common.DurationFromString(c.OpenConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `open_connection_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
 	}
 
 	return nil

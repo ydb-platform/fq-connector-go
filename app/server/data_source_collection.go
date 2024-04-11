@@ -140,7 +140,7 @@ func NewDataSourceCollection(
 	cfg *config.TServerConfig,
 ) *DataSourceCollection {
 	return &DataSourceCollection{
-		rdbms:              rdbms.NewDataSourceFactory(queryLoggerFactory, converterCollection),
+		rdbms:              rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection),
 		memoryAllocator:    memoryAllocator,
 		readLimiterFactory: readLimiterFactory,
 		cfg:                cfg,

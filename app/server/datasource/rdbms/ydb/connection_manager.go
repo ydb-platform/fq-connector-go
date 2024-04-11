@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -75,6 +76,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
+	cfg *config.TYdbConfig
 	// TODO: cache of connections, remove unused connections with TTL
 }
 
@@ -99,7 +101,13 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
 
-	ydbDriver, err := ydb_sdk.Open(ctx, dsn, cred, ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())))
+	ydbDriver, err := ydb_sdk.Open(
+		ctx,
+		dsn,
+		cred,
+		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
+		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
@@ -113,7 +121,7 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Pinging database")
 
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	pingCtx, cancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
 	defer cancel()
 
 	if err := conn.PingContext(pingCtx); err != nil {
@@ -141,6 +149,9 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close clickhouse connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	cfg *config.TYdbConfig,
+	base rdbms_utils.ConnectionManagerBase,
+) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }
