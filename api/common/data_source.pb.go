@@ -88,7 +88,7 @@ type EProtocol int32
 
 const (
 	EProtocol_PROTOCOL_UNSPECIFIED EProtocol = 0
-	EProtocol_NATIVE               EProtocol = 1 // CLICKHOUSE, POSTGRESQL
+	EProtocol_NATIVE               EProtocol = 1 // CLICKHOUSE, POSTGRESQL, MYSQL
 	EProtocol_HTTP                 EProtocol = 2 // CLICKHOUSE, S3
 )
 
@@ -506,7 +506,7 @@ type TDataSourceInstance_ChOptions struct {
 }
 
 type TDataSourceInstance_S3Options struct {
-	S3Options *TS3DataSourceOptions `protobuf:"bytes,9,opt,name=s3_options,json=s3Options,proto3,oneof"`
+	S3Options *TS3DataSourceOptions `protobuf:"bytes,9,opt,name=s3_options,json=s3Options,proto3,oneof"` // TMySQLDataSourceOptions mysql_options = 10;
 }
 
 func (*TDataSourceInstance_PgOptions) isTDataSourceInstance_Options() {}
