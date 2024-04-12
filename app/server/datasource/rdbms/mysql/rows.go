@@ -29,11 +29,8 @@ func (r rows) Next() bool {
 	}
 
 	*r.resIdx++
-	if *r.resIdx == r.result.Resultset.RowNumber() {
-		return false
-	}
 
-	return true
+	return *r.resIdx != r.result.Resultset.RowNumber()
 }
 
 func (rows) NextResultSet() bool {
@@ -54,12 +51,8 @@ func (r rows) Scan(dest ...any) error {
 		switch dest[i].(type) {
 		case *string:
 			*dest[i].(*string) = string(value.([]byte))
-		case *int:
-			*dest[i].(*int) = value.(int)
-		case *uint:
-			*dest[i].(*uint) = value.(uint)
-		case *bool:
-			*dest[i].(*bool) = value.(bool)
+		case *any:
+			*dest[i].(*any) = value
 		}
 	}
 
