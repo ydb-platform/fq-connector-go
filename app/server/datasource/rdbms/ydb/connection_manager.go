@@ -101,8 +101,11 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
 
+	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
+	defer openCtxCancel()
+
 	ydbDriver, err := ydb_sdk.Open(
-		ctx,
+		openCtx,
 		dsn,
 		cred,
 		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
@@ -121,8 +124,8 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Pinging database")
 
-	pingCtx, cancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
-	defer cancel()
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
+	defer pingCtxCancel()
 
 	if err := conn.PingContext(pingCtx); err != nil {
 		return nil, fmt.Errorf("conn ping: %w", err)
