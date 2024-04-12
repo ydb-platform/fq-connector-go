@@ -7,10 +7,10 @@ option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
 
 // Connector server configuration
 message TServerConfig {
-    // TODO: remove it after YQ-2057
     NYql.NConnector.NApi.TEndpoint endpoint = 1 [deprecated=true];
     TServerTLSConfig tls = 2 [deprecated=true];
 
+    // TConnectorServerConfig contains configuration of the main GRPC server
     TConnectorServerConfig connector_server = 5; 
     // This is a rough restriction for YQ memory consumption until
     // https://st.yandex-team.ru/YQ-2057 is implemented.
@@ -27,6 +27,8 @@ message TServerConfig {
     TPagingConfig paging = 8;
     // Data types conversion config
     TConversionConfig conversion = 9;
+    // Datasource-specific config
+    TDatasourcesConfig datasources = 10;
 }
 
 // TConnectorServerConfig - configuration of the main GRPC server
@@ -112,4 +114,19 @@ message TPagingConfig {
 message TConversionConfig {
     // Enables microoptimized code that can potentially crash the service
     bool use_unsafe_converters = 1;
+}
+
+// TYdbConfig contains settings specific for YDB data source
+message TYdbConfig {
+    // Timeout for YDB connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for YDB connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2; 
+}
+
+// TDatasouceConfig is a collection of datasource-specific settings
+message TDatasourcesConfig {
+    TYdbConfig ydb = 1;
 }

@@ -23,3 +23,8 @@ paging:
 
 conversion:
   use_unsafe_converters: true
+
+datasources:
+  ydb:
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s

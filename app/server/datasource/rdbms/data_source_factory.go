@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
@@ -40,6 +41,7 @@ func (dsf *dataSourceFactory) Make(
 	}
 }
 func NewDataSourceFactory(
+	cfg *config.TDatasourcesConfig,
 	qlf common.QueryLoggerFactory,
 	converterCollection conversion.Collection,
 ) datasource.Factory[any] {
@@ -66,7 +68,7 @@ func NewDataSourceFactory(
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
-			ConnectionManager: ydb.NewConnectionManager(connManagerCfg),
+			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerCfg),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 		},
