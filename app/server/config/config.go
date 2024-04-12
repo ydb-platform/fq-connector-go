@@ -37,11 +37,13 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	}
 
 	if c.Datasources == nil {
-		c.Datasources = &config.TDatasourcesConfig{
-			Ydb: &config.TYdbConfig{
-				OpenConnectionTimeout: "5s",
-				PingConnectionTimeout: "5s",
-			},
+		c.Datasources = &config.TDatasourcesConfig{}
+	}
+
+	if c.Datasources.Ydb == nil {
+		c.Datasources.Ydb = &config.TYdbConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
 		}
 	}
 }

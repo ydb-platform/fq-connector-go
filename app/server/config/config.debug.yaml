@@ -26,5 +26,5 @@ conversion:
 
 datasources:
   ydb:
-    open_connection_timeout_secs: 5
-    ping_connection_timeout_secs: 5
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s
