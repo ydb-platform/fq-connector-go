@@ -6,6 +6,7 @@ import (
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
@@ -82,10 +83,8 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	if errors.As(err, &pgConnectError) {
 		pgError, ok := pgConnectError.Unwrap().(*pgconn.PgError)
 		if ok {
-			// Hopefully these code will be exported some day
-			// https://github.com/jackc/pgx/issues/1984
 			switch pgError.Code {
-			case "28P01":
+			case pgerrcode.InvalidPassword:
 				status = ydb_proto.StatusIds_UNAUTHORIZED
 			default:
 				status = ydb_proto.StatusIds_INTERNAL_ERROR
