@@ -25,6 +25,7 @@ var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
 	*sql.DB
+	driver *ydb_sdk.Driver
 	logger common.QueryLogger
 }
 
@@ -51,7 +52,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 	return transformer, nil
 }
 
-func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.DB.QueryContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.ScanQueryMode), query, args...)
@@ -70,6 +71,21 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 	}
 
 	return rows{Rows: out}, nil
+}
+
+func (c *Connection) Close() error {
+	err1 := c.DB.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err2 := c.driver.Close(ctx)
+
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("connection close err: %w; driver close err: %w", err1, err2)
+	}
+
+	return nil
 }
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
@@ -145,11 +161,11 @@ func (c *connectionManager) Make(
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return &Connection{DB: conn, logger: queryLogger}, nil
+	return &Connection{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close clickhouse connection")
+	common.LogCloserError(logger, conn, "close YDB connection")
 }
 
 func NewConnectionManager(

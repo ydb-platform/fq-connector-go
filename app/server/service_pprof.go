@@ -22,7 +22,7 @@ func (s *servicePprof) start() error {
 	s.logger.Debug("starting HTTP server", zap.String("address", s.httpServer.Addr))
 
 	if err := s.httpServer.ListenAndServe(); err != nil {
-		return fmt.Errorf("http server listen and server: %w", err)
+		return fmt.Errorf("pprof server listen and serve: %w", err)
 	}
 
 	return nil
