@@ -30,7 +30,8 @@ func run() error {
 	flag.Parse()
 
 	if !check_path(*path) {
-		return fmt.Errorf("Path does not exist or smth went wrong")
+		fmt.Print("Path does not exist")
+		return nil
 	}
 
 	tag, err := getVersion()
