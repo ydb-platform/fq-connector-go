@@ -37,11 +37,11 @@
 | `FLOAT` | `FLOAT` | `float32` | :white_check_mark: `Float32` | :white_check_mark: `real`, `float4` | | |
 | `DOUBLE` | `DOUBLE` | `float64` | :white_check_mark: `Float64` | :white_check_mark: `double precision`, `float8` | | |
 | `DATE` (`uint16`, дни с начала эпохи) | `UINT16` | `time.Time` | :white_check_mark: `Date` (`uint16`, количество дней) | - | | | 
-| - | `DATE32` (`int32`) | `time.Time` | :x:  `Date32` (`int32`, количество дней) | - | | | 
+| `DATE` | `DATE32` (`int32`) | `time.Time` | :white_check_mark:  `Date32` (`int32`, количество дней) | - | | | 
 | `DATE` (`uint16`, дни с начала эпохи) | `UINT16` | `time.Time` | - | :white_check_mark: `date` (`int32`, дата без времени, диапазон от 4713 г. до н. э. до 5874897 г. н. э.) | | | 
 | `DATETIME` (`uint32`, секунды с начала эпохи) | `UINT32` | `time.Time` | :white_check_mark: `DateTime` (:question: уточнить тип, секунды с начала эпохи) | - | | | 
-| - | `DATE64` (`int64`, миллисекунды с начала эпохи) или `TIMESTAMP`| `time.Time` | - | :x: `DateTime64` (`int64`, единицы измерения произвольной точности) | | | 
 | `TIMESTAMP` (`uint64`, микросекунды с начала эпохи) | `UINT64` | `time.Time` | - | :white_check_mark: `timestamp[(p)][without time zone]` (`int64`, микросекунды с начала эпохи) | | | 
+| `TIMESTAMP` | `uint64` | `time.Time` | :white_check_mark: `DateTime64` (`int64`, единицы измерения произвольной точности) | - | | | 
 | - | - | - | - | :x: `time[(p)][without time zone]` (`int64`, только время суток без даты, разрешение - микросекунды)  | | | 
 | `INTERVAL` (int64, точность до микросекунд) | `INT64` | - | - | - | | | 
 | - | - | - | :x: `INTERVAL` (`uint`, 11 разных типов данных в диапазоне от `NANOSECOND` до `YEAR`) | - | | | 
