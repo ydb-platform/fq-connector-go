@@ -106,7 +106,9 @@ func walkDockerCompose(rootPath string, newImage string) error {
 			composeFilePath := filepath.Join(path, "docker-compose.yml")
 
 			if err := checkFileExistance(composeFilePath); err == nil {
-				changeDockerCompose(composeFilePath, newImage)
+				if err = changeDockerCompose(composeFilePath, newImage); err != nil {
+					return err
+				}
 				return nil
 			}
 		}
