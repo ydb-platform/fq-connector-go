@@ -102,9 +102,9 @@ func checkFileExistance(path string) error {
 func walkDockerCompose(rootPath string, newImage string) error {
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
-			composeFilePath := filepath.Join(path, "docker-compose.yml")
+			composeFilePath := filepath.Join(path, "docker-compose.yaml")
 
-			if _, err := os.Stat(composeFilePath); err == nil {
+			if err := checkFileExistance(composeFilePath); err == nil {
 				changeDockerCompose(composeFilePath, newImage)
 				return nil
 			}
