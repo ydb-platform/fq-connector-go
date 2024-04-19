@@ -81,6 +81,7 @@ func getChecksum(tag string) (string, error) {
 			line = strings.Split(line, "<code>")[1]
 			line = strings.Split(line, "</code>")[0]
 			checksum = line
+			break
 		}
 	}
 
@@ -102,7 +103,7 @@ func checkFileExistance(path string) error {
 func walkDockerCompose(rootPath string, newImage string) error {
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
-			composeFilePath := filepath.Join(path, "docker-compose.yaml")
+			composeFilePath := filepath.Join(path, "docker-compose.yml")
 
 			if err := checkFileExistance(composeFilePath); err == nil {
 				changeDockerCompose(composeFilePath, newImage)
