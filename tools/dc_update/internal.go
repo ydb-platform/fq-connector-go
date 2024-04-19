@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -66,7 +67,16 @@ func getLatestVersion() (string, error) {
 }
 
 func getChecksum(tag string) (string, error) {
-	link := fmt.Sprintf("https://github.com/ydb-platform/fq-connector-go/pkgs/container/fq-connector-go/204229242?tag=%s", tag)
+	baseLink := fmt.Sprintf("https://github.com/ydb-platform/fq-connector-go/pkgs/container/fq-connector-go/204229242")
+
+	params := map[string]string{
+		tag: tag,
+	}
+
+	link, err := generateUrl(baseLink, params)
+	if err != nil {
+		return "", fmt.Errorf("generateUrl: %w", err)
+	}
 
 	client := &http.Client{}
 
@@ -179,4 +189,19 @@ func changeDockerCompose(path string, newImage string, logger *zap.Logger) error
 	logger.Info("Updated", zap.Any("path", path))
 
 	return nil
+}
+
+func generateUrl(baseUrl string, params map[string]string) (string, error) {
+	u, err := url.Parse(baseUrl)
+	if err != nil {
+		return "", fmt.Errorf("url parse: %w", err)
+	}
+
+	q := u.Query()
+	for key, value := range params {
+		q.Set(key, value)
+	}
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }
