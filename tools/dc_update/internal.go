@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type release struct {
@@ -112,13 +114,13 @@ func checkFileExistance(path string) error {
 	return nil
 }
 
-func walkDockerCompose(rootPath string, newImage string) error {
+func walkDockerCompose(rootPath string, newImage string, logger *zap.Logger) error {
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
 			composeFilePath := filepath.Join(path, "docker-compose.yml")
 
 			if err := checkFileExistance(composeFilePath); err == nil {
-				if err = changeDockerCompose(composeFilePath, newImage); err != nil {
+				if err = changeDockerCompose(composeFilePath, newImage, logger); err != nil {
 					return fmt.Errorf("changeDockerCompose: %w", err)
 				}
 				return nil
@@ -135,7 +137,7 @@ func walkDockerCompose(rootPath string, newImage string) error {
 	return nil
 }
 
-func changeDockerCompose(path string, newImage string) error {
+func changeDockerCompose(path string, newImage string, logger *zap.Logger) error {
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
 	if err != nil {
 		return fmt.Errorf("os openfile: %w", err)
@@ -165,6 +167,6 @@ func changeDockerCompose(path string, newImage string) error {
 		return fmt.Errorf("os writefile: %w", err)
 	}
 
-	log.Printf("Updated %s\n", path)
+	logger.Info("Updated", zap.Any("path", path))
 	return nil
 }

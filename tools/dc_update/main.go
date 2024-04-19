@@ -4,15 +4,22 @@ import (
 	"flag"
 	"fmt"
 	"log"
+
+	"github.com/ydb-platform/fq-connector-go/common"
+	"go.uber.org/zap"
 )
 
 var pathesToComposes = [3]string{"/ydb/library/yql/providers/generic/connector/tests/datasource", "/ydb/library/yql/providers/generic/connector/tests/join", "/ydb/tests/fq/generic"}
 
 func main() {
-	log.Println(run())
+	logger := common.NewDefaultLogger()
+	err := run(logger)
+	if err != nil {
+		logger.Error("run", zap.Error(err))
+	}
 }
 
-func run() error {
+func run(logger *zap.Logger) error {
 	path := flag.String("path", "path", "Specify the path to the file ydb file.")
 	flag.Parse()
 
@@ -29,6 +36,7 @@ func run() error {
 		return fmt.Errorf("getCheckSum %w", err)
 	}
 
+	logger.Info("values", zap.Any("path", path), zap.Any("tag", tag), zap.Any("checksum", checksum))
 	log.Println(path, tag, checksum)
 
 	for _, pathToComposes := range pathesToComposes {
@@ -36,7 +44,7 @@ func run() error {
 
 		newImage := fmt.Sprintf("ghcr.io/ydb-platform/fq-connector-go:%s@%s", tag, checksum)
 
-		if err = walkDockerCompose(fullPath, newImage); err != nil {
+		if err = walkDockerCompose(fullPath, newImage, logger); err != nil {
 			return fmt.Errorf("walkDockerCompose %w", err)
 		}
 	}
