@@ -115,7 +115,7 @@ func walkDockerCompose(rootPath string, newImage string) error {
 	}
 
 	if err := filepath.Walk(rootPath, walkFunc); err != nil {
-		return err
+		return fmt.Errorf("filepath walk: %w", err)
 	}
 
 	return nil
