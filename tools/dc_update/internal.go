@@ -20,11 +20,12 @@ type release struct {
 	Tag        string `json:"name"`
 	ZipballURL string `json:"zipball_url"`
 	TarballURL string `json:"tarball_url"`
-	Commit     struct {
-		SHA string `json:"sha"`
-		URL string `json:"url"`
-	} `json:"commit"`
-	NodeID string `json:"node_id"`
+	Commit     commit `json:"commit"`
+	NodeID     string `json:"node_id"`
+}
+type commit struct {
+	SHA string `json:"sha"`
+	URL string `json:"url"`
 }
 
 func getLatestVersion() (string, error) {
@@ -45,6 +46,7 @@ func getLatestVersion() (string, error) {
 		if ctx.Err() == context.DeadlineExceeded {
 			return "", fmt.Errorf("http client do %w", ctx.Err())
 		}
+
 		return "", fmt.Errorf("http client do %w", err)
 	}
 	defer resp.Body.Close()
@@ -81,6 +83,7 @@ func getChecksum(tag string) (string, error) {
 		if ctx.Err() == context.DeadlineExceeded {
 			return "", fmt.Errorf("http client do %w", ctx.Err())
 		}
+
 		return "", fmt.Errorf("http client do %w", err)
 	}
 	defer resp.Body.Close()
@@ -95,6 +98,7 @@ func getChecksum(tag string) (string, error) {
 			line = strings.Split(line, "<code>")[1]
 			line = strings.Split(line, "</code>")[0]
 			checksum = line
+
 			break
 		}
 	}
@@ -123,6 +127,7 @@ func walkDockerCompose(rootPath string, newImage string, logger *zap.Logger) err
 				if err = changeDockerCompose(composeFilePath, newImage, logger); err != nil {
 					return fmt.Errorf("changeDockerCompose: %w", err)
 				}
+
 				return nil
 			}
 		}
@@ -142,6 +147,7 @@ func changeDockerCompose(path string, newImage string, logger *zap.Logger) error
 	if err != nil {
 		return fmt.Errorf("os openfile: %w", err)
 	}
+
 	defer func() {
 		if err = file.Close(); err != nil {
 			log.Println("error closing file %w", err)
@@ -149,12 +155,15 @@ func changeDockerCompose(path string, newImage string, logger *zap.Logger) error
 	}()
 
 	scanner := bufio.NewScanner(file)
+
 	var lines []string
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "ghcr.io/ydb-platform/fq-connector-go") {
 			line = "    image: " + newImage
 		}
+
 		lines = append(lines, line)
 	}
 
@@ -168,5 +177,6 @@ func changeDockerCompose(path string, newImage string, logger *zap.Logger) error
 	}
 
 	logger.Info("Updated", zap.Any("path", path))
+
 	return nil
 }

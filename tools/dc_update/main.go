@@ -5,14 +5,18 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ydb-platform/fq-connector-go/common"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var pathesToComposes = [3]string{"/ydb/library/yql/providers/generic/connector/tests/datasource", "/ydb/library/yql/providers/generic/connector/tests/join", "/ydb/tests/fq/generic"}
+var pathesToComposes = [3]string{"/ydb/library/yql/providers/generic/connector/tests/datasource",
+	"/ydb/library/yql/providers/generic/connector/tests/join",
+	"/ydb/tests/fq/generic"}
 
 func main() {
 	logger := common.NewDefaultLogger()
+
 	err := run(logger)
 	if err != nil {
 		logger.Error("run", zap.Error(err))
@@ -31,6 +35,7 @@ func run(logger *zap.Logger) error {
 	if err != nil {
 		return fmt.Errorf("getLatestVersion %w", err)
 	}
+
 	checksum, err := getChecksum(tag)
 	if err != nil {
 		return fmt.Errorf("getCheckSum %w", err)
