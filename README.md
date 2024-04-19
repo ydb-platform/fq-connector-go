@@ -24,4 +24,3 @@ Currently supported data sources:
     * For production environment: [YDB](https://ydb.tech/docs/ru/deploy/manual/deploy-ydb-federated-query) | [Connector](https://ydb.tech/docs/ru/deploy/manual/connector)
 * [Contribution guide](./docs/contribution.md)
 * [Type mapping table](./docs/type_mapping_table.md)
-...
