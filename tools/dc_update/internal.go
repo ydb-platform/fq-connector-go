@@ -108,14 +108,12 @@ func walkDockerCompose(rootPath string, newImage string) error {
 				changeDockerCompose(composeFilePath, newImage)
 				return nil
 			}
-
 		}
 
 		return nil
 	}
 
 	if err := filepath.Walk(rootPath, walkFunc); err != nil {
-
 		return err
 	}
 
