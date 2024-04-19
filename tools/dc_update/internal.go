@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,9 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-type Release struct {
+type release struct {
 	Tag        string `json:"name"`
 	ZipballURL string `json:"zipball_url"`
 	TarballURL string `json:"tarball_url"`
@@ -26,18 +28,26 @@ type Release struct {
 func getLatestVersion() (string, error) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", link, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	link := "https://api.github.com/repos/ydb-platform/fq-connector-go/tags"
+
+	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
 		return "", fmt.Errorf("http newRequest: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("http client do %w", ctx.Err())
+		}
 		return "", fmt.Errorf("http client do %w", err)
 	}
 	defer resp.Body.Close()
 
-	var releases []Release
+	var releases []release
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -56,27 +66,29 @@ func getChecksum(tag string) (string, error) {
 
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", link, nil)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
 		return "", fmt.Errorf("http newRequest: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("http client do %w", ctx.Err())
+		}
 		return "", fmt.Errorf("http client do %w", err)
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("io readAll: %w", err)
-	}
-
-	lines := strings.Split(string(body), "\n")
+	scanner := bufio.NewScanner(resp.Body)
 
 	var checksum string
 
-	for _, line := range lines {
+	for scanner.Scan() {
+		line := scanner.Text()
 		if strings.Contains(line, "sha256") {
 			line = strings.Split(line, "<code>")[1]
 			line = strings.Split(line, "</code>")[0]
@@ -107,7 +119,7 @@ func walkDockerCompose(rootPath string, newImage string) error {
 
 			if err := checkFileExistance(composeFilePath); err == nil {
 				if err = changeDockerCompose(composeFilePath, newImage); err != nil {
-					return err
+					return fmt.Errorf("changeDockerCompose: %w", err)
 				}
 				return nil
 			}
@@ -128,7 +140,11 @@ func changeDockerCompose(path string, newImage string) error {
 	if err != nil {
 		return fmt.Errorf("os openfile: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.Println("error closing file %w", err)
+		}
+	}()
 
 	scanner := bufio.NewScanner(file)
 	var lines []string
@@ -143,9 +159,8 @@ func changeDockerCompose(path string, newImage string) error {
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("scanner err: %w", err)
 	}
-	file.Close()
 
-	err = os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
+	err = os.WriteFile("docker-file.yaml", []byte(strings.Join(lines, "\n")), 0644)
 	if err != nil {
 		return fmt.Errorf("os writefile: %w", err)
 	}

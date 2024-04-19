@@ -1,0 +1,28 @@
+version: '3.4'
+services:
+  postgresql:
+    image: "postgres:15-bullseye@sha256:3411b9f2e5239cd7867f34fcf22fe964230f7d447a71d63c283e3593d3f84085"
+    # to be able to run tests by different users on the same machine we set prefix to ${USER}
+    container_name: ${USER}_ydb_tests_fq_generic_postgresql
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./postgresql:/docker-entrypoint-initdb.d
+    command: -p 6432
+  clickhouse:
+    image: "clickhouse/clickhouse-server:23-alpine@sha256:b078c1cd294632afa2aeba3530e7ba2e568513da23304354f455a25fab575c06"
+    container_name: ${USER}_ydb_tests_fq_generic_clickhouse
+    environment:
+      CLICKHOUSE_DB: db
+      CLICKHOUSE_USER: user
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      CLICKHOUSE_PASSWORD: password
+    volumes:
+      - ./clickhouse:/docker-entrypoint-initdb.d
+  connector:
+    image: ghcr.io/ydb-platform/fq-connector-go:v0.2.20@sha256:a1771f348dc8be6219865e332f788429907cdfec3677b3e98f0bc6f7dd542dc6
+    container_name: ${USER}_ydb_tests_fq_generic_connector
+    ports:
+      - '50051'
