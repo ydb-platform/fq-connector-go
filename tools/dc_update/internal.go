@@ -73,15 +73,22 @@ func getChecksum(tag string) (string, error) {
 	}
 
 	lines := strings.Split(string(body), "\n")
+
+	var checksum string
+
 	for _, line := range lines {
 		if strings.Contains(line, "sha256") {
 			line = strings.Split(line, "<code>")[1]
 			line = strings.Split(line, "</code>")[0]
-			return line, nil
+			checksum = line
 		}
 	}
 
-	return "", fmt.Errorf("no checksum found by lattest tag")
+	if checksum == "" {
+		return "", fmt.Errorf("no checksum found by lattest tag")
+	}
+
+	return checksum, nil
 }
 
 func checkFileExistance(path string) error {

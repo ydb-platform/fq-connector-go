@@ -35,7 +35,6 @@ func run() error {
 
 	for _, pathToComposes := range pathesToComposes {
 		fullPath := *path + pathToComposes
-		fmt.Println(fullPath)
 
 		newImage := fmt.Sprintf("ghcr.io/ydb-platform/fq-connector-go:%s@%s", tag, checksum)
 
