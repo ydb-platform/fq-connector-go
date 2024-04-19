@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"gopkg.in/yaml.v2"
 )
 
 type release struct {
@@ -39,15 +40,11 @@ func getLatestVersion() (string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
-		return "", fmt.Errorf("http newRequest: %w", err)
+		return "", fmt.Errorf("http new request: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return "", fmt.Errorf("http client do %w", ctx.Err())
-		}
-
 		return "", fmt.Errorf("http client do %w", err)
 	}
 	defer resp.Body.Close()
@@ -56,7 +53,7 @@ func getLatestVersion() (string, error) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("io readAll: %w", err)
+		return "", fmt.Errorf("io read all: %w", err)
 	}
 
 	if err = json.Unmarshal(body, &releases); err != nil {
@@ -67,15 +64,15 @@ func getLatestVersion() (string, error) {
 }
 
 func getChecksum(tag string) (string, error) {
-	baseLink := "https://github.com/ydb-platform/fq-connector-go/pkgs/container/fq-connector-go/204229242"
+	baseLink := "https://github.com/ydb-platform/fq-connector-go/pkgs/container/fq-connector-go/tags"
 
 	params := map[string]string{
-		tag: tag,
+		"tag": tag,
 	}
 
-	link, err := generateUrl(baseLink, params)
+	link, err := generateURL(baseLink, params)
 	if err != nil {
-		return "", fmt.Errorf("generateUrl: %w", err)
+		return "", fmt.Errorf("generate url: %w", err)
 	}
 
 	client := &http.Client{}
@@ -85,15 +82,11 @@ func getChecksum(tag string) (string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
 	if err != nil {
-		return "", fmt.Errorf("http newRequest: %w", err)
+		return "", fmt.Errorf("http new request: %w", err)
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return "", fmt.Errorf("http client do %w", ctx.Err())
-		}
-
 		return "", fmt.Errorf("http client do %w", err)
 	}
 	defer resp.Body.Close()
@@ -105,8 +98,9 @@ func getChecksum(tag string) (string, error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.Contains(line, "sha256") {
-			line = strings.Split(line, "<code>")[1]
-			line = strings.Split(line, "</code>")[0]
+			fmt.Println(line)
+			line = strings.Split(line, "<span>")[1]
+			line = strings.Split(line, "</span>")[0]
 			checksum = line
 
 			break
@@ -128,14 +122,14 @@ func checkFileExistance(path string) error {
 	return nil
 }
 
-func walkDockerCompose(rootPath string, newImage string, logger *zap.Logger) error {
+func walkDockerCompose(logger *zap.Logger, rootPath string, newImage string) error {
 	walkFunc := func(path string, info os.FileInfo, err error) error {
 		if info != nil && info.IsDir() {
 			composeFilePath := filepath.Join(path, "docker-compose.yml")
 
 			if err := checkFileExistance(composeFilePath); err == nil {
-				if err = changeDockerCompose(composeFilePath, newImage, logger); err != nil {
-					return fmt.Errorf("changeDockerCompose: %w", err)
+				if err = changeDockerCompose(logger, composeFilePath, newImage); err != nil {
+					return fmt.Errorf("change docker compose: %w", err)
 				}
 
 				return nil
@@ -152,7 +146,7 @@ func walkDockerCompose(rootPath string, newImage string, logger *zap.Logger) err
 	return nil
 }
 
-func changeDockerCompose(path string, newImage string, logger *zap.Logger) error {
+func changeDockerCompose(logger *zap.Logger, path string, newImage string) error {
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
 	if err != nil {
 		return fmt.Errorf("os openfile: %w", err)
@@ -164,35 +158,37 @@ func changeDockerCompose(path string, newImage string, logger *zap.Logger) error
 		}
 	}()
 
-	scanner := bufio.NewScanner(file)
+	var data map[any]any
 
-	var lines []string
+	decoder := yaml.NewDecoder(file)
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, "ghcr.io/ydb-platform/fq-connector-go") {
-			line = "    image: " + newImage
-		}
-
-		lines = append(lines, line)
+	if err = decoder.Decode(&data); err != nil {
+		return fmt.Errorf("decode file: %w", err)
 	}
 
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("scanner err: %w", err)
+	if fqConnectorGo, ok := data["services"].(map[any]any)["fq_connector_go"]; ok {
+		fqConnectorGo.(map[string]any)["image"] = newImage
+	} else {
+		return fmt.Errorf("error finding fq_connector_go")
 	}
 
-	err = os.WriteFile("docker-file.yaml", []byte(strings.Join(lines, "\n")), 0644)
+	updatedYaml, err := yaml.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("os writefile: %w", err)
+		return fmt.Errorf("yaml marshal %w", err)
 	}
 
-	logger.Info("Updated", zap.Any("path", path))
+	err = os.WriteFile(path, updatedYaml, 0644)
+	if err != nil {
+		return fmt.Errorf("os write file: %w", err)
+	}
+
+	logger.Info("Updated", zap.String("path", path))
 
 	return nil
 }
 
-func generateUrl(baseUrl string, params map[string]string) (string, error) {
-	u, err := url.Parse(baseUrl)
+func generateURL(baseURL string, params map[string]string) (string, error) {
+	u, err := url.Parse(baseURL)
 	if err != nil {
 		return "", fmt.Errorf("url parse: %w", err)
 	}
@@ -201,6 +197,7 @@ func generateUrl(baseUrl string, params map[string]string) (string, error) {
 	for key, value := range params {
 		q.Set(key, value)
 	}
+
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
