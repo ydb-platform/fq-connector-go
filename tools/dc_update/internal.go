@@ -4,33 +4,92 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-func getVersion() (string, error) {
-	cmd := exec.Command("curl", link)
+type Release struct {
+	Tag        string `json:"name"`
+	ZipballURL string `json:"zipball_url"`
+	TarballURL string `json:"tarball_url"`
+	Commit     struct {
+		SHA string `json:"sha"`
+		URL string `json:"url"`
+	} `json:"commit"`
+	NodeID string `json:"node_id"`
+}
 
-	output, err := cmd.Output()
+func getLatestVersion() (string, error) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", link, nil)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("http newRequest: %w", err)
 	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("http client do %w", err)
+	}
+	defer resp.Body.Close()
 
 	var releases []Release
 
-	json.Unmarshal(output, &releases)
-
-	return releases[0].Name, nil
-}
-
-func check_path(path string) bool {
-	if _, err := os.Stat(path); err == nil {
-		return true
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("io readAll: %w", err)
 	}
 
-	return false
+	if err = json.Unmarshal(body, &releases); err != nil {
+		return "", fmt.Errorf("json unmarshal: %w", err)
+	}
+
+	return releases[0].Tag, nil
+}
+
+func getChecksum(tag string) (string, error) {
+	link := fmt.Sprintf("https://github.com/ydb-platform/fq-connector-go/pkgs/container/fq-connector-go/204229242?tag=%s", tag)
+
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", link, nil)
+	if err != nil {
+		return "", fmt.Errorf("http newRequest: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("http client do %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("io readAll: %w", err)
+	}
+
+	lines := strings.Split(string(body), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "sha256") {
+			line = strings.Split(line, "<code>")[1]
+			line = strings.Split(line, "</code>")[0]
+			return line, nil
+		}
+	}
+
+	return "", fmt.Errorf("no checksum found by lattest tag")
+}
+
+func checkFileExistance(path string) error {
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("os stat: %w", err)
+	}
+
+	return nil
 }
 
 func walkDockerCompose(rootPath string, newImage string) error {
@@ -59,34 +118,30 @@ func walkDockerCompose(rootPath string, newImage string) error {
 func changeDockerCompose(path string, newImage string) error {
 	file, err := os.OpenFile(path, os.O_RDWR, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("os openfile: %w", err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	var lines []string
-	counter := 0
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, "image:") {
-			counter++
-			if counter == 2 {
-				line = "    image: " + newImage
-			}
+		if strings.Contains(line, "ghcr.io/ydb-platform/fq-connector-go") {
+			line = "    image: " + newImage
 		}
 		lines = append(lines, line)
 	}
 
 	if err := scanner.Err(); err != nil {
-		return err
+		return fmt.Errorf("scanner err: %w", err)
 	}
 	file.Close()
 
-	err = os.WriteFile("docker-file.yml", []byte(strings.Join(lines, "\n")), 0644)
+	err = os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("os writefile: %w", err)
 	}
 
-	fmt.Printf("Updated %s\n", path)
+	log.Printf("Updated %s\n", path)
 	return nil
 }
