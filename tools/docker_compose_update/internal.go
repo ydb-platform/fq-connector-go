@@ -167,11 +167,12 @@ func changeDockerCompose(logger *zap.Logger, path string, newImage string) error
 	}
 
 	if services, ok := data["services"].(map[any]any); ok {
-		if fqConnectorGo, ok := services["fq-connector-go"].(map[any]any); ok {
-			fqConnectorGo["image"] = newImage
-		} else {
+		if _, ok := services["fq-connector-go"].(map[any]any); !ok {
 			return fmt.Errorf("error finding fq-connector-go in services")
 		}
+
+		fqConnectorGo := services["fq-connector-go"].(map[any]any)
+		fqConnectorGo["image"] = newImage
 	} else {
 		return fmt.Errorf("error finding services in file")
 	}
