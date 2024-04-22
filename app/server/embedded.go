@@ -14,9 +14,9 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-// Embedded server is used in different kinds of tests, when it is important
+// serverEmbedded server is used in different kinds of tests, when it is important
 // to launch server in the same process with the tests itself.
-type Embedded struct {
+type serverEmbedded struct {
 	launcher        *Launcher
 	logger          *zap.Logger
 	clientBuffering *common.ClientBuffering
@@ -26,7 +26,7 @@ type Embedded struct {
 	mutex           sync.Mutex
 }
 
-func (s *Embedded) Start() {
+func (s *serverEmbedded) Start() {
 	go func() {
 		errChan := s.launcher.Start()
 
@@ -45,7 +45,7 @@ func (s *Embedded) Start() {
 	}()
 }
 
-func (s *Embedded) handleStartError(err error) {
+func (s *serverEmbedded) handleStartError(err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -59,11 +59,11 @@ func (s *Embedded) handleStartError(err error) {
 	}
 }
 
-func (s *Embedded) ClientBuffering() *common.ClientBuffering { return s.clientBuffering }
+func (s *serverEmbedded) ClientBuffering() *common.ClientBuffering { return s.clientBuffering }
 
-func (s *Embedded) ClientStreaming() *common.ClientStreaming { return s.clientStreaming }
+func (s *serverEmbedded) ClientStreaming() *common.ClientStreaming { return s.clientStreaming }
 
-func (s *Embedded) MetricsSnapshot() (*common.MetricsSnapshot, error) {
+func (s *serverEmbedded) MetricsSnapshot() (*common.MetricsSnapshot, error) {
 	if s.cfg.MetricsServer == nil {
 		return nil, fmt.Errorf("metrics server is not initialized")
 	}
@@ -76,7 +76,7 @@ func (s *Embedded) MetricsSnapshot() (*common.MetricsSnapshot, error) {
 	return mp, nil
 }
 
-func (s *Embedded) Stop() {
+func (s *serverEmbedded) Stop() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -113,7 +113,7 @@ func NewEmbedded(options ...EmbeddedOption) (common.TestingServer, error) {
 		return nil, fmt.Errorf("new client: %w", err)
 	}
 
-	sn := &Embedded{
+	sn := &serverEmbedded{
 		launcher:        launcher,
 		logger:          logger,
 		operational:     true,

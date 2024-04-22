@@ -84,7 +84,8 @@ func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 		clientBasic: clientBasic{
 			client: grpcClient,
 			conn:   conn,
-			logger: logger},
+			logger: logger,
+		},
 	}, nil
 }
 
