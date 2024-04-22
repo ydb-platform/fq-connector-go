@@ -16,7 +16,7 @@ import (
 type testCaseRunner struct {
 	cfg             *config.TBenchmarkConfig
 	testCase        *config.TBenchmarkTestCase
-	srv             *server.Embedded
+	srv             common.TestingServer
 	reportGenerator *reportGenerator
 	ctx             context.Context
 	logger          *zap.Logger

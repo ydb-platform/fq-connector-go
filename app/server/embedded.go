@@ -87,7 +87,7 @@ func (s *Embedded) Stop() {
 	}
 }
 
-func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
+func NewEmbedded(options ...EmbeddedOption) (common.TestingServer, error) {
 	cfg := app_server_config.NewDefaultConfig()
 	for _, o := range options {
 		o.apply(cfg)
