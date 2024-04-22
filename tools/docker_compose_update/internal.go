@@ -166,14 +166,14 @@ func changeDockerCompose(logger *zap.Logger, path string, newImage string) error
 		return fmt.Errorf("decode file: %w", err)
 	}
 
-	if services, ok := data["services"].(map[interface{}]interface{}); ok {
-		if fqConnectorGo, ok := services["fq-connector-go"].(map[interface{}]interface{}); ok {
+	if services, ok := data["services"].(map[any]any); ok {
+		if fqConnectorGo, ok := services["fq-connector-go"].(map[any]any); ok {
 			fqConnectorGo["image"] = newImage
 		} else {
-			return fmt.Errorf("error finding fq-connector-go at path")
+			return fmt.Errorf("error finding fq-connector-go in services")
 		}
 	} else {
-		return fmt.Errorf("error finding services at path")
+		return fmt.Errorf("error finding services in file")
 	}
 
 	updatedYaml, err := yaml.Marshal(data)
