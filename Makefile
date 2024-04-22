@@ -41,3 +41,6 @@ build_image_release:
 
 cloc:
 	cloc ./app ./common ./tests --git 
+
+docker_compose_update:
+	go run ./tools/docker_compose_update -path="$(path)"
