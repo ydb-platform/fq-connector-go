@@ -102,7 +102,7 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 			if ydb.IsOperationError(err, ydb_proto.StatusIds_StatusCode(status)) {
 				return &api_service_protos.TError{
 					Status:  ydb_proto.StatusIds_StatusCode(status),
-					Message: chErr.Message,
+					Message: err.Error(),
 				}
 			}
 		}

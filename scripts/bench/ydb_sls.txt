@@ -12,17 +12,18 @@ server_remote: {
 data_source_instance {
     kind: YDB
     endpoint {
-        host: "localhost"
-        port: 12345
+        host: "ydb.serverless.yandexcloud.net"
+        port: 2135
     }
-    database: "tpch"
+    database: "/ru-central1/b1gtl2kg13him37quoo6/etni8pumlo8mo3e0cemr"
     credentials {
-        basic {
-            username: "admin"
-            password: "password"
+        token {
+            type: "IAM"
+            value: "..."
         }
     }
     protocol: NATIVE
+    use_tls: true
 }
 
 table: "sls_ydb"
