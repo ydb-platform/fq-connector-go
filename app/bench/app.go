@@ -16,12 +16,8 @@ import (
 )
 
 func validateConfig(logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
-	if cfg.GetServerRemote() != nil {
-		return fmt.Errorf("not ready to work with remote connector")
-	}
-
-	if cfg.GetServerLocal() == nil {
-		return fmt.Errorf("you must provide local configuration for connector")
+	if cfg.GetServerRemote() == nil && cfg.GetServerLocal() == nil {
+		return fmt.Errorf("you must provide either local or remote configuration for connector")
 	}
 
 	if cfg.GetDataSourceInstance() == nil {

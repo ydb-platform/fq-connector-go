@@ -2,7 +2,7 @@ syntax = "proto3";
 package NYql.Connector.App.Config;
 
 import "ydb/library/yql/providers/generic/connector/api/common/data_source.proto";
-import "ydb/library/yql/providers/generic/connector/api/common/endpoint.proto";
+import "app/config/client.proto";
 import "app/config/server.proto";
 
 option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
@@ -11,7 +11,7 @@ message TBenchmarkConfig {
     // We can either connect to remote Connector server 
     // or run our own server within the same process.
     oneof server {
-        NYql.NConnector.NApi.TEndpoint server_remote = 1;
+        TClientConfig server_remote = 1;
         TServerConfig server_local = 2;
     }
 

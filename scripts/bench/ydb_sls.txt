@@ -1,0 +1,35 @@
+server_remote: {
+    connector_server_endpoint: {
+        host: "localhost"
+        port: 50051
+    }
+
+    tls: {
+        insecure_skip_verify: true
+    }
+}
+
+data_source_instance {
+    kind: YDB
+    endpoint {
+        host: "localhost"
+        port: 12345
+    }
+    database: "tpch"
+    credentials {
+        basic {
+            username: "admin"
+            password: "password"
+        }
+    }
+    protocol: NATIVE
+}
+
+table: "sls_ydb"
+
+test_cases: [
+    {
+    }
+]
+
+result_dir: "/home/vitalyisaev/projects/fq-connector-go/scripts/bench/ydb/results"

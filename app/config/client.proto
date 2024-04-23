@@ -24,4 +24,8 @@ message TClientConfig {
 message TClientTLSConfig {
     // CA certificate path
     string ca = 1;
+    // Disables certificate host name checking.
+    // Should be used carefully only for debugging purposes.
+    // See https://pkg.go.dev/crypto/tls#Config for more details.
+    bool insecure_skip_verify = 2;
 }

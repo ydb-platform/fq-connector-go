@@ -28,11 +28,39 @@ func newTestCaseRunner(
 	cfg *config.TBenchmarkConfig,
 	testCase *config.TBenchmarkTestCase,
 ) (*testCaseRunner, error) {
-	srv, err := server.NewEmbedded(
+	var (
+		err           error
+		testingServer common.TestingServer
+	)
+
+	if local := cfg.GetServerLocal(); local != nil {
+		testingServer, err = newTestingServerLocal(testCase.ServerParams)
+	} else if remote := cfg.GetServerRemote(); remote != nil {
+		testingServer, err = newTestingServerRemote(logger, remote)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("new testing server: %w", err)
+	}
+
+	tcr := &testCaseRunner{
+		logger:          logger,
+		cfg:             cfg,
+		testCase:        testCase,
+		srv:             testingServer,
+		ctx:             ctx,
+		reportGenerator: newReportGenerator(logger, testCase),
+	}
+
+	return tcr, nil
+}
+
+func newTestingServerLocal(serverParams *config.TBenchmarkServerParams) (common.TestingServer, error) {
+	return server.NewEmbedded(
 		server.WithLoggerConfig(&config.TLoggerConfig{
 			LogLevel: config.ELogLevel_ERROR,
 		}),
-		server.WithPagingConfig(testCase.ServerParams.Paging),
+		server.WithPagingConfig(serverParams.Paging),
 		server.WithPprofServerConfig(&config.TPprofServerConfig{
 			Endpoint: &api_common.TEndpoint{Host: "localhost", Port: 50052},
 		}),
@@ -42,21 +70,10 @@ func newTestCaseRunner(
 			},
 		),
 	)
+}
 
-	if err != nil {
-		return nil, fmt.Errorf("new server embedded: %w", err)
-	}
-
-	tcr := &testCaseRunner{
-		logger:          logger,
-		cfg:             cfg,
-		testCase:        testCase,
-		srv:             srv,
-		ctx:             ctx,
-		reportGenerator: newReportGenerator(logger, testCase),
-	}
-
-	return tcr, nil
+func newTestingServerRemote(logger *zap.Logger, clientCfg *config.TClientConfig) (common.TestingServer, error) {
+	return common.NewTestingServerRemote(logger, clientCfg)
 }
 
 func (tcr *testCaseRunner) run() error {
@@ -167,10 +184,17 @@ func (tcr *testCaseRunner) finish() *report {
 }
 
 func (tcr *testCaseRunner) name() string {
-	return fmt.Sprintf(
-		"bytes_per_page_%d-prefetch_queue_capacity_%d-columns_%d",
-		tcr.testCase.ServerParams.Paging.BytesPerPage,
-		tcr.testCase.ServerParams.Paging.PrefetchQueueCapacity,
-		len(tcr.testCase.Columns),
-	)
+	switch tcr.cfg.Server.(type) {
+	case *config.TBenchmarkConfig_ServerLocal:
+		return fmt.Sprintf(
+			"bytes_per_page_%d-prefetch_queue_capacity_%d-columns_%d",
+			tcr.testCase.ServerParams.Paging.BytesPerPage,
+			tcr.testCase.ServerParams.Paging.PrefetchQueueCapacity,
+			len(tcr.testCase.Columns),
+		)
+	case *config.TBenchmarkConfig_ServerRemote:
+		return "remote"
+	default:
+		panic("unexpected type")
+	}
 }

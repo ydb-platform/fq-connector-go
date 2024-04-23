@@ -20,36 +20,39 @@ type TestingServer interface {
 }
 
 type testingServerRemote struct {
+	clientBuffering *ClientBuffering
+	clientStreaming *ClientStreaming
 }
 
-func (ts *testingServerRemote) Start() {
-}
+func (ts *testingServerRemote) Start() {}
 
-func (ts *testingServerRemote) ClientBuffering() *common.ClientBuffering {
-	panic("not implemented") // TODO: Implement
-}
+func (ts *testingServerRemote) ClientBuffering() *ClientBuffering { return ts.clientBuffering }
 
-func (ts *testingServerRemote) ClientStreaming() *common.ClientStreaming {
-	panic("not implemented") // TODO: Implement
-}
+func (ts *testingServerRemote) ClientStreaming() *ClientStreaming { return ts.clientStreaming }
 
-func (ts *testingServerRemote) MetricsSnapshot() (*common.MetricsSnapshot, error) {
-	panic("not implemented") // TODO: Implement
+func (ts *testingServerRemote) MetricsSnapshot() (*MetricsSnapshot, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func (ts *testingServerRemote) Stop() {
-	panic("not implemented") // TODO: Implement
+	ts.clientBuffering.Close()
+	ts.clientStreaming.Close()
 }
 
-func NewTestingServerEmbedded(logger *zap.Logger, clientCfg *config.TClientConfig) (TestingServer, error) {
-	clientStreaming, err := NewClientBufferingFromClientConfig(logger, clientCfg)
-	if err != nil {
-		return nil, fmt.Errorf("new client streaming from client config")
-	}
-
+func NewTestingServerRemote(logger *zap.Logger, clientCfg *config.TClientConfig) (TestingServer, error) {
 	clientBuffering, err := NewClientBufferingFromClientConfig(logger, clientCfg)
 	if err != nil {
-		return nil, fmt.Errorf("new client buffering from client config")
+		return nil, fmt.Errorf("new client streaming from client config: %w", err)
 	}
+
+	clientStreaming, err := NewClientStreamingFromClientConfig(logger, clientCfg)
+	if err != nil {
+		return nil, fmt.Errorf("new client buffering from client config: %w", err)
+	}
+
+	return &testingServerRemote{
+		clientBuffering: clientBuffering,
+		clientStreaming: clientStreaming,
+	}, nil
 
 }
