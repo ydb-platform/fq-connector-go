@@ -2,9 +2,11 @@ package bench
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
+	"golang.org/x/time/rate"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -28,6 +30,10 @@ func newTestCaseRunner(
 	cfg *config.TBenchmarkConfig,
 	testCase *config.TBenchmarkTestCase,
 ) (*testCaseRunner, error) {
+	if testCase.ServerParams != nil && cfg.GetServerLocal() == nil {
+		return nil, errors.New("you can specify server params in test case only if local server is deployed")
+	}
+
 	var (
 		err           error
 		testingServer common.TestingServer
@@ -80,6 +86,47 @@ func (tcr *testCaseRunner) run() error {
 	tcr.srv.Start()
 	tcr.reportGenerator.start()
 
+	if params := tcr.testCase.ClientParams; params == nil {
+		// if we need to execute requests only once, just do it
+		if err := tcr.executeScenario(); err != nil {
+			return fmt.Errorf("execute scenario: %w", err)
+		}
+	} else {
+		// if we need to repeate request in a loop, rate limiter is a good idea
+		ctx, cancel := context.WithTimeout(context.Background(), common.MustDurationFromString(params.Duration))
+		defer cancel()
+
+		limiter := rate.NewLimiter(rate.Limit(params.QueriesPerSecond), 1)
+		counter := 0
+
+		tcr.logger.Info("load session started")
+
+		for {
+			if err := limiter.Wait(ctx); err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					tcr.logger.Info("load session finished")
+					return nil
+				}
+
+				return fmt.Errorf("limiter wait: %w", err)
+			}
+
+			counter++
+
+			tcr.logger.Debug("scenario started", zap.Int("id", counter))
+
+			if err := tcr.executeScenario(); err != nil {
+				return fmt.Errorf("execute scenario: %w", err)
+			}
+
+			tcr.logger.Debug("scenario finished", zap.Int("id", counter))
+		}
+	}
+
+	return nil
+}
+
+func (tcr *testCaseRunner) executeScenario() error {
 	// get table schema
 	describeTableResponse, err := tcr.srv.ClientStreaming().DescribeTable(
 		tcr.ctx,
@@ -98,7 +145,7 @@ func (tcr *testCaseRunner) run() error {
 		return fmt.Errorf("describe table: %w", common.NewSTDErrorFromAPIError(describeTableResponse.Error))
 	}
 
-	// launch split listing
+	// launch split listing and reading
 	slct := &api_service_protos.TSelect{
 		DataSourceInstance: tcr.cfg.DataSourceInstance,
 		What:               common.SchemaToSelectWhatItems(describeTableResponse.Schema, tcr.makeColumnWhitelist()),

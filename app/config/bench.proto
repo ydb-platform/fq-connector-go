@@ -29,16 +29,31 @@ message TBenchmarkConfig {
 }
 
 message TBenchmarkTestCase {
-    // Custom server parameters that may vary
+    // Custom server parameters that may change from time to time
+    // (applicable only if locally deployed (embedded) server is used).
     TBenchmarkServerParams server_params = 1;  
+
+    // Custom parameters for client used within benchmarking tool.
+    // If not set, the default behavior is enabled.
+    TBenchmarkClientParams client_params = 3;
 
     // List of columns that will be read from the tables.
     // If empty, all the columns will be read.
     repeated string columns = 2;
 }
 
-// TBenchmarkServerParams contains server config params that we'll be applied 
-// to built-in server during start
+// TBenchmarkServerParams contains server config params that will be applied 
+// to embedded Connector server at the time of start.
 message TBenchmarkServerParams {
     TPagingConfig paging = 1; 
+}
+
+// TBenchmarkLoadParams contains settings for network client used
+// within benchmarking tool.
+message TBenchmarkClientParams {
+    // number of queries emited per second by benchmark tool
+    float queries_per_second = 1;
+
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string duration = 2;
 }

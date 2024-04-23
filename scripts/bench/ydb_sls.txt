@@ -26,10 +26,14 @@ data_source_instance {
     use_tls: true
 }
 
-table: "sls_ydb"
+table: "lost_numbers"
 
 test_cases: [
     {
+        client_params {
+            duration: "30s"
+            queries_per_second: 5
+        }
     }
 ]
 
