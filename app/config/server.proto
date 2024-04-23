@@ -124,9 +124,29 @@ message TYdbConfig {
     // Timeout for YDB connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2; 
+
+    TExponentialBackoffConfig exponential_backoff = 10;
 }
 
 // TDatasouceConfig is a collection of datasource-specific settings
 message TDatasourcesConfig {
     TYdbConfig ydb = 1;
+}
+
+// TExponentialBackoffConfig provides configuration for the exponential backoff 
+// which is used for retries of the operations ended up with transient errors.
+message TExponentialBackoffConfig {
+    // Initial interval between retries
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string initial_interval = 1;
+    // Maximum total time for retries
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string max_interval = 2;
+    // Randomization factor to add jitter to intervals
+    float randomization_factor = 3;
+    // Multiplier for increasing the interval after each retry
+    float multiplier = 4;
+    // Maximum interval between retries
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+	string max_elapsed_time = 5;
 }
