@@ -10,6 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.22.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.14.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.41.0
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/dustin/go-humanize v1.0.1
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.6.0
@@ -30,6 +31,7 @@ require (
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
+	golang.org/x/time v0.5.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
 	google.golang.org/grpc v1.58.2
 	google.golang.org/protobuf v1.31.0
@@ -88,7 +90,6 @@ require (
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.14.1-0.20231026192422-8b5abd452b28 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

@@ -5,6 +5,10 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	grpc_codes "google.golang.org/grpc/codes"
+
+	"github.com/cenkalti/backoff/v4"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
@@ -70,9 +74,30 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	defer ds.connectionManager.Release(logger, conn)
 
-	rows, err := conn.Query(ctx, query, args...)
+	var rows rdbms_utils.Rows
+
+	err = backoff.Retry(backoff.Operation(func() error {
+		var err error
+
+		rows, err = conn.Query(ctx, query, args...)
+
+		if err != nil {
+			err = fmt.Errorf("query '%s' error: %w", query, err)
+
+			if ydb.IsTransportError(err, grpc_codes.ResourceExhausted) {
+				logger.Warn("retriable error occured", zap.Error(err))
+
+				return err
+			}
+
+			return backoff.Permanent(err)
+		}
+
+		return nil
+	}), backoff.NewExponentialBackOff())
+
 	if err != nil {
-		return fmt.Errorf("query '%s' error: %w", query, err)
+		return fmt.Errorf("backoff retry: %w", err)
 	}
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
