@@ -56,91 +56,9 @@ func main() {
 }
 
 func run(logger *zap.Logger) error {
-	branch, err := execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	data, err := getVersion()
 	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	commitHash, err := execCommand("git", "rev-parse", "HEAD")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	tag, err := execCommand("git", "describe", "--tags")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	author, err := execCommand("git", "log", "-1", "--pretty=format:%an")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	commitDate, err := execCommand("git", "show", "-s", "--format=%cd", "--date=format:%Y-%m-%d %H:%M:%S")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	commitMessage, err := execCommand("git", "log", "-1", "--pretty=%B")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	username, err := os.Executable()
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	buildLocation, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	hostInfo, err := execCommand("uname", "-s")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	pathToGo, err := exec.LookPath("go")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	goVersion, err := execCommand("go", "version")
-	if err != nil {
-		return fmt.Errorf("exec command: %w", err)
-	}
-
-	branch = strings.TrimSpace(branch)
-	commitHash = strings.TrimSpace(commitHash)
-	tag = strings.TrimSpace(tag)
-	author = strings.TrimSpace(author)
-	commitDate = strings.TrimSpace(commitDate)
-	commitMessage = strings.TrimSpace(commitMessage)
-	username = strings.TrimSpace(username)
-	buildLocation = strings.TrimSpace(buildLocation)
-	hostname = strings.TrimSpace(hostname)
-	hostInfo = strings.TrimSpace(hostInfo)
-	goVersion = strings.TrimSpace(goVersion)
-
-	data := VersionData{
-		Branch:        branch,
-		CommitHash:    commitHash,
-		Tag:           tag,
-		Author:        author,
-		CommitDate:    commitDate,
-		CommitMessage: commitMessage,
-		Username:      username,
-		BuildLocation: buildLocation,
-		Hostname:      hostname,
-		HostInfo:      hostInfo,
-		PathToGo:      pathToGo,
-		GoVersion:     goVersion,
+		return fmt.Errorf("get version: %w", err)
 	}
 
 	file, err := os.Create("./app/version/version_init.go")
@@ -160,6 +78,100 @@ func run(logger *zap.Logger) error {
 	logger.Info("Version init file generated successfully!")
 
 	return nil
+}
+
+func getVersion() (VersionData, error) {
+
+	var data VersionData
+
+	branch, err := execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	commitHash, err := execCommand("git", "rev-parse", "HEAD")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	tag, err := execCommand("git", "describe", "--tags")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	author, err := execCommand("git", "log", "-1", "--pretty=format:%an")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	commitDate, err := execCommand("git", "show", "-s", "--format=%cd", "--date=format:%Y-%m-%d %H:%M:%S")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	commitMessage, err := execCommand("git", "log", "-1", "--pretty=%B")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	username, err := os.Executable()
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	buildLocation, err := os.Getwd()
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	hostInfo, err := execCommand("uname", "-s")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	pathToGo, err := exec.LookPath("go")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	goVersion, err := execCommand("go", "version")
+	if err != nil {
+		return data, fmt.Errorf("exec command: %w", err)
+	}
+
+	branch = strings.TrimSpace(branch)
+	commitHash = strings.TrimSpace(commitHash)
+	tag = strings.TrimSpace(tag)
+	author = strings.TrimSpace(author)
+	commitDate = strings.TrimSpace(commitDate)
+	commitMessage = strings.TrimSpace(commitMessage)
+	username = strings.TrimSpace(username)
+	buildLocation = strings.TrimSpace(buildLocation)
+	hostname = strings.TrimSpace(hostname)
+	hostInfo = strings.TrimSpace(hostInfo)
+	goVersion = strings.TrimSpace(goVersion)
+
+	data = VersionData{
+		Branch:        branch,
+		CommitHash:    commitHash,
+		Tag:           tag,
+		Author:        author,
+		CommitDate:    commitDate,
+		CommitMessage: commitMessage,
+		Username:      username,
+		BuildLocation: buildLocation,
+		Hostname:      hostname,
+		HostInfo:      hostInfo,
+		PathToGo:      pathToGo,
+		GoVersion:     goVersion,
+	}
+
+	return data, nil
 }
 
 func execCommand(command string, args ...string) (string, error) {
