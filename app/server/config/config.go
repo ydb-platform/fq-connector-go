@@ -44,6 +44,13 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Ydb = &config.TYdbConfig{
 			OpenConnectionTimeout: "5s",
 			PingConnectionTimeout: "5s",
+			ExponentialBackoff: &config.TExponentialBackoffConfig{
+				InitialInterval:     "500ms",
+				RandomizationFactor: 0.5,
+				Multiplier:          1.5,
+				MaxInterval:         "20s",
+				MaxElapsedTime:      "1m",
+			},
 		}
 	}
 }
@@ -206,6 +213,34 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
 		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
+		return fmt.Errorf("validate `exponential_backoff`: %v", err)
+	}
+
+	return nil
+}
+
+func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if _, err := common.DurationFromString(c.InitialInterval); err != nil {
+		return fmt.Errorf("validate `initial_interval`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.MaxInterval); err != nil {
+		return fmt.Errorf("validate `max_interval`: %v", err)
+	}
+
+	if c.Multiplier == 0 {
+		return errors.New("zero value for `multiplier`")
+	}
+
+	if _, err := common.DurationFromString(c.MaxElapsedTime); err != nil {
+		return fmt.Errorf("validate `max_elapsed_time`: %v", err)
 	}
 
 	return nil

@@ -116,23 +116,6 @@ message TConversionConfig {
     bool use_unsafe_converters = 1;
 }
 
-// TYdbConfig contains settings specific for YDB data source
-message TYdbConfig {
-    // Timeout for YDB connection opening.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
-    // Timeout for YDB connection pinging.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 2; 
-
-    TExponentialBackoffConfig exponential_backoff = 10;
-}
-
-// TDatasouceConfig is a collection of datasource-specific settings
-message TDatasourcesConfig {
-    TYdbConfig ydb = 1;
-}
-
 // TExponentialBackoffConfig provides configuration for the exponential backoff 
 // which is used for retries of the operations ended up with transient errors.
 message TExponentialBackoffConfig {
@@ -143,10 +126,27 @@ message TExponentialBackoffConfig {
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string max_interval = 2;
     // Randomization factor to add jitter to intervals
-    float randomization_factor = 3;
+    double randomization_factor = 3;
     // Multiplier for increasing the interval after each retry
-    float multiplier = 4;
+    double multiplier = 4;
     // Maximum interval between retries
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
 	string max_elapsed_time = 5;
+}
+
+// TYdbConfig contains settings specific for YDB data source
+message TYdbConfig {
+    // Timeout for YDB connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for YDB connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+// TDatasouceConfig is a collection of datasource-specific settings
+message TDatasourcesConfig {
+    TYdbConfig ydb = 1;
 }

@@ -59,18 +59,21 @@ func NewDataSourceFactory(
 			ConnectionManager: clickhouse.NewConnectionManager(connManagerCfg),
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.GetQueryAndArgs),
+			Retrier:           rdbms_utils.NewRetrierNoop(),
 		},
 		postgresql: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
 			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
 			TypeMapper:        postgresqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
+			Retrier:           rdbms_utils.NewRetrierNoop(),
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerCfg),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
+			Retrier:           rdbms_utils.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.RetriableErrorChecker),
 		},
 		converterCollection: converterCollection,
 	}
