@@ -69,3 +69,15 @@ func NewRetrierNoop() Retrier {
 		},
 	}
 }
+
+type RetrierSet struct {
+	MakeConnection Retrier
+	Query          Retrier
+}
+
+func NewRetrierSetNoop() *RetrierSet {
+	return &RetrierSet{
+		MakeConnection: NewRetrierNoop(),
+		Query:          NewRetrierNoop(),
+	}
+}

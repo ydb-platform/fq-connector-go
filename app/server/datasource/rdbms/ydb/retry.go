@@ -2,12 +2,16 @@ package ydb
 
 import (
 	"github.com/ydb-platform/ydb-go-sdk/v3"
-	"google.golang.org/grpc/codes"
+	grpc_codes "google.golang.org/grpc/codes"
 )
 
-func RetriableErrorChecker(err error) bool {
+func RetriableErrorCheckerMakeConnection(_ error) bool {
+	return false
+}
+
+func RetriableErrorCheckerQuery(err error) bool {
 	switch {
-	case ydb.IsTransportError(err, codes.ResourceExhausted):
+	case ydb.IsTransportError(err, grpc_codes.ResourceExhausted):
 		return true
 	default:
 		return false

@@ -19,7 +19,7 @@ type Preset struct {
 	ConnectionManager rdbms_utils.ConnectionManager
 	TypeMapper        datasource.TypeMapper
 	SchemaProvider    rdbms_utils.SchemaProvider
-	Retrier           rdbms_utils.Retrier
+	RetrierSet        *rdbms_utils.RetrierSet
 }
 
 var _ datasource.DataSource[any] = (*dataSourceImpl)(nil)
@@ -29,7 +29,7 @@ type dataSourceImpl struct {
 	sqlFormatter        rdbms_utils.SQLFormatter
 	connectionManager   rdbms_utils.ConnectionManager
 	schemaProvider      rdbms_utils.SchemaProvider
-	retrier             rdbms_utils.Retrier
+	retrierSet          *rdbms_utils.RetrierSet
 	converterCollection conversion.Collection
 	logger              *zap.Logger
 }
@@ -39,9 +39,23 @@ func (ds *dataSourceImpl) DescribeTable(
 	logger *zap.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	conn, err := ds.connectionManager.Make(ctx, logger, request.DataSourceInstance)
+	var conn rdbms_utils.Connection
+
+	err := ds.retrierSet.MakeConnection.Run(logger,
+		func() error {
+			var makeConnErr error
+
+			conn, makeConnErr = ds.connectionManager.Make(ctx, logger, request.DataSourceInstance)
+			if makeConnErr != nil {
+				return fmt.Errorf("make connection: %w", makeConnErr)
+			}
+
+			return nil
+		},
+	)
+
 	if err != nil {
-		return nil, fmt.Errorf("make connection: %w", err)
+		return nil, fmt.Errorf("retry: %w", err)
 	}
 
 	defer ds.connectionManager.Release(logger, conn)
@@ -65,16 +79,30 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("make read split query: %w", err)
 	}
 
-	conn, err := ds.connectionManager.Make(ctx, logger, split.Select.DataSourceInstance)
+	var conn rdbms_utils.Connection
+
+	err = ds.retrierSet.MakeConnection.Run(logger,
+		func() error {
+			var makeConnErr error
+
+			conn, makeConnErr = ds.connectionManager.Make(ctx, logger, split.Select.DataSourceInstance)
+			if makeConnErr != nil {
+				return fmt.Errorf("make connection: %w", makeConnErr)
+			}
+
+			return nil
+		},
+	)
+
 	if err != nil {
-		return fmt.Errorf("make connection: %w", err)
+		return fmt.Errorf("retry: %w", err)
 	}
 
 	defer ds.connectionManager.Release(logger, conn)
 
 	var rows rdbms_utils.Rows
 
-	err = ds.retrier.Run(
+	err = ds.retrierSet.Query.Run(
 		logger,
 		func() error {
 			var queryErr error
@@ -147,7 +175,7 @@ func NewDataSource(
 		connectionManager:   preset.ConnectionManager,
 		typeMapper:          preset.TypeMapper,
 		schemaProvider:      preset.SchemaProvider,
-		retrier:             preset.Retrier,
+		retrierSet:          preset.RetrierSet,
 		converterCollection: converterCollection,
 	}
 }

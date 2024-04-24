@@ -146,6 +146,7 @@ func (c *connectionManager) Make(
 	defer pingCtxCancel()
 
 	if err := conn.PingContext(pingCtx); err != nil {
+		common.LogCloserError(logger, conn, "close YDB connection")
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
