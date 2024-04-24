@@ -35,12 +35,15 @@ func (dsc *DataSourceCollection) DescribeTable(
 	kind := request.GetDataSourceInstance().GetKind()
 
 	switch kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return nil, err
 		}
-
+		fmt.Println("---------------DSS COLLECTION------------------")
+		fmt.Println(kind)
+		fmt.Println(ds)
+		fmt.Println("------------------------------------------")
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EDataSourceKind_S3:
 		ds := s3.NewDataSource()

@@ -28,7 +28,9 @@ func (f *schemaProvider) GetSchema(
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
 	ydbConn := conn.(*Connection)
-
+	fmt.Println("-------------Schema Provider------------------")
+	fmt.Println()
+	fmt.Println("------------------------------------------")
 	db, err := ydb.Unwrap(ydbConn.DB)
 	if err != nil {
 		return nil, fmt.Errorf("unwrap connection: %w", err)
@@ -62,6 +64,9 @@ func (f *schemaProvider) GetSchema(
 	}
 
 	schema, err := sb.Build(logger)
+	fmt.Println("-------------Schema Provider------------------")
+	fmt.Println(schema)
+	fmt.Println("------------------------------------------")
 	if err != nil {
 		return nil, fmt.Errorf("build schema: %w", err)
 	}

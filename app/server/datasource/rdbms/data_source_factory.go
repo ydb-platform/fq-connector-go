@@ -10,6 +10,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ms_sql_server"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
@@ -22,6 +23,7 @@ type dataSourceFactory struct {
 	clickhouse          Preset
 	postgresql          Preset
 	ydb                 Preset
+	ms_sql_server       Preset
 	converterCollection conversion.Collection
 }
 
@@ -36,6 +38,11 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_YDB:
 		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_MS_SQL_SERVER:
+		fmt.Println("-------------DS FACTORY------------------")
+		fmt.Println(dsf.ms_sql_server)
+		fmt.Println("------------------------------------------")
+		return NewDataSource(logger, &dsf.ms_sql_server, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -52,6 +59,7 @@ func NewDataSourceFactory(
 	postgresqlTypeMapper := postgresql.NewTypeMapper()
 	clickhouseTypeMapper := clickhouse.NewTypeMapper()
 	ydbTypeMapper := ydb.NewTypeMapper()
+	ms_sql_serverTypeMapper := ms_sql_server.NewTypeMapper()
 
 	return &dataSourceFactory{
 		clickhouse: Preset{
@@ -71,6 +79,12 @@ func NewDataSourceFactory(
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerCfg),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
+		},
+		ms_sql_server: Preset{
+			SQLFormatter:      ms_sql_server.NewSQLFormatter(),
+			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
+			TypeMapper:        ms_sql_serverTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(ms_sql_serverTypeMapper, ms_sql_server.GetQueryAndArgs),
 		},
 		converterCollection: converterCollection,
 	}

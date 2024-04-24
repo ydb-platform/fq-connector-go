@@ -106,6 +106,10 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 		if dsi.GetPgOptions().GetSchema() == "" {
 			return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
 		}
+	case api_common.EDataSourceKind_MS_SQL_SERVER:
+		// if dsi.GetPgOptions().GetSchema() == "" {
+		// 	return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
+		// }
 
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB:
 	default:

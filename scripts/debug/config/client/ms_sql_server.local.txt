@@ -1,0 +1,25 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
+}
+
+data_source_instance {
+    kind: MS_SQL_SERVER
+    endpoint {
+        host: "localhost"
+        port: 1433
+    }
+    database: "test"
+    credentials {
+        basic {
+            username: "SA"
+            password: "Qwerty12345!"
+        }
+    }
+    protocol: NATIVE
+}
