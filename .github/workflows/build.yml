@@ -52,4 +52,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.out
       - name: Build
-        run: GOOS=linux go build -v -o fq-connector-go ./app
+        run: | 
+          go run ./tools/version
+          GOOS=linux go build -v -o fq-connector-go ./app
