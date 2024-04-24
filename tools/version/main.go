@@ -77,8 +77,6 @@ func run(logger *zap.Logger) error {
 		return fmt.Errorf("template execute: %w", err)
 	}
 
-	logger.Info(string(data.Tag))
-
 	logger.Info("Version init file generated successfully!")
 
 	return nil
