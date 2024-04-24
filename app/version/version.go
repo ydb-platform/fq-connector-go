@@ -8,7 +8,6 @@ import (
 )
 
 var (
-	HasInfo       string
 	Tag           string
 	Author        string
 	CommitHash    string
@@ -27,11 +26,7 @@ var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "version of current build",
 	Run: func(cmd *cobra.Command, args []string) {
-		if HasInfo == "true" {
-			fmt.Println(GetInfo())
-		} else {
-			fmt.Println("No information provided")
-		}
+		fmt.Println(GetInfo())
 	},
 }
 
