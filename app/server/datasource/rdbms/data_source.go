@@ -77,10 +77,10 @@ func (ds *dataSourceImpl) doReadSplit(
 	err = ds.retrier.Run(
 		logger,
 		func() error {
-			var err error
+			var queryErr error
 
-			if rows, err = conn.Query(ctx, query, args...); err != nil {
-				return fmt.Errorf("query '%s' error: %w", query, err)
+			if rows, queryErr = conn.Query(ctx, query, args...); queryErr != nil {
+				return fmt.Errorf("query '%s' error: %w", query, queryErr)
 			}
 
 			return nil

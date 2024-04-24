@@ -29,7 +29,7 @@ func (r *retrierDefault) Run(logger *zap.Logger, op Operation) error {
 
 		if err != nil {
 			if r.retriableErrorChecker(err) {
-				logger.Warn("retriable error occured", zap.Error(err))
+				logger.Warn("retriable error occurred", zap.Error(err))
 
 				return err
 			}

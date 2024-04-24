@@ -19,10 +19,12 @@ func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpt
 
 	if cfg.Tls != nil {
 		tlsCfg := &tls.Config{}
+
 		logger.Info("client will use TLS connections")
 
 		if cfg.Tls.InsecureSkipVerify {
 			logger.Warn("Certificate host name verification is disabled")
+
 			tlsCfg.InsecureSkipVerify = true
 		}
 

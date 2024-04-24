@@ -24,13 +24,13 @@ type testingServerRemote struct {
 	clientStreaming *ClientStreaming
 }
 
-func (ts *testingServerRemote) Start() {}
+func (*testingServerRemote) Start() {}
 
 func (ts *testingServerRemote) ClientBuffering() *ClientBuffering { return ts.clientBuffering }
 
 func (ts *testingServerRemote) ClientStreaming() *ClientStreaming { return ts.clientStreaming }
 
-func (ts *testingServerRemote) MetricsSnapshot() (*MetricsSnapshot, error) {
+func (*testingServerRemote) MetricsSnapshot() (*MetricsSnapshot, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
@@ -54,5 +54,4 @@ func NewTestingServerRemote(logger *zap.Logger, clientCfg *config.TClientConfig)
 		clientBuffering: clientBuffering,
 		clientStreaming: clientStreaming,
 	}, nil
-
 }
