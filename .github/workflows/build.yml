@@ -53,6 +53,7 @@ jobs:
           files: ./coverage.out
       - name: Build
         run: | 
-          git describe --tags
+          git ls-remote --tags
+          git --tags
           go run ./tools/version
           GOOS=linux go build -v -o fq-connector-go ./app
