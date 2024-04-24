@@ -61,11 +61,11 @@ func NewRetrierFromConfig(cfg *config.TExponentialBackoffConfig, retriableErrorC
 func NewRetrierNoop() Retrier {
 	return &retrierDefault{
 		retriableErrorChecker: func(err error) bool {
-			// all errors are non-retriable by defatul
+			// all errors are non-retriable by default
 			return false
 		},
 		backoffFactory: func() *backoff.ExponentialBackOff {
-			return &backoff.ExponentialBackOff{}
+			return backoff.NewExponentialBackOff()
 		},
 	}
 }
