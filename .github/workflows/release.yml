@@ -44,7 +44,8 @@ jobs:
         run: |
           echo "GOOS=linux" >> $GITHUB_ENV
           echo "GOARCH=amd64" >> $GITHUB_ENV
-          go build -v -ldflags="$(sh ./get_ldflags.sh)" -o fq-connector-go ./app
+          go run ./tools/version
+          go build -v -o fq-connector-go ./app
       - name: Run unit tests
         run: go test -v ./app/...
       - name: Setup integration tests
