@@ -53,6 +53,6 @@ jobs:
           files: ./coverage.out
       - name: Build
         run: | 
-          git fetch --prune --unshallow --depth=500
+          git fetch --prune --unshallow
           go run ./tools/version
           GOOS=linux go build -v -o fq-connector-go ./app
