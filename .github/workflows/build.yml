@@ -53,6 +53,8 @@ jobs:
           files: ./coverage.out
       - name: Build
         run: | 
-          git fetch --tags
+          git rev-parse HEAD
+          git rev-parse --short HEAD
+          git describe --always
           go run ./tools/version
           GOOS=linux go build -v -o fq-connector-go ./app
