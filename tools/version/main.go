@@ -85,62 +85,62 @@ func getVersion() (versionData, error) {
 
 	branch, err := execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("branch exec command: %w", err)
 	}
 
 	commitHash, err := execCommand("git", "rev-parse", "HEAD")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("commitHash exec command: %w", err)
 	}
 
 	tag, err := execCommand("git", "describe", "--tags")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("tag exec command: %w", err)
 	}
 
 	author, err := execCommand("git", "log", "-1", "--pretty=format:%an")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("author exec command: %w", err)
 	}
 
 	commitDate, err := execCommand("git", "show", "-s", "--format=%cd", "--date=format:%Y-%m-%d %H:%M:%S")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("commit date exec command: %w", err)
 	}
 
 	commitMessage, err := execCommand("git", "log", "-1", "--pretty=%B")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("commit message exec command: %w", err)
 	}
 
 	username, err := os.Executable()
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("username exec command: %w", err)
 	}
 
 	buildLocation, err := os.Getwd()
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("build location exec command: %w", err)
 	}
 
 	hostname, err := os.Hostname()
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("hostname exec command: %w", err)
 	}
 
 	hostInfo, err := execCommand("uname", "-s")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("host info exec command: %w", err)
 	}
 
 	pathToGo, err := exec.LookPath("go")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("path to go exec command: %w", err)
 	}
 
 	goVersion, err := execCommand("go", "version")
 	if err != nil {
-		return data, fmt.Errorf("exec command: %w", err)
+		return data, fmt.Errorf("go ersion exec command: %w", err)
 	}
 
 	branch = strings.TrimSpace(branch)
