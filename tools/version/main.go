@@ -12,7 +12,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type VersionData struct {
+type versionData struct {
 	Branch        string
 	CommitHash    string
 	Tag           string
@@ -31,18 +31,18 @@ var tmpl = `
 package version
 
 func init() {
-	Tag = "{{ .Tag }}"
-	Author = "{{ .Author }}"
-	CommitHash = "{{ .CommitHash }}"
-	Branch = "{{ .Branch }}"
-	CommitDate = "{{ .CommitDate }}"
-	CommitMessage = "{{ .CommitMessage }}"
-	Username = "{{ .Username }}"
-	BuildLocation = "{{ .BuildLocation }}"
-	Hostname = "{{ .Hostname }}"
-	HostInfo = "{{ .HostInfo }}"
-	PathToGo = "{{ .PathToGo }}"
-	GoVersion = "{{ .GoVersion }}"
+	tag = "{{ .Tag }}"
+	author = "{{ .Author }}"
+	commitHash = "{{ .CommitHash }}"
+	branch = "{{ .Branch }}"
+	commitDate = "{{ .CommitDate }}"
+	commitMessage = "{{ .CommitMessage }}"
+	username = "{{ .Username }}"
+	buildLocation = "{{ .BuildLocation }}"
+	hostname = "{{ .Hostname }}"
+	hostInfo = "{{ .HostInfo }}"
+	pathToGo = "{{ .PathToGo }}"
+	goVersion = "{{ .GoVersion }}"
 }
 `
 
@@ -80,8 +80,8 @@ func run(logger *zap.Logger) error {
 	return nil
 }
 
-func getVersion() (VersionData, error) {
-	var data VersionData
+func getVersion() (versionData, error) {
+	var data versionData
 
 	branch, err := execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
 	if err != nil {
@@ -155,7 +155,7 @@ func getVersion() (VersionData, error) {
 	hostInfo = strings.TrimSpace(hostInfo)
 	goVersion = strings.TrimSpace(goVersion)
 
-	data = VersionData{
+	data = versionData{
 		Branch:        branch,
 		CommitHash:    commitHash,
 		Tag:           tag,
