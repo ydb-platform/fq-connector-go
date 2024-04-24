@@ -81,7 +81,6 @@ func run(logger *zap.Logger) error {
 }
 
 func getVersion() (VersionData, error) {
-
 	var data VersionData
 
 	branch, err := execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
