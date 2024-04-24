@@ -30,7 +30,9 @@ func (f *DefaultSchemaProvider) GetSchema(
 	if err != nil {
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}
-
+	fmt.Println("-------------Schema Provider------------------")
+	fmt.Println(rows)
+	fmt.Println("------------------------------------------")
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
 	var (

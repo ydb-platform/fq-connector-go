@@ -61,7 +61,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	split *api_service_protos.TSplit,
 ) error {
 	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return err

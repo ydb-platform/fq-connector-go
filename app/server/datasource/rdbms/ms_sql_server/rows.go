@@ -12,26 +12,24 @@ type rows struct {
 	rows *sql.Rows
 }
 
-func (rows) NextResultSet() bool {
-	return false
+func (r rows) NextResultSet() bool {
+	return r.rows.NextResultSet()
 }
 
 func (r rows) Next() bool {
-	return false
+	return r.rows.Next()
 }
 
 func (r rows) Err() error {
-	return nil
+	return r.rows.Err()
 }
 
 func (r rows) Scan(dest ...any) error {
-	return nil
+	return r.rows.Scan(dest...)
 }
 
 func (r rows) Close() error {
-	// r.Rows.Close()
-
-	return nil
+	return r.rows.Close()
 }
 
 func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
