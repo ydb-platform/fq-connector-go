@@ -56,5 +56,6 @@ jobs:
           git rev-parse HEAD
           git rev-parse --short HEAD
           git describe --always
+          git fetch --prune --unshallow
           go run ./tools/version
           GOOS=linux go build -v -o fq-connector-go ./app
