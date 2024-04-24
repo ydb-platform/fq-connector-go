@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -52,6 +53,7 @@ func main() {
 	err := run(logger)
 	if err != nil {
 		logger.Error("run", zap.Error(err))
+		os.Exit(1)
 	}
 }
 
@@ -174,11 +176,15 @@ func getVersion() (versionData, error) {
 }
 
 func execCommand(command string, args ...string) (string, error) {
+	var stderr bytes.Buffer
+
 	cmd := exec.Command(command, args...)
+
+	cmd.Stderr = &stderr
 
 	output, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("cmd output: %w", err)
+		return "", fmt.Errorf("cmd output: %s", stderr.String())
 	}
 
 	return string(output), nil
