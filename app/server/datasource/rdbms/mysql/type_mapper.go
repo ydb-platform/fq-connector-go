@@ -19,11 +19,31 @@ var _ datasource.TypeMapper = typeMapper{}
 
 type typeMapper struct{}
 
-func (typeMapper) SQLTypeToYDBColumn(columnName, _ string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
-	return &Ydb.Column{
-		Name: columnName,
-		Type: common.MakePrimitiveType(Ydb.Type_INT32),
-	}, nil
+func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+	switch columnType {
+	case "int":
+		return &Ydb.Column{
+			Name: columnName,
+			Type: common.MakePrimitiveType(Ydb.Type_INT32),
+		}, nil
+	case "float":
+		return &Ydb.Column{
+			Name: columnName,
+			Type: common.MakePrimitiveType(Ydb.Type_FLOAT),
+		}, nil
+	case "double":
+		return &Ydb.Column{
+			Name: columnName,
+			Type: common.MakePrimitiveType(Ydb.Type_DOUBLE),
+		}, nil
+	case "smallint", "tinyint":
+		return &Ydb.Column{
+			Name: columnName,
+			Type: common.MakePrimitiveType(Ydb.Type_INT16),
+		}, nil
+	default:
+		panic("Type not implemented yet")
+	}
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
@@ -37,6 +57,15 @@ func transformerFromTypeIDs(ids []uint8, _ []*Ydb.Type, cc conversion.Collection
 		case mysql.MYSQL_TYPE_LONG:
 			acceptors = append(acceptors, new(*int32))
 			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+		case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
+			acceptors = append(acceptors, new(*int16))
+			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
+		case mysql.MYSQL_TYPE_FLOAT:
+			acceptors = append(acceptors, new(*float32))
+			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+		case mysql.MYSQL_TYPE_DOUBLE:
+			acceptors = append(acceptors, new(*float64))
+			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
 		default:
 			panic(fmt.Sprintf("Type %d not implemented yet!", id))
 		}
