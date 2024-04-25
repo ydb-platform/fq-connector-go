@@ -12,8 +12,8 @@ func GetQueryAndArgs(request *api_service_protos.TDescribeTableRequest) (string,
 	fmt.Println("------------GetQueryAndArgs-------------------")
 	// fmt.Println(opts)
 	fmt.Println("------------------------------------------")
-	query := "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND TABLE_SCHEMA = 'dbo';"
-	args := []any{request.Table} //, opts}
+	query := "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users';"
+	// args := []any{request.Table} //, opts}
 
-	return query, args
+	return query, nil
 }
