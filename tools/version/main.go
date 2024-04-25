@@ -58,9 +58,28 @@ func main() {
 }
 
 func run(logger *zap.Logger) error {
-	data, err := getVersion()
-	if err != nil {
-		return fmt.Errorf("get version: %w", err)
+	var data versionData
+
+	var err error
+
+	if len(os.Args) < 2 {
+		data, err = getGitVersion()
+		if err != nil {
+			return fmt.Errorf("get version: %w", err)
+		}
+	} else {
+		switch os.Args[1] {
+		case "arc":
+			data, err = getArcVersion()
+			if err != nil {
+				return fmt.Errorf("get version: %w", err)
+			}
+		default:
+			data, err = getGitVersion()
+			if err != nil {
+				return fmt.Errorf("get version: %w", err)
+			}
+		}
 	}
 
 	file, err := os.Create("./app/version/version_init.go")
@@ -82,7 +101,7 @@ func run(logger *zap.Logger) error {
 	return nil
 }
 
-func getVersion() (versionData, error) {
+func getGitVersion() (versionData, error) {
 	var data versionData
 
 	branch, err := execCommand("git", "rev-parse", "--abbrev-ref", "HEAD")
@@ -188,4 +207,10 @@ func execCommand(command string, args ...string) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+func getArcVersion() (versionData, error) {
+	data := versionData{}
+
+	return data, nil
 }
