@@ -21,7 +21,7 @@ import (
 type Base struct {
 	testify_suite.Suite
 	*State
-	Connector *server.Embedded
+	Connector common.TestingServer
 	name      string
 }
 

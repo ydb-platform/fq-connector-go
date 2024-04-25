@@ -109,7 +109,6 @@ func (c *connectionManager) Make(
 
 	conn, err := pgx.ConnectConfig(ctx, connCfg)
 	if err != nil {
-		fmt.Printf("CRAB: CONNECT CONFIG: %T\n", err)
 		return nil, fmt.Errorf("connect config: %w", err)
 	}
 

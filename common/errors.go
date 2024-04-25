@@ -11,6 +11,7 @@ import (
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"go.uber.org/zap"
+	grpc_codes "google.golang.org/grpc/codes"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
@@ -92,7 +93,7 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 
 			return &api_service_protos.TError{
 				Status:  status,
-				Message: chErr.Message,
+				Message: pgError.Message,
 			}
 		}
 	}
@@ -102,7 +103,14 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 			if ydb.IsOperationError(err, ydb_proto.StatusIds_StatusCode(status)) {
 				return &api_service_protos.TError{
 					Status:  ydb_proto.StatusIds_StatusCode(status),
-					Message: chErr.Message,
+					Message: err.Error(),
+				}
+			}
+
+			if ydb.IsTransportError(err, grpc_codes.ResourceExhausted) {
+				return &api_service_protos.TError{
+					Status:  ydb_proto.StatusIds_OVERLOADED,
+					Message: err.Error(),
 				}
 			}
 		}

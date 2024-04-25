@@ -236,6 +236,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		SQLFormatter:      clickhouse.NewSQLFormatter(),
 		ConnectionManager: connectionManager,
 		TypeMapper:        typeMapper,
+		RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 	}
 
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})

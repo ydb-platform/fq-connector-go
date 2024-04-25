@@ -59,6 +59,7 @@ func TestReadSplit(t *testing.T) {
 		preset := &Preset{
 			ConnectionManager: connectionManager,
 			SQLFormatter:      postgresql.NewSQLFormatter(), // TODO: parametrize
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
@@ -107,6 +108,7 @@ func TestReadSplit(t *testing.T) {
 		preset := &Preset{
 			ConnectionManager: connectionManager,
 			SQLFormatter:      postgresql.NewSQLFormatter(), // TODO: parametrize
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}

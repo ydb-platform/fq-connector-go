@@ -5,6 +5,7 @@ ydbinit
 coverage*
 scripts/bench/postgresql
 scripts/bench/clickhouse
+scripts/bench/ydb
 __pycache__
 *.test
 

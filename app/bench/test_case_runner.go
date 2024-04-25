@@ -2,9 +2,11 @@ package bench
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
+	"golang.org/x/time/rate"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -16,7 +18,7 @@ import (
 type testCaseRunner struct {
 	cfg             *config.TBenchmarkConfig
 	testCase        *config.TBenchmarkTestCase
-	srv             *server.Embedded
+	srv             common.TestingServer
 	reportGenerator *reportGenerator
 	ctx             context.Context
 	logger          *zap.Logger
@@ -28,11 +30,43 @@ func newTestCaseRunner(
 	cfg *config.TBenchmarkConfig,
 	testCase *config.TBenchmarkTestCase,
 ) (*testCaseRunner, error) {
-	srv, err := server.NewEmbedded(
+	if testCase.ServerParams != nil && cfg.GetServerLocal() == nil {
+		return nil, errors.New("you can specify server params in test case only if local server is deployed")
+	}
+
+	var (
+		err           error
+		testingServer common.TestingServer
+	)
+
+	if local := cfg.GetServerLocal(); local != nil {
+		testingServer, err = newTestingServerLocal(testCase.ServerParams)
+	} else if remote := cfg.GetServerRemote(); remote != nil {
+		testingServer, err = newTestingServerRemote(logger, remote)
+	}
+
+	if err != nil {
+		return nil, fmt.Errorf("new testing server: %w", err)
+	}
+
+	tcr := &testCaseRunner{
+		logger:          logger,
+		cfg:             cfg,
+		testCase:        testCase,
+		srv:             testingServer,
+		ctx:             ctx,
+		reportGenerator: newReportGenerator(logger, testCase),
+	}
+
+	return tcr, nil
+}
+
+func newTestingServerLocal(serverParams *config.TBenchmarkServerParams) (common.TestingServer, error) {
+	return server.NewEmbedded(
 		server.WithLoggerConfig(&config.TLoggerConfig{
 			LogLevel: config.ELogLevel_ERROR,
 		}),
-		server.WithPagingConfig(testCase.ServerParams.Paging),
+		server.WithPagingConfig(serverParams.Paging),
 		server.WithPprofServerConfig(&config.TPprofServerConfig{
 			Endpoint: &api_common.TEndpoint{Host: "localhost", Port: 50052},
 		}),
@@ -42,27 +76,57 @@ func newTestCaseRunner(
 			},
 		),
 	)
+}
 
-	if err != nil {
-		return nil, fmt.Errorf("new server embedded: %w", err)
-	}
-
-	tcr := &testCaseRunner{
-		logger:          logger,
-		cfg:             cfg,
-		testCase:        testCase,
-		srv:             srv,
-		ctx:             ctx,
-		reportGenerator: newReportGenerator(logger, testCase),
-	}
-
-	return tcr, nil
+func newTestingServerRemote(logger *zap.Logger, clientCfg *config.TClientConfig) (common.TestingServer, error) {
+	return common.NewTestingServerRemote(logger, clientCfg)
 }
 
 func (tcr *testCaseRunner) run() error {
 	tcr.srv.Start()
 	tcr.reportGenerator.start()
 
+	if params := tcr.testCase.ClientParams; params == nil {
+		// if we need to execute requests only once, just do it
+		if err := tcr.executeScenario(); err != nil {
+			return fmt.Errorf("execute scenario: %w", err)
+		}
+	} else {
+		// if we need to repeate request in a loop, rate limiter is a good idea
+		ctx, cancel := context.WithTimeout(context.Background(), common.MustDurationFromString(params.Duration))
+		defer cancel()
+
+		limiter := rate.NewLimiter(rate.Limit(params.QueriesPerSecond), 1)
+		counter := 0
+
+		tcr.logger.Info("load session started")
+
+		for {
+			if err := limiter.Wait(ctx); err != nil {
+				if errors.Is(err, context.DeadlineExceeded) {
+					tcr.logger.Info("load session finished")
+					return nil
+				}
+
+				return fmt.Errorf("limiter wait: %w", err)
+			}
+
+			counter++
+
+			tcr.logger.Debug("scenario started", zap.Int("id", counter))
+
+			if err := tcr.executeScenario(); err != nil {
+				return fmt.Errorf("execute scenario: %w", err)
+			}
+
+			tcr.logger.Debug("scenario finished", zap.Int("id", counter))
+		}
+	}
+
+	return nil
+}
+
+func (tcr *testCaseRunner) executeScenario() error {
 	// get table schema
 	describeTableResponse, err := tcr.srv.ClientStreaming().DescribeTable(
 		tcr.ctx,
@@ -81,7 +145,7 @@ func (tcr *testCaseRunner) run() error {
 		return fmt.Errorf("describe table: %w", common.NewSTDErrorFromAPIError(describeTableResponse.Error))
 	}
 
-	// launch split listing
+	// launch split listing and reading
 	slct := &api_service_protos.TSelect{
 		DataSourceInstance: tcr.cfg.DataSourceInstance,
 		What:               common.SchemaToSelectWhatItems(describeTableResponse.Schema, tcr.makeColumnWhitelist()),
@@ -167,10 +231,17 @@ func (tcr *testCaseRunner) finish() *report {
 }
 
 func (tcr *testCaseRunner) name() string {
-	return fmt.Sprintf(
-		"bytes_per_page_%d-prefetch_queue_capacity_%d-columns_%d",
-		tcr.testCase.ServerParams.Paging.BytesPerPage,
-		tcr.testCase.ServerParams.Paging.PrefetchQueueCapacity,
-		len(tcr.testCase.Columns),
-	)
+	switch tcr.cfg.Server.(type) {
+	case *config.TBenchmarkConfig_ServerLocal:
+		return fmt.Sprintf(
+			"bytes_per_page_%d-prefetch_queue_capacity_%d-columns_%d",
+			tcr.testCase.ServerParams.Paging.BytesPerPage,
+			tcr.testCase.ServerParams.Paging.PrefetchQueueCapacity,
+			len(tcr.testCase.Columns),
+		)
+	case *config.TBenchmarkConfig_ServerRemote:
+		return "remote"
+	default:
+		panic("unexpected type")
+	}
 }

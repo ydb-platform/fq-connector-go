@@ -118,7 +118,7 @@ func NewClientStreamingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 	))
 
 	if err != nil {
-		return nil, fmt.Errorf("grpc dial: %w", err)
+		return nil, fmt.Errorf("make connection: %w", err)
 	}
 
 	grpcClient := api_service.NewConnectorClient(conn)

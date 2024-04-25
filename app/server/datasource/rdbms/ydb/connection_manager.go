@@ -8,6 +8,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"go.uber.org/zap"
@@ -117,7 +118,7 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
 
-	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
+	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
 	defer openCtxCancel()
 
 	ydbDriver, err := ydb_sdk.Open(
@@ -125,6 +126,7 @@ func (c *connectionManager) Make(
 		dsn,
 		cred,
 		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
+		ydb_sdk.WithBalancer(balancers.SingleConn()), // see YQ-3089
 		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	)
 	if err != nil {
@@ -144,18 +146,9 @@ func (c *connectionManager) Make(
 	defer pingCtxCancel()
 
 	if err := conn.PingContext(pingCtx); err != nil {
+		common.LogCloserError(logger, conn, "close YDB connection")
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
-
-	const (
-		maxIdleConns    = 5
-		maxOpenConns    = 10
-		connMaxLifetime = time.Hour
-	)
-
-	conn.SetMaxIdleConns(maxIdleConns)
-	conn.SetMaxOpenConns(maxOpenConns)
-	conn.SetConnMaxLifetime(connMaxLifetime)
 
 	logger.Debug("Connection is ready")
 

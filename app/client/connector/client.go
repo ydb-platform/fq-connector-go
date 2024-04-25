@@ -43,7 +43,7 @@ func runClient(cmd *cobra.Command, _ []string) error {
 func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string) error {
 	cl, err := common.NewClientBufferingFromClientConfig(logger, cfg)
 	if err != nil {
-		return fmt.Errorf("grpc dial: %w", err)
+		return fmt.Errorf("new client buffering from client config: %w", err)
 	}
 
 	defer cl.Close()
