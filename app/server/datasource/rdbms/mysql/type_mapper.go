@@ -20,3 +20,18 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, _ string, _ *api_service_protos
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
+
+// func transformerFromTypeNames(typeNames []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+// 	acceptors := make([]any, 0, len(typeNames))
+// 	appenders := make([]func(acceptor any, builder array.Builder))
+//
+// 	for i, name := range typeNames {
+// 		switch name {
+// 		default:
+// 			acceptors = append(acceptors, "int")
+// 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+// 				cast := acceptor.(*mysql.)
+// 			})
+// 		}
+// 	}
+// }
