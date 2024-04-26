@@ -65,6 +65,7 @@ func run(logger *zap.Logger) error {
 		data     versionData
 		err      error
 		filepath string
+		homeDir  string
 	)
 
 	if len(os.Args) < 2 {
@@ -77,7 +78,7 @@ func run(logger *zap.Logger) error {
 				return fmt.Errorf("get version: %w", err)
 			}
 
-			homeDir, err := os.UserHomeDir()
+			homeDir, err = os.UserHomeDir()
 			if err != nil {
 				return fmt.Errorf("get home dir: %w", err)
 			}
@@ -305,11 +306,12 @@ func execCommand(command string, args ...string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cmd output: %s", stderr.String())
 	}
+
 	return string(output), nil
 }
 
 func getVersions() (string, string, error) {
-	var result map[string]interface{}
+	var result map[string]any
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
