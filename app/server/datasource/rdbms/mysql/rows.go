@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"errors"
 	"io"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -71,6 +72,7 @@ func (r rows) Scan(dest ...any) error {
 				*tmp = int32(value.(int64))
 				*dest[i].(**int32) = tmp
 			}
+			// In MySQL bool is actually a tinyint
 		case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
 			tmp := new(int16)
 			if value != nil {
@@ -90,7 +92,7 @@ func (r rows) Scan(dest ...any) error {
 				*dest[i].(**float64) = tmp
 			}
 		default:
-			panic("Not implemented yet")
+			return errors.New("mysql: datatype not implemented yet")
 		}
 	}
 

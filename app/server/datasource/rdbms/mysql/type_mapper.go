@@ -47,7 +47,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_servi
 			Type: common.MakePrimitiveType(Ydb.Type_UTF8),
 		}, nil
 	default:
-		panic("Type not implemented yet")
+		return nil, errors.New("mysql: datatype not implemented yet")
 	}
 }
 
@@ -76,7 +76,7 @@ func transformerFromTypeIDs(ids []uint8, _ []*Ydb.Type, cc conversion.Collection
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		default:
-			panic(fmt.Sprintf("Type %d not implemented yet!", id))
+			return nil, errors.New("mysql: datatype not implemented yet")
 		}
 	}
 
