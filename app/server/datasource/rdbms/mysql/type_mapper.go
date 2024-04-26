@@ -21,7 +21,7 @@ type typeMapper struct{}
 
 func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	switch columnType {
-	case "int":
+	case "int", "mediumint":
 		return &Ydb.Column{
 			Name: columnName,
 			Type: common.MakePrimitiveType(Ydb.Type_INT32),
@@ -54,7 +54,7 @@ func transformerFromTypeIDs(ids []uint8, _ []*Ydb.Type, cc conversion.Collection
 
 	for _, id := range ids {
 		switch id {
-		case mysql.MYSQL_TYPE_LONG:
+		case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
 			acceptors = append(acceptors, new(*int32))
 			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
 		case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
