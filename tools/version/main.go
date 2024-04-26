@@ -67,30 +67,30 @@ func run(logger *zap.Logger) error {
 		homeDir  string
 	)
 
-	if len(os.Args) > 2 {
-		switch os.Args[1] {
-		case "arc":
-			data, err = getArcVersion()
-			if err != nil {
-				return fmt.Errorf("get version: %w", err)
-			}
-
-			homeDir, err = os.UserHomeDir()
-			if err != nil {
-				return fmt.Errorf("get home dir: %w", err)
-			}
-
-			filepath = homeDir + "/arcadia/vendor/github.com/ydb-platform/fq-connector-go/app/version/version_init.go"
-		default:
-			data, err = getGitVersion()
-			if err != nil {
-				return fmt.Errorf("get version: %w", err)
-			}
-
-			filepath = "./app/version/version_init.go"
-		}
-	} else {
+	if !(len(os.Args) > 2) {
 		return fmt.Errorf("no version args")
+	}
+
+	switch os.Args[1] {
+	case "arc":
+		data, err = getArcVersion()
+		if err != nil {
+			return fmt.Errorf("get version: %w", err)
+		}
+
+		homeDir, err = os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("get home dir: %w", err)
+		}
+
+		filepath = homeDir + "/arcadia/vendor/github.com/ydb-platform/fq-connector-go/app/version/version_init.go"
+	default:
+		data, err = getGitVersion()
+		if err != nil {
+			return fmt.Errorf("get version: %w", err)
+		}
+
+		filepath = "./app/version/version_init.go"
 	}
 
 	file, err := os.Create(filepath)
