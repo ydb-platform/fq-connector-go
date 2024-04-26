@@ -60,18 +60,15 @@ func main() {
 }
 
 func run(logger *zap.Logger) error {
-	var data versionData
 
-	var err error
-
-	var filepath string
+	var (
+		data     versionData
+		err      error
+		filepath string
+	)
 
 	if len(os.Args) < 2 {
-		data, err = getGitVersion()
-		if err != nil {
-			return fmt.Errorf("get version: %w", err)
-		}
-		filepath = "./app/version/version_init.go"
+		return fmt.Errorf("no version args")
 	} else {
 		switch os.Args[1] {
 		case "arc":
