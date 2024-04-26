@@ -1,8 +1,6 @@
 package mysql
 
 import (
-	"fmt"
-
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 )
@@ -16,8 +14,8 @@ func (sqlFormatter) SupportsPushdownExpression(_ *api_service_protos.TExpression
 	return false
 }
 
-func (sqlFormatter) GetPlaceholder(n int) string {
-	return fmt.Sprintf("$%d", n+1)
+func (sqlFormatter) GetPlaceholder(_ int) string {
+	return "?"
 }
 
 func (sqlFormatter) SanitiseIdentifier(ident string) string {
