@@ -22,11 +22,9 @@ func (c Connection) Close() error {
 }
 
 func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
-	_ = ctx
-
 	c.logger.Dump(query, args...)
 
-	out, err := c.db.Query(query, args...)
+	out, err := c.db.QueryContext(ctx, query, args...)
 
 	return rows{out}, err
 }

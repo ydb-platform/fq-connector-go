@@ -7,8 +7,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
-	_ "github.com/denisenkom/go-mssqldb"
-
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
@@ -26,6 +24,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		err     error
 	)
 
+	// MS SQL Server Data Types https://learn.microsoft.com/ru-ru/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver16
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 	switch typeName {
 	case "bit":
@@ -47,7 +46,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	case "char", "varchar", "nchar", "nvarchar", "text":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
-		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
+		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -93,7 +92,17 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
 		case "BINARY", "VARBINARY":
-			// ваш вызов преобразователя (appender)
+			acceptors = append(acceptors, new(*[]byte))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				cast := acceptor.(**[]byte)
+				if *cast != nil {
+					builder.(*array.BinaryBuilder).Append(**cast)
+				} else {
+					builder.(*array.BinaryBuilder).AppendNull()
+				}
+
+				return nil
+			})
 		case "CHAR", "VARCHAR", "NCHAR", "NVARCHAR", "TEXT":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
@@ -155,3 +164,4 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
+
