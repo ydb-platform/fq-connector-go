@@ -30,6 +30,11 @@ type versionData struct {
 	GoVersion     string
 }
 
+type versionsInfo struct {
+	tag       string
+	goVersion string
+}
+
 var tmpl = `
 package version
 
@@ -67,8 +72,8 @@ func run(logger *zap.Logger) error {
 		homeDir  string
 	)
 
-	if len(os.Args) < 2 {
-		return fmt.Errorf("no version args")
+	if len(os.Args) != 2 {
+		return fmt.Errorf("wrong args")
 	}
 
 	switch os.Args[1] {
@@ -166,7 +171,7 @@ func getArcVersion() (versionData, error) {
 		return data, fmt.Errorf("path to go exec command: %w", err)
 	}
 
-	tag, goVersion, err := getVersions()
+	versions, err := getTagAndGoVersion()
 	if err != nil {
 		return data, fmt.Errorf("getVersions: %w", err)
 	}
@@ -180,8 +185,8 @@ func getArcVersion() (versionData, error) {
 	author = strings.TrimSpace(author)
 	commitDate = strings.TrimSpace(commitDate)
 	branch = strings.TrimSpace(branch)
-	tag = strings.TrimSpace(tag)
-	goVersion = strings.TrimSpace(goVersion)
+	versions.tag = strings.TrimSpace(versions.tag)
+	versions.goVersion = strings.TrimSpace(versions.goVersion)
 
 	data = versionData{
 		CommitHash:    commitHash,
@@ -194,8 +199,8 @@ func getArcVersion() (versionData, error) {
 		PathToGo:      pathToGo,
 		Author:        author,
 		Branch:        branch,
-		GoVersion:     goVersion,
-		Tag:           tag,
+		GoVersion:     versions.goVersion,
+		Tag:           versions.tag,
 	}
 
 	return data, nil
@@ -309,28 +314,29 @@ func execCommand(command string, args ...string) (string, error) {
 	return string(output), nil
 }
 
-func getVersions() (string, string, error) {
+func getTagAndGoVersion() (versionsInfo, error) {
+	var versions versionsInfo
 	var result map[string]interface{}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return "", "", fmt.Errorf("get home dir: %w", err)
+		return versions, fmt.Errorf("get home dir: %w", err)
 	}
 
 	filepath := homeDir + "/arcadia/vendor/github.com/ydb-platform/fq-connector-go/.yo.snapshot.json"
 
 	data, err := os.ReadFile(filepath)
 	if err != nil {
-		return "", "", fmt.Errorf("read file %w", err)
+		return versions, fmt.Errorf("read file %w", err)
 	}
 
 	err = json.Unmarshal(data, &result)
 	if err != nil {
-		return "", "", fmt.Errorf("json unmarshall %w", err)
+		return versions, fmt.Errorf("json unmarshall %w", err)
 	}
 
-	version := result["Version"].(string)
-	goVersion := result["GoVersion"].(string)
+	versions.tag = result["Version"].(string)
+	versions.goVersion = result["GoVersion"].(string)
 
-	return version, goVersion, nil
+	return versions, nil
 }
