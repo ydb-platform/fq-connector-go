@@ -23,7 +23,7 @@ type dataSourceFactory struct {
 	clickhouse          Preset
 	postgresql          Preset
 	ydb                 Preset
-	ms_sql_server       Preset
+	msSQLServer         Preset
 	converterCollection conversion.Collection
 }
 
@@ -39,7 +39,7 @@ func (dsf *dataSourceFactory) Make(
 	case api_common.EDataSourceKind_YDB:
 		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
-		return NewDataSource(logger, &dsf.ms_sql_server, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -56,7 +56,7 @@ func NewDataSourceFactory(
 	postgresqlTypeMapper := postgresql.NewTypeMapper()
 	clickhouseTypeMapper := clickhouse.NewTypeMapper()
 	ydbTypeMapper := ydb.NewTypeMapper()
-	ms_sql_serverTypeMapper := ms_sql_server.NewTypeMapper()
+	msSQLServerTypeMapper := ms_sql_server.NewTypeMapper()
 
 	return &dataSourceFactory{
 		clickhouse: Preset{
@@ -77,11 +77,11 @@ func NewDataSourceFactory(
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 		},
-		ms_sql_server: Preset{
+		msSQLServer: Preset{
 			SQLFormatter:      ms_sql_server.NewSQLFormatter(),
 			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
-			TypeMapper:        ms_sql_serverTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(ms_sql_serverTypeMapper, ms_sql_server.GetQueryAndArgs),
+			TypeMapper:        msSQLServerTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.GetQueryAndArgs),
 		},
 		converterCollection: converterCollection,
 	}

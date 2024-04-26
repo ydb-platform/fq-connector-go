@@ -47,6 +47,7 @@ func (f *schemaProvider) GetSchema(
 			if err != nil {
 				return fmt.Errorf("describe table: %w", err)
 			}
+
 			return nil
 		},
 	)

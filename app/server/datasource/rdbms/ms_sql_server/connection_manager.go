@@ -6,10 +6,11 @@ import (
 	"fmt"
 
 	_ "github.com/denisenkom/go-mssqldb"
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
@@ -24,7 +25,6 @@ func (c *connectionManager) Make(
 	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
-
 	if dsi.Protocol != api_common.EProtocol_NATIVE {
 		return nil, fmt.Errorf("can not create MS SQL connection with protocol '%v'", dsi.Protocol)
 	}

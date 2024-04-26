@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	_ "github.com/denisenkom/go-mssqldb"
+
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )

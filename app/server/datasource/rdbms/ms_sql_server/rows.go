@@ -6,9 +6,10 @@ import (
 	"database/sql"
 
 	_ "github.com/denisenkom/go-mssqldb"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type rows struct {
