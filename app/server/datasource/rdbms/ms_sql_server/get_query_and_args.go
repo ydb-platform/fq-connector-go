@@ -8,7 +8,7 @@ import (
 
 func GetQueryAndArgs(request *api_service_protos.TDescribeTableRequest) (string, []any) {
 	// opts := request.GetDataSourceInstance().GetPgOptions().GetSchema()
-
+	_ = request
 	query := "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users';"
 	// args := []any{request.Table} //, opts}
 
