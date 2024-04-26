@@ -39,18 +39,12 @@ func (ds *dataSourceImpl) DescribeTable(
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	conn, err := ds.connectionManager.Make(ctx, logger, request.DataSourceInstance)
 	if err != nil {
-		fmt.Println("------------Data Source-------------------")
-		fmt.Println(conn)
-		fmt.Println("------------------------------------------")
 		return nil, fmt.Errorf("make connection: %w", err)
 	}
 
 	defer ds.connectionManager.Release(logger, conn)
 
 	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
-	fmt.Println("-------------Data Source------------------")
-	fmt.Println(schema)
-	fmt.Println("------------------------------------------")
 	if err != nil {
 		return nil, fmt.Errorf("get schema: %w", err)
 	}
@@ -94,10 +88,6 @@ func (ds *dataSourceImpl) doReadSplit(
 	}
 
 	for cont := true; cont; cont = rows.NextResultSet() {
-		fmt.Println("-------------Rows cycle-----------------")
-		fmt.Println(rows)
-		fmt.Println(transformer)
-		fmt.Println("------------------------------------")
 		for rows.Next() {
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
 				return fmt.Errorf("rows scan error: %w", err)
