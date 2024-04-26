@@ -50,39 +50,36 @@ func (r rows) Scan(dest ...any) error {
 			return err
 		}
 
-		switch dest[i].(type) {
-		case *string:
+		switch valueType {
+		// TODO: handle blobs separately
+		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB:
 			*dest[i].(*string) = string(value.([]byte))
-		// library uses uint64 to store EVERY non-string/[]bytes value
-		default:
-			switch valueType {
-			case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
-				tmp := new(int32)
-				if value != nil {
-					*tmp = int32(value.(int64))
-					*dest[i].(**int32) = tmp
-				}
-			case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
-				tmp := new(int16)
-				if value != nil {
-					*tmp = int16(value.(int64))
-					*dest[i].(**int16) = tmp
-				}
-			case mysql.MYSQL_TYPE_FLOAT:
-				tmp := new(float32)
-				if value != nil {
-					*tmp = float32(value.(float64))
-					*dest[i].(**float32) = tmp
-				}
-			case mysql.MYSQL_TYPE_DOUBLE:
-				tmp := new(float64)
-				if value != nil {
-					*tmp = float64(value.(float64))
-					*dest[i].(**float64) = tmp
-				}
-			default:
-				panic("Not implemented yet")
+		case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
+			tmp := new(int32)
+			if value != nil {
+				*tmp = int32(value.(int64))
+				*dest[i].(**int32) = tmp
 			}
+		case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
+			tmp := new(int16)
+			if value != nil {
+				*tmp = int16(value.(int64))
+				*dest[i].(**int16) = tmp
+			}
+		case mysql.MYSQL_TYPE_FLOAT:
+			tmp := new(float32)
+			if value != nil {
+				*tmp = float32(value.(float64))
+				*dest[i].(**float32) = tmp
+			}
+		case mysql.MYSQL_TYPE_DOUBLE:
+			tmp := new(float64)
+			if value != nil {
+				*tmp = float64(value.(float64))
+				*dest[i].(**float64) = tmp
+			}
+		default:
+			panic("Not implemented yet")
 		}
 	}
 
