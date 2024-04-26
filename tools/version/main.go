@@ -67,7 +67,7 @@ func run(logger *zap.Logger) error {
 		homeDir  string
 	)
 
-	if !(len(os.Args) > 2) {
+	if len(os.Args) < 2 {
 		return fmt.Errorf("no version args")
 	}
 
