@@ -94,6 +94,10 @@ func (ds *dataSourceImpl) doReadSplit(
 	}
 
 	for cont := true; cont; cont = rows.NextResultSet() {
+		fmt.Println("-------------Rows cycle-----------------")
+		fmt.Println(rows)
+		fmt.Println(transformer)
+		fmt.Println("------------------------------------")
 		for rows.Next() {
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
 				return fmt.Errorf("rows scan error: %w", err)

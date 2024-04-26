@@ -1,6 +1,7 @@
 package ms_sql_server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -28,9 +29,11 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	switch typeName {
 	case "bit":
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
-	case "tinyint", "int":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT16)
+	case "tinyint":
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT8)
 	case "smallint":
+		ydbType = common.MakePrimitiveType(Ydb.Type_INT16)
+	case "int":
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT32)
 	case "bigint":
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
@@ -52,7 +55,6 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, err)
 	}
 
-	// MS SQL Server умеет хорошо работать с Nullable columns, поэтому мы выбираем дефолтное поведение
 	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
@@ -61,36 +63,91 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	}, nil
 }
 
-//nolint:gocyclo
-func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+	acceptors := make([]any, 0, len(types))
+	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 
-	return paging.NewRowTransformer[any](nil, nil, nil), nil
+	for _, typeName := range types {
+		switch typeName {
+		case "BIT":
+			acceptors = append(acceptors, new(*bool))
+			appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
+		case "TINYINT":
+			acceptors = append(acceptors, new(*int8))
+			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
+		case "SMALLINT":
+			acceptors = append(acceptors, new(*int16))
+			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
+		case "INT":
+			acceptors = append(acceptors, new(*int32))
+			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+		case "BIGINT":
+			acceptors = append(acceptors, new(*int64))
+			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+		case "REAL":
+			acceptors = append(acceptors, new(*float32))
+			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+		case "FLOAT":
+			acceptors = append(acceptors, new(*float64))
+			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+		case "BINARY", "VARBINARY":
+			// ваш вызов преобразователя (appender)
+		case "CHAR", "VARCHAR", "NCHAR", "NVARCHAR", "TEXT":
+			acceptors = append(acceptors, new(*string))
+			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
+			// ваш вызов преобразователя (appender)
+		default:
+			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
+		}
+	}
+
+	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
 }
 
-func appendValueToArrowBuilder[
+func makeAppender[
 	IN common.ValueType,
 	OUT common.ValueType,
 	AB common.ArrowBuilder[OUT],
-](
-	value any,
+](conv conversion.ValueConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
+	return func(acceptor any, builder array.Builder) error {
+		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
+	}
+}
+
+func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
+	acceptor any,
 	builder array.Builder,
-	valid bool,
 	conv conversion.ValueConverter[IN, OUT],
 ) error {
+	cast := acceptor.(**IN)
 
-	return nil
-}
+	if *cast == nil {
+		builder.AppendNull()
 
-func appendValuePtrToArrowBuilder[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](
-	value any,
-	builder array.Builder,
-	valid bool,
-	conv conversion.ValuePtrConverter[IN, OUT],
-) error {
+		return nil
+	}
+
+	value := **cast
+
+	out, err := conv.Convert(value)
+	if err != nil {
+		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
+			// TODO: write warning to logger
+			builder.AppendNull()
+
+			return nil
+		}
+
+		return fmt.Errorf("convert value %v: %w", value, err)
+	}
+
+	//nolint:forcetypeassert
+	builder.(AB).Append(out)
+
+	// Without that ClickHouse native driver would return invalid values for NULLABLE(bool) columns;
+	// TODO: research it.
+	*cast = nil
 
 	return nil
 }
