@@ -52,7 +52,8 @@ func (r rows) Scan(dest ...any) error {
 
 		switch valueType {
 		// TODO: handle blobs separately
-		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB:
+		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING,
+			mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB:
 			*dest[i].(*string) = string(value.([]byte))
 		case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
 			tmp := new(int32)
