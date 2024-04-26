@@ -143,7 +143,7 @@ make run
 1. Разверните свой источник данных в виде Docker-контейнера.
 1. Разверните сервис коннектора (например, `make run`)
 1. Подготовьте файл `app_conf.txt`, в котором укажите хост и порт для подключения к сервису коннектора:
-    ```
+    ```prototext
     FeatureFlags {
         EnableExternalDataSources: true
         EnableScriptExecutionOperations: true
@@ -165,6 +165,22 @@ make run
             }
         }
     }
+    ```
+1. Подготовьте YQL-скрипт, который регистрирует ваш источник данных как внешний для YDB, а также пароль для доступа к источнику. Добавьте все необходимые 
+    ```sql
+    CREATE OBJECT secret_password (TYPE SECRET) WITH (value = "<password>");
+
+    CREATE EXTERNAL DATA SOURCE postgresql_integration_test WITH (
+        SOURCE_TYPE="<data_source_type>",
+        LOCATION="<host>:<port>",
+        DATABASE_NAME="<table>",
+        AUTH_METHOD="BASIC",
+        LOGIN="<username>",
+        PASSWORD_SECRET_NAME="secret_password",
+        PROTOCOL="NATIVE",
+        USE_TLS="FALSE"
+    );
+
     ```
 
 ## Изменения в API и конфигурации коннектора
