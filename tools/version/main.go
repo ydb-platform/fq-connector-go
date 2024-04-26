@@ -60,7 +60,6 @@ func main() {
 }
 
 func run(logger *zap.Logger) error {
-
 	var (
 		data     versionData
 		err      error
@@ -68,9 +67,7 @@ func run(logger *zap.Logger) error {
 		homeDir  string
 	)
 
-	if len(os.Args) < 2 {
-		return fmt.Errorf("no version args")
-	} else {
+	if len(os.Args) > 2 {
 		switch os.Args[1] {
 		case "arc":
 			data, err = getArcVersion()
@@ -92,6 +89,8 @@ func run(logger *zap.Logger) error {
 
 			filepath = "./app/version/version_init.go"
 		}
+	} else {
+		return fmt.Errorf("no version args")
 	}
 
 	file, err := os.Create(filepath)
