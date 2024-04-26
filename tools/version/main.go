@@ -10,6 +10,8 @@ import (
 
 	"go.uber.org/zap"
 
+	"encoding/json"
+
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -62,11 +64,14 @@ func run(logger *zap.Logger) error {
 
 	var err error
 
+	var filepath string
+
 	if len(os.Args) < 2 {
 		data, err = getGitVersion()
 		if err != nil {
 			return fmt.Errorf("get version: %w", err)
 		}
+		filepath = "./app/version/version_init.go"
 	} else {
 		switch os.Args[1] {
 		case "arc":
@@ -74,15 +79,23 @@ func run(logger *zap.Logger) error {
 			if err != nil {
 				return fmt.Errorf("get version: %w", err)
 			}
+
+			homeDir, err := os.UserHomeDir()
+			if err != nil {
+				return fmt.Errorf("get home dir: %w", err)
+			}
+
+			filepath = homeDir + "/arcadia/vendor/github.com/ydb-platform/fq-connector-go/app/version/version_init.go"
 		default:
 			data, err = getGitVersion()
 			if err != nil {
 				return fmt.Errorf("get version: %w", err)
 			}
+			filepath = "./app/version/version_init.go"
 		}
 	}
 
-	file, err := os.Create("./app/version/version_init.go")
+	file, err := os.Create(filepath)
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
@@ -99,6 +112,94 @@ func run(logger *zap.Logger) error {
 	logger.Info("Version init file generated successfully!")
 
 	return nil
+}
+
+func getArcVersion() (versionData, error) {
+	var data versionData
+
+	commitHash, err := execCommand("arc", "log", "-n", "1", "--pretty={commit}")
+	if err != nil {
+		return data, fmt.Errorf("commitHash exec command: %w", err)
+	}
+
+	branch, err := execCommand("bash", "-c", "arc branch | grep \\* | cut -d ' ' -f2")
+
+	if err != nil {
+		return data, fmt.Errorf("branch exec command: %w", err)
+	}
+
+	commitMessage, err := execCommand("arc", "log", "-n", "1", "--pretty={message}")
+	if err != nil {
+		return data, fmt.Errorf("commitMessage exec command: %w", err)
+	}
+
+	author, err := execCommand("arc", "log", "-n", "1", "--pretty={author}")
+	if err != nil {
+		return data, fmt.Errorf("commitMessage exec command: %w", err)
+	}
+
+	commitDate, err := execCommand("arc", "log", "-n", "1", "--pretty={date}")
+	if err != nil {
+		return data, fmt.Errorf("commitMessage exec command: %w", err)
+	}
+
+	username, err := os.Executable()
+	if err != nil {
+		return data, fmt.Errorf("username exec command: %w", err)
+	}
+
+	buildLocation, err := os.Getwd()
+	if err != nil {
+		return data, fmt.Errorf("build location exec command: %w", err)
+	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return data, fmt.Errorf("hostname exec command: %w", err)
+	}
+
+	hostInfo, err := execCommand("uname", "-s")
+	if err != nil {
+		return data, fmt.Errorf("host info exec command: %w", err)
+	}
+
+	pathToGo, err := exec.LookPath("go")
+	if err != nil {
+		return data, fmt.Errorf("path to go exec command: %w", err)
+	}
+
+	tag, goVersion, err := getVersions()
+	if err != nil {
+		return data, fmt.Errorf("getVersions: %w", err)
+	}
+
+	commitHash = strings.TrimSpace(commitHash)
+	commitMessage = strings.TrimSpace(commitMessage)
+	username = strings.TrimSpace(username)
+	buildLocation = strings.TrimSpace(buildLocation)
+	hostname = strings.TrimSpace(hostname)
+	hostInfo = strings.TrimSpace(hostInfo)
+	author = strings.TrimSpace(author)
+	commitDate = strings.TrimSpace(commitDate)
+	branch = strings.TrimSpace(branch)
+	tag = strings.TrimSpace(tag)
+	goVersion = strings.TrimSpace(goVersion)
+
+	data = versionData{
+		CommitHash:    commitHash,
+		CommitMessage: commitMessage,
+		CommitDate:    commitDate,
+		Username:      username,
+		BuildLocation: buildLocation,
+		Hostname:      hostname,
+		HostInfo:      hostInfo,
+		PathToGo:      pathToGo,
+		Author:        author,
+		Branch:        branch,
+		GoVersion:     goVersion,
+		Tag:           tag,
+	}
+	return data, nil
 }
 
 func getGitVersion() (versionData, error) {
@@ -205,12 +306,31 @@ func execCommand(command string, args ...string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("cmd output: %s", stderr.String())
 	}
-
 	return string(output), nil
 }
 
-func getArcVersion() (versionData, error) {
-	data := versionData{}
+func getVersions() (string, string, error) {
+	var result map[string]interface{}
 
-	return data, nil
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return "", "", fmt.Errorf("get home dir: %w", err)
+	}
+
+	filepath := homeDir + "/arcadia/vendor/github.com/ydb-platform/fq-connector-go/.yo.snapshot.json"
+
+	data, err := os.ReadFile(filepath)
+	if err != nil {
+		return "", "", fmt.Errorf("read file %w", err)
+	}
+
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return "", "", fmt.Errorf("json unmarshall %w", err)
+	}
+
+	version := result["Version"].(string)
+	goVersion := result["GoVersion"].(string)
+
+	return version, goVersion, nil
 }
