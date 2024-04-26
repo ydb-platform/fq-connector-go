@@ -84,9 +84,6 @@ func prepareSplits(
 
 	// DescribeTable
 	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, typeMappingSettings, tableName)
-	fmt.Println("-----------CLIENT-------------")
-	fmt.Println(describeTableResponse)
-	fmt.Println("------------------------")
 	if err != nil {
 		return nil, fmt.Errorf("describe table: %w", err)
 	}

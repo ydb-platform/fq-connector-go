@@ -43,9 +43,6 @@ func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {
 }
 
 func (sb *SchemaBuilder) Build(logger *zap.Logger) (*api_service_protos.TSchema, error) {
-	fmt.Println("-------------Schema Builder------------------")
-	fmt.Println(sb.items)
-	fmt.Println("------------------------------------------")
 	if len(sb.items) == 0 {
 		return nil, common.ErrTableDoesNotExist
 	}

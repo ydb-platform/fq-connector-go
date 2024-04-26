@@ -30,9 +30,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 	if err != nil {
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}
-	fmt.Println("-------------Schema Provider------------------")
-	fmt.Println(rows)
-	fmt.Println("------------------------------------------")
+
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
 	var (
@@ -57,9 +55,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 	}
 
 	schema, err := sb.Build(logger)
-	fmt.Println("-------------Schema Provider------------------")
-	fmt.Println(schema)
-	fmt.Println("------------------------------------------")
+
 	if err != nil {
 		return nil, fmt.Errorf("build schema: %w", err)
 	}

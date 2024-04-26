@@ -40,10 +40,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 		if err != nil {
 			return nil, err
 		}
-		fmt.Println("---------------DSS COLLECTION------------------")
-		fmt.Println(kind)
-		fmt.Println(ds)
-		fmt.Println("------------------------------------------")
+
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EDataSourceKind_S3:
 		ds := s3.NewDataSource()

@@ -39,9 +39,6 @@ func (dsf *dataSourceFactory) Make(
 	case api_common.EDataSourceKind_YDB:
 		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
-		fmt.Println("-------------DS FACTORY------------------")
-		fmt.Println(dsf.ms_sql_server)
-		fmt.Println("------------------------------------------")
 		return NewDataSource(logger, &dsf.ms_sql_server, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)

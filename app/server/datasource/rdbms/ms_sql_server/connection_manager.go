@@ -31,9 +31,7 @@ func (c *connectionManager) Make(
 
 	connectString := fmt.Sprintf("sqlserver://SA:Qwerty12345!@localhost?database=%s", dsi.Database)
 	db, err := sql.Open("sqlserver", connectString)
-	fmt.Println("------------CONN MANAGER-------------------")
-	fmt.Println(dsi.Database)
-	fmt.Println("------------------------------------------")
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to open connection: %w", err)
 	}
@@ -45,9 +43,7 @@ func (c *connectionManager) Make(
 	}
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
-	fmt.Println("------------CONN MANAGER-------------------")
-	fmt.Println(db)
-	fmt.Println("------------------------------------------")
+
 	return &Connection{db, queryLogger}, nil
 }
 
