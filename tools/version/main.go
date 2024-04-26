@@ -310,7 +310,7 @@ func execCommand(command string, args ...string) (string, error) {
 }
 
 func getVersions() (string, string, error) {
-	var result map[string]any
+	var result map[string]interface{}
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
