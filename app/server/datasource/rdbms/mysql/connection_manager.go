@@ -3,6 +3,8 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 
 	"github.com/go-mysql-org/go-mysql/client"
 
@@ -21,7 +23,7 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	_ context.Context,
+	ctx context.Context,
 	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
@@ -36,7 +38,13 @@ func (c *connectionManager) Make(
 	user := creds.GetUsername()
 	password := creds.GetPassword()
 
-	conn, err := client.Connect(addr, user, password, db)
+	dialer := &net.Dialer{}
+	proto := "tcp"
+	if strings.Contains(addr, "/") {
+		proto = "unix"
+	}
+
+	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
 	}
