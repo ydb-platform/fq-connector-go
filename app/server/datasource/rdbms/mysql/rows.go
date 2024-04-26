@@ -54,7 +54,17 @@ func (r rows) Scan(dest ...any) error {
 		// TODO: handle blobs separately
 		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING,
 			mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB:
-			*dest[i].(*string) = string(value.([]byte))
+			// TODO: find a correct way to handle schema params (column names
+			// and column type names) separately from actual table data
+			cast, ok := dest[i].(*string)
+
+			if ok {
+				*cast = string(value.([]byte))
+			} else {
+				tmp := new(string)
+				*tmp = string(value.([]byte))
+				*dest[i].(**string) = tmp
+			}
 		case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
 			tmp := new(int32)
 			if value != nil {

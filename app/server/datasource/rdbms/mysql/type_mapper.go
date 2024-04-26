@@ -41,6 +41,11 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_servi
 			Name: columnName,
 			Type: common.MakePrimitiveType(Ydb.Type_INT16),
 		}, nil
+	case "varchar", "string", "longblob", "blob", "text":
+		return &Ydb.Column{
+			Name: columnName,
+			Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+		}, nil
 	default:
 		panic("Type not implemented yet")
 	}
@@ -66,6 +71,10 @@ func transformerFromTypeIDs(ids []uint8, _ []*Ydb.Type, cc conversion.Collection
 		case mysql.MYSQL_TYPE_DOUBLE:
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING, mysql.MYSQL_TYPE_BLOB,
+			mysql.MYSQL_TYPE_LONG_BLOB:
+			acceptors = append(acceptors, new(*string))
+			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		default:
 			panic(fmt.Sprintf("Type %d not implemented yet!", id))
 		}
