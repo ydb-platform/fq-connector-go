@@ -88,6 +88,7 @@ func run(logger *zap.Logger) error {
 			if err != nil {
 				return fmt.Errorf("get version: %w", err)
 			}
+
 			filepath = "./app/version/version_init.go"
 		}
 	}
@@ -196,6 +197,7 @@ func getArcVersion() (versionData, error) {
 		GoVersion:     goVersion,
 		Tag:           tag,
 	}
+
 	return data, nil
 }
 
