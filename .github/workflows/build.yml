@@ -54,5 +54,5 @@ jobs:
       - name: Build
         run: | 
           git fetch --prune --unshallow
-          go run ./tools/version
+          go run ./tools/version git
           GOOS=linux go build -v -o fq-connector-go ./app
