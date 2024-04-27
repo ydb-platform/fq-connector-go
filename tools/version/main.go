@@ -324,8 +324,10 @@ func execCommand(command string, args ...string) (string, error) {
 }
 
 func getTagAndGoVersion() (versionsInfo, error) {
-	var versions versionsInfo
-	var result map[string]any
+	var (
+		versions versionsInfo
+		result   map[string]any
+	)
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
