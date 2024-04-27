@@ -304,16 +304,7 @@ func execCommand(command string, args ...string) (string, error) {
 
 	cmd := exec.Command(command, args...)
 
-	// usr, err := user.Current()
-	// if err != nil {
-	// 	return "", fmt.Errorf("failed to get current user: %v", err)
-	// }
-	// homeDir := usr.HomeDir
-
-	// fullPath := filepath.Join(homeDir, "arcadia")
-
 	cmd.Stderr = &stderr
-	// cmd.Dir = fullPath
 
 	output, err := cmd.Output()
 	if err != nil {
