@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
+	"path/filepath"
 	"strings"
 	"text/template"
 
@@ -303,6 +305,15 @@ func execCommand(command string, args ...string) (string, error) {
 	var stderr bytes.Buffer
 
 	cmd := exec.Command(command, args...)
+
+	usr, err := user.Current()
+	if err != nil {
+	 return "", fmt.Errorf("failed to get current user: %v", err)
+	}
+	homeDir := usr.HomeDir
+   
+	// Формируем полный путь до папки arcadia
+	fullPath := filepath.Join(homeDir, "arcadia")
 
 	cmd.Stderr = &stderr
 
