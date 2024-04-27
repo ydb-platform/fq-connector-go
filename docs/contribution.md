@@ -4,13 +4,13 @@
 
 **Коннектор** - специальный микросервис, выступающий в роли прокси между YDB и внешними источниками данных. Коннекторы формируют специальный слой абстракции, изолирующий YDB от специфики сторонних хранилищ. Благодаря этому YDB может через один и тот же интерфейс работать с разнообразными источниками данных.
 
-Заметим, что внутри YDB активно применяется и более низкоуровневая абстракция аналогичного назначения - **[провайдеры](https://github.com/ydb-platform/ydb/tree/main/ydb/library/yql/providers/)**. Это библиотеки, написанные на языке С++ и отвечающие за оптимизацию запросов и выполнение ввода-вывода во внешние источники данных. Большинство провайдеров поддерживают только какой-то один источник данных (например, провайдер `s3` отвечает только за работу с объектным хранилищем); их разработка чрезвычайно трудозатратна.
+Заметим, что внутри YDB активно применяется и более низкоуровневая абстракция аналогичного назначения - **[провайдеры](https://github.com/ydb-platform/ydb/tree/main/ydb/library/yql/providers/)**. Это библиотеки, написанные на языке С++ и отвечающие за оптимизацию запросов и выполнение ввода-вывода во внешние источники данных. Большинство провайдеров поддерживают только какой-то один источник данных (например, провайдер `S3` отвечает только за работу с объектным хранилищем); их разработка чрезвычайно трудозатратна.
 
-В связи с этим было принято решение реализовать `generic` провайдер - универсальную библиотеку, через которую YDB сможет работать с любыми источниками посредством обращений к внешниму микросервису - коннектору. 
+В связи с этим было принято решение реализовать `Generic` провайдер - универсальную библиотеку, через которую YDB сможет работать с любыми источниками данных посредством обращений к внешниму микросервису - коннектору. 
 
 ![Providers vs connector](./providers_vs_connector.png)
 
-Благодаря этому приёму добавление новых источников значительно облегчается, а кодовая база YDB не распухает от новых зависимостей и остаётся относительно стабильной. Коннектор может быть реализован на любом языке программирования по имеющейся GRPC-спецификации.
+Благодаря этому архитектурному решению добавление новых источников значительно облегчается, а кодовая база YDB не распухает от новых зависимостей и остаётся относительно стабильной. Коннектор может быть реализован на любом языке программирования по имеющейся GRPC-спецификации.
 
 ### Сетевой интерфейс коннектора
 
@@ -26,6 +26,7 @@
 * Встроенной командой `fq-connector-go bench`;
 * Инструментом [dqrun](https://github.com/ydb-platform/ydb/tree/24.1.9/ydb/library/yql/tools/dqrun), основанным на кодовой базе YDB;
 * Инструментом [kqprun](https://github.com/ydb-platform/ydb/tree/24.1.9/ydb/tests/tools/kqprun), основанным на кодовой базе YDB.
+* Непосредственно через Web UI YDB.
 
 ### Протокол работы коннектора
 
@@ -109,13 +110,104 @@ make run
 
 Иногда при соединении с источником требуется указать какие-то особенные параметры, например, у PostgreSQL есть понятие схемы (пространства имён для таблиц). Если вам недостаточн общее параметров, уже присутствующих в структуре [TDataSourceInstance](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L65-L86), вы можете добавить в опциональное поле `options` новую структуру, описывающую специфику именно вашего источника.
 
-### Connection и Rows
+### Connection, Rows и трансформеры
 
 `ConnectionManager` должен возвращать абстракцию соединения - [Connection](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.6/app/server/datasource/rdbms/utils#Connection). Соединение умеет выполнять запросы (метод `Query`). Результатом обработки запроса является интерфейс [Rows](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.5/app/server/datasource/rdbms/utils#Rows). Фактически это итератор, сильно напоминающий по интерфейсу `sql.Rows`. С помощью него имплементация `DataSource` может вычитывать данные из соединения с РСУБД потоково, строчка за строчкой.
 
 У `Rows` есть важный метод - `MakeTransformer`, который возвращает шаблонный интерфейс `RowsTransformer[Acceptor]`. Он выполняет большую часть работы по конвертации данных между разными системами типов. В остальном работа с `Rows` практически не отличается от работы с `sql.Rows` из стандартной библиотеки.
 
-### Изменения в API и конфигурации коннектора
+### Поддержка нового источника данных в YDB
+
+Итак, вы успешно смогли прочитать данные с помощью отладочного клиента к `fq-connector-go`. Финальный этап работ - сделать так, чтобы к вашему источнику данных мог обратиться самый важный клиент к коннектору - само YDB. Для этого:
+
+1. Форкните [репозиторий](https://github.com/ydb-platform/ydb) YDB.
+1. Склонируйте его на локальную машину и создайте рабочую ветку:
+    ```
+    git clone git@gitlab.com:юзернейм/ydb.git  
+    cd ydb 
+    git checkout -b feature-branch
+    ```
+1. Скомпилируйте инструмент `kqprun` с помощью встроенного инструмента `ya`:
+    ```
+    ./ya make --build relwithdebinfo ydb/tests/tools/kqprun
+    ```
+    > [!IMPORTANT]
+    > Компиляция YDB из исходников требует больших вычислительных мощностей и может занимать очень много времени (на сервере с 56 ядрами - около 3 часов). Здесь на помощь приходит кэш артефактов компиляции, который поддерживается мейнтейнерами YDB. Этот кэш прогревается ежедневно во время ночных сборок ветки `main`. Поэтому если вы хотите, чтобы при локальных сборках с помощью `ya` hit rate кэша оставался достаточно высоким, вам необходимо поддерживать свои исходники в относительно актуальном состоянии и периодически ребейзиться на `main` апстрима. Достичь этого можно, например, так:
+    > ```
+    > gh repo sync юзернейм/ydb -s ydb-platform/ydb
+    > git checkout main
+    > git pull origin main
+    > git checkout feature-branch
+    > git rebase origin/main
+    > ```
+1. Разверните свой источник данных в виде Docker-контейнера.
+1. Создайте какую-нибудь таблицу в вашем источнике данных (хороший GUI-инструмент для реляционных баз данных - [DBeaver](https://dbeaver.io/)).
+1. Разверните сервис коннектора (например, `make run`).
+1. Подготовьте файл `app_conf.txt`, в котором укажите хост и порт для подключения к сервису коннектора:
+    ```prototext
+    FeatureFlags {
+        EnableExternalDataSources: true
+        EnableScriptExecutionOperations: true
+    }
+
+    QueryServiceConfig {
+        Generic {
+            Connector {
+                Endpoint {
+                    host: "localhost" 
+                    port: 2130
+                }
+                UseSsl: false
+            }
+
+            DefaultSettings {
+                Name: "DateTimeFormat"
+                Value: "YQL"
+            }
+        }
+    }
+    ```
+1. Подготовьте YQL-скрипт `schema.yql`, который регистрирует ваш источник данных как внешний для YDB, а также укажите пароль для доступа к источнику. Подставьте актуальные значения во все поля.
+    ```sql
+    CREATE OBJECT secret_password (TYPE SECRET) WITH (value = "<password>");
+
+    CREATE EXTERNAL DATA SOURCE external_data_source WITH (
+        SOURCE_TYPE="<data_source_type>",
+        LOCATION="<host>:<port>",
+        DATABASE_NAME="<table>",
+        AUTH_METHOD="BASIC",
+        LOGIN="<username>",
+        PASSWORD_SECRET_NAME="secret_password",
+        PROTOCOL="NATIVE",
+        USE_TLS="FALSE"
+    );
+    ```
+1. Подготовьте YQL-скрипт для извлечения данных `data.yql`, где вместо `<table_name>` подставьте имя таблицы, которую создали на одном из предыдущих шагов.
+    ```sql
+    SELECT * FROM external_data_source.<table_name>
+    ```
+1. Вызовите `./kqprun` следующей командой
+    ```sh
+    ./kqprun -s schema.yql -p data.yql --app-config=app_conf.txt
+
+    ```
+    Если в результате вызова вы увидели JSON, похожий на те данные, что вы положили в таблицу, поздравляю - ваша работа окончена. Но с первого раза, конечно, ничего не получится. Проанализируйте ошибку, исправьте код и продолжайте компилировать и запускать `kqprun` до тех пор, пока не почините все ошибки.
+
+Можно выделить несколько областей кода в YDB, которые нуждаются в добавлении нового источника данных:
+* [YQL Providers](https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider):
+    * https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/common/db_id_async_resolver/db_async_resolver.h#L11-L44
+    * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_load_meta.cpp#L267-L293
+    * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_load_meta.cpp#L319-L331
+    * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_dq_integration.cpp#L191-L207
+    * https://github.com/ydb-platform/ydb/blob/6f2b38f212e36e0bcd0729525aef2e04494141a0/ydb/library/yql/providers/generic/actors/yql_generic_provider_factories.cpp#L34-L37
+    * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_dq_integration.cpp#L158-L171
+* [External Sources](https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/core/external_sources/):
+    * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/core/external_sources/external_source_factory.cpp#L35-L55
+
+Список этих файлов может быть неисчерпывающим; если заметите что-то ещё - PRs are welcome :)
+
+
+## Изменения в API и конфигурации коннектора
 
 Периодически возникает необходимость как-либо расширить API Коннектора (например, добавить туда [что-то специфичное](https://github.com/ydb-platform/ydb/blob/24.1.9/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L79-L83) для вашего источника данных) или поменять его [конфигурацию](https://github.com/ydb-platform/fq-connector-go/tree/main/app/config). И API, и конфигурация описываются в виде Protobuf-файлов, по которым генерируется исходный код на языке Go. Сгенерированные файлы сохраняются в репозитории в `fq-connector-go`.
 
