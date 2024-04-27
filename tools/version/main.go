@@ -312,11 +312,10 @@ func execCommand(command string, args ...string) (string, error) {
 	}
 	homeDir := usr.HomeDir
 
-	// Формируем полный путь до папки arcadia
 	fullPath := filepath.Join(homeDir, "arcadia")
 
 	cmd.Stderr = &stderr
-	cmd.Stdout = fullPath
+	cmd.Dir = fullPath
 
 	output, err := cmd.Output()
 	if err != nil {
