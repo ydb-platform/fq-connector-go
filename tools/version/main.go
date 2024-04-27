@@ -308,14 +308,15 @@ func execCommand(command string, args ...string) (string, error) {
 
 	usr, err := user.Current()
 	if err != nil {
-	 return "", fmt.Errorf("failed to get current user: %v", err)
+		return "", fmt.Errorf("failed to get current user: %v", err)
 	}
 	homeDir := usr.HomeDir
-   
+
 	// Формируем полный путь до папки arcadia
 	fullPath := filepath.Join(homeDir, "arcadia")
 
 	cmd.Stderr = &stderr
+	cmd.Stdout = fullPath
 
 	output, err := cmd.Output()
 	if err != nil {
@@ -327,7 +328,7 @@ func execCommand(command string, args ...string) (string, error) {
 
 func getTagAndGoVersion() (versionsInfo, error) {
 	var versions versionsInfo
-	var result map[string]interface{}
+	var result map[string]any
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
