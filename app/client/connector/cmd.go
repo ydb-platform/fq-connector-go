@@ -13,6 +13,14 @@ const (
 )
 
 func init() {
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	fmt.Println("Current directory:", dir)
+
 	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
 
 	if err := Cmd.MarkFlagRequired(configFlag); err != nil {

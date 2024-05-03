@@ -1,6 +1,6 @@
 connector_server_endpoint {
     host: "localhost"
-    port: 2130
+    port: 5432
 }
 
 metrics_server_endpoint {
@@ -14,11 +14,11 @@ data_source_instance {
         host: "localhost"
         port: 5432
     }
-    database: "fq"
+    database: "users"
     credentials {
         basic {
-            username: "admin"
-            password: "password"
+            username: "postgres"
+            password: "mysecretpassword"
         }
     }
     pg_options: {

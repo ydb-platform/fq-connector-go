@@ -7,6 +7,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -82,8 +83,11 @@ func prepareSplits(
 ) ([]*api_service_protos.TSplit, error) {
 	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
 
+	md := metadata.New(map[string]string{"user_id": "1", "session_id": "123"})
+    ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 	// DescribeTable
-	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, typeMappingSettings, tableName)
+	describeTableResponse, err := cl.DescribeTable(ctx, dsi, typeMappingSettings, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("describe table: %w", err)
 	}
@@ -122,7 +126,10 @@ func readSplits(
 ) error {
 	logger.Debug("Reading splits")
 
-	readSplitsResponses, err := cl.ReadSplits(context.Background(), splits)
+	md := metadata.New(map[string]string{"user_id": "1", "session_id": "123"})
+    ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	readSplitsResponses, err := cl.ReadSplits(ctx, splits)
 	if err != nil {
 		return fmt.Errorf("read splits: %w", err)
 	}

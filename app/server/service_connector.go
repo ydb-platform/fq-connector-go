@@ -39,7 +39,8 @@ func (s *serviceConnector) DescribeTable(
 	ctx context.Context,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	logger := common.AnnotateLoggerForUnaryCall(s.logger, "DescribeTable", request.DataSourceInstance)
+	logger := MustFromContext(ctx)
+	logger = common.AnnotateLoggerForUnaryCall(s.logger, "DescribeTable", request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
@@ -66,7 +67,8 @@ func (s *serviceConnector) DescribeTable(
 }
 
 func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsRequest, stream api_service.Connector_ListSplitsServer) error {
-	logger := common.AnnotateLoggerWithMethod(s.logger, "ListSplits")
+	logger := MustFromContext(stream.Context())
+	logger = common.AnnotateLoggerWithMethod(s.logger, "ListSplits")
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
@@ -150,7 +152,8 @@ func (s *serviceConnector) ReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
-	logger := common.AnnotateLoggerWithMethod(s.logger, "ReadSplits")
+	logger := MustFromContext(stream.Context())
+	logger = common.AnnotateLoggerWithMethod(s.logger, "ReadSplits")
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	err := s.doReadSplits(logger, request, stream)
@@ -214,9 +217,9 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 		tlsConfig *config.TServerTLSConfig
 	)
 
-	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(registry)}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(registry), UnaryServerMetadata(logger)}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(registry)}
+	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(registry), SessionStreamMetadata(logger)}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
@@ -302,4 +305,8 @@ func newServiceConnector(
 	api_service.RegisterConnectorServer(grpcServer, s)
 
 	return s, nil
+}
+
+func MustFromContext(ctx context.Context) *zap.Logger{
+	return ctx.Value("logger").(*zap.Logger)
 }
