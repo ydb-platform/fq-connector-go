@@ -24,6 +24,8 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		err     error
 	)
 
+	_ = rules
+
 	// MS SQL Server Data Types https://learn.microsoft.com/ru-ru/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver16
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 	switch typeName {
@@ -107,7 +109,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
-			// ваш вызов преобразователя (appender)
+			// TODO: add date & time processing
 		default:
 			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 		}
@@ -156,12 +158,10 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	//nolint:forcetypeassert
 	builder.(AB).Append(out)
 
-	// Without that ClickHouse native driver would return invalid values for NULLABLE(bool) columns;
-	// TODO: research it.
+	// it was copied from ClickHouse, not sure if it is necessary
 	*cast = nil
 
 	return nil
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
-

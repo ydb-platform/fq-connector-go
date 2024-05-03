@@ -55,7 +55,6 @@ func (f *DefaultSchemaProvider) GetSchema(
 	}
 
 	schema, err := sb.Build(logger)
-
 	if err != nil {
 		return nil, fmt.Errorf("build schema: %w", err)
 	}
