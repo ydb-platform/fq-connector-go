@@ -15,6 +15,7 @@ Currently supported data sources:
 * ClickHouse
 * PostgreSQL
 * YDB
+* Microsoft SQL Server
 
 ### Documentation 
 

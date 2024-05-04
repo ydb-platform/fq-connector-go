@@ -20,22 +20,22 @@
 
 | :one: YDB / YQL | Arrow | Go | :one: ClickHouse | :two: PostgreSQL | MySQL | MS SQL Server |
 | --- | ----- | -- | ---------- | ---------- | ----- | ------ |
-| `BOOL` | `UINT8` | `bool` | :white_check_mark: `Bool` | :white_check_mark: `boolean`, `bool` (1 байт) | | |
+| `BOOL` | `UINT8` | `bool` | :white_check_mark: `Bool` | :white_check_mark: `boolean`, `bool` (1 байт) | | `BIT` |
 | - | - | - | - | :x: `bit[(n)]`, `bit varying[(n)]`, `varbit` (битовые строки, состоящие из 0 и 1)| | |
-| `INT8` | `INT8` | `int8` | :white_check_mark: `Int8` | - | | |
+| `INT8` | `INT8` | `int8` | :white_check_mark: `Int8` | - | | `TINYINT` |
 | `UINT8` | `UINT8` | `uint8` | :white_check_mark: `UInt8` | - | | |
-| `INT16` | `INT16` | `int16` | :white_check_mark: `Int16` | :white_check_mark: `smallint`, `int2`, `smallserial`, `serial2` | | |
+| `INT16` | `INT16` | `int16` | :white_check_mark: `Int16` | :white_check_mark: `smallint`, `int2`, `smallserial`, `serial2` | | `SMALLINT`|
 | `UINT16` | `UINT16` | `uint16` | :white_check_mark: `UInt16` | - | | |
-| `INT32` | `INT32` | `int32` | :white_check_mark: `Int32` | :white_check_mark: `integer`, `int`, `int4`, `serial`, `serial4` | | |
+| `INT32` | `INT32` | `int32` | :white_check_mark: `Int32` | :white_check_mark: `integer`, `int`, `int4`, `serial`, `serial4` | |`INT` |
 | `UINT32` | `UINT32` | `uint32` | :white_check_mark: `UInt32` | - | | |
-| `INT64` | `INT64` | `int64` | :white_check_mark: `Int64` | :white_check_mark: `bigint`, `int8`, `bigserial`, `serial8` | | |
+| `INT64` | `INT64` | `int64` | :white_check_mark: `Int64` | :white_check_mark: `bigint`, `int8`, `bigserial`, `serial8` | | `BIGINT`|
 | `UINT64` | `UINT64` | `uint64` | :white_check_mark: `UInt64` | - | | |
 | | | | :x: `Int128` | | | |
 | | | | :x: `UInt128` | | | |
 | | | | :x: `Int256` | | | |
 | | | | :x: `UInt256` | | | |
-| `FLOAT` | `FLOAT` | `float32` | :white_check_mark: `Float32` | :white_check_mark: `real`, `float4` | | |
-| `DOUBLE` | `DOUBLE` | `float64` | :white_check_mark: `Float64` | :white_check_mark: `double precision`, `float8` | | |
+| `FLOAT` | `FLOAT` | `float32` | :white_check_mark: `Float32` | :white_check_mark: `real`, `float4` | | `REAL`|
+| `DOUBLE` | `DOUBLE` | `float64` | :white_check_mark: `Float64` | :white_check_mark: `double precision`, `float8` | | `FLOAT`|
 | `DATE` (`uint16`, дни с начала эпохи) | `UINT16` | `time.Time` | :white_check_mark: `Date` (`uint16`, количество дней) | - | | | 
 | `DATE` | `DATE32` (`int32`) | `time.Time` | :white_check_mark:  `Date32` (`int32`, количество дней) | - | | | 
 | `DATE` (`uint16`, дни с начала эпохи) | `UINT16` | `time.Time` | - | :white_check_mark: `date` (`int32`, дата без времени, диапазон от 4713 г. до н. э. до 5874897 г. н. э.) | | | 
@@ -49,8 +49,8 @@
 | `TZ_DATE` | :x: `STRUCT<UINT16, UINT16>` | `time.Time` | Даты [хранятся](https://clickhouse.com/docs/en/sql-reference/data-types/datetime#usage-remarks) только в формате в unix timestamp, без указания временной зоны, а вот показываются/парсятся уже с учётом временной зоны, которая берётся либо из атрибутов таблицы, либо из настроек сервера и ОС. | - | | | 
 | `TZ_DATE` | :x: `STRUCT<UINT32, UINT16>` | `time.Time` | :point_up_2: | - | | | 
 | `TZ_TIMESTAMP` | :x: `STRUCT<UINT64, UINT16>` | `time.Time` | :point_up_2: | :x: `timestamp [(p)] with time zone` (`int64`, микросекунды с начала эпохи) | | | 
-| `STRING` (строка с произвольными бинарными данными) | `BINARY` | `[]byte` | :white_check_mark: `String`, `FixedString` | :white_check_mark: `bytea` | | | 
-| `UTF8` (текст в UTF-8) | `STRING` | `string` | - | :white_check_mark: `character [(n)]`, `character varying [(n)]`, `text`  | | | 
+| `STRING` (строка с произвольными бинарными данными) | `BINARY` | `[]byte` | :white_check_mark: `String`, `FixedString` | :white_check_mark: `bytea` | | `BINARY`, `VARBINARY`| 
+| `UTF8` (текст в UTF-8) | `STRING` | `string` | - | :white_check_mark: `character [(n)]`, `character varying [(n)]`, `text`  | | `CHAR`, `VARCHAR`, `NCHAR`, `NVARCHAR`, `TEXT` | 
 | `YSON` | - | - | - | - | | | 
 | `JSON` (текстовое представление) | - | - | :question: `JSON` | - | | | 
 | `UUID` | :x: `BINARY(16)` | - | :x: `UUID` (16 байт) | :x: `uuid` (16 байт) | | |
