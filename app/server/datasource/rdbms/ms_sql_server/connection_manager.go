@@ -37,7 +37,7 @@ func (c *connectionManager) Make(
 		uint16(dsi.GetEndpoint().GetPort()),
 		dsi.Database)
 
-	// TODO: add tls 
+	// TODO: add tls
 	// if dsi.UseTls {
 	// 	connectString += "&encrypt=true&trustServerCertificate=true"
 	// } else {
@@ -49,7 +49,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("failed to open connection: %w", err)
 	}
 
-	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5 * time.Second)
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer pingCtxCancel()
 
 	err = db.PingContext(pingCtx)
