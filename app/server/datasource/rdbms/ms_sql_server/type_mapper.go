@@ -110,6 +110,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
 			// TODO: add date & time processing
+			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 		default:
 			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 		}
