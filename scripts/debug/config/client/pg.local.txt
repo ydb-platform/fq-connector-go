@@ -1,6 +1,6 @@
 connector_server_endpoint {
     host: "localhost"
-    port: 5432
+    port: 2130
 }
 
 metrics_server_endpoint {

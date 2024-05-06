@@ -1,7 +1,9 @@
-# Используем официальный образ PostgreSQL
-FROM postgres
+FROM postgres:latest
 
-# Копируем скрипт для загрузки данных в контейнер
+ENV POSTGRES_PASSWORD=mysecretpassword
+
+ENV POSTGRES_DB=users
+
 COPY load_data.sql /docker-entrypoint-initdb.d/
 
-# Этот скрипт будет автоматически выполнен при запуске контейнера
+CMD ["postgres"]

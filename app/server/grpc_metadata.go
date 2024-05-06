@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ydb-platform/fq-connector-go/common"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -66,12 +67,15 @@ func SessionStreamMetadata(logger *zap.Logger) grpc.StreamServerInterceptor {
 			return fmt.Errorf("error extracting stream metadata: %v", err)
 		}
 
-		logger = logger.With(
+		newLogger := common.NewDefaultLogger()
+
+		newLogger = newLogger.With(
+			zap.String("service", connectorServiceKey),
 			zap.String("user_id", userID),
 			zap.String("session_id", sessionID),
 		)
 
-		ctx := context.WithValue(stream.Context(), "logger", logger)
+		ctx := context.WithValue(stream.Context(), "logger", newLogger)
 
 		return handler(srv, &wrappedStream{stream, ctx})
 	}

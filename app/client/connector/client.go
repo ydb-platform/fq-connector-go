@@ -84,7 +84,7 @@ func prepareSplits(
 	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
 
 	md := metadata.New(map[string]string{"user_id": "1", "session_id": "123"})
-    ctx := metadata.NewOutgoingContext(context.Background(), md)
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// DescribeTable
 	describeTableResponse, err := cl.DescribeTable(ctx, dsi, typeMappingSettings, tableName)
@@ -109,7 +109,7 @@ func prepareSplits(
 
 	logger.Debug("Listing splits", zap.String("select", slct.String()))
 
-	listSplitsResponse, err := cl.ListSplits(context.TODO(), slct)
+	listSplitsResponse, err := cl.ListSplits(ctx, slct)
 	if err != nil {
 		return nil, fmt.Errorf("list splits: %w", err)
 	}
@@ -127,7 +127,7 @@ func readSplits(
 	logger.Debug("Reading splits")
 
 	md := metadata.New(map[string]string{"user_id": "1", "session_id": "123"})
-    ctx := metadata.NewOutgoingContext(context.Background(), md)
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	readSplitsResponses, err := cl.ReadSplits(ctx, splits)
 	if err != nil {
