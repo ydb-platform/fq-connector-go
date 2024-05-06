@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ydb-platform/fq-connector-go/common"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type wrappedStream struct {
@@ -60,7 +61,7 @@ func (w *wrappedStream) Context() context.Context {
 	return w.ctx
 }
 
-func SessionStreamMetadata(logger *zap.Logger) grpc.StreamServerInterceptor {
+func SessionStreamMetadata() grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		userID, sessionID, err := extractMetadata(stream.Context())
 		if err != nil {
