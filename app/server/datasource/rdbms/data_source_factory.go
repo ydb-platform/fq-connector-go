@@ -99,6 +99,7 @@ func NewDataSourceFactory(
 			ConnectionManager: mysql.NewConnectionManager(connManagerCfg),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.GetQueryAndArgs),
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}
