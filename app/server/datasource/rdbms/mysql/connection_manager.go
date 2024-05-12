@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -42,7 +43,7 @@ func (c *connectionManager) Make(
 	proto := "tcp"
 
 	if strings.Contains(addr, "/") {
-		proto = "unix"
+		return nil, errors.New("mysql: unix socket connections are unsupported")
 	}
 
 	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext)
