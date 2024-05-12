@@ -40,6 +40,7 @@ func (c *connectionManager) Make(
 
 	dialer := &net.Dialer{}
 	proto := "tcp"
+
 	if strings.Contains(addr, "/") {
 		proto = "unix"
 	}

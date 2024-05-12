@@ -88,7 +88,7 @@ func (r rows) Scan(dest ...any) error {
 		case mysql.MYSQL_TYPE_DOUBLE:
 			tmp := new(float64)
 			if value != nil {
-				*tmp = float64(value.(float64))
+				*tmp = value.(float64)
 				*dest[i].(**float64) = tmp
 			}
 		default:
