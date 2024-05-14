@@ -24,6 +24,7 @@ type dataSourceFactory struct {
 	postgresql          Preset
 	ydb                 Preset
 	msSQLServer         Preset
+	greenplum           Preset
 	converterCollection conversion.Collection
 }
 
@@ -40,6 +41,8 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
 		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_GREENPLUM:
+		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -88,6 +91,13 @@ func NewDataSourceFactory(
 			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.GetQueryAndArgs),
+		},
+		greenplum: Preset{
+			SQLFormatter:      postgresql.NewSQLFormatter(),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
+			TypeMapper:        postgresqlTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}

@@ -1,0 +1,125 @@
+FROM ubuntu:22.04 AS builder
+
+SHELL ["/bin/bash", "-c"]
+RUN echo 'alias ll="ls -l"' >> /root/.bashrc
+RUN echo 'export PS1="\[\033[1;36m\][\u@\h \W]\[\033[0;31m\]$\[\033[0;37m\] "' >> /root/.bashrc
+
+#from https://github.com/greenplum-db/gpdb/blob/7.0.0/README.Ubuntu.bash:
+RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+    --mount=target=/var/cache/apt,type=cache,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get -y install \
+        bison ccache cmake curl flex git-core gcc g++ inetutils-ping libapr1-dev libbz2-dev \
+        libcurl4-gnutls-dev libevent-dev libkrb5-dev libpam-dev libperl-dev libreadline-dev \
+        libssl-dev libxerces-c-dev libxml2-dev libyaml-dev libzstd-dev locales net-tools \
+        ninja-build openssh-client openssh-server openssl pkg-config \
+        python3-dev python3-pip python3-psutil python3-pygresql python3-yaml zlib1g-dev \
+        vim wget mc sudo iproute2 \
+    && export DEBIAN_FRONTEND=noninteractive && apt-get install -y krb5-kdc krb5-admin-server
+
+WORKDIR /opt/
+RUN --mount=target=/opt/cache,type=cache,sharing=locked \
+    cd /opt/cache && \
+    [ -f 7.0.0.zip ] || wget https://github.com/greenplum-db/gpdb/archive/refs/tags/7.0.0.zip && \
+    unzip 7.0.0.zip -d /opt/
+
+WORKDIR /opt/gpdb-7.0.0/
+RUN echo "7.0.0-b2 build dev" > ./VERSION
+# RUN ./configure --disable-orca --with-libxml  --prefix=/usr/local/gpdb
+RUN ./configure --with-perl --with-python --with-libxml --enable-gpfdist --with-gssapi \
+    --with-zstd --prefix=/usr/local/gpdb
+RUN make -j 4
+RUN make install
+# -----------------------------------------------------------------------------
+
+
+FROM ubuntu:22.04 AS slim
+
+SHELL ["/bin/bash", "-c"]
+RUN echo 'alias ll="ls -l"' >> /root/.bashrc
+RUN echo 'export PS1="\[\033[1;36m\][\u@\h \W]\[\033[0;31m\]$\[\033[0;37m\] "' >> /root/.bashrc
+
+RUN --mount=target=/var/lib/apt/lists,type=cache,sharing=locked \
+    --mount=target=/var/cache/apt,type=cache,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    apt-get update && \
+    apt-get -y install \
+      make openssh-client openssh-server openssl sudo iproute2 rsync \
+      net-tools less inetutils-ping locales libcurl3-gnutls python3-psutil python3-pygresql \
+      python3-psycopg2 libxerces-c3.2
+
+#build locale en_US.UTF-8
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
+
+
+RUN --mount=from=builder,type=bind,source=/opt/gpdb-7.0.0,target=/opt/gpdb-7.0.0,readwrite \
+    --mount=from=builder,type=bind,source=/usr/share/perl/5.34.0,target=/usr/share/perl/5.34,readwrite \
+    cd /opt/gpdb-7.0.0 && make install
+
+
+# #from https://github.com/DataGrip/docker-env/blob/master/greenplum/6.8/Dockerfile:
+RUN mkdir /data \
+ && mkdir /data/data1 \
+ && mkdir /data/data2 \
+ && mkdir /data/coordinator \
+ && source /usr/local/gpdb/greenplum_path.sh \
+ && cp $GPHOME/docs/cli_help/gpconfigs/gpinitsystem_singlenode /data/ \
+ && sed -i 's/gpdata1/data\/data1/g' /data/gpinitsystem_singlenode \
+ && sed -i 's/gpdata2/data\/data2/g' /data/gpinitsystem_singlenode \
+ && sed -i 's/gpcoordinator/data\/coordinator/g' /data/gpinitsystem_singlenode
+
+# Create gpadmin user and add the user to the sudoers
+RUN useradd -md /home/gpadmin/ --shell /bin/bash gpadmin \
+ && chown gpadmin -R /data \
+ && echo "source /usr/local/gpdb/greenplum_path.sh" > /home/gpadmin/.bash_profile \
+ && echo 'export PS1="\[\033[1;35m\][\u@\h \W]\[\033[0;31m\]$\[\033[0;37m\] "'  >> /home/gpadmin/.bash_profile \
+ && echo 'export COORDINATOR_DATA_DIRECTORY="/data/coordinator/gpsne-1/"'  >> /home/gpadmin/.bash_profile \
+ && echo 'alias ll="ls -l"'  >> /home/gpadmin/.bash_profile \
+ && chown gpadmin:gpadmin /home/gpadmin/.bash_profile \
+ && su - gpadmin bash -c 'mkdir /home/gpadmin/.ssh' \
+ && echo "gpadmin ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
+ && echo "root ALL=NOPASSWD: ALL" >> /etc/sudoers
+
+RUN mkdir /run/sshd
+RUN echo "set hlsearch" >> /home/gpadmin/.vimrc
+
+# from https://github.com/greenplum-db/gpdb/blob/6.21.1/src/tools/docker/ubuntu16_ppa/install_and_start_gpdb.sh:
+RUN su - gpadmin bash -c '\
+    ssh-keygen -f /home/gpadmin/.ssh/id_rsa -t rsa -N "" && \
+    cp /home/gpadmin/.ssh/id_rsa.pub /home/gpadmin/.ssh/authorized_keys && \
+    chmod 600 /home/gpadmin/.ssh/authorized_keys'
+
+# 2del RUN echo "def gethostname(): return 'localhost'" >> /usr/lib/python2.7/socket.py
+# workaround to set host=localhost for master node
+RUN mv /usr/bin/hostname{,.bkp} && \
+  echo "echo localhost" > /usr/bin/hostname && \
+  chmod +x /usr/bin/hostname && \
+  echo localhost > /etc/hostname
+
+RUN su - gpadmin bash -c '\
+    cd /data/ && \
+    echo "starting sshd ..." && \
+    sudo /etc/init.d/ssh start && \
+    sleep 2 && \
+    ssh -o StrictHostKeyChecking=no localhost ls && \
+    ssh -o StrictHostKeyChecking=no `hostname` ls && \
+    source /home/gpadmin/.bash_profile && \
+    echo localhost > /data/hostlist_singlenode && \
+    sed -i "s/hostname_of_machine/localhost/g" /data/gpinitsystem_singlenode && \
+    echo "gpssh-exkeys ..." && \
+    gpssh-exkeys -f /data/hostlist_singlenode && \
+    echo "gpinitsystem ..." && \
+    gpinitsystem -ac gpinitsystem_singlenode && \
+    echo "host all  all 0.0.0.0/0 trust" >> /data/coordinator/gpsne-1/pg_hba.conf && \
+    psql -d postgres -c "alter role gpadmin with password \$\$123456\$\$" && \
+    echo "gpstop ..." && \
+    gpstop -a'
+
+RUN mv /usr/bin/hostname{.bkp,}
+
+COPY load_data.sql /etc/init.d
+
+ADD entrypoint.sh /
+RUN chmod +x /entrypoint.sh
+CMD ["/entrypoint.sh"]

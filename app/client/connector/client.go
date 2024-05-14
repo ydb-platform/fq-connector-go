@@ -76,7 +76,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string,
 
 	switch cfg.DataSourceInstance.Kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
-		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER:
+		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER, api_common.EDataSourceKind_GREENPLUM:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
 		}
