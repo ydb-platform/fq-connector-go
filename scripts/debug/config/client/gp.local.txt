@@ -1,0 +1,28 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
+}
+
+data_source_instance {
+    kind: GREENPLUM
+    endpoint {
+        host: "localhost"
+        port: 5432
+    }
+    database: "template1"
+    credentials {
+        basic {
+            username: "gpadmin"
+            password: ""
+        }
+    }
+    pg_options: {
+        schema: "public"
+    }
+    protocol: NATIVE
+}

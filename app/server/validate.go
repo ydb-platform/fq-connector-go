@@ -109,7 +109,9 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
 		// TODO: check schema
 		return nil
+	case api_common.EDataSourceKind_GREENPLUM:
 
+		return nil
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB:
 	default:
 		return fmt.Errorf("unsupported data source: %w", common.ErrInvalidRequest)
