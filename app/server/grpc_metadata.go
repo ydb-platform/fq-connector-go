@@ -88,3 +88,8 @@ func insertMetadataToContext(serverContext context.Context, logger *zap.Logger, 
 
 	return ctx
 }
+
+func mustFromContext(ctx context.Context) *zap.Logger {
+	logger := ctx.Value(loggerKeyRequest).(*zap.Logger)
+	return logger
+}

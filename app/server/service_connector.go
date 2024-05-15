@@ -39,7 +39,7 @@ func (s *serviceConnector) DescribeTable(
 	ctx context.Context,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	logger := MustFromContext(ctx)
+	logger := mustFromContext(ctx)
 	logger = common.AnnotateLoggerForUnaryCall(logger, "DescribeTable", request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
@@ -67,7 +67,7 @@ func (s *serviceConnector) DescribeTable(
 }
 
 func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsRequest, stream api_service.Connector_ListSplitsServer) error {
-	logger := MustFromContext(stream.Context())
+	logger := mustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
@@ -151,7 +151,7 @@ func (s *serviceConnector) ReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
-	logger := MustFromContext(stream.Context())
+	logger := mustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	err := s.doReadSplits(logger, request, stream)
@@ -303,9 +303,4 @@ func newServiceConnector(
 	api_service.RegisterConnectorServer(grpcServer, s)
 
 	return s, nil
-}
-
-func MustFromContext(ctx context.Context) *zap.Logger {
-	logger := ctx.Value(loggerKeyRequest).(*zap.Logger)
-	return logger
 }
