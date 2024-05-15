@@ -32,14 +32,14 @@ func runClient(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("get table flag: %v", err)
 	}
 
-	userID, err := cmd.Flags().GetString(userFlag)
+	userID, err := cmd.Flags().GetString(userIDFlag)
 	if err != nil {
 		return fmt.Errorf("get user flag: %v", err)
 	}
 
-	sessionID, err := cmd.Flags().GetString(sessionFlag)
+	sessionID, err := cmd.Flags().GetString(sessionIDFlag)
 	if err != nil {
-		return fmt.Errorf("get user flag: %v", err)
+		return fmt.Errorf("get session flag: %v", err)
 	}
 
 	var cfg config.TClientConfig
