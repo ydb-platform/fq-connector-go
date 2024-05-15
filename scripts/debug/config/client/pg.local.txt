@@ -14,13 +14,13 @@ data_source_instance {
         host: "localhost"
         port: 5432
     }
-    database: "fq"
+database: "fq"
     credentials {
         basic {
             username: "admin"
             password: "password"
         }
-    }
+    }        
     pg_options: {
         schema: "public"
     }

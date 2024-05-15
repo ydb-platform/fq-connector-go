@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	configFlag = "config"
-	tableFlag  = "table"
+	configFlag    = "config"
+	tableFlag     = "table"
+	userIDFlag    = "user-id"
+	sessionIDFlag = "session"
 )
 
 func init() {
@@ -26,6 +28,9 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	Cmd.Flags().StringP(userIDFlag, "u", "", "user_id")
+	Cmd.Flags().StringP(sessionIDFlag, "s", "", "flag_id")
 }
 
 var Cmd = &cobra.Command{

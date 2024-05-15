@@ -2,17 +2,24 @@ package connector
 
 import (
 	"context"
+	"flag"
 	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
+
+type md struct {
+	userID    string
+	sessionID string
+}
 
 func runClient(cmd *cobra.Command, _ []string) error {
 	configPath, err := cmd.Flags().GetString(configFlag)
@@ -25,6 +32,16 @@ func runClient(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("get table flag: %v", err)
 	}
 
+	userID, err := cmd.Flags().GetString(userIDFlag)
+	if err != nil {
+		return fmt.Errorf("get user flag: %v", err)
+	}
+
+	sessionID, err := cmd.Flags().GetString(sessionIDFlag)
+	if err != nil {
+		return fmt.Errorf("get session flag: %v", err)
+	}
+
 	var cfg config.TClientConfig
 
 	if err := common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
@@ -33,14 +50,21 @@ func runClient(cmd *cobra.Command, _ []string) error {
 
 	logger := common.NewDefaultLogger()
 
-	if err := callServer(logger, &cfg, tableName); err != nil {
+	flag.Parse()
+
+	metainfo := md{
+		userID:    userID,
+		sessionID: sessionID,
+	}
+
+	if err := callServer(logger, &cfg, tableName, metainfo); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 
 	return nil
 }
 
-func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string) error {
+func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string, metainfo md) error {
 	cl, err := common.NewClientBufferingFromClientConfig(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("new client buffering from client config: %w", err)
@@ -57,7 +81,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string)
 			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
 		}
 
-		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName)
+		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName, metainfo)
 
 		if err != nil {
 			return fmt.Errorf("prepare splits: %w", err)
@@ -67,7 +91,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string)
 	}
 
 	// ReadSplits
-	if err := readSplits(logger, cl, splits); err != nil {
+	if err := readSplits(logger, cl, splits, metainfo); err != nil {
 		return fmt.Errorf("read splits: %w", err)
 	}
 
@@ -80,11 +104,15 @@ func prepareSplits(
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
+	metainfo md,
 ) ([]*api_service_protos.TSplit, error) {
 	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
 
+	md := metadata.New(map[string]string{"user_id": metainfo.userID, "session_id": metainfo.sessionID})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 	// DescribeTable
-	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, typeMappingSettings, tableName)
+	describeTableResponse, err := cl.DescribeTable(ctx, dsi, typeMappingSettings, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("describe table: %w", err)
 	}
@@ -106,7 +134,7 @@ func prepareSplits(
 
 	logger.Debug("Listing splits", zap.String("select", slct.String()))
 
-	listSplitsResponse, err := cl.ListSplits(context.TODO(), slct)
+	listSplitsResponse, err := cl.ListSplits(ctx, slct)
 	if err != nil {
 		return nil, fmt.Errorf("list splits: %w", err)
 	}
@@ -120,10 +148,14 @@ func readSplits(
 	logger *zap.Logger,
 	cl *common.ClientBuffering,
 	splits []*api_service_protos.TSplit,
+	metainfo md,
 ) error {
 	logger.Debug("Reading splits")
 
-	readSplitsResponses, err := cl.ReadSplits(context.Background(), splits)
+	md := metadata.New(map[string]string{"user_id": metainfo.userID, "session_id": metainfo.sessionID})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	readSplitsResponses, err := cl.ReadSplits(ctx, splits)
 	if err != nil {
 		return fmt.Errorf("read splits: %w", err)
 	}
