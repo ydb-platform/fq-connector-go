@@ -68,7 +68,6 @@ func (s *serviceConnector) DescribeTable(
 
 func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsRequest, stream api_service.Connector_ListSplitsServer) error {
 	logger := MustFromContext(stream.Context())
-	logger = common.AnnotateLoggerWithMethod(logger, "ListSplits")
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
@@ -153,7 +152,6 @@ func (s *serviceConnector) ReadSplits(
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
 	logger := MustFromContext(stream.Context())
-	logger = common.AnnotateLoggerWithMethod(logger, "ReadSplits")
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	err := s.doReadSplits(logger, request, stream)

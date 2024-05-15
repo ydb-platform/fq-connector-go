@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -51,9 +52,12 @@ func UnaryServerMetadata(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		metainfo := extractMetadata(ctx)
 
+		method := trimMethod(info.FullMethod)
+
 		logger = logger.With(
 			zap.String("user_id", metainfo.userID),
 			zap.String("session_id", metainfo.sessionID),
+			zap.String("method", method),
 		)
 
 		ctx = context.WithValue(ctx, loggerKeyRequest, logger)
@@ -70,16 +74,26 @@ func StreamServerMetadata() grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		metainfo := extractMetadata(stream.Context())
 
+		method := trimMethod(info.FullMethod)
+
 		newLogger := common.NewDefaultLogger()
 
 		newLogger = newLogger.With(
 			zap.String("service", connectorServiceKey),
 			zap.String("user_id", metainfo.userID),
 			zap.String("session_id", metainfo.sessionID),
+			zap.String("method", method),
 		)
 
 		ctx := context.WithValue(stream.Context(), loggerKeyRequest, newLogger)
 
 		return handler(srv, &wrappedStream{stream, ctx})
 	}
+}
+
+func trimMethod(info string) string {
+	parts := strings.Split(info, "/")
+	lastWord := parts[len(parts)-1]
+
+	return lastWord
 }
