@@ -52,12 +52,12 @@ func runClient(cmd *cobra.Command, _ []string) error {
 
 	flag.Parse()
 
-	md := md{
+	metainfo := md{
 		userID:    userID,
 		sessionID: sessionID,
 	}
 
-	if err := callServer(logger, &cfg, tableName, md); err != nil {
+	if err := callServer(logger, &cfg, tableName, metainfo); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 

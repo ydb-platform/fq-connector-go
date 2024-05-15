@@ -66,7 +66,7 @@ func (w *wrappedStream) Context() context.Context {
 	return w.ctx
 }
 
-func StreamServerMetadata(logger *zap.Logger) grpc.StreamServerInterceptor {
+func StreamServerMetadata() grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		metainfo := extractMetadata(stream.Context())
 
