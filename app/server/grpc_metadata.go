@@ -7,8 +7,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-
-	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type wrappedStream struct {
@@ -54,13 +52,13 @@ func UnaryServerMetadata(logger *zap.Logger) grpc.UnaryServerInterceptor {
 
 		method := trimMethod(info.FullMethod)
 
-		logger = logger.With(
+		newLogger := logger.With(
 			zap.String("user_id", metainfo.userID),
 			zap.String("session_id", metainfo.sessionID),
 			zap.String("method", method),
 		)
 
-		ctx = context.WithValue(ctx, loggerKeyRequest, logger)
+		ctx = context.WithValue(ctx, loggerKeyRequest, newLogger)
 
 		return handler(ctx, req)
 	}
@@ -70,16 +68,13 @@ func (w *wrappedStream) Context() context.Context {
 	return w.ctx
 }
 
-func StreamServerMetadata() grpc.StreamServerInterceptor {
+func StreamServerMetadata(logger *zap.Logger) grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		metainfo := extractMetadata(stream.Context())
 
 		method := trimMethod(info.FullMethod)
 
-		newLogger := common.NewDefaultLogger()
-
-		newLogger = newLogger.With(
-			zap.String("service", connectorServiceKey),
+		newLogger := logger.With(
 			zap.String("user_id", metainfo.userID),
 			zap.String("session_id", metainfo.sessionID),
 			zap.String("method", method),
