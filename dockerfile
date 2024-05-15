@@ -1,9 +1,9 @@
 FROM postgres:latest
 
-ENV POSTGRES_PASSWORD=mysecretpassword
+ ENV POSTGRES_PASSWORD=mysecretpassword
 
-ENV POSTGRES_DB=users
+ ENV POSTGRES_DB=users
 
-COPY load_data.sql /docker-entrypoint-initdb.d/
+ COPY load_data.sql /docker-entrypoint-initdb.d/
 
-CMD ["postgres"]
+ CMD ["postgres"] 

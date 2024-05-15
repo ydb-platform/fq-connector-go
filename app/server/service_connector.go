@@ -219,7 +219,7 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(registry), UnaryServerMetadata(logger)}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(registry), SessionStreamMetadata()}
+	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(registry), StreamServerMetadata(logger)}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
@@ -308,6 +308,6 @@ func newServiceConnector(
 }
 
 func MustFromContext(ctx context.Context) *zap.Logger {
-	logger := ctx.Value("logger").(*zap.Logger)
+	logger := ctx.Value(loggerKeyRequest).(*zap.Logger)
 	return logger
 }

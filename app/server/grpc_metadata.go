@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -16,42 +15,48 @@ type wrappedStream struct {
 	ctx context.Context
 }
 
-func extractMetadata(ctx context.Context) (string, string, error) {
+type md struct {
+	userID    string
+	sessionID string
+}
+
+type loggerKey int
+
+const (
+	loggerKeyRequest loggerKey = iota
+)
+
+func extractMetadata(ctx context.Context) md {
+	var metainfo md
+
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", "", fmt.Errorf("metadata not found in incoming context")
+		return metainfo
 	}
 
 	userIDs := md["user_id"]
-	if len(userIDs) == 0 {
-		return "", "", fmt.Errorf("user_id not found in metadata")
+	if len(userIDs) != 0 {
+		metainfo.userID = userIDs[0]
 	}
-
-	userID := userIDs[0]
 
 	sessionIDs := md["session_id"]
-	if len(sessionIDs) == 0 {
-		return "", "", fmt.Errorf("session_id not found")
+	if len(sessionIDs) != 0 {
+		metainfo.sessionID = sessionIDs[0]
 	}
 
-	sessionID := sessionIDs[0]
-
-	return userID, sessionID, nil
+	return metainfo
 }
 
 func UnaryServerMetadata(logger *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		userID, sessionID, err := extractMetadata(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("error extracting unary metadata: %v", err)
-		}
+		metainfo := extractMetadata(ctx)
 
 		logger = logger.With(
-			zap.String("user_id", userID),
-			zap.String("session_id", sessionID),
+			zap.String("user_id", metainfo.userID),
+			zap.String("session_id", metainfo.sessionID),
 		)
 
-		ctx = context.WithValue(ctx, "logger", logger)
+		ctx = context.WithValue(ctx, loggerKeyRequest, logger)
 
 		return handler(ctx, req)
 	}
@@ -61,22 +66,19 @@ func (w *wrappedStream) Context() context.Context {
 	return w.ctx
 }
 
-func SessionStreamMetadata() grpc.StreamServerInterceptor {
+func StreamServerMetadata(logger *zap.Logger) grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-		userID, sessionID, err := extractMetadata(stream.Context())
-		if err != nil {
-			return fmt.Errorf("error extracting stream metadata: %v", err)
-		}
+		metainfo := extractMetadata(stream.Context())
 
 		newLogger := common.NewDefaultLogger()
 
 		newLogger = newLogger.With(
 			zap.String("service", connectorServiceKey),
-			zap.String("user_id", userID),
-			zap.String("session_id", sessionID),
+			zap.String("user_id", metainfo.userID),
+			zap.String("session_id", metainfo.sessionID),
 		)
 
-		ctx := context.WithValue(stream.Context(), "logger", newLogger)
+		ctx := context.WithValue(stream.Context(), loggerKeyRequest, newLogger)
 
 		return handler(srv, &wrappedStream{stream, ctx})
 	}

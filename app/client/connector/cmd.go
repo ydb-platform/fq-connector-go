@@ -8,19 +8,13 @@ import (
 )
 
 const (
-	configFlag = "config"
-	tableFlag  = "table"
+	configFlag  = "config"
+	tableFlag   = "table"
+	userFlag    = "user"
+	sessionFlag = "session"
 )
 
 func init() {
-	dir, err := os.Getwd()
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
-
-	fmt.Println("Current directory:", dir)
-
 	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
 
 	if err := Cmd.MarkFlagRequired(configFlag); err != nil {
@@ -34,6 +28,9 @@ func init() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	Cmd.Flags().StringP(userFlag, "u", "", "user_id")
+	Cmd.Flags().StringP(sessionFlag, "s", "", "flag_id")
 }
 
 var Cmd = &cobra.Command{
