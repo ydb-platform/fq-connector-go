@@ -18,7 +18,7 @@ data_source_instance {
     credentials {
         basic {
             username: "gpadmin"
-            password: ""
+            password: "123456"
         }
     }
     pg_options: {
