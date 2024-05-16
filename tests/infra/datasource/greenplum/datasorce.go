@@ -11,7 +11,7 @@ import (
 const (
 	serviceName  = "greenplum"
 	internalPort = 5432
-	database     = "connector"
+	database     = "template0"
 	username     = "gpadmin"
 	password     = "123456"
 	schema       = "public"
