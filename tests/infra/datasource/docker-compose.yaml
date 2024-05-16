@@ -49,3 +49,20 @@ services:
       - ./ydb/init/init_ydb:/init_ydb
       - ./ydb/init/01_basic.sh:/01_basic.sh
       - ./ydb/init/02_large.sh:/02_large.sh
+
+  greenplum:
+    build:
+      context: ./greenplum
+      dockerfile: dockerfile
+    container_name: ${USER}-fq-connector-go-tests-greenplum
+    hostname: localhost
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: connector
+      POSTGRES_USER: gpadmin
+      POSTGRES_PASSWORD: 123456
+      PGDATA: /var/lib/greenplum/data/gpdata
+    volumes:
+      - ./greenplum/init:/docker-entrypoint-initdb.d
+
