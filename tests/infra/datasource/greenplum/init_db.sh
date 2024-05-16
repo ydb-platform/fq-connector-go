@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS simple;
     CREATE TABLE simple (id integer, col1 text, col2 integer);
     INSERT INTO simple VALUES (1, 'pg_a', 10);
@@ -11,7 +11,7 @@ psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<
     INSERT INTO simple VALUES (5, 'pg_e', 50);
 EOSQL
 
-psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS primitives;
     CREATE TABLE primitives (
         col_01_bool bool,
@@ -55,7 +55,7 @@ psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<
         );
 EOSQL
 
-psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS datetime;
     CREATE TABLE datetime (
         col_01_timestamp timestamp,
@@ -66,7 +66,7 @@ psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<
     INSERT INTO datetime VALUES ('2023-03-21 11:21:31.456000', '2023-03-21');
 EOSQL
 
-psql -v ON_ERROR_STOP=1 --username "$GREENPLUM_USER" --dbname "$GREENPLUM_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS pushdown;
     CREATE TABLE pushdown (
         id int,
