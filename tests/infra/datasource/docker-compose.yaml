@@ -59,7 +59,7 @@ services:
     ports:
       - "5432:5432"
     environment:
-      GREENPLUM_DB: template0
+      GREENPLUM_DB: template1
       GREENPLUM_USER: gpadmin
       GREENPLUM_PASSWORD: 123456
       GPDATA: /var/lib/greenplum/data/gpdata
