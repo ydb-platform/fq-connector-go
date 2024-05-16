@@ -59,10 +59,10 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: connector
-      POSTGRES_USER: gpadmin
-      POSTGRES_PASSWORD: 123456
-      PGDATA: /var/lib/greenplum/data/gpdata
+      GREENPLUM_DB: connector
+      GREENPLUM_USER: gpadmin
+      GREENPLUM_PASSWORD: 123456
+      GPDATA: /var/lib/greenplum/data/gpdata
     volumes:
       - ./greenplum/init:/docker-entrypoint-initdb.d
 
