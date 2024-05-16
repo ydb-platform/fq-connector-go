@@ -86,7 +86,7 @@ func (r rows) Scan(dest ...any) error {
 	for i := 0; i < r.result.Resultset.ColumnNumber(); i++ {
 		value, err := r.result.Resultset.GetValue(*r.resIdx, i)
 		if err != nil {
-			return err
+			return fmt.Errorf("mysql: failed to get value: %w", err)
 		}
 
 		valueType := r.result.Resultset.Fields[i].Type
