@@ -3,9 +3,9 @@ package mysql
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -20,61 +20,113 @@ var _ datasource.TypeMapper = typeMapper{}
 type typeMapper struct{}
 
 func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
-	switch columnType {
+	rawColumnType := strings.Split(columnType, " ")
+
+	nullable := strings.Contains(columnType, "nullable")
+	unsigned := strings.Contains(columnType, "unsigned")
+
+	var ydbColumn Ydb.Column
+
+	switch rawColumnType[0] {
 	case "int", "mediumint":
-		return &Ydb.Column{
+		var ydbType Ydb.Type_PrimitiveTypeId
+
+		if unsigned {
+			ydbType = Ydb.Type_UINT32
+		} else {
+			ydbType = Ydb.Type_INT32
+		}
+
+		ydbColumn = Ydb.Column{
 			Name: columnName,
-			Type: common.MakePrimitiveType(Ydb.Type_INT32),
-		}, nil
+			Type: common.MakePrimitiveType(ydbType),
+		}
 	case "float":
-		return &Ydb.Column{
+		ydbColumn = Ydb.Column{
 			Name: columnName,
 			Type: common.MakePrimitiveType(Ydb.Type_FLOAT),
-		}, nil
+		}
 	case "double":
-		return &Ydb.Column{
+		ydbColumn = Ydb.Column{
 			Name: columnName,
 			Type: common.MakePrimitiveType(Ydb.Type_DOUBLE),
-		}, nil
-	case "smallint", "tinyint":
-		return &Ydb.Column{
+		}
+	case "smallint", "tinyint", "bool":
+		var ydbType Ydb.Type_PrimitiveTypeId
+
+		if unsigned {
+			ydbType = Ydb.Type_UINT16
+		} else {
+			ydbType = Ydb.Type_INT16
+		}
+
+		ydbColumn = Ydb.Column{
 			Name: columnName,
-			Type: common.MakePrimitiveType(Ydb.Type_INT16),
-		}, nil
-	case "varchar", "string", "longblob", "blob", "text":
-		return &Ydb.Column{
+			Type: common.MakePrimitiveType(ydbType),
+		}
+	case "longblob", "blob", "mediumblob", "tinyblob":
+		ydbColumn = Ydb.Column{
+			Name: columnName,
+			Type: common.MakePrimitiveType(Ydb.Type_STRING),
+		}
+	case "varchar", "string", "text", "longtext", "tinytext", "mediumtext":
+		ydbColumn = Ydb.Column{
 			Name: columnName,
 			Type: common.MakePrimitiveType(Ydb.Type_UTF8),
-		}, nil
+		}
 	default:
 		return nil, errors.New("mysql: datatype not implemented yet")
 	}
+
+	if nullable {
+		ydbColumn.Type = common.MakeOptionalType(ydbColumn.GetType())
+	}
+
+	return &ydbColumn, nil
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
 
-func transformerFromTypeIDs(ids []uint8, _ []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func transformerFromTypeIDs(ids []uint8, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ids))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ids))
 
-	for _, id := range ids {
-		switch id {
-		case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
-			acceptors = append(acceptors, new(*int32))
-			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
-		case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
-			acceptors = append(acceptors, new(*int16))
+	for _, ydbType := range ydbTypes {
+		var typeId Ydb.Type_PrimitiveTypeId
+		// nullable := true
+
+		if opt := ydbType.GetOptionalType(); opt != nil {
+			typeId = opt.Item.GetTypeId()
+		} else {
+			typeId = ydbType.GetTypeId()
+			// nullable = false
+		}
+
+		switch typeId {
+		case Ydb.Type_UINT16:
+			acceptors = append(acceptors, new(uint16))
+			appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
+		case Ydb.Type_INT16, Ydb.Type_BOOL:
+			acceptors = append(acceptors, new(int16))
 			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
-		case mysql.MYSQL_TYPE_FLOAT:
-			acceptors = append(acceptors, new(*float32))
+		case Ydb.Type_UINT32:
+			acceptors = append(acceptors, new(uint32))
+			appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
+		case Ydb.Type_INT32:
+			acceptors = append(acceptors, new(int32))
+			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+		case Ydb.Type_FLOAT:
+			acceptors = append(acceptors, new(float32))
 			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
-		case mysql.MYSQL_TYPE_DOUBLE:
-			acceptors = append(acceptors, new(*float64))
+		case Ydb.Type_DOUBLE:
+			acceptors = append(acceptors, new(float64))
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
-		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING, mysql.MYSQL_TYPE_BLOB,
-			mysql.MYSQL_TYPE_LONG_BLOB:
-			acceptors = append(acceptors, new(*string))
+		case Ydb.Type_UTF8:
+			acceptors = append(acceptors, new(string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		case Ydb.Type_STRING:
+			acceptors = append(acceptors, new([]byte))
+			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		default:
 			return nil, errors.New("mysql: datatype not implemented yet")
 		}
@@ -98,15 +150,15 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	builder array.Builder,
 	conv conversion.ValueConverter[IN, OUT],
 ) error {
-	cast := acceptor.(**IN)
+	cast := acceptor.(*IN)
 
-	if *cast == nil {
+	if cast == nil {
 		builder.AppendNull()
 
 		return nil
 	}
 
-	value := **cast
+	value := *cast
 
 	out, err := conv.Convert(value)
 	if err != nil {
@@ -122,7 +174,7 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	//nolint:forcetypeassert
 	builder.(AB).Append(out)
 
-	*cast = nil
+	cast = nil
 
 	return nil
 }

@@ -1,7 +1,7 @@
 package mysql
 
 import (
-	"errors"
+	"fmt"
 	"io"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -38,6 +38,46 @@ func (rows) NextResultSet() bool {
 	return false
 }
 
+func scanToDest(dest any, value any, valueType uint8, columnName string, fieldValueType mysql.FieldValueType) error {
+	// if value == nil {
+	// 	*dest.(*any) = nil
+	// 	return nil
+	// }
+
+	switch valueType {
+	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
+		*dest.(*string) = string(value.([]byte))
+	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
+		// Special case for table metadata
+		if columnName == "DATA_TYPE" || columnName == "COLUMN_TYPE" {
+			*dest.(*string) = string(value.([]byte))
+		} else {
+			*dest.(*[]byte) = value.([]byte)
+		}
+	case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
+		if fieldValueType == mysql.FieldValueTypeUnsigned {
+			*dest.(*uint32) = uint32(value.(uint64))
+		} else {
+			*dest.(*int32) = int32(value.(int64))
+		}
+	// In MySQL bool is actually a tinyint(1)
+	case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
+		if fieldValueType == mysql.FieldValueTypeUnsigned {
+			*dest.(*uint16) = uint16(value.(uint64))
+		} else {
+			*dest.(*int16) = int16(value.(int64))
+		}
+	case mysql.MYSQL_TYPE_FLOAT:
+		*dest.(*float32) = float32(value.(float64))
+	case mysql.MYSQL_TYPE_DOUBLE:
+		*dest.(*float64) = float64(value.(float64))
+	default:
+		return fmt.Errorf("mysql: datatype %v not implemented yet", valueType)
+	}
+
+	return nil
+}
+
 func (r rows) Scan(dest ...any) error {
 	if *r.resIdx >= r.result.Resultset.RowNumber() {
 		return io.EOF
@@ -45,54 +85,16 @@ func (r rows) Scan(dest ...any) error {
 
 	for i := 0; i < r.result.Resultset.ColumnNumber(); i++ {
 		value, err := r.result.Resultset.GetValue(*r.resIdx, i)
-		valueType := r.result.Resultset.Fields[i].Type
-
 		if err != nil {
 			return err
 		}
 
-		switch valueType {
-		// TODO: handle blobs separately
-		case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING,
-			mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB:
-			// TODO: find a correct way to handle schema params (column names
-			// and column type names) separately from actual table data
-			cast, ok := dest[i].(*string)
+		valueType := r.result.Resultset.Fields[i].Type
+		fieldValueType := r.result.Resultset.Values[*r.resIdx][i].Type
+		columnName := string(r.result.Resultset.Fields[i].Name)
 
-			if ok {
-				*cast = string(value.([]byte))
-			} else {
-				tmp := new(string)
-				*tmp = string(value.([]byte))
-				*dest[i].(**string) = tmp
-			}
-		case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
-			tmp := new(int32)
-			if value != nil {
-				*tmp = int32(value.(int64))
-				*dest[i].(**int32) = tmp
-			}
-			// In MySQL bool is actually a tinyint
-		case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
-			tmp := new(int16)
-			if value != nil {
-				*tmp = int16(value.(int64))
-				*dest[i].(**int16) = tmp
-			}
-		case mysql.MYSQL_TYPE_FLOAT:
-			tmp := new(float32)
-			if value != nil {
-				*tmp = float32(value.(float64))
-				*dest[i].(**float32) = tmp
-			}
-		case mysql.MYSQL_TYPE_DOUBLE:
-			tmp := new(float64)
-			if value != nil {
-				*tmp = value.(float64)
-				*dest[i].(**float64) = tmp
-			}
-		default:
-			return errors.New("mysql: datatype not implemented yet")
+		if err = scanToDest(dest[i], value, valueType, columnName, fieldValueType); err != nil {
+			return err
 		}
 	}
 
