@@ -2,6 +2,8 @@ package datasource
 
 import (
 	"fmt"
+	"log"
+	"sort"
 	"testing"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -26,6 +28,7 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
+	r.sortColumnsByID()
 	for i, arrowField := range record.Schema().Fields() {
 		columnName := schema.Columns[i].Name
 		ydbType := schema.Columns[i].Type
@@ -39,6 +42,42 @@ func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_serv
 			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", ydbType))
 		}
 	}
+}
+
+func (r *Record) sortColumnsByID() {
+	ids := r.Columns["id"].([]*int32)
+
+	log.Println(ids)
+
+	indexes := make([]int, len(ids))
+	for i := range ids {
+		indexes[i] = i
+	}
+
+	sort.Slice(indexes, func(i, j int) bool {
+		return *ids[indexes[i]] < *ids[indexes[j]]
+	})
+
+	sortedColumns := make(map[string]any)
+
+	for colName, colData := range r.Columns {
+		slice, ok := colData.([]any)
+		if !ok {
+			sortedColumns[colName] = colData
+			continue
+		}
+
+		sortedSlice := make([]any, len(slice))
+		for i, index := range indexes {
+			sortedSlice[i] = slice[index]
+		}
+		sortedColumns[colName] = sortedSlice
+	}
+
+	log.Println(r.Columns)
+	log.Println(sortedColumns)
+
+	r.Columns = sortedColumns
 }
 
 func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arrow.Array, optional bool) {

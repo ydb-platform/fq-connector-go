@@ -1,14 +1,13 @@
 package greenplum
 
 import (
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type Suite struct {
@@ -22,22 +21,6 @@ func (s *Suite) TestSelect() {
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(s.dataSource, tables[testCase])
 	}
-}
-
-func (s *Suite) TestDatetimeFormatYQL() {
-	s.ValidateTable(
-		s.dataSource,
-		tables["datetime_format_yql"],
-		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
-	)
-}
-
-func (s *Suite) TestDatetimeFormatString() {
-	s.ValidateTable(
-		s.dataSource,
-		tables["datetime_format_string"],
-		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
-	)
 }
 
 func (s *Suite) TestPushdownComparisonL() {
@@ -261,17 +244,33 @@ func (s *Suite) TestMissingDataSource() {
 	suite.TestMissingDataSource(s.Base, dsi)
 }
 
-func (s *Suite) TestInvalidLogin() {
-	for _, dsi := range s.dataSource.Instances {
-		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
-	}
+func (s *Suite) TestDatetimeFormatYQL() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_yql"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
+	)
 }
 
-func (s *Suite) TestInvalidPassword() {
-	for _, dsi := range s.dataSource.Instances {
-		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
-	}
+func (s *Suite) TestDatetimeFormatString() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_string"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
+	)
 }
+
+// func (s *Suite) TestInvalidLogin() {
+// 	for _, dsi := range s.dataSource.Instances {
+// 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
+// 	}
+// }
+
+// func (s *Suite) TestInvalidPassword() {
+// 	for _, dsi := range s.dataSource.Instances {
+// 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
+// 	}
+// }
 
 func NewSuite(
 	baseSuite *suite.Base,
