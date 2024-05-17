@@ -23,7 +23,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id": []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4), ptr.Int32(5)},
+					"id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
 					"col1": []*string{
 						ptr.String("pg_a"),
 						ptr.String("pg_b"),
@@ -197,6 +197,7 @@ var tables = map[string]*datasource.Table{
 		Name: "datetime",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"col_02_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
 			},
@@ -206,6 +207,11 @@ var tables = map[string]*datasource.Table{
 				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
 				// are returned as NULL
 				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(0),
+						ptr.Int32(1),
+						ptr.Int32(2),
+					},
 					"col_01_timestamp": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
@@ -226,6 +232,7 @@ var tables = map[string]*datasource.Table{
 		Name: "datetime",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"col_02_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
@@ -235,6 +242,11 @@ var tables = map[string]*datasource.Table{
 				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
 				// are returned without saturating them to the epoch start
 				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(0),
+						ptr.Int32(1),
+						ptr.Int32(2),
+					},
 					"col_01_timestamp": []*string{
 						ptr.String("1950-05-27T01:02:03.111111Z"),
 						ptr.String("1988-11-20T12:55:28.123Z"),
