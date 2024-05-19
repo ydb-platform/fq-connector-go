@@ -1,6 +1,7 @@
 package datasource
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -28,20 +29,103 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
-	r.sortColumnsByID()
+	sorted, _ := sortRecordByID(record)
+
+	fmt.Println(sorted)
+
 	for i, arrowField := range record.Schema().Fields() {
 		columnName := schema.Columns[i].Name
 		ydbType := schema.Columns[i].Type
 
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
-			matchColumns(t, arrowField, r.Columns[columnName], record.Column(i), false)
+			matchColumns(t, arrowField, r.Columns[columnName], sorted.Column(i), false)
 		case *Ydb.Type_OptionalType:
-			matchColumns(t, arrowField, r.Columns[columnName], record.Column(i), true)
+			matchColumns(t, arrowField, r.Columns[columnName], sorted.Column(i), true)
 		default:
 			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", ydbType))
 		}
 	}
+}
+
+func sortRecordByID(record arrow.Record) (arrow.Record, error) {
+	if record == nil {
+		return nil, errors.New("record is nil")
+	}
+
+	if record.NumCols() == 0 {
+		return nil, errors.New("record has no columns")
+	}
+
+	// Extract the first column which is assumed to contain the IDs
+	idColumn := record.Column(0)
+	if idColumn == nil {
+		return nil, errors.New("id column is nil")
+	}
+
+	// Pair the IDs with their respective row indices
+	type idIndexPair struct {
+		id    string
+		index int64
+	}
+
+	numRows := record.NumRows()
+	pairs := make([]idIndexPair, numRows)
+
+	for i := int64(0); i < numRows; i++ {
+		pairs[i] = idIndexPair{
+			id:    idColumn.ValueStr(int(i)),
+			index: i,
+		}
+	}
+
+	// Sort the pairs based on the IDs
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].id < pairs[j].id
+	})
+
+	// Rearrange the rows of the record based on the sorted order of the IDs
+	var sortedColumns = make([]arrow.Array, record.NumCols())
+	for i := range sortedColumns {
+		col := record.Column(i)
+		if col == nil {
+			return nil, fmt.Errorf("column %d is nil", i)
+		}
+		col.Retain()
+		sortedColumns[i] = col
+	}
+
+	for i := int64(0); i < numRows; i++ {
+		for j := 0; j < int(record.NumCols()); j++ {
+			sortedColumns[j].Release()
+			sortedColumns[j] = nil
+		}
+		for j := 0; j < int(record.NumCols()); j++ {
+			rowSlice := record.NewSlice(pairs[i].index, pairs[i].index+1)
+			if rowSlice == nil {
+				return nil, errors.New("row slice is nil")
+			}
+			col := rowSlice.Column(j)
+			if col == nil {
+				return nil, fmt.Errorf("column %d is nil in row slice", j)
+			}
+			col.Retain()
+			sortedColumns[j] = col
+		}
+	}
+
+	var sortedRecord arrow.Record
+	for i, col := range sortedColumns {
+		fmt.Println("HUUUUUUUUUUUI")
+		var err error
+		sortedRecord, err = sortedRecord.SetColumn(i, col)
+		if err != nil {
+			fmt.Println(err, "PIZDAAAAAAAAAA")
+		}
+		col.Release()
+	}
+
+	return sortedRecord, nil
 }
 
 func (r *Record) sortColumnsByID() {
