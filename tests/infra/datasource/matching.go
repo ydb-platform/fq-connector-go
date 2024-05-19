@@ -57,13 +57,11 @@ func sortRecordByID(record arrow.Record) (arrow.Record, error) {
 		return nil, errors.New("record has no columns")
 	}
 
-	// Extract the first column which is assumed to contain the IDs
 	idColumn := record.Column(0)
 	if idColumn == nil {
 		return nil, errors.New("id column is nil")
 	}
 
-	// Pair the IDs with their respective row indices
 	type idIndexPair struct {
 		id    string
 		index int64
@@ -79,12 +77,10 @@ func sortRecordByID(record arrow.Record) (arrow.Record, error) {
 		}
 	}
 
-	// Sort the pairs based on the IDs
 	sort.Slice(pairs, func(i, j int) bool {
 		return pairs[i].id < pairs[j].id
 	})
 
-	// Rearrange the rows of the record based on the sorted order of the IDs
 	var sortedColumns = make([]arrow.Array, record.NumCols())
 	for i := range sortedColumns {
 		col := record.Column(i)
@@ -115,12 +111,12 @@ func sortRecordByID(record arrow.Record) (arrow.Record, error) {
 	}
 
 	var sortedRecord arrow.Record
+	var err error
+
 	for i, col := range sortedColumns {
-		fmt.Println("HUUUUUUUUUUUI")
-		var err error
 		sortedRecord, err = sortedRecord.SetColumn(i, col)
 		if err != nil {
-			fmt.Println(err, "PIZDAAAAAAAAAA")
+			return nil, err
 		}
 		col.Release()
 	}
