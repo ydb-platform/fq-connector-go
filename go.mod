@@ -27,8 +27,8 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	github.com/wI2L/jsondiff v0.4.0
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20231012155159-f85a672542fd
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.54.2
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240316140903-4a47abca1cca
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.67.2
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
