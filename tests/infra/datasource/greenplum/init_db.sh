@@ -14,6 +14,7 @@ EOSQL
 psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS primitives;
     CREATE TABLE primitives (
+        id int,
         col_01_bool bool,
         col_02_smallint smallint,
         col_03_int2 int2,
@@ -40,15 +41,15 @@ psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
         col_24_date date
     );
     INSERT INTO primitives VALUES (
-        false, 2, 3, DEFAULT, DEFAULT, 6, 7, 8, DEFAULT, DEFAULT, 11, 12, DEFAULT, DEFAULT,
+        1, false, 2, 3, DEFAULT, DEFAULT, 6, 7, 8, DEFAULT, DEFAULT, 11, 12, DEFAULT, DEFAULT,
         15.15, 16.16, 17.17, 18.18, 'az', 'az', 'az', 'az',
         '1988-11-20 12:55:28.123000', '1988-11-20');
     INSERT INTO primitives VALUES (
-        true, -2, -3, DEFAULT, DEFAULT, -6, -7, -8, DEFAULT, DEFAULT, -11, -12, DEFAULT, DEFAULT,
+        2, true, -2, -3, DEFAULT, DEFAULT, -6, -7, -8, DEFAULT, DEFAULT, -11, -12, DEFAULT, DEFAULT,
         -15.15, -16.16, -17.17, -18.18, 'буки', 'буки', 'буки', 'буки',
         '2023-03-21 11:21:31.456000', '2023-03-21');
     INSERT INTO primitives VALUES (
-        NULL, NULL, NULL, DEFAULT, DEFAULT, NULL,
+        3, NULL, NULL, NULL, DEFAULT, DEFAULT, NULL,
         NULL, NULL, DEFAULT, DEFAULT, NULL, NULL,
         DEFAULT, DEFAULT, NULL, NULL, NULL, NULL,
         NULL, NULL, NULL, NULL, NULL, NULL
