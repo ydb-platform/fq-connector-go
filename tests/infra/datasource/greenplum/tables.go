@@ -23,7 +23,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
+					"id": []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4), ptr.Int32(5)},
 					"col1": []*string{
 						ptr.String("pg_a"),
 						ptr.String("pg_b"),
@@ -40,6 +40,7 @@ var tables = map[string]*datasource.Table{
 		Name: "primitives",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				"id":                         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_bool":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 				"col_02_smallint":            common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
 				"col_03_int2":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
@@ -69,6 +70,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
+					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
 					"col_01_bool": []*uint8{ptr.Uint8(0), ptr.Uint8(1), nil},
 					"col_02_smallint": []*int16{
 						ptr.Int16(2),
@@ -208,9 +210,9 @@ var tables = map[string]*datasource.Table{
 				// are returned as NULL
 				Columns: map[string]any{
 					"id": []*int32{
-						ptr.Int32(0),
 						ptr.Int32(1),
 						ptr.Int32(2),
+						ptr.Int32(3),
 					},
 					"col_01_timestamp": []*uint64{
 						nil,
@@ -243,9 +245,9 @@ var tables = map[string]*datasource.Table{
 				// are returned without saturating them to the epoch start
 				Columns: map[string]any{
 					"id": []*int32{
-						ptr.Int32(0),
 						ptr.Int32(1),
 						ptr.Int32(2),
+						ptr.Int32(3),
 					},
 					"col_01_timestamp": []*string{
 						ptr.String("1950-05-27T01:02:03.111111Z"),

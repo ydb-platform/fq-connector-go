@@ -1,7 +1,6 @@
 package datasource
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"sort"
@@ -12,6 +11,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 
+	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/stretchr/testify/require"
@@ -29,99 +29,214 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
-	sorted, _ := sortRecordByID(record)
-
-	fmt.Println(sorted)
+	record = swapColumns(record)
+	record = sortTableByID(record)
 
 	for i, arrowField := range record.Schema().Fields() {
-		columnName := schema.Columns[i].Name
+
 		ydbType := schema.Columns[i].Type
 
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
-			matchColumns(t, arrowField, r.Columns[columnName], sorted.Column(i), false)
+			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), false)
 		case *Ydb.Type_OptionalType:
-			matchColumns(t, arrowField, r.Columns[columnName], sorted.Column(i), true)
+			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), true)
 		default:
-			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", ydbType))
+			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", arrowField.Type))
 		}
 	}
 }
 
-func sortRecordByID(record arrow.Record) (arrow.Record, error) {
-	if record == nil {
-		return nil, errors.New("record is nil")
-	}
-
-	if record.NumCols() == 0 {
-		return nil, errors.New("record has no columns")
-	}
-
-	idColumn := record.Column(0)
-	if idColumn == nil {
-		return nil, errors.New("id column is nil")
-	}
-
-	type idIndexPair struct {
-		id    string
-		index int64
-	}
-
-	numRows := record.NumRows()
-	pairs := make([]idIndexPair, numRows)
-
-	for i := int64(0); i < numRows; i++ {
-		pairs[i] = idIndexPair{
-			id:    idColumn.ValueStr(int(i)),
-			index: i,
+func swapColumns(table arrow.Record) arrow.Record {
+	idIndex := -1
+	for i, field := range table.Schema().Fields() {
+		if field.Name == "id" {
+			idIndex = i
+			break
 		}
 	}
 
-	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].id < pairs[j].id
+	newColumns := make([]arrow.Array, table.NumCols())
+	for i := range newColumns {
+		if i == 0 {
+			newColumns[i] = table.Column(idIndex)
+		} else if i == idIndex {
+			newColumns[i] = table.Column(0)
+		} else {
+			newColumns[i] = table.Column(i)
+		}
+	}
+
+	fields := table.Schema().Fields()
+	fields[0], fields[idIndex] = fields[idIndex], fields[0]
+	newSchema := arrow.NewSchema(fields, nil)
+
+	newTable := array.NewRecord(newSchema, newColumns, table.NumRows())
+
+	return newTable
+}
+
+type Records struct {
+	ID   int32
+	Rest []any
+}
+
+func sortTableByID(table arrow.Record) arrow.Record {
+	records := make([]Records, table.NumRows())
+
+	idCol := table.Column(0).(*array.Int32)
+	fmt.Println(idCol)
+
+	restCols := make([][]any, table.NumRows())
+
+	for colIdx := 1; colIdx < int(table.NumCols()); colIdx++ {
+		switch col := table.Column(colIdx).(type) {
+		case *array.Int32:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Int64:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.String:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Int16:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Uint8:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Float32:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Float64:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Uint64:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		case *array.Uint16:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		}
+	}
+
+	for i := int64(0); i < table.NumRows(); i++ {
+		records[i] = Records{
+			ID:   idCol.Value(int(i)),
+			Rest: restCols[i],
+		}
+	}
+
+	sort.Slice(records, func(i, j int) bool {
+		return records[i].ID < records[j].ID
 	})
 
-	var sortedColumns = make([]arrow.Array, record.NumCols())
-	for i := range sortedColumns {
-		col := record.Column(i)
-		if col == nil {
-			return nil, fmt.Errorf("column %d is nil", i)
-		}
-		col.Retain()
-		sortedColumns[i] = col
-	}
+	pool := memory.NewGoAllocator()
+	idBuilder := array.NewInt32Builder(pool)
+	restBuilders := make([]array.Builder, table.NumCols()-1)
 
-	for i := int64(0); i < numRows; i++ {
-		for j := 0; j < int(record.NumCols()); j++ {
-			sortedColumns[j].Release()
-			sortedColumns[j] = nil
-		}
-		for j := 0; j < int(record.NumCols()); j++ {
-			rowSlice := record.NewSlice(pairs[i].index, pairs[i].index+1)
-			if rowSlice == nil {
-				return nil, errors.New("row slice is nil")
+	for _, r := range records {
+		idBuilder.Append(r.ID)
+		for colIdx, val := range r.Rest {
+			if restBuilders[colIdx] == nil {
+				switch table.Column(colIdx + 1).(type) {
+				case *array.Int32:
+					restBuilders[colIdx] = array.NewInt32Builder(pool)
+				case *array.Int64:
+					restBuilders[colIdx] = array.NewInt64Builder(pool)
+				case *array.String:
+					restBuilders[colIdx] = array.NewStringBuilder(pool)
+				case *array.Int16:
+					restBuilders[colIdx] = array.NewInt16Builder(pool)
+				case *array.Uint8:
+					restBuilders[colIdx] = array.NewUint8Builder(pool)
+				case *array.Float32:
+					restBuilders[colIdx] = array.NewFloat32Builder(pool)
+				case *array.Float64:
+					restBuilders[colIdx] = array.NewFloat64Builder(pool)
+				case *array.Uint64:
+					restBuilders[colIdx] = array.NewUint64Builder(pool)
+				case *array.Uint16:
+					restBuilders[colIdx] = array.NewUint16Builder(pool)
+				case *array.Null:
+					restBuilders[colIdx] = array.NewNullBuilder(pool)
+				}
 			}
-			col := rowSlice.Column(j)
-			if col == nil {
-				return nil, fmt.Errorf("column %d is nil in row slice", j)
+
+			switch builder := restBuilders[colIdx].(type) {
+			case *array.Int32Builder:
+				builder.Append(val.(int32))
+			case *array.Int64Builder:
+				builder.Append(val.(int64))
+			case *array.StringBuilder:
+				builder.Append(val.(string))
+			case *array.Int16Builder:
+				builder.Append(val.(int16))
+			case *array.Uint8Builder:
+				builder.Append(val.(uint8))
+			case *array.Float32Builder:
+				builder.Append(val.(float32))
+			case *array.Float64Builder:
+				builder.Append(val.(float64))
+			case *array.Uint64Builder:
+				builder.Append(val.(uint64))
+			case *array.Uint16Builder:
+				builder.Append(val.(uint16))
 			}
-			col.Retain()
-			sortedColumns[j] = col
 		}
 	}
 
-	var sortedRecord arrow.Record
-	var err error
+	idArr := idBuilder.NewArray()
+	defer idArr.Release()
 
-	for i, col := range sortedColumns {
-		sortedRecord, err = sortedRecord.SetColumn(i, col)
-		if err != nil {
-			return nil, err
-		}
-		col.Release()
+	restArrs := make([]arrow.Array, len(restBuilders))
+	for idx, builder := range restBuilders {
+		restArrs[idx] = builder.NewArray()
+		defer restArrs[idx].Release()
 	}
 
-	return sortedRecord, nil
+	cols := append([]arrow.Array{idArr}, restArrs...)
+	schema := table.Schema()
+	newTable := array.NewRecord(schema, cols, int64(idArr.Len()))
+
+	return newTable
 }
 
 func (r *Record) sortColumnsByID() {
