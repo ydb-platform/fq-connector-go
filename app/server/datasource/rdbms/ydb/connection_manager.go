@@ -132,7 +132,7 @@ func (c *connectionManager) Make(
 	// `u-` prefix is an implicit indicator of a dedicated YDB database.
 	// We have to use underlay networks when accessing this kind of database in cloud,
 	// so we add this prefix to every endpoint discovered.
-	if c.cfg.UseUnderlayNetworkForDedicatedDatabase && strings.HasPrefix(endpoint, "u-") {
+	if c.cfg.UseUnderlayNetworkForDedicatedDatabases && strings.HasPrefix(endpoint, "u-") {
 		ydbOptions = append(ydbOptions, ydb_sdk.WithNodeAddressMutator(
 			func(address string) string {
 				return "u-" + address
