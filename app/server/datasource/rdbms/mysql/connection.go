@@ -20,19 +20,18 @@ type Connection struct {
 	conn   *client.Conn
 }
 
-func (c Connection) Close() error {
+func (c *Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c Connection) Query(_ context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	results := make(chan rowData, rowBuffer)
 	nextReady := make(chan any)
-	doneChan := make(chan any)
 
 	var result mysql.Result
-	r := rows{results, doneChan, nextReady, &result, false}
+	r := &rows{results, nextReady, &result}
 
 	stmt, err := c.conn.Prepare(query)
 	if err != nil {
@@ -41,7 +40,7 @@ func (c Connection) Query(_ context.Context, query string, args ...any) (rdbms_u
 
 	go func() {
 		defer close(r.rowChan)
-		defer close(r.doneChan)
+		defer close(r.nextReady)
 
 		err = stmt.ExecuteSelectStreaming(
 			r.result,
@@ -50,6 +49,7 @@ func (c Connection) Query(_ context.Context, query string, args ...any) (rdbms_u
 			// or simply copy it. Otherwise data races are inevitable.
 			func(row []mysql.FieldValue) error {
 				nextReady <- struct{}{}
+
 				newRow := make([]fieldValue, len(row))
 
 				for i, r := range row {
@@ -72,16 +72,13 @@ func (c Connection) Query(_ context.Context, query string, args ...any) (rdbms_u
 			},
 			func(result *mysql.Result) error {
 				r.result = result
+
 				c.logger.Debug("Obtaining new result")
 
 				return nil
 			},
 			args...,
 		)
-
-		close(r.nextReady)
-
-		<-r.doneChan
 
 		c.logger.Debug("Reading from table is done")
 	}()

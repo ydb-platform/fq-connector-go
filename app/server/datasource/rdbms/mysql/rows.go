@@ -15,8 +15,6 @@ const (
 	COLUMN_TYPE_COLUMN = "COLUMN_TYPE"
 )
 
-var counter = 1
-
 type fieldValue struct {
 	Value any
 	Type  mysql.FieldValueType
@@ -29,49 +27,37 @@ type rowData struct {
 
 type rows struct {
 	rowChan   chan rowData
-	doneChan  chan any
 	nextReady chan any
 	result    *mysql.Result
-	done      bool
 }
 
-func (r rows) Close() error {
+func (r *rows) Close() error {
 	r.result = nil
-
 	return nil
 }
 
-func (rows) Err() error {
+func (*rows) Err() error {
 	return nil
 }
 
-func (r rows) Next() bool {
+func (r *rows) Next() bool {
 	next := <-r.nextReady
-	if next != nil {
-		return true
-	} else if len(r.rowChan) == 0 && !r.done {
-		r.done = true
-		r.doneChan <- struct{}{}
-	}
-	return false
+
+	return next != nil
 }
 
-func (rows) NextResultSet() bool {
+func (*rows) NextResultSet() bool {
 	return false
 }
 
 func scanToDest(dest any, value any, valueType uint8, columnName string, fieldValueType mysql.FieldValueType) error {
-	// if value == nil {
-	// 	*dest.(*any) = nil
-	// 	return nil
-	// }
-
 	switch valueType {
 	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
-		*dest.(*string) = string(value.([]byte))
+		s := string(value.([]byte))
+		*dest.(*string) = s
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		// Special case for table metadata
-		if columnName == "DATA_TYPE" || columnName == "COLUMN_TYPE" {
+		if columnName == DATA_TYPE_COLUMN || columnName == COLUMN_TYPE_COLUMN {
 			*dest.(*string) = string(value.([]byte))
 		} else {
 			*dest.(*[]byte) = value.([]byte)
@@ -100,7 +86,7 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, fieldVa
 	return nil
 }
 
-func (r rows) Scan(dest ...any) error {
+func (r *rows) Scan(dest ...any) error {
 	row := <-r.rowChan
 	// TODO: Somehow check if returned value is zero-value
 	//       to produce EOF error
@@ -120,7 +106,7 @@ func (r rows) Scan(dest ...any) error {
 	return nil
 }
 
-func (rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (*rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	ids := make([]uint8, 0, len(ydbTypes))
 
 	return transformerFromTypeIDs(ids, ydbTypes, cc)
