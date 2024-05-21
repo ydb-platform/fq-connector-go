@@ -114,10 +114,10 @@ func run(logger *zap.Logger) error {
 
 	logger.Info("Version init file generated successfully!")
 
-	f.Sync()
-	out, _ = os.ReadFile(filepath)
+	file.Sync()
+	out, _ := os.ReadFile(filepath)
 	fmt.Println(out)
-	
+
 	return nil
 }
 
