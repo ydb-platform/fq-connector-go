@@ -114,8 +114,16 @@ func run(logger *zap.Logger) error {
 
 	logger.Info("Version init file generated successfully!")
 
-	file.Sync()
-	out, _ := os.ReadFile(filepath)
+	// Sometimes script produces invalid output
+	if err = file.Sync(); err != nil {
+		return fmt.Errorf("file sync: %w", err)
+	}
+
+	out, err := os.ReadFile(filepath)
+	if err != nil {
+		return fmt.Errorf("file sync: %w", err)
+	}
+
 	fmt.Println(string(out))
 
 	return nil
