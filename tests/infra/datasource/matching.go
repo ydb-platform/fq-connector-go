@@ -29,10 +29,11 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
+	fmt.Println("MR 1", record.Column(1))
 	record = swapColumns(record)
-	log.Println("step1")
+	fmt.Println("MR 2", record.Column(1))
 	record = sortTableByID(record)
-	log.Println("step2")
+	fmt.Println("MR 3", record.Column(1))
 
 	for i, arrowField := range record.Schema().Fields() {
 
@@ -40,8 +41,10 @@ func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_serv
 
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
+			fmt.Println("MR PRIMITIVE", arrowField, r.Columns[arrowField.Name], record.Column(i))
 			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), false)
 		case *Ydb.Type_OptionalType:
+			fmt.Println("MR OPTIONAL", arrowField, r.Columns[arrowField.Name], record.Column(i))
 			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), true)
 		default:
 			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", arrowField.Type))
@@ -87,7 +90,6 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	records := make([]Records, table.NumRows())
 
 	idCol := table.Column(0).(*array.Int32)
-	fmt.Println(idCol)
 
 	restCols := make([][]any, table.NumRows())
 
@@ -143,11 +145,16 @@ func sortTableByID(table arrow.Record) arrow.Record {
 				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
 			}
 		case *array.Uint64:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+			for rowIdx := int(0); rowIdx < int(table.NumRows()); rowIdx++ {
+				fmt.Println("OLOLO: ", col.IsNull(rowIdx), col.Value(rowIdx))
 				if len(restCols[rowIdx]) == 0 {
 					restCols[rowIdx] = make([]any, table.NumCols()-1)
 				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+				if col.IsNull(rowIdx) {
+					restCols[rowIdx][colIdx-1] = nil
+				} else {
+					restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+				}
 			}
 		case *array.Uint16:
 			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
@@ -231,7 +238,12 @@ func sortTableByID(table arrow.Record) arrow.Record {
 			case *array.Float64Builder:
 				builder.Append(val.(float64))
 			case *array.Uint64Builder:
-				builder.Append(val.(uint64))
+				fmt.Printf("CRAB: %T %v\n", val, val)
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(uint64))
+				}
 			case *array.Uint16Builder:
 				builder.Append(val.(uint16))
 			case *array.NullBuilder:
@@ -260,39 +272,6 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	newTable := array.NewRecord(schema, cols, int64(idArr.Len()))
 
 	return newTable
-}
-
-func (r *Record) sortColumnsByID() {
-	ids := r.Columns["id"].([]*int32)
-
-	log.Println(ids)
-
-	indexes := make([]int, len(ids))
-	for i := range ids {
-		indexes[i] = i
-	}
-
-	sort.Slice(indexes, func(i, j int) bool {
-		return *ids[indexes[i]] < *ids[indexes[j]]
-	})
-
-	sortedColumns := make(map[string]any)
-
-	for colName, colData := range r.Columns {
-		slice, ok := colData.([]any)
-		if !ok {
-			sortedColumns[colName] = colData
-			continue
-		}
-
-		sortedSlice := make([]any, len(slice))
-		for i, index := range indexes {
-			sortedSlice[i] = slice[index]
-		}
-		sortedColumns[colName] = sortedSlice
-	}
-
-	r.Columns = sortedColumns
 }
 
 func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arrow.Array, optional bool) {
