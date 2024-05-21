@@ -154,6 +154,7 @@ func makeAppender[
 			return appendNullableToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
 		}
 	}
+
 	return func(acceptor any, builder array.Builder) error {
 		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
 	}
@@ -186,6 +187,7 @@ func appendNullableToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB 
 	}
 
 	builder.(AB).Append(out)
+
 	*cast = nil
 
 	return nil

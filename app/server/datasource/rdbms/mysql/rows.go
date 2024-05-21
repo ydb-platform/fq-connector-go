@@ -2,9 +2,11 @@ package mysql
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"golang.org/x/exp/constraints"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -53,73 +55,31 @@ func (*rows) NextResultSet() bool {
 func scanToDest(dest any, value any, valueType uint8, columnName string, fieldValueType mysql.FieldValueType) error {
 	switch valueType {
 	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
-		if fieldValueType == mysql.FieldValueTypeNull {
-			*dest.(**string) = nil
-		} else if c, ok := dest.(**string); ok {
-			s := string(value.([]byte))
-			*c = &s
-		} else {
-			*dest.(*string) = string(value.([]byte))
-		}
+		scanStringValue[[]byte, string](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		// Special case for table metadata
 		if columnName == DATA_TYPE_COLUMN || columnName == COLUMN_TYPE_COLUMN {
-			*dest.(*string) = string(value.([]byte))
-		} else if valueType == mysql.FieldValueTypeNull {
-			*dest.(**[]byte) = nil
-		} else if c, ok := dest.(**[]byte); ok {
-			b := value.([]byte)
-			*c = &b
+			scanStringValue[[]byte, string](dest, value, fieldValueType)
 		} else {
-			*dest.(*[]byte) = value.([]byte)
+			scanStringValue[[]byte, []byte](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
 		if fieldValueType == mysql.FieldValueTypeUnsigned {
-			if fieldValueType == mysql.FieldValueTypeNull {
-				*dest.(**uint32) = nil
-			} else if c, ok := dest.(**uint32); ok {
-				v := uint32(value.(uint64))
-				*c = &v
-			}
-		} else if c, ok := dest.(**int32); ok {
-			v := int32(value.(int64))
-			*c = &v
+			scanNumberValue[uint64, uint32](dest, value, fieldValueType)
 		} else {
-			*dest.(*int32) = int32(value.(int64))
+			scanNumberValue[int64, int32](dest, value, fieldValueType)
 		}
 	// In MySQL bool is actually a tinyint(1)
 	case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
 		if fieldValueType == mysql.FieldValueTypeUnsigned {
-			if fieldValueType == mysql.FieldValueTypeNull {
-				*dest.(**uint16) = nil
-			} else if c, ok := dest.(**uint16); ok {
-				v := uint16(value.(uint64))
-				*c = &v
-			}
-		} else if c, ok := dest.(**int16); ok {
-			v := int16(value.(int64))
-			*c = &v
+			scanNumberValue[uint64, uint16](dest, value, fieldValueType)
 		} else {
-			*dest.(*int16) = int16(value.(int64))
+			scanNumberValue[int64, int16](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_FLOAT:
-		if fieldValueType == mysql.FieldValueTypeNull {
-			*dest.(**float32) = nil
-		} else if c, ok := dest.(**float32); ok {
-			v := float32(value.(float64))
-			*c = &v
-		} else {
-			*dest.(*float32) = float32(value.(float64))
-		}
+		scanNumberValue[float64, float32](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_DOUBLE:
-		if fieldValueType == mysql.FieldValueTypeNull {
-			*dest.(**float64) = nil
-		} else if c, ok := dest.(**float64); ok {
-			v := value.(float64)
-			*c = &v
-		} else {
-			*dest.(*float64) = value.(float64)
-		}
+		scanNumberValue[float64, float64](dest, value, fieldValueType)
 	default:
 		return fmt.Errorf("mysql: datatype %v not implemented yet", valueType)
 	}
@@ -127,10 +87,52 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, fieldVa
 	return nil
 }
 
+type Number interface {
+	constraints.Integer | constraints.Float
+}
+
+type StringLike interface {
+	[]byte | string
+}
+
+func scanNumberValue[IN Number, OUT Number](dest, value any, fieldValueType mysql.FieldValueType) {
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*dest.(**OUT) = nil
+
+		return
+	}
+
+	v := OUT(value.(IN))
+
+	if c, ok := dest.(**OUT); ok {
+		*c = &v
+	} else {
+		*dest.(*OUT) = v
+	}
+}
+
+func scanStringValue[IN StringLike, OUT StringLike](dest, value any, fieldValueType mysql.FieldValueType) {
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*dest.(**OUT) = nil
+
+		return
+	}
+
+	v := OUT(value.(IN))
+
+	if c, ok := dest.(**OUT); ok {
+		*c = &v
+	} else {
+		*dest.(*OUT) = v
+	}
+}
+
 func (r *rows) Scan(dest ...any) error {
-	row := <-r.rowChan
-	// TODO: Somehow check if returned value is zero-value
-	//       to produce EOF error
+	row, ok := <-r.rowChan
+
+	if !ok {
+		return io.EOF
+	}
 
 	for i, val := range row.Row {
 		value := val.Value
