@@ -6,7 +6,6 @@ import (
 
 func GetQueryAndArgs(request *api_service_protos.TDescribeTableRequest) (string, []any) {
 	// opts := request.GetDataSourceInstance().GetMysqlOptions().GetSchema()
-	// TODO: pass table_schema using mysql options. For now fallback to db name, which is default
 	// TODO: do not add 'unsigned' and 'nullable' modifiers to column type and use the driver-provided
 	// fields instead.
 	query := `SELECT column_name, CONCAT(
