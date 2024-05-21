@@ -87,6 +87,14 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_servi
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
 
+func appendAcceptors[T any](acceptors *[]any, nullable bool) {
+	if nullable {
+		*acceptors = append(*acceptors, new(*T))
+	} else {
+		*acceptors = append(*acceptors, new(T))
+	}
+}
+
 func transformerFromTypeIDs(_ []uint8, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
@@ -105,68 +113,28 @@ func transformerFromTypeIDs(_ []uint8, ydbTypes []*Ydb.Type, cc conversion.Colle
 
 		switch typeId {
 		case Ydb.Type_UINT16:
-			if nullable {
-				acceptors = append(acceptors, new(*uint16))
-			} else {
-				acceptors = append(acceptors, new(uint16))
-			}
-
+			appendAcceptors[uint16](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16(), nullable))
 		case Ydb.Type_INT16, Ydb.Type_BOOL:
-			if nullable {
-				acceptors = append(acceptors, new(*int16))
-			} else {
-				acceptors = append(acceptors, new(int16))
-			}
-
+			appendAcceptors[int16](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16(), nullable))
 		case Ydb.Type_UINT32:
-			if nullable {
-				acceptors = append(acceptors, new(*uint32))
-			} else {
-				acceptors = append(acceptors, new(uint32))
-			}
-
+			appendAcceptors[uint32](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32(), nullable))
 		case Ydb.Type_INT32:
-			if nullable {
-				acceptors = append(acceptors, new(*int32))
-			} else {
-				acceptors = append(acceptors, new(int32))
-			}
-
+			appendAcceptors[int32](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32(), nullable))
 		case Ydb.Type_FLOAT:
-			if nullable {
-				acceptors = append(acceptors, new(*float32))
-			} else {
-				acceptors = append(acceptors, new(float32))
-			}
-
+			appendAcceptors[float32](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32(), nullable))
 		case Ydb.Type_DOUBLE:
-			if nullable {
-				acceptors = append(acceptors, new(*float64))
-			} else {
-				acceptors = append(acceptors, new(float64))
-			}
-
+			appendAcceptors[float64](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64(), nullable))
 		case Ydb.Type_UTF8:
-			if nullable {
-				acceptors = append(acceptors, new(*string))
-			} else {
-				acceptors = append(acceptors, new(string))
-			}
-
+			appendAcceptors[string](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String(), nullable))
 		case Ydb.Type_STRING:
-			if nullable {
-				acceptors = append(acceptors, new(*[]byte))
-			} else {
-				acceptors = append(acceptors, new([]byte))
-			}
-
+			appendAcceptors[[]byte](&acceptors, nullable)
 			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes(), nullable))
 		default:
 			return nil, errors.New("mysql: datatype not implemented yet")
