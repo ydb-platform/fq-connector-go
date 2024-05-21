@@ -116,7 +116,7 @@ func run(logger *zap.Logger) error {
 
 	file.Sync()
 	out, _ := os.ReadFile(filepath)
-	fmt.Println(out)
+	fmt.Println(string(out))
 
 	return nil
 }
