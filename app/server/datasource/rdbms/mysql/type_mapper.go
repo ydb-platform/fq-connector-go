@@ -87,9 +87,9 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_servi
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
 
-func transformerFromTypeIDs(ids []uint8, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	acceptors := make([]any, 0, len(ids))
-	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ids))
+func transformerFromTypeIDs(_ []uint8, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+	acceptors := make([]any, 0, len(ydbTypes))
+	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
 
 	for _, ydbType := range ydbTypes {
 		var typeId Ydb.Type_PrimitiveTypeId

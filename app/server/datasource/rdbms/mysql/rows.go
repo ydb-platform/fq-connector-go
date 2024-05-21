@@ -2,7 +2,6 @@ package mysql
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -11,12 +10,34 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 )
 
-type rows struct {
-	result *mysql.Result
-	resIdx *int
+const (
+	DATA_TYPE_COLUMN   = "DATA_TYPE"
+	COLUMN_TYPE_COLUMN = "COLUMN_TYPE"
+)
+
+var counter = 1
+
+type fieldValue struct {
+	Value any
+	Type  mysql.FieldValueType
 }
 
-func (rows) Close() error {
+type rowData struct {
+	Row    []fieldValue
+	Fields []*mysql.Field
+}
+
+type rows struct {
+	rowChan   chan rowData
+	doneChan  chan any
+	nextReady chan any
+	result    *mysql.Result
+	done      bool
+}
+
+func (r rows) Close() error {
+	r.result = nil
+
 	return nil
 }
 
@@ -25,13 +46,14 @@ func (rows) Err() error {
 }
 
 func (r rows) Next() bool {
-	if r.result == nil {
-		return false
+	next := <-r.nextReady
+	if next != nil {
+		return true
+	} else if len(r.rowChan) == 0 && !r.done {
+		r.done = true
+		r.doneChan <- struct{}{}
 	}
-
-	*r.resIdx++
-
-	return *r.resIdx != r.result.Resultset.RowNumber()
+	return false
 }
 
 func (rows) NextResultSet() bool {
@@ -79,21 +101,18 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, fieldVa
 }
 
 func (r rows) Scan(dest ...any) error {
-	if *r.resIdx >= r.result.Resultset.RowNumber() {
-		return io.EOF
-	}
+	row := <-r.rowChan
+	// TODO: Somehow check if returned value is zero-value
+	//       to produce EOF error
 
-	for i := 0; i < r.result.Resultset.ColumnNumber(); i++ {
-		value, err := r.result.Resultset.GetValue(*r.resIdx, i)
-		if err != nil {
-			return fmt.Errorf("mysql: failed to get value: %w", err)
-		}
+	for i, val := range row.Row {
+		value := val.Value
 
-		valueType := r.result.Resultset.Fields[i].Type
-		fieldValueType := r.result.Resultset.Values[*r.resIdx][i].Type
-		columnName := string(r.result.Resultset.Fields[i].Name)
+		valueType := row.Fields[i].Type
+		fieldValueType := val.Type
+		columnName := string(row.Fields[i].Name)
 
-		if err = scanToDest(dest[i], value, valueType, columnName, fieldValueType); err != nil {
+		if err := scanToDest(dest[i], value, valueType, columnName, fieldValueType); err != nil {
 			return err
 		}
 	}
@@ -101,13 +120,8 @@ func (r rows) Scan(dest ...any) error {
 	return nil
 }
 
-func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	fields := r.result.Fields
-	ids := make([]uint8, 0, len(fields))
-
-	for _, field := range fields {
-		ids = append(ids, field.Type)
-	}
+func (rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+	ids := make([]uint8, 0, len(ydbTypes))
 
 	return transformerFromTypeIDs(ids, ydbTypes, cc)
 }
