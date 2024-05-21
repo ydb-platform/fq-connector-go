@@ -87,6 +87,8 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 			switch pgError.Code {
 			case pgerrcode.InvalidPassword:
 				status = ydb_proto.StatusIds_UNAUTHORIZED
+			case pgerrcode.InvalidAuthorizationSpecification:
+				status = ydb_proto.StatusIds_UNAUTHORIZED
 			default:
 				status = ydb_proto.StatusIds_INTERNAL_ERROR
 			}
