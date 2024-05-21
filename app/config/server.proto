@@ -142,6 +142,8 @@ message TYdbConfig {
     // Timeout for YDB connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2;
+    // Flag forcing the usage of underlay networks for dedicated YDB databases
+    bool use_underlay_network_for_dedicated_databases = 3;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }

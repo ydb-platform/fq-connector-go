@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -121,14 +122,25 @@ func (c *connectionManager) Make(
 	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
 	defer openCtxCancel()
 
-	ydbDriver, err := ydb_sdk.Open(
-		openCtx,
-		dsn,
+	ydbOptions := []ydb_sdk.Option{
 		cred,
 		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
 		ydb_sdk.WithBalancer(balancers.SingleConn()), // see YQ-3089
 		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
-	)
+	}
+
+	// `u-` prefix is an implicit indicator of a dedicated YDB database.
+	// We have to use underlay networks when accessing this kind of database in cloud,
+	// so we add this prefix to every endpoint discovered.
+	if c.cfg.UseUnderlayNetworkForDedicatedDatabases && strings.HasPrefix(endpoint, "u-") {
+		ydbOptions = append(ydbOptions, ydb_sdk.WithNodeAddressMutator(
+			func(address string) string {
+				return "u-" + address
+			},
+		))
+	}
+
+	ydbDriver, err := ydb_sdk.Open(openCtx, dsn, ydbOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
