@@ -30,7 +30,9 @@ type TableSchema struct {
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
 	record = swapColumns(record)
+	log.Println("step1")
 	record = sortTableByID(record)
+	log.Println("step2")
 
 	for i, arrowField := range record.Schema().Fields() {
 
@@ -154,6 +156,15 @@ func sortTableByID(table arrow.Record) arrow.Record {
 				}
 				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
 			}
+		case *array.Binary:
+			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
+				if len(restCols[rowIdx]) == 0 {
+					restCols[rowIdx] = make([]any, table.NumCols()-1)
+				}
+				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			}
+		default:
+			log.Panic("UNSUPPORTED TYPE:", col)
 		}
 	}
 
@@ -197,6 +208,10 @@ func sortTableByID(table arrow.Record) arrow.Record {
 					restBuilders[colIdx] = array.NewUint16Builder(pool)
 				case *array.Null:
 					restBuilders[colIdx] = array.NewNullBuilder(pool)
+				case *array.Binary:
+					restBuilders[colIdx] = array.NewBinaryBuilder(pool, arrow.BinaryTypes.Binary)
+				default:
+					log.Panic("UNSUPPORTED TYPE:", table.Column(colIdx+1))
 				}
 			}
 
@@ -219,6 +234,12 @@ func sortTableByID(table arrow.Record) arrow.Record {
 				builder.Append(val.(uint64))
 			case *array.Uint16Builder:
 				builder.Append(val.(uint16))
+			case *array.NullBuilder:
+				builder.AppendNull()
+			case *array.BinaryBuilder:
+				builder.Append(val.([]byte))
+			default:
+				log.Panic("UNSUPPORTED TYPE", builder)
 			}
 		}
 	}
@@ -227,7 +248,9 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	defer idArr.Release()
 
 	restArrs := make([]arrow.Array, len(restBuilders))
+	fmt.Println(len(restBuilders))
 	for idx, builder := range restBuilders {
+		log.Println(idx, builder)
 		restArrs[idx] = builder.NewArray()
 		defer restArrs[idx].Release()
 	}
@@ -268,9 +291,6 @@ func (r *Record) sortColumnsByID() {
 		}
 		sortedColumns[colName] = sortedSlice
 	}
-
-	log.Println(r.Columns)
-	log.Println(sortedColumns)
 
 	r.Columns = sortedColumns
 }
