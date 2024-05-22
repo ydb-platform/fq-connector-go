@@ -29,10 +29,9 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
+	TestSortTableByID(t)
 	record = swapColumns(record)
-	log.Println("step1")
 	record = sortTableByID(record)
-	log.Println("step2")
 
 	for i, arrowField := range record.Schema().Fields() {
 
@@ -78,6 +77,35 @@ func swapColumns(table arrow.Record) arrow.Record {
 	return newTable
 }
 
+type columnInterface interface {
+	IsNull(int) bool
+	Value(int) any
+}
+
+type supportedType interface {
+	*array.Int32 | *array.Int64 | *array.String | *array.Int16 |
+		*array.Uint8 | *array.Float32 | *array.Float64 | *array.Uint64 |
+		*array.Uint16 | *array.Binary
+	columnInterface
+}
+
+func processColumn[T supportedType](table arrow.Record, colIdx int, restCols [][]any) [][]any {
+	col := table.Column(colIdx).(T)
+	numRows := int(table.NumRows())
+
+	for rowIdx := int(0); rowIdx < numRows; rowIdx++ {
+		if len(restCols[rowIdx]) == 0 {
+			restCols[rowIdx] = make([]any, table.NumCols()-1)
+		}
+		if col.IsNull(rowIdx) {
+			restCols[rowIdx][colIdx-1] = nil
+		} else {
+			restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+		}
+	}
+	return restCols
+}
+
 type Records struct {
 	ID   int32
 	Rest []any
@@ -87,82 +115,31 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	records := make([]Records, table.NumRows())
 
 	idCol := table.Column(0).(*array.Int32)
-	fmt.Println(idCol)
 
 	restCols := make([][]any, table.NumRows())
 
 	for colIdx := 1; colIdx < int(table.NumCols()); colIdx++ {
 		switch col := table.Column(colIdx).(type) {
 		case *array.Int32:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Int32](table, colIdx, restCols)
 		case *array.Int64:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Int64](table, colIdx, restCols)
 		case *array.String:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.String](table, colIdx, restCols)
 		case *array.Int16:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Int16](table, colIdx, restCols)
 		case *array.Uint8:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Uint8](table, colIdx, restCols)
 		case *array.Float32:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Float32](table, colIdx, restCols)
 		case *array.Float64:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Float64](table, colIdx, restCols)
 		case *array.Uint64:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Uint64](table, colIdx, restCols)
 		case *array.Uint16:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Uint16](table, colIdx, restCols)
 		case *array.Binary:
-			for rowIdx := int64(0); rowIdx < table.NumRows(); rowIdx++ {
-				if len(restCols[rowIdx]) == 0 {
-					restCols[rowIdx] = make([]any, table.NumCols()-1)
-				}
-				restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
-			}
+			restCols = processColumn[*array.Binary](table, colIdx, restCols)
 		default:
 			log.Panic("UNSUPPORTED TYPE:", col)
 		}
@@ -217,27 +194,67 @@ func sortTableByID(table arrow.Record) arrow.Record {
 
 			switch builder := restBuilders[colIdx].(type) {
 			case *array.Int32Builder:
-				builder.Append(val.(int32))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(int32))
+				}
 			case *array.Int64Builder:
-				builder.Append(val.(int64))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(int64))
+				}
 			case *array.StringBuilder:
-				builder.Append(val.(string))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(string))
+				}
 			case *array.Int16Builder:
-				builder.Append(val.(int16))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(int16))
+				}
 			case *array.Uint8Builder:
-				builder.Append(val.(uint8))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(uint8))
+				}
 			case *array.Float32Builder:
-				builder.Append(val.(float32))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(float32))
+				}
 			case *array.Float64Builder:
-				builder.Append(val.(float64))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(float64))
+				}
 			case *array.Uint64Builder:
-				builder.Append(val.(uint64))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(uint64))
+				}
 			case *array.Uint16Builder:
-				builder.Append(val.(uint16))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(uint16))
+				}
 			case *array.NullBuilder:
 				builder.AppendNull()
 			case *array.BinaryBuilder:
-				builder.Append(val.([]byte))
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.([]byte))
+				}
 			default:
 				log.Panic("UNSUPPORTED TYPE", builder)
 			}
@@ -248,9 +265,7 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	defer idArr.Release()
 
 	restArrs := make([]arrow.Array, len(restBuilders))
-	fmt.Println(len(restBuilders))
 	for idx, builder := range restBuilders {
-		log.Println(idx, builder)
 		restArrs[idx] = builder.NewArray()
 		defer restArrs[idx].Release()
 	}
@@ -260,39 +275,6 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	newTable := array.NewRecord(schema, cols, int64(idArr.Len()))
 
 	return newTable
-}
-
-func (r *Record) sortColumnsByID() {
-	ids := r.Columns["id"].([]*int32)
-
-	log.Println(ids)
-
-	indexes := make([]int, len(ids))
-	for i := range ids {
-		indexes[i] = i
-	}
-
-	sort.Slice(indexes, func(i, j int) bool {
-		return *ids[indexes[i]] < *ids[indexes[j]]
-	})
-
-	sortedColumns := make(map[string]any)
-
-	for colName, colData := range r.Columns {
-		slice, ok := colData.([]any)
-		if !ok {
-			sortedColumns[colName] = colData
-			continue
-		}
-
-		sortedSlice := make([]any, len(slice))
-		for i, index := range indexes {
-			sortedSlice[i] = slice[index]
-		}
-		sortedColumns[colName] = sortedSlice
-	}
-
-	r.Columns = sortedColumns
 }
 
 func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arrow.Array, optional bool) {
