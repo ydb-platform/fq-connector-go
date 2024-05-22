@@ -267,7 +267,7 @@ func (s *Suite) TestInvalidLogin() {
 	}
 }
 
-//TODO: YQ:3236
+// TODO:YQ:3236
 // func (s *Suite) TestInvalidPassword() {
 // 	for _, dsi := range s.dataSource.Instances {
 // 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])

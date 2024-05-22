@@ -48,6 +48,7 @@ func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_serv
 
 func swapColumns(table arrow.Record) arrow.Record {
 	idIndex := -1
+
 	for i, field := range table.Schema().Fields() {
 		if field.Name == "id" {
 			idIndex = i
@@ -83,12 +84,14 @@ func processColumn[VT common.ValueType, ARRAY common.ArrowArrayType[VT]](table a
 		if len(restCols[rowIdx]) == 0 {
 			restCols[rowIdx] = make([]any, table.NumCols()-1)
 		}
+
 		if col.IsNull(rowIdx) {
 			restCols[rowIdx][colIdx-1] = nil
 		} else {
-			restCols[rowIdx][colIdx-1] = col.Value(int(rowIdx))
+			restCols[rowIdx][colIdx-1] = col.Value(rowIdx)
 		}
 	}
+
 	return restCols
 }
 
@@ -152,6 +155,7 @@ func sortTableByID(table arrow.Record) arrow.Record {
 
 	for _, r := range records {
 		idBuilder.Append(r.ID)
+
 		for colIdx, val := range r.Rest {
 			if restBuilders[colIdx] == nil {
 				switch table.Column(colIdx + 1).(type) {
