@@ -10,10 +10,10 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 const (
-	DATA_TYPE_COLUMN   = "DATA_TYPE"
 	COLUMN_TYPE_COLUMN = "COLUMN_TYPE"
 )
 
@@ -30,6 +30,7 @@ type rowData struct {
 type rows struct {
 	rowChan   chan rowData
 	nextReady chan any
+	lastRow   *rowData
 	result    *mysql.Result
 }
 
@@ -53,53 +54,67 @@ func (*rows) NextResultSet() bool {
 }
 
 func scanToDest(dest any, value any, valueType uint8, columnName string, fieldValueType mysql.FieldValueType) error {
+	var err error
+
 	switch valueType {
 	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
-		scanStringValue[[]byte, string](dest, value, fieldValueType)
+		err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		// Special case for table metadata
-		if columnName == DATA_TYPE_COLUMN || columnName == COLUMN_TYPE_COLUMN {
-			scanStringValue[[]byte, string](dest, value, fieldValueType)
+		if columnName == COLUMN_TYPE_COLUMN {
+			err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 		} else {
-			scanStringValue[[]byte, []byte](dest, value, fieldValueType)
+			err = scanStringValue[[]byte, []byte](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
 		if fieldValueType == mysql.FieldValueTypeUnsigned {
-			scanNumberValue[uint64, uint32](dest, value, fieldValueType)
+			err = scanNumberValue[uint64, uint32](dest, value, fieldValueType)
 		} else {
-			scanNumberValue[int64, int32](dest, value, fieldValueType)
+			err = scanNumberValue[int64, int32](dest, value, fieldValueType)
+		}
+	case mysql.MYSQL_TYPE_SHORT:
+		if fieldValueType == mysql.FieldValueTypeUnsigned {
+			err = scanNumberValue[uint64, uint16](dest, value, fieldValueType)
+		} else {
+			err = scanNumberValue[int64, int16](dest, value, fieldValueType)
 		}
 	// In MySQL bool is actually a tinyint(1)
-	case mysql.MYSQL_TYPE_SHORT, mysql.MYSQL_TYPE_TINY:
+	case mysql.MYSQL_TYPE_TINY:
 		if fieldValueType == mysql.FieldValueTypeUnsigned {
-			scanNumberValue[uint64, uint16](dest, value, fieldValueType)
+			err = scanNumberValue[uint64, uint8](dest, value, fieldValueType)
+		} else if _, ok := dest.(**bool); ok {
+			err = scanBoolValue(dest, value, fieldValueType)
 		} else {
-			scanNumberValue[int64, int16](dest, value, fieldValueType)
+			err = scanNumberValue[int64, int8](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_FLOAT:
-		scanNumberValue[float64, float32](dest, value, fieldValueType)
+		err = scanNumberValue[float64, float32](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_DOUBLE:
-		scanNumberValue[float64, float64](dest, value, fieldValueType)
+		err = scanNumberValue[float64, float64](dest, value, fieldValueType)
 	default:
 		return fmt.Errorf("mysql: datatype %v not implemented yet", valueType)
+	}
+
+	if err != nil {
+		return fmt.Errorf("mysql: %w", err)
 	}
 
 	return nil
 }
 
-type Number interface {
+type number interface {
 	constraints.Integer | constraints.Float
 }
 
-type StringLike interface {
+type stringLike interface {
 	[]byte | string
 }
 
-func scanNumberValue[IN Number, OUT Number](dest, value any, fieldValueType mysql.FieldValueType) {
+func scanNumberValue[IN number, OUT number](dest, value any, fieldValueType mysql.FieldValueType) error {
 	if fieldValueType == mysql.FieldValueTypeNull {
 		*dest.(**OUT) = nil
 
-		return
+		return nil
 	}
 
 	v := OUT(value.(IN))
@@ -107,24 +122,49 @@ func scanNumberValue[IN Number, OUT Number](dest, value any, fieldValueType mysq
 	if c, ok := dest.(**OUT); ok {
 		*c = &v
 	} else {
-		*dest.(*OUT) = v
+		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
 	}
+
+	return nil
 }
 
-func scanStringValue[IN StringLike, OUT StringLike](dest, value any, fieldValueType mysql.FieldValueType) {
+func scanStringValue[IN stringLike, OUT stringLike](dest, value any, fieldValueType mysql.FieldValueType) error {
 	if fieldValueType == mysql.FieldValueTypeNull {
 		*dest.(**OUT) = nil
 
-		return
+		return nil
 	}
 
 	v := OUT(value.(IN))
 
 	if c, ok := dest.(**OUT); ok {
 		*c = &v
+	} else if c, ok := dest.(*OUT); ok {
+		*c = v
 	} else {
-		*dest.(*OUT) = v
+		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
 	}
+
+	return nil
+}
+
+func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*dest.(**bool) = nil
+
+		return nil
+	}
+
+	v := value.(int64)
+	b := v > 0
+
+	if c, ok := dest.(**bool); ok {
+		*c = &b
+	} else {
+		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
+	}
+
+	return nil
 }
 
 func (r *rows) Scan(dest ...any) error {
@@ -150,7 +190,5 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (*rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	ids := make([]uint8, 0, len(ydbTypes))
-
-	return transformerFromTypeIDs(ids, ydbTypes, cc)
+	return transformerFromTypeIDs(ydbTypes, cc)
 }

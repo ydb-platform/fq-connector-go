@@ -31,7 +31,9 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 	nextReady := make(chan any)
 
 	var result mysql.Result
-	r := &rows{results, nextReady, &result}
+	var lastRow rowData
+
+	r := &rows{results, nextReady, &lastRow, &result}
 
 	stmt, err := c.conn.Prepare(query)
 	if err != nil {
@@ -65,22 +67,13 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 					}
 				}
 
-				c.logger.Debug("Writing row to channel")
 				r.rowChan <- rowData{newRow, r.result.Fields}
 
 				return nil
 			},
-			func(result *mysql.Result) error {
-				r.result = result
-
-				c.logger.Debug("Obtaining new result")
-
-				return nil
-			},
+			nil,
 			args...,
 		)
-
-		c.logger.Debug("Reading from table is done")
 	}()
 
 	return r, nil

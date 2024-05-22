@@ -5,15 +5,9 @@ import (
 )
 
 func GetQueryAndArgs(request *api_service_protos.TDescribeTableRequest) (string, []any) {
-	// opts := request.GetDataSourceInstance().GetMysqlOptions().GetSchema()
-	// TODO: do not add 'unsigned' and 'nullable' modifiers to column type and use the driver-provided
-	// fields instead.
-	query := `SELECT column_name, CONCAT(
-		IF(COLUMN_TYPE LIKE '%unsigned', CONCAT(DATA_TYPE, ' ', 'unsigned'),
-		DATA_TYPE),
-		' ',
-		IF(IS_NULLABLE = 'YES', 'nullable', '')
-	) AS DATA_TYPE FROM information_schema.columns WHERE table_name = ? AND table_schema = ?`
+	// TODO: do not add 'unsigned' modifiers to column type and use the driver-provided fields instead.
+	query := `SELECT column_name, column_type FROM information_schema.columns
+		WHERE table_name = ? AND table_schema = ?`
 
 	args := []any{request.Table, request.GetDataSourceInstance().Database}
 
