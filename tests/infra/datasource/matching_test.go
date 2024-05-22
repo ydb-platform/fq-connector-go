@@ -128,7 +128,6 @@ func TestSortTableByID(t *testing.T) {
 			}
 		}
 	})
-
 }
 
 func int32Ptr(i int32) *int32 {

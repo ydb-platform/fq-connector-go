@@ -29,12 +29,10 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
-
 	record = swapColumns(record)
 	record = sortTableByID(record)
 
 	for i, arrowField := range record.Schema().Fields() {
-
 		ydbType := schema.Columns[i].Type
 
 		switch ydbType.GetType().(type) {
