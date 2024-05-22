@@ -175,7 +175,7 @@ func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 }
 
 func (r *rows) Scan(dest ...any) error {
-	if !r.busy.Load() && r.lastRow == nil {
+	if r.lastRow == nil && !r.busy.Load() {
 		return io.EOF
 	}
 

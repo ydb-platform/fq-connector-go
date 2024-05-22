@@ -36,6 +36,7 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 	if err != nil {
 		return r, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
+
 	r.busy.Store(true)
 
 	go func() {
@@ -69,6 +70,7 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 			nil,
 			args...,
 		)
+
 		r.busy.Store(false)
 	}()
 

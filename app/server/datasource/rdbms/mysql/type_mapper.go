@@ -25,8 +25,11 @@ type typeMapper struct {
 
 func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var matches []string
+
 	var typeName string
+
 	var typeSize uint64
+
 	var err error
 
 	typeSize = 0
