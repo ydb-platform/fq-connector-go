@@ -148,7 +148,7 @@ func transformerFromTypeIDs(ydbTypes []*Ydb.Type, cc conversion.Collection) (pag
 			acceptors = append(acceptors, new(*int8))
 			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
 		default:
-			return nil, errors.New("mysql: datatype not implemented yet")
+			return nil, fmt.Errorf("mysql: %w", common.ErrDataTypeNotSupported)
 		}
 	}
 

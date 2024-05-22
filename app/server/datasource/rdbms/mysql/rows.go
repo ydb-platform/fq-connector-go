@@ -99,7 +99,7 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, fieldVa
 	case mysql.MYSQL_TYPE_DOUBLE:
 		err = scanNumberValue[float64, float64](dest, value, fieldValueType)
 	default:
-		return fmt.Errorf("mysql: datatype %v not implemented yet", valueType)
+		return fmt.Errorf("mysql: %w %v", common.ErrDataTypeNotSupported, valueType)
 	}
 
 	if err != nil {
