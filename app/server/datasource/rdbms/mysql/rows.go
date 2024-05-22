@@ -3,6 +3,7 @@ package mysql
 import (
 	"fmt"
 	"io"
+	"sync/atomic"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -28,10 +29,10 @@ type rowData struct {
 }
 
 type rows struct {
-	rowChan   chan rowData
-	nextReady chan any
-	lastRow   *rowData
-	result    *mysql.Result
+	rowChan chan rowData
+	lastRow *rowData
+	result  *mysql.Result
+	busy    atomic.Bool
 }
 
 func (r *rows) Close() error {
@@ -44,9 +45,15 @@ func (*rows) Err() error {
 }
 
 func (r *rows) Next() bool {
-	next := <-r.nextReady
+	next, ok := <-r.rowChan
 
-	return next != nil
+	if ok {
+		r.lastRow = &next
+	} else {
+		r.lastRow = nil
+	}
+
+	return ok
 }
 
 func (*rows) NextResultSet() bool {
@@ -168,18 +175,16 @@ func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 }
 
 func (r *rows) Scan(dest ...any) error {
-	row, ok := <-r.rowChan
-
-	if !ok {
+	if !r.busy.Load() && r.lastRow == nil {
 		return io.EOF
 	}
 
-	for i, val := range row.Row {
+	for i, val := range r.lastRow.Row {
 		value := val.Value
 
-		valueType := row.Fields[i].Type
+		valueType := r.lastRow.Fields[i].Type
 		fieldValueType := val.Type
-		columnName := string(row.Fields[i].Name)
+		columnName := string(r.lastRow.Fields[i].Name)
 
 		if err := scanToDest(dest[i], value, valueType, columnName, fieldValueType); err != nil {
 			return err

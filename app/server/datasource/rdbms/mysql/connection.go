@@ -3,6 +3,7 @@ package mysql
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -28,21 +29,17 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 	c.logger.Dump(query, args...)
 
 	results := make(chan rowData, rowBuffer)
-	nextReady := make(chan any)
 
-	var result mysql.Result
-	var lastRow rowData
-
-	r := &rows{results, nextReady, &lastRow, &result}
+	r := &rows{results, nil, &mysql.Result{}, atomic.Bool{}}
 
 	stmt, err := c.conn.Prepare(query)
 	if err != nil {
 		return r, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
+	r.busy.Store(true)
 
 	go func() {
 		defer close(r.rowChan)
-		defer close(r.nextReady)
 
 		err = stmt.ExecuteSelectStreaming(
 			r.result,
@@ -50,8 +47,6 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 			// so we need either to lock the row until the reader is done its reading and processing
 			// or simply copy it. Otherwise data races are inevitable.
 			func(row []mysql.FieldValue) error {
-				nextReady <- struct{}{}
-
 				newRow := make([]fieldValue, len(row))
 
 				for i, r := range row {
@@ -74,6 +69,7 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 			nil,
 			args...,
 		)
+		r.busy.Store(false)
 	}()
 
 	return r, nil
