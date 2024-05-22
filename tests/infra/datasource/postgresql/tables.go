@@ -40,6 +40,7 @@ var tables = map[string]*datasource.Table{
 		Name: "primitives",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				"id":                         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_bool":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 				"col_02_smallint":            common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
 				"col_03_int2":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
@@ -69,6 +70,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
+					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
 					"col_01_bool": []*uint8{ptr.Uint8(0), ptr.Uint8(1), nil},
 					"col_02_smallint": []*int16{
 						ptr.Int16(2),
@@ -197,6 +199,7 @@ var tables = map[string]*datasource.Table{
 		Name: "datetime",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"col_02_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
 			},
@@ -206,6 +209,11 @@ var tables = map[string]*datasource.Table{
 				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
 				// are returned as NULL
 				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(1),
+						ptr.Int32(2),
+						ptr.Int32(3),
+					},
 					"col_01_timestamp": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
@@ -214,7 +222,7 @@ var tables = map[string]*datasource.Table{
 							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 456000000, time.UTC))),
 					},
 					"col_02_date": []*uint16{
-						nil,
+						ptr.Uint16(0),
 						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
 						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
 					},
@@ -226,6 +234,7 @@ var tables = map[string]*datasource.Table{
 		Name: "datetime",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"col_02_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
@@ -235,6 +244,11 @@ var tables = map[string]*datasource.Table{
 				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
 				// are returned without saturating them to the epoch start
 				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(1),
+						ptr.Int32(2),
+						ptr.Int32(3),
+					},
 					"col_01_timestamp": []*string{
 						ptr.String("1950-05-27T01:02:03.111111Z"),
 						ptr.String("1988-11-20T12:55:28.123Z"),

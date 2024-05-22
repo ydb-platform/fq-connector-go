@@ -52,8 +52,8 @@ services:
 
   greenplum:
     build:
-      context: ./greenplum
-      dockerfile: dockerfile
+      context: ./greenplum/init
+      dockerfile: Dockerfile
     container_name: ${USER}-fq-connector-go-tests-greenplum
     hostname: localhost
     ports:

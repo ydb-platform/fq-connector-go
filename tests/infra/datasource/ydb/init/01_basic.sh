@@ -2,7 +2,7 @@
 
 /ydb -p tests-ydb-client yql -s '
 
-    CREATE TABLE simple (id Int8 NOT NULL, col1 String NOT NULL, col2 Int32 NOT NULL, PRIMARY KEY (id));
+    CREATE TABLE simple (id Int32 NOT NULL, col1 String NOT NULL, col2 Int32 NOT NULL, PRIMARY KEY (id));
     COMMIT;
     INSERT INTO simple (id, col1, col2) VALUES
       (1, "ydb_a", 10),
@@ -14,7 +14,7 @@
 
 
     CREATE TABLE primitives (
-        id Int8 NOT NULL,
+        id Int32 NOT NULL,
         col_01_bool Bool NOT NULL,
         col_02_int8 Int8 NOT NULL,
         col_03_int16 Int16 NOT NULL,
@@ -44,7 +44,7 @@
 
 
     CREATE TABLE optionals (
-        id Int8 NOT NULL,
+        id Optional<Int32>,
         col_01_bool Optional<Bool>,
         col_02_int8 Optional<Int8>,
         col_03_int16 Optional<Int16>,
@@ -76,7 +76,7 @@
 
 
     CREATE TABLE datetime (
-        id Int8 NOT NULL,
+        id Int32 NOT NULL,
         col_01_date Date NOT NULL,
         col_02_datetime Datetime NOT NULL,
         col_03_timestamp Timestamp NOT NULL,
@@ -104,7 +104,7 @@
     COMMIT;
 
     CREATE TABLE `parent/child` (
-        id INT8 NOT NULL,
+        id INT32 NOT NULL,
         col UTF8 NOT NULL,
         PRIMARY KEY (id)
     );

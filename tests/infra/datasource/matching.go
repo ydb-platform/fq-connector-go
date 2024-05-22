@@ -29,7 +29,7 @@ type TableSchema struct {
 }
 
 func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
-	TestSortTableByID(t)
+
 	record = swapColumns(record)
 	record = sortTableByID(record)
 
@@ -39,9 +39,9 @@ func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_serv
 
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
-			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), false)
+			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), false, &record)
 		case *Ydb.Type_OptionalType:
-			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), true)
+			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), true, &record)
 		default:
 			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", arrowField.Type))
 		}
@@ -77,20 +77,8 @@ func swapColumns(table arrow.Record) arrow.Record {
 	return newTable
 }
 
-type columnInterface interface {
-	IsNull(int) bool
-	Value(int) any
-}
-
-type supportedType interface {
-	*array.Int32 | *array.Int64 | *array.String | *array.Int16 |
-		*array.Uint8 | *array.Float32 | *array.Float64 | *array.Uint64 |
-		*array.Uint16 | *array.Binary
-	columnInterface
-}
-
-func processColumn[T supportedType](table arrow.Record, colIdx int, restCols [][]any) [][]any {
-	col := table.Column(colIdx).(T)
+func processColumn[VT common.ValueType, ARRAY common.ArrowArrayType[VT]](table arrow.Record, colIdx int, restCols [][]any) [][]any {
+	col := table.Column(colIdx).(ARRAY)
 	numRows := int(table.NumRows())
 
 	for rowIdx := int(0); rowIdx < numRows; rowIdx++ {
@@ -121,25 +109,29 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	for colIdx := 1; colIdx < int(table.NumCols()); colIdx++ {
 		switch col := table.Column(colIdx).(type) {
 		case *array.Int32:
-			restCols = processColumn[*array.Int32](table, colIdx, restCols)
+			restCols = processColumn[int32, *array.Int32](table, colIdx, restCols)
 		case *array.Int64:
-			restCols = processColumn[*array.Int64](table, colIdx, restCols)
+			restCols = processColumn[int64, *array.Int64](table, colIdx, restCols)
 		case *array.String:
-			restCols = processColumn[*array.String](table, colIdx, restCols)
+			restCols = processColumn[string, *array.String](table, colIdx, restCols)
 		case *array.Int16:
-			restCols = processColumn[*array.Int16](table, colIdx, restCols)
+			restCols = processColumn[int16, *array.Int16](table, colIdx, restCols)
 		case *array.Uint8:
-			restCols = processColumn[*array.Uint8](table, colIdx, restCols)
+			restCols = processColumn[uint8, *array.Uint8](table, colIdx, restCols)
 		case *array.Float32:
-			restCols = processColumn[*array.Float32](table, colIdx, restCols)
+			restCols = processColumn[float32, *array.Float32](table, colIdx, restCols)
 		case *array.Float64:
-			restCols = processColumn[*array.Float64](table, colIdx, restCols)
+			restCols = processColumn[float64, *array.Float64](table, colIdx, restCols)
 		case *array.Uint64:
-			restCols = processColumn[*array.Uint64](table, colIdx, restCols)
+			restCols = processColumn[uint64, *array.Uint64](table, colIdx, restCols)
 		case *array.Uint16:
-			restCols = processColumn[*array.Uint16](table, colIdx, restCols)
+			restCols = processColumn[uint16, *array.Uint16](table, colIdx, restCols)
 		case *array.Binary:
-			restCols = processColumn[*array.Binary](table, colIdx, restCols)
+			restCols = processColumn[[]byte, *array.Binary](table, colIdx, restCols)
+		case *array.Int8:
+			restCols = processColumn[int8, *array.Int8](table, colIdx, restCols)
+		case *array.Uint32:
+			restCols = processColumn[uint32, *array.Uint32](table, colIdx, restCols)
 		default:
 			log.Panic("UNSUPPORTED TYPE:", col)
 		}
@@ -187,6 +179,10 @@ func sortTableByID(table arrow.Record) arrow.Record {
 					restBuilders[colIdx] = array.NewNullBuilder(pool)
 				case *array.Binary:
 					restBuilders[colIdx] = array.NewBinaryBuilder(pool, arrow.BinaryTypes.Binary)
+				case *array.Int8:
+					restBuilders[colIdx] = array.NewInt8Builder(pool)
+				case *array.Uint32:
+					restBuilders[colIdx] = array.NewUint32Builder(pool)
 				default:
 					log.Panic("UNSUPPORTED TYPE:", table.Column(colIdx+1))
 				}
@@ -255,6 +251,18 @@ func sortTableByID(table arrow.Record) arrow.Record {
 				} else {
 					builder.Append(val.([]byte))
 				}
+			case *array.Int8Builder:
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(int8))
+				}
+			case *array.Uint32Builder:
+				if val == nil {
+					builder.AppendNull()
+				} else {
+					builder.Append(val.(uint32))
+				}
 			default:
 				log.Panic("UNSUPPORTED TYPE", builder)
 			}
@@ -277,32 +285,32 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	return newTable
 }
 
-func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arrow.Array, optional bool) {
+func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arrow.Array, optional bool, table *arrow.Record) {
 	switch arrowField.Type.ID() {
 	case arrow.INT8:
-		matchArrays[int8, *array.Int8](t, arrowField.Name, expected, actual, optional)
+		matchArrays[int8, *array.Int8](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.INT16:
-		matchArrays[int16, *array.Int16](t, arrowField.Name, expected, actual, optional)
+		matchArrays[int16, *array.Int16](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.INT32:
-		matchArrays[int32, *array.Int32](t, arrowField.Name, expected, actual, optional)
+		matchArrays[int32, *array.Int32](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.INT64:
-		matchArrays[int64, *array.Int64](t, arrowField.Name, expected, actual, optional)
+		matchArrays[int64, *array.Int64](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.UINT8:
-		matchArrays[uint8, *array.Uint8](t, arrowField.Name, expected, actual, optional)
+		matchArrays[uint8, *array.Uint8](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.UINT16:
-		matchArrays[uint16, *array.Uint16](t, arrowField.Name, expected, actual, optional)
+		matchArrays[uint16, *array.Uint16](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.UINT32:
-		matchArrays[uint32, *array.Uint32](t, arrowField.Name, expected, actual, optional)
+		matchArrays[uint32, *array.Uint32](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.UINT64:
-		matchArrays[uint64, *array.Uint64](t, arrowField.Name, expected, actual, optional)
+		matchArrays[uint64, *array.Uint64](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.FLOAT32:
-		matchArrays[float32, *array.Float32](t, arrowField.Name, expected, actual, optional)
+		matchArrays[float32, *array.Float32](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.FLOAT64:
-		matchArrays[float64, *array.Float64](t, arrowField.Name, expected, actual, optional)
+		matchArrays[float64, *array.Float64](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.STRING:
-		matchArrays[string, *array.String](t, arrowField.Name, expected, actual, optional)
+		matchArrays[string, *array.String](t, arrowField.Name, expected, actual, optional, table)
 	case arrow.BINARY:
-		matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional)
+		matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional, table)
 	default:
 		require.FailNow(t, fmt.Sprintf("unexpected arrow type: %v", arrowField.Type.ID().String()))
 	}
@@ -314,6 +322,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 	expectedRaw any,
 	actualRaw arrow.Array,
 	optional bool,
+	table *arrow.Record,
 ) {
 	actual, ok := actualRaw.(ACTUAL)
 	require.True(t, ok)
@@ -322,7 +331,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		expected, ok := expectedRaw.([]*EXPECTED)
 		require.True(
 			t, ok,
-			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, expected),
+			fmt.Sprintf("invalid type for column %v: want %T, got %T \n\n\n\n %v \n\n\n", columnName, expectedRaw, expected, *table),
 		)
 		require.Equal(t, len(expected), actual.Len(),
 			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
@@ -349,7 +358,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		expected, ok := expectedRaw.([]EXPECTED)
 		require.True(
 			t, ok,
-			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, expected),
+			fmt.Sprintf("invalid type for column %v: want %T, got %T \n\n\n\n %v \n\n\n, \n\n\n\n %v \n\n\n", columnName, expectedRaw, expected, *table, expectedRaw),
 		)
 
 		require.Equal(t, len(expected), actual.Len(),

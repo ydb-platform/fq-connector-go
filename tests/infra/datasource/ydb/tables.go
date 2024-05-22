@@ -19,7 +19,7 @@ var tables = map[string]*datasource.Table{
 		Name: "simple",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":   common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":   common.MakePrimitiveType(Ydb.Type_INT32),
 				"col1": common.MakePrimitiveType(Ydb.Type_STRING),
 				"col2": common.MakePrimitiveType(Ydb.Type_INT32),
 			},
@@ -27,7 +27,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id": []int8{1, 2, 3, 4, 5},
+					"id": []int32{1, 2, 3, 4, 5},
 					"col1": [][]byte{
 						[]byte("ydb_a"),
 						[]byte("ydb_b"),
@@ -45,7 +45,7 @@ var tables = map[string]*datasource.Table{
 		Name: "primitives",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_bool":      common.MakePrimitiveType(Ydb.Type_BOOL),
 				"col_02_int8":      common.MakePrimitiveType(Ydb.Type_INT8),
 				"col_03_int16":     common.MakePrimitiveType(Ydb.Type_INT16),
@@ -67,7 +67,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id":            []int8{1},
+					"id":            []int32{1},
 					"col_01_bool":   []uint8{0}, // []bool{false}
 					"col_02_int8":   []int8{1},
 					"col_03_int16":  []int16{-2},
@@ -105,7 +105,7 @@ var tables = map[string]*datasource.Table{
 		Name: "optionals",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"col_01_bool":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 				"col_02_int8":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
 				"col_03_int16":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
@@ -127,7 +127,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id":            []int8{1, 2},
+					"id":            []*int32{ptr.Int32(1), ptr.Int32(2)},
 					"col_01_bool":   []*uint8{ptr.Uint8(1), nil}, // []*bool{true, nil}
 					"col_02_int8":   []*int8{ptr.Int8(1), nil},
 					"col_03_int16":  []*int16{ptr.Int16(-2), nil},
@@ -168,7 +168,7 @@ var tables = map[string]*datasource.Table{
 		Name: "datetime",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_date":      common.MakePrimitiveType(Ydb.Type_DATE),
 				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_DATETIME),
 				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
@@ -177,7 +177,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id": []int8{1},
+					"id": []int32{1},
 					"col_01_date": []uint16{
 						common.MustTimeToYDBType[uint16](
 							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
@@ -203,7 +203,7 @@ var tables = map[string]*datasource.Table{
 		Name: "datetime",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_date":      common.MakePrimitiveType(Ydb.Type_UTF8),
 				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_UTF8),
 				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_UTF8),
@@ -212,7 +212,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id":               []int8{1},
+					"id":               []int32{1},
 					"col_01_date":      []string{"1988-11-20"},
 					"col_02_datetime":  []string{"1988-11-20T12:55:28Z"},
 					"col_03_timestamp": []string{"1988-11-20T12:55:28.123456Z"},
@@ -386,14 +386,14 @@ var tables = map[string]*datasource.Table{
 		Name: "parent/child",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":  common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":  common.MakePrimitiveType(Ydb.Type_INT32),
 				"col": common.MakePrimitiveType(Ydb.Type_UTF8),
 			},
 		},
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id":  []int8{1, 2, 3, 4, 5},
+					"id":  []int32{1, 2, 3, 4, 5},
 					"col": []string{"a", "b", "c", "d", "e"},
 				},
 			},

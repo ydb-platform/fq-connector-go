@@ -3,7 +3,7 @@ set -e
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     DROP TABLE IF EXISTS simple;
-    CREATE TABLE simple (id integer, col1 text, col2 integer);
+    CREATE TABLE simple (id int, col1 text, col2 int);
     INSERT INTO simple VALUES (1, 'pg_a', 10);
     INSERT INTO simple VALUES (2, 'pg_b', 20);
     INSERT INTO simple VALUES (3, 'pg_c', 30);
@@ -14,6 +14,7 @@ EOSQL
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     DROP TABLE IF EXISTS primitives;
     CREATE TABLE primitives (
+        id int,
         col_01_bool bool,
         col_02_smallint smallint,
         col_03_int2 int2,
@@ -40,15 +41,15 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         col_24_date date
     );
     INSERT INTO primitives VALUES (
-        false, 2, 3, DEFAULT, DEFAULT, 6, 7, 8, DEFAULT, DEFAULT, 11, 12, DEFAULT, DEFAULT,
+        1, false, 2, 3, DEFAULT, DEFAULT, 6, 7, 8, DEFAULT, DEFAULT, 11, 12, DEFAULT, DEFAULT,
         15.15, 16.16, 17.17, 18.18, 'az', 'az', 'az', 'az',
         '1988-11-20 12:55:28.123000', '1988-11-20');
     INSERT INTO primitives VALUES (
-        true, -2, -3, DEFAULT, DEFAULT, -6, -7, -8, DEFAULT, DEFAULT, -11, -12, DEFAULT, DEFAULT,
+        2, true, -2, -3, DEFAULT, DEFAULT, -6, -7, -8, DEFAULT, DEFAULT, -11, -12, DEFAULT, DEFAULT,
         -15.15, -16.16, -17.17, -18.18, 'буки', 'буки', 'буки', 'буки',
         '2023-03-21 11:21:31.456000', '2023-03-21');
     INSERT INTO primitives VALUES (
-        NULL, NULL, NULL, DEFAULT, DEFAULT, NULL,
+        3, NULL, NULL, NULL, DEFAULT, DEFAULT, NULL,
         NULL, NULL, DEFAULT, DEFAULT, NULL, NULL,
         DEFAULT, DEFAULT, NULL, NULL, NULL, NULL,
         NULL, NULL, NULL, NULL, NULL, NULL
@@ -58,12 +59,13 @@ EOSQL
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
     DROP TABLE IF EXISTS datetime;
     CREATE TABLE datetime (
+        id int,
         col_01_timestamp timestamp,
         col_02_date date
     );
-    INSERT INTO datetime VALUES ('1950-05-27 01:02:03.111111', '1950-05-27');
-    INSERT INTO datetime VALUES ('1988-11-20 12:55:28.123000', '1988-11-20');
-    INSERT INTO datetime VALUES ('2023-03-21 11:21:31.456000', '2023-03-21');
+    INSERT INTO datetime VALUES (1, '1950-05-27 01:02:03.111111', '1950-05-27');
+    INSERT INTO datetime VALUES (2, '1988-11-20 12:55:28.123000', '1988-11-20');
+    INSERT INTO datetime VALUES (3, '2023-03-21 11:21:31.456000', '2023-03-21');
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
