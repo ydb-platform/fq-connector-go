@@ -51,7 +51,9 @@ services:
       - ./ydb/init/02_large.sh:/02_large.sh
 
   greenplum:
-    image: ghcr.io/ydb-platform/fq-connector-go_greenplum:6.25.3
+    build:
+       context: ./greenplum/init
+       dockerfile: Dockerfile
     container_name: ${USER}-fq-connector-go-tests-greenplum
     hostname: localhost
     ports:
