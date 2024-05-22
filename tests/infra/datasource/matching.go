@@ -109,29 +109,29 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	for colIdx := 1; colIdx < int(table.NumCols()); colIdx++ {
 		switch col := table.Column(colIdx).(type) {
 		case *array.Int32:
-			restCols = processColumn[int32, *array.Int32](table, colIdx, restCols)
+			processColumn[int32, *array.Int32](table, colIdx, restCols)
 		case *array.Int64:
-			restCols = processColumn[int64, *array.Int64](table, colIdx, restCols)
+			processColumn[int64, *array.Int64](table, colIdx, restCols)
 		case *array.String:
-			restCols = processColumn[string, *array.String](table, colIdx, restCols)
+			processColumn[string, *array.String](table, colIdx, restCols)
 		case *array.Int16:
-			restCols = processColumn[int16, *array.Int16](table, colIdx, restCols)
+			processColumn[int16, *array.Int16](table, colIdx, restCols)
 		case *array.Uint8:
-			restCols = processColumn[uint8, *array.Uint8](table, colIdx, restCols)
+			processColumn[uint8, *array.Uint8](table, colIdx, restCols)
 		case *array.Float32:
-			restCols = processColumn[float32, *array.Float32](table, colIdx, restCols)
+			processColumn[float32, *array.Float32](table, colIdx, restCols)
 		case *array.Float64:
-			restCols = processColumn[float64, *array.Float64](table, colIdx, restCols)
+			processColumn[float64, *array.Float64](table, colIdx, restCols)
 		case *array.Uint64:
-			restCols = processColumn[uint64, *array.Uint64](table, colIdx, restCols)
+			processColumn[uint64, *array.Uint64](table, colIdx, restCols)
 		case *array.Uint16:
-			restCols = processColumn[uint16, *array.Uint16](table, colIdx, restCols)
+			processColumn[uint16, *array.Uint16](table, colIdx, restCols)
 		case *array.Binary:
-			restCols = processColumn[[]byte, *array.Binary](table, colIdx, restCols)
+			processColumn[[]byte, *array.Binary](table, colIdx, restCols)
 		case *array.Int8:
-			restCols = processColumn[int8, *array.Int8](table, colIdx, restCols)
+			processColumn[int8, *array.Int8](table, colIdx, restCols)
 		case *array.Uint32:
-			restCols = processColumn[uint32, *array.Uint32](table, colIdx, restCols)
+			processColumn[uint32, *array.Uint32](table, colIdx, restCols)
 		default:
 			log.Panic("UNSUPPORTED TYPE:", col)
 		}
