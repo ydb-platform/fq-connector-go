@@ -143,8 +143,6 @@ RUN su - gpadmin bash -c '\
 
 RUN mv /usr/bin/hostname{.bkp,}
 
-ADD entrypoint.sh /
-ADD init_db.sh /
-RUN chmod +x /init_db.sh
+COPY entrypoint.sh /
 RUN chmod +x /entrypoint.sh
 CMD ["/entrypoint.sh"]

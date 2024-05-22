@@ -64,5 +64,5 @@ services:
       GREENPLUM_PASSWORD: 123456
       GPDATA: /var/lib/greenplum/data/gpdata
     volumes:
-      - ./greenplum/init:/docker-entrypoint-initdb.d
+      - ./greenplum/init/init_db.sh:/init_db.sh
 
