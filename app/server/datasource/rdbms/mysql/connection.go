@@ -15,9 +15,9 @@ import (
 var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
-	logger    common.QueryLogger
-	conn      *client.Conn
-	rowBuffer uint64
+	logger            common.QueryLogger
+	conn              *client.Conn
+	rowBufferCapacity uint64
 }
 
 func (c *Connection) Close() error {
@@ -27,7 +27,7 @@ func (c *Connection) Close() error {
 func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
-	results := make(chan rowData, c.rowBuffer)
+	results := make(chan rowData, c.rowBufferCapacity)
 
 	r := &rows{results, nil, &mysql.Result{}, atomic.Bool{}}
 
