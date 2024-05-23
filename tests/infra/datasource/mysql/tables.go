@@ -14,7 +14,7 @@ var tables = map[string]*datasource.Table{
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"id":                  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"tinyint_column":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
+				"tinyint_column":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
 				"smallint_column":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
 				"mediumint_column":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"unsigned_int_column": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT32)),
@@ -22,7 +22,7 @@ var tables = map[string]*datasource.Table{
 				"varchar_column":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"float_column":        common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)),
 				"double_column":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"bool_column":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
+				"bool_column":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 			},
 		},
 		Records: []*datasource.Record{
@@ -33,17 +33,21 @@ var tables = map[string]*datasource.Table{
 						ptr.Int32(2),
 						ptr.Int32(3),
 					},
-					"tinyint_column": []*int16{
-						ptr.Int16(-1),
-						ptr.Int16(-2),
-						ptr.Int16(-2),
+					"tinyint_column": []*int8{
+						ptr.Int8(-1),
+						ptr.Int8(-2),
+						ptr.Int8(-2),
 					},
 					"smallint_column": []*int16{
 						ptr.Int16(2),
 						nil,
 						ptr.Int16(3),
 					},
-					"mediumint_column": []int32{45, 21, 42},
+					"mediumint_column": []*int32{
+						ptr.Int32(45),
+						ptr.Int32(21),
+						ptr.Int32(42),
+					},
 					"unsigned_int_column": []*uint32{
 						ptr.Uint32(234),
 						ptr.Uint32(532),
@@ -69,10 +73,10 @@ var tables = map[string]*datasource.Table{
 						ptr.Float64(-12.2),
 						ptr.Float64(42.1),
 					},
-					"bool_column": []*int16{
-						ptr.Int16(1),
-						ptr.Int16(0),
-						ptr.Int16(1),
+					"bool_column": []*uint8{
+						ptr.Uint8(1),
+						ptr.Uint8(0),
+						ptr.Uint8(1),
 					},
 				},
 			},
