@@ -45,6 +45,9 @@ func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_serv
 	}
 }
 
+// The swapColumns function swaps the “id” column with the first column in the Apache Arrow table.
+// This is needed for further contract in the sortTableByID function, where id should come first as a value
+
 func swapColumns(table arrow.Record) arrow.Record {
 	idIndex := -1
 
@@ -201,31 +204,31 @@ func sortTableByID(table arrow.Record) arrow.Record {
 			}
 
 			switch builder := restBuilders[colIdx].(type) {
+			case *array.Int8Builder:
+				appendToBuilder(builder, val)
+			case *array.Int16Builder:
+				appendToBuilder(builder, val)
 			case *array.Int32Builder:
 				appendToBuilder(builder, val)
 			case *array.Int64Builder:
 				appendToBuilder(builder, val)
-			case *array.StringBuilder:
-				appendToBuilder(builder, val)
-			case *array.Int16Builder:
-				appendToBuilder(builder, val)
 			case *array.Uint8Builder:
+				appendToBuilder(builder, val)
+			case *array.Uint16Builder:
+				appendToBuilder(builder, val)
+			case *array.Uint32Builder:
+				appendToBuilder(builder, val)
+			case *array.Uint64Builder:
 				appendToBuilder(builder, val)
 			case *array.Float32Builder:
 				appendToBuilder(builder, val)
 			case *array.Float64Builder:
 				appendToBuilder(builder, val)
-			case *array.Uint64Builder:
-				appendToBuilder(builder, val)
-			case *array.Uint16Builder:
+			case *array.StringBuilder:
 				appendToBuilder(builder, val)
 			case *array.NullBuilder:
 				builder.AppendNull()
 			case *array.BinaryBuilder:
-				appendToBuilder(builder, val)
-			case *array.Int8Builder:
-				appendToBuilder(builder, val)
-			case *array.Uint32Builder:
 				appendToBuilder(builder, val)
 			default:
 				panic("UNSUPPORTED TYPE")
@@ -297,7 +300,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		expected, ok := expectedRaw.([]*EXPECTED)
 		require.True(
 			t, ok,
-			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, expected),
+			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, actualRaw),
 		)
 		require.Equal(t, len(expected), actual.Len(),
 			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
