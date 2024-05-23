@@ -1,6 +1,6 @@
 module github.com/ydb-platform/fq-connector-go
 
-go 1.21
+go 1.22
 
 require (
 	github.com/ClickHouse/ch-go v0.58.2
