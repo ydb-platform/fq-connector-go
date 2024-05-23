@@ -55,7 +55,7 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 	return apiErr.Status == ydb_proto.StatusIds_SUCCESS
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,funlen
 func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
@@ -86,8 +86,10 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		if ok {
 			switch pgError.Code {
 			case pgerrcode.InvalidPassword:
+				// Invalid password in PostgreSQL 15
 				status = ydb_proto.StatusIds_UNAUTHORIZED
 			case pgerrcode.InvalidAuthorizationSpecification:
+				// Invalid password in Greenplum 6.25
 				status = ydb_proto.StatusIds_UNAUTHORIZED
 			default:
 				status = ydb_proto.StatusIds_INTERNAL_ERROR

@@ -44,7 +44,7 @@
 
 
     CREATE TABLE optionals (
-        id Optional<Int32>,
+        id Int32 NOT NULL,
         col_01_bool Optional<Bool>,
         col_02_int8 Optional<Int8>,
         col_03_int16 Optional<Int16>,

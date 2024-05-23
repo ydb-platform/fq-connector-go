@@ -42,7 +42,6 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
-	github.com/apache/arrow/go/v12 v12.0.1
 	github.com/apache/thrift v0.16.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.5.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.0 // indirect
@@ -98,5 +97,4 @@ require (
 	golang.org/x/tools v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gotest.tools v2.2.0+incompatible
 )

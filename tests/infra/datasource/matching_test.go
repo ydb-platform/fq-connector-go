@@ -3,10 +3,12 @@ package datasource
 import (
 	"testing"
 
-	"github.com/apache/arrow/go/v12/arrow/memory"
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"gotest.tools/assert"
+	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 )
 
 func TestSortTableByID(t *testing.T) {
@@ -26,9 +28,9 @@ func TestSortTableByID(t *testing.T) {
 
 		sortedTable := sortTableByID(table)
 
-		assert.Equal(t, int64(1), sortedTable.NumRows())
-		assert.Equal(t, int32(1), sortedTable.Column(0).(*array.Int32).Value(0))
-		assert.Equal(t, table.Schema(), sortedTable.Schema())
+		require.Equal(t, int64(1), sortedTable.NumRows())
+		require.Equal(t, int32(1), sortedTable.Column(0).(*array.Int32).Value(0))
+		require.Equal(t, table.Schema(), sortedTable.Schema())
 	})
 
 	t.Run("Test multiple rows table", func(t *testing.T) {
@@ -55,11 +57,11 @@ func TestSortTableByID(t *testing.T) {
 		expectedIDValues := []int32{1, 2, 3}
 		expectedStringValues := []string{"one", "two", "three"}
 
-		assert.Equal(t, int64(3), sortedTable.NumRows())
+		require.Equal(t, int64(3), sortedTable.NumRows())
 
 		for i := int64(0); i < sortedTable.NumRows(); i++ {
-			assert.Equal(t, expectedIDValues[i], sortedTable.Column(0).(*array.Int32).Value(int(i)))
-			assert.Equal(t, expectedStringValues[i], sortedTable.Column(1).(*array.String).Value(int(i)))
+			require.Equal(t, expectedIDValues[i], sortedTable.Column(0).(*array.Int32).Value(int(i)))
+			require.Equal(t, expectedStringValues[i], sortedTable.Column(1).(*array.String).Value(int(i)))
 		}
 	})
 
@@ -95,12 +97,12 @@ func TestSortTableByID(t *testing.T) {
 		expectedInt64Values := []int64{100, 200, 300}
 		expectedFloat32Values := []float32{1.1, 2.2, 3.3}
 
-		assert.Equal(t, int64(3), sortedTable.NumRows())
+		require.Equal(t, int64(3), sortedTable.NumRows())
 
 		for i := int64(0); i < sortedTable.NumRows(); i++ {
-			assert.Equal(t, expectedIDValues[i], sortedTable.Column(0).(*array.Int32).Value(int(i)))
-			assert.Equal(t, expectedInt64Values[i], sortedTable.Column(1).(*array.Int64).Value(int(i)))
-			assert.Equal(t, expectedFloat32Values[i], sortedTable.Column(2).(*array.Float32).Value(int(i)))
+			require.Equal(t, expectedIDValues[i], sortedTable.Column(0).(*array.Int32).Value(int(i)))
+			require.Equal(t, expectedInt64Values[i], sortedTable.Column(1).(*array.Int64).Value(int(i)))
+			require.Equal(t, expectedFloat32Values[i], sortedTable.Column(2).(*array.Float32).Value(int(i)))
 		}
 	})
 
@@ -112,7 +114,7 @@ func TestSortTableByID(t *testing.T) {
 		defer idArr.Release()
 
 		int32Builder := array.NewInt32Builder(pool)
-		int32Builder.AppendValues([]int32{30, int32(idArr.NullN()), 20}, []bool{true, false, true})
+		int32Builder.AppendValues([]int32{30, 0, 20}, []bool{true, false, true})
 		int32Arr := int32Builder.NewArray()
 
 		defer int32Arr.Release()
@@ -126,22 +128,18 @@ func TestSortTableByID(t *testing.T) {
 		sortedTable := sortTableByID(table)
 
 		expectedIDValues := []int32{1, 2, 3}
-		expectedInt32Values := []*int32{nil, int32Ptr(20), int32Ptr(30)}
+		expectedInt32Values := []*int32{nil, ptr.Int32(20), ptr.Int32(30)}
 
-		assert.Equal(t, int64(3), sortedTable.NumRows())
+		require.Equal(t, int64(3), sortedTable.NumRows())
 
 		for i := int64(0); i < sortedTable.NumRows(); i++ {
-			assert.Equal(t, expectedIDValues[i], sortedTable.Column(0).(*array.Int32).Value(int(i)))
+			require.Equal(t, expectedIDValues[i], sortedTable.Column(0).(*array.Int32).Value(int(i)))
 
 			if expectedInt32Values[i] == nil {
-				assert.Equal(t, sortedTable.Column(1).IsNull(int(i)), true)
+				require.True(t, sortedTable.Column(1).IsNull(int(i)))
 			} else {
-				assert.Equal(t, *expectedInt32Values[i], sortedTable.Column(1).(*array.Int32).Value(int(i)))
+				require.Equal(t, *expectedInt32Values[i], sortedTable.Column(1).(*array.Int32).Value(int(i)))
 			}
 		}
 	})
-}
-
-func int32Ptr(i int32) *int32 {
-	return &i
 }

@@ -105,7 +105,7 @@ var tables = map[string]*datasource.Table{
 		Name: "optionals",
 		Schema: &datasource.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_bool":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 				"col_02_int8":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
 				"col_03_int16":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
@@ -153,11 +153,11 @@ var tables = map[string]*datasource.Table{
 						)),
 						nil,
 					},
-					"col_16_timestamp": []*uint64{
-						ptr.Uint64(common.MustTimeToYDBType[uint64](
+					"col_16_timestamp": []uint64{
+						common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC),
-						)),
-						nil,
+						),
+						*ptr.Uint64(0),
 					},
 				},
 			},
