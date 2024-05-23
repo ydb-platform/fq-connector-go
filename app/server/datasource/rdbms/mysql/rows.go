@@ -195,5 +195,5 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (*rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	return transformerFromTypeIDs(ydbTypes, cc)
+	return transformerFromYdbTypes(ydbTypes, cc)
 }

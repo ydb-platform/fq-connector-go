@@ -103,7 +103,7 @@ func NewTypeMapper() datasource.TypeMapper {
 	}
 }
 
-func transformerFromTypeIDs(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func transformerFromYdbTypes(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
 
