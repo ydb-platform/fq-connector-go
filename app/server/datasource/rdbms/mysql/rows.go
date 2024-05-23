@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	COLUMN_TYPE_COLUMN = "COLUMN_TYPE"
+	COLUMN_TYPE_COLUMN   = "COLUMN_TYPE"
+	METAINFO_SCHEMA_NAME = "information_schema"
 )
 
 type fieldValue struct {
@@ -59,7 +60,7 @@ func (*rows) NextResultSet() bool {
 	return false
 }
 
-func scanToDest(dest any, value any, valueType uint8, columnName string, fieldValueType mysql.FieldValueType) error {
+func scanToDest(dest any, value any, valueType uint8, columnName string, schema string, fieldValueType mysql.FieldValueType) error {
 	var err error
 
 	switch valueType {
@@ -67,7 +68,7 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, fieldVa
 		err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		// Special case for table metadata
-		if columnName == COLUMN_TYPE_COLUMN {
+		if columnName == COLUMN_TYPE_COLUMN && schema == METAINFO_SCHEMA_NAME {
 			err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 		} else {
 			err = scanStringValue[[]byte, []byte](dest, value, fieldValueType)
@@ -179,8 +180,9 @@ func (r *rows) Scan(dest ...any) error {
 		valueType := r.lastRow.Fields[i].Type
 		fieldValueType := val.Type
 		columnName := string(r.lastRow.Fields[i].Name)
+		schema := string(r.lastRow.Fields[i].Schema)
 
-		if err := scanToDest(dest[i], value, valueType, columnName, fieldValueType); err != nil {
+		if err := scanToDest(dest[i], value, valueType, columnName, schema, fieldValueType); err != nil {
 			return err
 		}
 	}
