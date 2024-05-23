@@ -53,6 +53,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			},
 		}
 	}
+
+	if c.Datasources.Mysql == nil {
+		c.Datasources.Mysql = &config.TMySQLConfig{ResultChanCapacity: 512}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {

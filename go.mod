@@ -13,6 +13,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/dustin/go-humanize v1.0.1
+	github.com/go-mysql-org/go-mysql v1.6.0
 	github.com/golang/protobuf v1.5.3
 	github.com/google/go-cmp v0.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.4
@@ -79,9 +80,12 @@ require (
 	github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 // indirect
 	github.com/paulmach/orb v0.10.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
+	github.com/pingcap/errors v0.11.5-0.20201126102027-b0a155152ca3 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
+	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect

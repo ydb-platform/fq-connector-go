@@ -1,0 +1,20 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+data_source_instance {
+    kind: MYSQL
+    endpoint {
+        host: "localhost"
+        port: 3306
+    }
+    database: "fq"
+    credentials {
+        basic {
+            username: "root"
+            password: "password"
+        }
+    }
+    protocol: NATIVE
+}

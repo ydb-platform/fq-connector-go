@@ -11,6 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ms_sql_server"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/mysql"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
@@ -24,6 +25,7 @@ type dataSourceFactory struct {
 	postgresql          Preset
 	ydb                 Preset
 	msSQLServer         Preset
+	mysql               Preset
 	converterCollection conversion.Collection
 }
 
@@ -40,6 +42,8 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
 		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_MYSQL:
+		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -57,6 +61,7 @@ func NewDataSourceFactory(
 	clickhouseTypeMapper := clickhouse.NewTypeMapper()
 	ydbTypeMapper := ydb.NewTypeMapper()
 	msSQLServerTypeMapper := ms_sql_server.NewTypeMapper()
+	mysqlTypeMapper := mysql.NewTypeMapper()
 
 	return &dataSourceFactory{
 		clickhouse: Preset{
@@ -88,6 +93,13 @@ func NewDataSourceFactory(
 			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.GetQueryAndArgs),
+		},
+		mysql: Preset{
+			SQLFormatter:      mysql.NewSQLFormatter(),
+			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerCfg),
+			TypeMapper:        mysqlTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.GetQueryAndArgs),
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}
