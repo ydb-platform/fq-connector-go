@@ -49,6 +49,7 @@ func (c *connectionManager) Make(
 	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
+		return nil, fmt.Errorf("mysql: %w", err)
 	}
 
 	return &Connection{queryLogger, conn}, nil
