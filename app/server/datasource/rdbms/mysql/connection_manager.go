@@ -30,6 +30,16 @@ func (c *connectionManager) Make(
 	logger *zap.Logger,
 	dsi *api_common.TDataSourceInstance,
 ) (rdbms_utils.Connection, error) {
+	optionFuncs := make([]func(c *client.Conn), 0)
+
+	if dsi.GetCredentials().GetBasic() == nil {
+		return nil, fmt.Errorf("mysql: currently only basic auth is supported")
+	}
+
+	if dsi.GetUseTls() {
+		optionFuncs = append(optionFuncs, func(c *client.Conn) { c.UseSSL(false) })
+	}
+
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
 	endpoint := dsi.GetEndpoint()
@@ -41,6 +51,8 @@ func (c *connectionManager) Make(
 	user := creds.GetUsername()
 	password := creds.GetPassword()
 
+	// TODO: support cert-based auth
+
 	dialer := &net.Dialer{}
 	proto := "tcp"
 
@@ -48,7 +60,7 @@ func (c *connectionManager) Make(
 		return nil, errors.New("mysql: unix socket connections are unsupported")
 	}
 
-	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext)
+	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext, optionFuncs...)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
 		return nil, fmt.Errorf("mysql: %w", err)
