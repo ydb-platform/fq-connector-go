@@ -44,7 +44,7 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 
 		err = stmt.ExecuteSelectStreaming(
 			r.result,
-			// In per-row handler copy entire row. The driver re-uses internal,
+			// In per-row handler copy entire row. The driver re-uses memory allocated for single row,
 			// so we need either to lock the row until the reader is done its reading and processing
 			// or simply copy it. Otherwise data races are inevitable.
 			func(row []mysql.FieldValue) error {
