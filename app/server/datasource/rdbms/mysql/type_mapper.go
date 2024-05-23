@@ -196,7 +196,8 @@ func appendNullableToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB 
 
 	builder.(AB).Append(out)
 
-	*cast = nil
+	// TODO: is this reset needed?
+	// *cast = nil
 
 	return nil
 }
