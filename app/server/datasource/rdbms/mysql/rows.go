@@ -61,7 +61,7 @@ func (*rows) NextResultSet() bool {
 }
 
 //nolint:gocyclo
-func scanToDest(dest any, value any, valueType uint8, columnName string, schema string, flag uint16,
+func scanToDest(dest any, value any, valueType uint8, flag uint16,
 	fieldValueType mysql.FieldValueType) error {
 	var err error
 
@@ -69,14 +69,11 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, schema 
 	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
 		err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
-		// Special case for table metadata
-		// information_schema.columns is a unique system table.
-		// https://dev.mysql.com/doc/mysql-infoschema-excerpt/8.3/en/information-schema-columns-table.html
-		// But column types there are stored as MEDIUMTEXT and LONGTEXT. So we actually get BLOB from the driver.
-		// In this case we need to convert it to string.
-		if columnName == COLUMN_TYPE_COLUMN && schema == METAINFO_SCHEMA_NAME {
+		// MySQL returns both TEXT and BLOB types as []byte, so we have to check destination beforehand
+		switch dest.(type) {
+		case *string, **string:
 			err = scanStringValue[[]byte, string](dest, value, fieldValueType)
-		} else {
+		default:
 			err = scanStringValue[[]byte, []byte](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_LONGLONG:
@@ -200,11 +197,9 @@ func (r *rows) Scan(dest ...any) error {
 
 		valueType := r.lastRow.Fields[i].Type
 		fieldValueType := val.Type
-		columnName := string(r.lastRow.Fields[i].Name)
-		schema := string(r.lastRow.Fields[i].Schema)
 		flag := r.lastRow.Fields[i].Flag
 
-		if err := scanToDest(dest[i], value, valueType, columnName, schema, flag, fieldValueType); err != nil {
+		if err := scanToDest(dest[i], value, valueType, flag, fieldValueType); err != nil {
 			return err
 		}
 	}
