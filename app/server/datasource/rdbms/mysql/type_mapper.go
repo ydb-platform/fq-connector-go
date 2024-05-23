@@ -62,6 +62,16 @@ func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_s
 		}
 
 		ydbColumn.Type = common.MakePrimitiveType(ydbType)
+	case "bigint":
+		var ydbType Ydb.Type_PrimitiveTypeId
+
+		if unsigned {
+			ydbType = Ydb.Type_UINT64
+		} else {
+			ydbType = Ydb.Type_INT64
+		}
+
+		ydbColumn.Type = common.MakePrimitiveType(ydbType)
 	case "float":
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_FLOAT)
 	case "double":
@@ -132,6 +142,12 @@ func transformerFromYdbTypes(ydbTypes []*Ydb.Type, cc conversion.Collection) (pa
 		case Ydb.Type_INT32:
 			acceptors = append(acceptors, new(*int32))
 			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+		case Ydb.Type_UINT64:
+			acceptors = append(acceptors, new(*uint64))
+			appenders = append(appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
+		case Ydb.Type_INT64:
+			acceptors = append(acceptors, new(*int64))
+			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
 		case Ydb.Type_FLOAT:
 			acceptors = append(acceptors, new(*float32))
 			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))

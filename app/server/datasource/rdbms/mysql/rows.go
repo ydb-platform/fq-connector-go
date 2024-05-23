@@ -73,6 +73,12 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, schema 
 		} else {
 			err = scanStringValue[[]byte, []byte](dest, value, fieldValueType)
 		}
+	case mysql.MYSQL_TYPE_LONGLONG:
+		if flag == mysql.UNSIGNED_FLAG {
+			err = scanNumberValue[uint64, uint64](dest, value, fieldValueType)
+		} else {
+			err = scanNumberValue[int64, int64](dest, value, fieldValueType)
+		}
 	case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
 		if flag == mysql.UNSIGNED_FLAG {
 			err = scanNumberValue[uint64, uint32](dest, value, fieldValueType)
