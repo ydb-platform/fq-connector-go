@@ -6,6 +6,7 @@ import (
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -95,6 +96,22 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 				Status:  status,
 				Message: pgError.Message,
 			}
+		}
+	}
+
+	// TODO: doesn't work for now. Need to investigate how the driver handles errors internally
+	mysqlConnectError := &mysql.MyError{}
+	if errors.As(err, &mysqlConnectError) {
+		switch mysqlConnectError.Code {
+		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		default:
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: mysqlConnectError.Message,
 		}
 	}
 
