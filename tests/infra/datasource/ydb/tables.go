@@ -127,7 +127,7 @@ var tables = map[string]*datasource.Table{
 		Records: []*datasource.Record{
 			{
 				Columns: map[string]any{
-					"id":            []*int32{ptr.Int32(1), ptr.Int32(2)},
+					"id":            []int32{1, 2},
 					"col_01_bool":   []*uint8{ptr.Uint8(1), nil}, // []*bool{true, nil}
 					"col_02_int8":   []*int8{ptr.Int8(1), nil},
 					"col_03_int16":  []*int16{ptr.Int16(-2), nil},
@@ -153,11 +153,11 @@ var tables = map[string]*datasource.Table{
 						)),
 						nil,
 					},
-					"col_16_timestamp": []uint64{
-						common.MustTimeToYDBType[uint64](
+					"col_16_timestamp": []*uint64{
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC),
-						),
-						*ptr.Uint64(0),
+						)),
+						nil,
 					},
 				},
 			},
