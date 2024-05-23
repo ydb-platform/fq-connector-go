@@ -60,7 +60,7 @@ func (*rows) NextResultSet() bool {
 	return false
 }
 
-func scanToDest(dest any, value any, valueType uint8, columnName string, schema string, fieldValueType mysql.FieldValueType) error {
+func scanToDest(dest any, value any, valueType uint8, columnName string, schema string, flag uint16, fieldValueType mysql.FieldValueType) error {
 	var err error
 
 	switch valueType {
@@ -74,20 +74,20 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, schema 
 			err = scanStringValue[[]byte, []byte](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_LONG, mysql.MYSQL_TYPE_INT24:
-		if fieldValueType == mysql.FieldValueTypeUnsigned {
+		if flag == mysql.UNSIGNED_FLAG {
 			err = scanNumberValue[uint64, uint32](dest, value, fieldValueType)
 		} else {
 			err = scanNumberValue[int64, int32](dest, value, fieldValueType)
 		}
 	case mysql.MYSQL_TYPE_SHORT:
-		if fieldValueType == mysql.FieldValueTypeUnsigned {
+		if flag == mysql.UNSIGNED_FLAG {
 			err = scanNumberValue[uint64, uint16](dest, value, fieldValueType)
 		} else {
 			err = scanNumberValue[int64, int16](dest, value, fieldValueType)
 		}
 	// In MySQL bool is actually a tinyint(1)
 	case mysql.MYSQL_TYPE_TINY:
-		if fieldValueType == mysql.FieldValueTypeUnsigned {
+		if flag == mysql.UNSIGNED_FLAG {
 			err = scanNumberValue[uint64, uint8](dest, value, fieldValueType)
 		} else if _, ok := dest.(**bool); ok {
 			err = scanBoolValue(dest, value, fieldValueType)
@@ -181,8 +181,9 @@ func (r *rows) Scan(dest ...any) error {
 		fieldValueType := val.Type
 		columnName := string(r.lastRow.Fields[i].Name)
 		schema := string(r.lastRow.Fields[i].Schema)
+		flag := r.lastRow.Fields[i].Flag
 
-		if err := scanToDest(dest[i], value, valueType, columnName, schema, fieldValueType); err != nil {
+		if err := scanToDest(dest[i], value, valueType, columnName, schema, flag, fieldValueType); err != nil {
 			return err
 		}
 	}
