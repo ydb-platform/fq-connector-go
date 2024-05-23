@@ -12,7 +12,7 @@ const (
 	serviceName  = "mysql"
 	internalPort = 3306
 	database     = "fq"
-	username     = "admin"
+	username     = "root"
 	password     = "password"
 	schema       = "fq"
 )

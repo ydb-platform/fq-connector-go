@@ -57,7 +57,10 @@ services:
       - '3306:3306'
     environment:
       MYSQL_DATABASE: fq
-      MYSQL_USER: admin
       MYSQL_ROOT_PASSWORD: password
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10

@@ -39,6 +39,6 @@ func TestYDB(t *testing.T) {
 	testify_suite.Run(t, ydb.NewSuite(suite.NewBase(t, state, "YDB")))
 }
 
-func TestMYSQL(t *testing.T) {
-	testify_suite.Run(t, mysql.NewSuite(suite.NewBase(t, state, "MYSQL")))
+func TestMySQL(t *testing.T) {
+	testify_suite.Run(t, mysql.NewSuite(suite.NewBase(t, state, "MySQL")))
 }
