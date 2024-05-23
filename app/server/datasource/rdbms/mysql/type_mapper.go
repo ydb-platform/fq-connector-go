@@ -23,6 +23,7 @@ type typeMapper struct {
 	reType *regexp.Regexp
 }
 
+//nolint:gocyclo
 func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var matches []string
 
@@ -94,9 +95,9 @@ func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_s
 		}
 
 		ydbColumn.Type = common.MakePrimitiveType(ydbType)
-	case "longblob", "blob", "mediumblob", "tinyblob":
+	case "longblob", "blob", "mediumblob", "tinyblob", "binary", "varbinary":
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
-	case "varchar", "string", "text", "longtext", "tinytext", "mediumtext":
+	case "varchar", "string", "text", "longtext", "tinytext", "mediumtext", "char":
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
 	default:
 		return nil, fmt.Errorf("mysql: %w", common.ErrDataTypeNotSupported)
@@ -113,6 +114,7 @@ func NewTypeMapper() datasource.TypeMapper {
 	}
 }
 
+//nolint:gocyclo
 func transformerFromYdbTypes(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))

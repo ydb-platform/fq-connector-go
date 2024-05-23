@@ -60,7 +60,9 @@ func (*rows) NextResultSet() bool {
 	return false
 }
 
-func scanToDest(dest any, value any, valueType uint8, columnName string, schema string, flag uint16, fieldValueType mysql.FieldValueType) error {
+//nolint:gocyclo
+func scanToDest(dest any, value any, valueType uint8, columnName string, schema string, flag uint16,
+	fieldValueType mysql.FieldValueType) error {
 	var err error
 
 	switch valueType {
