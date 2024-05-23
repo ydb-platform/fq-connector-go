@@ -1,4 +1,4 @@
-CREATE TABLE simple (
+CREATE TABLE IF NOT EXISTS simple (
     id INT NOT NULL,
     tinyint_column TINYINT,
     smallint_column SMALLINT,
