@@ -96,7 +96,7 @@ func NewDataSourceFactory(
 		},
 		mysql: Preset{
 			SQLFormatter:      mysql.NewSQLFormatter(),
-			ConnectionManager: mysql.NewConnectionManager(connManagerCfg),
+			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerCfg),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.GetQueryAndArgs),
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),

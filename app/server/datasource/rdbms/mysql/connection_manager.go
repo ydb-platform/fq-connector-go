@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -20,6 +21,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
+	cfg *config.TMySQLConfig
 	// TODO: cache of connections, remove unused connections with TTL
 }
 
@@ -52,13 +54,13 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("mysql: %w", err)
 	}
 
-	return &Connection{queryLogger, conn}, nil
+	return &Connection{queryLogger, conn, c.cfg.GetResultChanCapacity()}, nil
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
 	common.LogCloserError(logger, conn, "close mysql connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(cfg *config.TMySQLConfig, base rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }

@@ -845,19 +845,67 @@ func (x *TYdbConfig) GetExponentialBackoff() *TExponentialBackoffConfig {
 	return nil
 }
 
+type TMySQLConfig struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	ResultChanCapacity uint64 `protobuf:"varint,1,opt,name=result_chan_capacity,json=resultChanCapacity,proto3" json:"result_chan_capacity,omitempty"`
+}
+
+func (x *TMySQLConfig) Reset() {
+	*x = TMySQLConfig{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_app_config_server_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TMySQLConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TMySQLConfig) ProtoMessage() {}
+
+func (x *TMySQLConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_app_config_server_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TMySQLConfig.ProtoReflect.Descriptor instead.
+func (*TMySQLConfig) Descriptor() ([]byte, []int) {
+	return file_app_config_server_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *TMySQLConfig) GetResultChanCapacity() uint64 {
+	if x != nil {
+		return x.ResultChanCapacity
+	}
+	return 0
+}
+
 // TDatasouceConfig is a collection of datasource-specific settings
 type TDatasourcesConfig struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Ydb *TYdbConfig `protobuf:"bytes,1,opt,name=ydb,proto3" json:"ydb,omitempty"`
+	Ydb   *TYdbConfig   `protobuf:"bytes,1,opt,name=ydb,proto3" json:"ydb,omitempty"`
+	Mysql *TMySQLConfig `protobuf:"bytes,2,opt,name=mysql,proto3" json:"mysql,omitempty"`
 }
 
 func (x *TDatasourcesConfig) Reset() {
 	*x = TDatasourcesConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_app_config_server_proto_msgTypes[11]
+		mi := &file_app_config_server_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -870,7 +918,7 @@ func (x *TDatasourcesConfig) String() string {
 func (*TDatasourcesConfig) ProtoMessage() {}
 
 func (x *TDatasourcesConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_app_config_server_proto_msgTypes[11]
+	mi := &file_app_config_server_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -883,12 +931,19 @@ func (x *TDatasourcesConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TDatasourcesConfig.ProtoReflect.Descriptor instead.
 func (*TDatasourcesConfig) Descriptor() ([]byte, []int) {
-	return file_app_config_server_proto_rawDescGZIP(), []int{11}
+	return file_app_config_server_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *TDatasourcesConfig) GetYdb() *TYdbConfig {
 	if x != nil {
 		return x.Ydb
+	}
+	return nil
+}
+
+func (x *TDatasourcesConfig) GetMysql() *TMySQLConfig {
+	if x != nil {
+		return x.Mysql
 	}
 	return nil
 }
@@ -1044,21 +1099,29 @@ var file_app_config_server_proto_rawDesc = []byte{
 	0x41, 0x70, 0x70, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x6f,
 	0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x43, 0x6f,
 	0x6e, 0x66, 0x69, 0x67, 0x52, 0x12, 0x65, 0x78, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61,
-	0x6c, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x22, 0x4d, 0x0a, 0x12, 0x54, 0x44, 0x61, 0x74,
-	0x61, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x37,
-	0x0a, 0x03, 0x79, 0x64, 0x62, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x4e, 0x59,
-	0x71, 0x6c, 0x2e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x41, 0x70, 0x70,
-	0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x54, 0x59, 0x64, 0x62, 0x43, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x52, 0x03, 0x79, 0x64, 0x62, 0x2a, 0x4b, 0x0a, 0x09, 0x45, 0x4c, 0x6f, 0x67, 0x4c,
-	0x65, 0x76, 0x65, 0x6c, 0x12, 0x09, 0x0a, 0x05, 0x54, 0x52, 0x41, 0x43, 0x45, 0x10, 0x00, 0x12,
-	0x09, 0x0a, 0x05, 0x44, 0x45, 0x42, 0x55, 0x47, 0x10, 0x01, 0x12, 0x08, 0x0a, 0x04, 0x49, 0x4e,
-	0x46, 0x4f, 0x10, 0x02, 0x12, 0x08, 0x0a, 0x04, 0x57, 0x41, 0x52, 0x4e, 0x10, 0x03, 0x12, 0x09,
-	0x0a, 0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x04, 0x12, 0x09, 0x0a, 0x05, 0x46, 0x41, 0x54,
-	0x41, 0x4c, 0x10, 0x05, 0x42, 0x34, 0x5a, 0x32, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
-	0x6f, 0x6d, 0x2f, 0x79, 0x64, 0x62, 0x2d, 0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x2f,
-	0x66, 0x71, 0x2d, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2d, 0x67, 0x6f, 0x2f,
-	0x61, 0x70, 0x70, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x6c, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x22, 0x40, 0x0a, 0x0c, 0x54, 0x4d, 0x79, 0x53,
+	0x51, 0x4c, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x30, 0x0a, 0x14, 0x72, 0x65, 0x73, 0x75,
+	0x6c, 0x74, 0x5f, 0x63, 0x68, 0x61, 0x6e, 0x5f, 0x63, 0x61, 0x70, 0x61, 0x63, 0x69, 0x74, 0x79,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x12, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x43, 0x68,
+	0x61, 0x6e, 0x43, 0x61, 0x70, 0x61, 0x63, 0x69, 0x74, 0x79, 0x22, 0x8c, 0x01, 0x0a, 0x12, 0x54,
+	0x44, 0x61, 0x74, 0x61, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x73, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x12, 0x37, 0x0a, 0x03, 0x79, 0x64, 0x62, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x25,
+	0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e,
+	0x41, 0x70, 0x70, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x54, 0x59, 0x64, 0x62, 0x43,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x03, 0x79, 0x64, 0x62, 0x12, 0x3d, 0x0a, 0x05, 0x6d, 0x79,
+	0x73, 0x71, 0x6c, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27, 0x2e, 0x4e, 0x59, 0x71, 0x6c,
+	0x2e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x43,
+	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x54, 0x4d, 0x79, 0x53, 0x51, 0x4c, 0x43, 0x6f, 0x6e, 0x66,
+	0x69, 0x67, 0x52, 0x05, 0x6d, 0x79, 0x73, 0x71, 0x6c, 0x2a, 0x4b, 0x0a, 0x09, 0x45, 0x4c, 0x6f,
+	0x67, 0x4c, 0x65, 0x76, 0x65, 0x6c, 0x12, 0x09, 0x0a, 0x05, 0x54, 0x52, 0x41, 0x43, 0x45, 0x10,
+	0x00, 0x12, 0x09, 0x0a, 0x05, 0x44, 0x45, 0x42, 0x55, 0x47, 0x10, 0x01, 0x12, 0x08, 0x0a, 0x04,
+	0x49, 0x4e, 0x46, 0x4f, 0x10, 0x02, 0x12, 0x08, 0x0a, 0x04, 0x57, 0x41, 0x52, 0x4e, 0x10, 0x03,
+	0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x04, 0x12, 0x09, 0x0a, 0x05, 0x46,
+	0x41, 0x54, 0x41, 0x4c, 0x10, 0x05, 0x42, 0x34, 0x5a, 0x32, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62,
+	0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x79, 0x64, 0x62, 0x2d, 0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72,
+	0x6d, 0x2f, 0x66, 0x71, 0x2d, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2d, 0x67,
+	0x6f, 0x2f, 0x61, 0x70, 0x70, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1074,7 +1137,7 @@ func file_app_config_server_proto_rawDescGZIP() []byte {
 }
 
 var file_app_config_server_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_app_config_server_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_app_config_server_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_app_config_server_proto_goTypes = []interface{}{
 	(ELogLevel)(0),                    // 0: NYql.Connector.App.Config.ELogLevel
 	(*TServerConfig)(nil),             // 1: NYql.Connector.App.Config.TServerConfig
@@ -1088,11 +1151,12 @@ var file_app_config_server_proto_goTypes = []interface{}{
 	(*TConversionConfig)(nil),         // 9: NYql.Connector.App.Config.TConversionConfig
 	(*TExponentialBackoffConfig)(nil), // 10: NYql.Connector.App.Config.TExponentialBackoffConfig
 	(*TYdbConfig)(nil),                // 11: NYql.Connector.App.Config.TYdbConfig
-	(*TDatasourcesConfig)(nil),        // 12: NYql.Connector.App.Config.TDatasourcesConfig
-	(*common.TEndpoint)(nil),          // 13: NYql.NConnector.NApi.TEndpoint
+	(*TMySQLConfig)(nil),              // 12: NYql.Connector.App.Config.TMySQLConfig
+	(*TDatasourcesConfig)(nil),        // 13: NYql.Connector.App.Config.TDatasourcesConfig
+	(*common.TEndpoint)(nil),          // 14: NYql.NConnector.NApi.TEndpoint
 }
 var file_app_config_server_proto_depIdxs = []int32{
-	13, // 0: NYql.Connector.App.Config.TServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
+	14, // 0: NYql.Connector.App.Config.TServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
 	3,  // 1: NYql.Connector.App.Config.TServerConfig.tls:type_name -> NYql.Connector.App.Config.TServerTLSConfig
 	2,  // 2: NYql.Connector.App.Config.TServerConfig.connector_server:type_name -> NYql.Connector.App.Config.TConnectorServerConfig
 	4,  // 3: NYql.Connector.App.Config.TServerConfig.read_limit:type_name -> NYql.Connector.App.Config.TServerReadLimit
@@ -1101,21 +1165,22 @@ var file_app_config_server_proto_depIdxs = []int32{
 	7,  // 6: NYql.Connector.App.Config.TServerConfig.metrics_server:type_name -> NYql.Connector.App.Config.TMetricsServerConfig
 	8,  // 7: NYql.Connector.App.Config.TServerConfig.paging:type_name -> NYql.Connector.App.Config.TPagingConfig
 	9,  // 8: NYql.Connector.App.Config.TServerConfig.conversion:type_name -> NYql.Connector.App.Config.TConversionConfig
-	12, // 9: NYql.Connector.App.Config.TServerConfig.datasources:type_name -> NYql.Connector.App.Config.TDatasourcesConfig
-	13, // 10: NYql.Connector.App.Config.TConnectorServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
+	13, // 9: NYql.Connector.App.Config.TServerConfig.datasources:type_name -> NYql.Connector.App.Config.TDatasourcesConfig
+	14, // 10: NYql.Connector.App.Config.TConnectorServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
 	3,  // 11: NYql.Connector.App.Config.TConnectorServerConfig.tls:type_name -> NYql.Connector.App.Config.TServerTLSConfig
 	0,  // 12: NYql.Connector.App.Config.TLoggerConfig.log_level:type_name -> NYql.Connector.App.Config.ELogLevel
-	13, // 13: NYql.Connector.App.Config.TPprofServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
+	14, // 13: NYql.Connector.App.Config.TPprofServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
 	3,  // 14: NYql.Connector.App.Config.TPprofServerConfig.tls:type_name -> NYql.Connector.App.Config.TServerTLSConfig
-	13, // 15: NYql.Connector.App.Config.TMetricsServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
+	14, // 15: NYql.Connector.App.Config.TMetricsServerConfig.endpoint:type_name -> NYql.NConnector.NApi.TEndpoint
 	3,  // 16: NYql.Connector.App.Config.TMetricsServerConfig.tls:type_name -> NYql.Connector.App.Config.TServerTLSConfig
 	10, // 17: NYql.Connector.App.Config.TYdbConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
 	11, // 18: NYql.Connector.App.Config.TDatasourcesConfig.ydb:type_name -> NYql.Connector.App.Config.TYdbConfig
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	12, // 19: NYql.Connector.App.Config.TDatasourcesConfig.mysql:type_name -> NYql.Connector.App.Config.TMySQLConfig
+	20, // [20:20] is the sub-list for method output_type
+	20, // [20:20] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_app_config_server_proto_init() }
@@ -1257,6 +1322,18 @@ func file_app_config_server_proto_init() {
 			}
 		}
 		file_app_config_server_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TMySQLConfig); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_app_config_server_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TDatasourcesConfig); i {
 			case 0:
 				return &v.state
@@ -1275,7 +1352,7 @@ func file_app_config_server_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_app_config_server_proto_rawDesc,
 			NumEnums:      1,
-			NumMessages:   12,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
