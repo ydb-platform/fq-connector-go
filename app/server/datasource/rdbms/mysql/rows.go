@@ -126,9 +126,10 @@ func scanNumberValue[IN number, OUT number](dest, value any, fieldValueType mysq
 
 	v := OUT(value.(IN))
 
-	if c, ok := dest.(**OUT); ok {
-		*c = &v
-	} else {
+	switch dest.(type) {
+	case **OUT:
+		*dest.(**OUT) = &v
+	default:
 		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
 	}
 
@@ -144,11 +145,12 @@ func scanStringValue[IN stringLike, OUT stringLike](dest, value any, fieldValueT
 
 	v := OUT(value.(IN))
 
-	if c, ok := dest.(**OUT); ok {
-		*c = &v
-	} else if c, ok := dest.(*OUT); ok {
-		*c = v
-	} else {
+	switch dest.(type) {
+	case **OUT:
+		*dest.(**OUT) = &v
+	case *OUT:
+		*dest.(*OUT) = v
+	default:
 		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
 	}
 
@@ -165,9 +167,10 @@ func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 	v := value.(int64)
 	b := v > 0
 
-	if c, ok := dest.(**bool); ok {
-		*c = &b
-	} else {
+	switch dest.(type) {
+	case **bool:
+		*dest.(**bool) = &b
+	default:
 		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
 	}
 
