@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"golang.org/x/exp/constraints"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -107,14 +106,6 @@ func scanToDest(dest any, value any, valueType uint8, columnName string, fieldVa
 	}
 
 	return nil
-}
-
-type number interface {
-	constraints.Integer | constraints.Float
-}
-
-type stringLike interface {
-	[]byte | string
 }
 
 func scanNumberValue[IN number, OUT number](dest, value any, fieldValueType mysql.FieldValueType) error {
