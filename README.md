@@ -16,6 +16,7 @@ Currently supported data sources:
 * PostgreSQL
 * YDB
 * Microsoft SQL Server
+* Greenplum
 
 ### Documentation 
 
