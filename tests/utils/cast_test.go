@@ -82,6 +82,7 @@ func BenchmarkScanAlloc(b *testing.B) {
 	b.Run("scan no alloc", func(b *testing.B) {
 		acceptor := new(*string)
 		*acceptor = new(string)
+
 		for i := 0; i < b.N; i++ {
 			scanNoAlloc[string, string](acceptor, value)
 		}
@@ -90,6 +91,7 @@ func BenchmarkScanAlloc(b *testing.B) {
 	b.Run("scan alloc", func(b *testing.B) {
 		acceptor := new(*string)
 		*acceptor = new(string)
+
 		for i := 0; i < b.N; i++ {
 			scanAlloc[string, string](acceptor, value)
 		}
