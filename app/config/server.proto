@@ -148,7 +148,12 @@ message TYdbConfig {
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
+message TMySQLConfig {
+    uint64 result_chan_capacity = 1;
+}
+
 // TDatasouceConfig is a collection of datasource-specific settings
 message TDatasourcesConfig {
     TYdbConfig ydb = 1;
+    TMySQLConfig mysql = 2;
 }

@@ -3,9 +3,13 @@ package common
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -34,6 +38,11 @@ var (
 	ErrUnimplementedArithmeticalExpression = fmt.Errorf("unimplemented arithmetical expression")
 	ErrEmptyTableName                      = fmt.Errorf("empty table name")
 	ErrPageSizeExceeded                    = fmt.Errorf("page size exceeded, check service configuration")
+)
+
+var (
+	// TODO: remove this and extract MyError somehow
+	mysqlRegex = regexp.MustCompile(`\d+`)
 )
 
 func NewSuccess() *api_service_protos.TError {
@@ -99,6 +108,32 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 				Status:  status,
 				Message: pgError.Message,
 			}
+		}
+	}
+
+	// TODO: remove this and extract MyError somehow
+	//       for some reason errors.As() does not work with mysql.MyError
+	errorText := err.Error()
+	if strings.Contains(errorText, "mysql:") {
+		var code uint16
+
+		match := mysqlRegex.FindString(errorText)
+
+		if len(match) > 0 {
+			tmp, _ := strconv.ParseUint(match, 10, 16)
+			code = uint16(tmp)
+		}
+
+		switch code {
+		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		default:
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: errorText,
 		}
 	}
 
