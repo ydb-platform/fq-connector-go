@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	testify_suite "github.com/stretchr/testify/suite"
+
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/greenplum"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
@@ -25,6 +26,7 @@ func TestMain(m *testing.M) {
 
 	m.Run()
 }
+
 func TestClickHouse(t *testing.T) {
 	testify_suite.Run(t, clickhouse.NewSuite(suite.NewBase(t, state, "ClickHouse")))
 }

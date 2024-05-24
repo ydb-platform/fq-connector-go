@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/proto"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -27,18 +28,19 @@ type TableSchema struct {
 	Columns map[string]*Ydb.Type
 }
 
-func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_service_protos.TSchema) {
-	record = swapColumns(record)
-	record = sortTableByID(record)
+func (r *Record) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
+	// Modify received table for the purpose of correct matching of expected vs actual results.
+	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
+	recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed)
 
-	for i, arrowField := range record.Schema().Fields() {
-		ydbType := schema.Columns[i].Type
+	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
+		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
 
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
-			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), false)
+			matchColumns(t, arrowField, r.Columns[arrowField.Name], recordWithRowsSorted.Column(i), false)
 		case *Ydb.Type_OptionalType:
-			matchColumns(t, arrowField, r.Columns[arrowField.Name], record.Column(i), true)
+			matchColumns(t, arrowField, r.Columns[arrowField.Name], recordWithRowsSorted.Column(i), true)
 		default:
 			require.FailNow(t, fmt.Sprintf("unexpected YDB type: %v", ydbType))
 		}
@@ -46,9 +48,9 @@ func (r *Record) MatchRecord(t *testing.T, record arrow.Record, schema *api_serv
 }
 
 // The swapColumns function swaps the “id” column with the first column in the Apache Arrow table.
-// This is needed for further contract in the sortTableByID function, where id should come first as a value
-
-func swapColumns(table arrow.Record) arrow.Record {
+// This is needed for further contract in the sortTableByID function,
+// where the column with the name `id` should always come first.
+func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.Record, *api_service_protos.TSchema) {
 	idIndex := -1
 
 	for i, field := range table.Schema().Fields() {
@@ -58,6 +60,7 @@ func swapColumns(table arrow.Record) arrow.Record {
 		}
 	}
 
+	// build new record with the correct order of columns
 	newColumns := make([]arrow.Array, table.NumCols())
 	for i := range newColumns {
 		if i == 0 {
@@ -71,11 +74,13 @@ func swapColumns(table arrow.Record) arrow.Record {
 
 	fields := table.Schema().Fields()
 	fields[0], fields[idIndex] = fields[idIndex], fields[0]
-	newSchema := arrow.NewSchema(fields, nil)
+	newTable := array.NewRecord(arrow.NewSchema(fields, nil), newColumns, table.NumRows())
 
-	newTable := array.NewRecord(newSchema, newColumns, table.NumRows())
+	// fix order in table schema as well
+	newSchema := proto.Clone(schema).(*api_service_protos.TSchema)
+	newSchema.Columns[0], newSchema.Columns[idIndex] = newSchema.Columns[idIndex], newSchema.Columns[0]
 
-	return newTable
+	return newTable, newSchema
 }
 
 func processColumn[VT common.ValueType, ARRAY common.ArrowArrayType[VT]](table arrow.Record, colIdx int, restCols [][]any) {
