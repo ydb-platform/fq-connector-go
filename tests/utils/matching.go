@@ -1,4 +1,4 @@
-package datasource
+package utils
 
 import (
 	"fmt"
@@ -17,8 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Record is somewhat equivalent to arrow.Record
-// Store columns in map because order of columns in some datasource is undefined
+// Record is somewhat equivalent to arrow.Record.
+// Store columns in map because order of columns in some datasource is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record struct {
 	Columns map[string]any

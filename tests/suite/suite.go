@@ -14,6 +14,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
+	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
@@ -118,13 +119,13 @@ func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
 	}
 }
 
-func (b *Base) ValidateTable(ds *datasource.DataSource, table *datasource.Table, customOptions ...ValidateTableOption) {
+func (b *Base) ValidateTable(ds *datasource.DataSource, table *test_utils.Table, customOptions ...ValidateTableOption) {
 	for _, dsi := range ds.Instances {
 		b.doValidateTable(table, dsi, customOptions...)
 	}
 }
 
-func (b *Base) doValidateTable(table *datasource.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
+func (b *Base) doValidateTable(table *test_utils.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
 	options := newDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.apply(options)

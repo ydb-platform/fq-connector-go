@@ -10,7 +10,7 @@ lint:
 	golangci-lint run --fix ./app/... ./common/... ./tests/... ./tools/...
 
 unit_test:
-	go test ./app/...
+	go test ./app/... ./app/common/... ./tests/utils/...
 
 integration_test: integration_test_build
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH)
@@ -26,7 +26,8 @@ integration_test_env_run: integration_test_env_clean
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d
 
 test_coverage: integration_test_env_run
-	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/...
+	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
+	sleep 3
 	go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.coverprofile=coverage_integration_tests.out 
 	cat coverage_unit_tests.out | grep -v 'pb.go\|mock.go\|library' > coverage.out
