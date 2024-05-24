@@ -18,7 +18,7 @@
 :white_check_mark: - тип поддерживается
 :x: - тип не поддерживается
 
-| :one: YDB / YQL | Arrow | Go | :one: ClickHouse | :two: PostgreSQL | :two: MySQL | MS SQL Server |
+| :one: YDB / YQL | Arrow | Go | :one: ClickHouse | :two: PostgreSQL / Greenplum | :two: MySQL | MS SQL Server |
 | --- | ----- | -- | ---------- | ---------- | ----- | ------ |
 | `BOOL` | `UINT8` | `bool` | :white_check_mark: `Bool` | :white_check_mark: `boolean`, `bool` (1 байт) | :white_check_mark: `bool` (`tinyint(1)`) | `BIT` |
 | - | - | - | - | :x: `bit[(n)]`, `bit varying[(n)]`, `varbit` (битовые строки, состоящие из 0 и 1)| :x: `bit(n)` (bit-valued literals, до 64 бит) | |
