@@ -50,6 +50,16 @@ services:
       - ./ydb/init/01_basic.sh:/01_basic.sh
       - ./ydb/init/02_large.sh:/02_large.sh
 
+  greenplum:
+    image: ghcr.io/ydb-platform/fq-connector-go_greenplum:6.25.3
+    container_name: ${USER}-fq-connector-go-tests-greenplum
+    hostname: localhost
+    ports:
+      - '5432'
+    volumes:
+      - ./greenplum/init/init_db.sh:/init_db.sh
+
+
   mysql:
     image: docker.io/library/mysql:8.4
     container_name: ${USER}-fq-connector-go-tests-mysql

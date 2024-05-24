@@ -95,6 +95,10 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		if ok {
 			switch pgError.Code {
 			case pgerrcode.InvalidPassword:
+				// Invalid password in PostgreSQL 15
+				status = ydb_proto.StatusIds_UNAUTHORIZED
+			case pgerrcode.InvalidAuthorizationSpecification:
+				// Invalid password in Greenplum 6.25
 				status = ydb_proto.StatusIds_UNAUTHORIZED
 			default:
 				status = ydb_proto.StatusIds_INTERNAL_ERROR

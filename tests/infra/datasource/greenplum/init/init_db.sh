@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS simple;
     CREATE TABLE simple (id int, col1 text, col2 int);
     INSERT INTO simple VALUES (1, 'pg_a', 10);
@@ -11,7 +11,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     INSERT INTO simple VALUES (5, 'pg_e', 50);
 EOSQL
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS primitives;
     CREATE TABLE primitives (
         id int,
@@ -56,7 +56,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         );
 EOSQL
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS datetime;
     CREATE TABLE datetime (
         id int,
@@ -68,7 +68,7 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     INSERT INTO datetime VALUES (3, '2023-03-21 11:21:31.456000', '2023-03-21');
 EOSQL
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS pushdown;
     CREATE TABLE pushdown (
         id int,

@@ -26,6 +26,7 @@ type dataSourceFactory struct {
 	ydb                 Preset
 	msSQLServer         Preset
 	mysql               Preset
+	greenplum           Preset
 	converterCollection conversion.Collection
 }
 
@@ -44,6 +45,8 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_MYSQL:
 		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_GREENPLUM:
+		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -99,6 +102,13 @@ func NewDataSourceFactory(
 			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerCfg),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.GetQueryAndArgs),
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+		},
+		greenplum: Preset{
+			SQLFormatter:      postgresql.NewSQLFormatter(),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
+			TypeMapper:        postgresqlTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
