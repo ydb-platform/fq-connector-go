@@ -5,13 +5,13 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
+	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-var tables = map[string]*datasource.Table{
+var tables = map[string]*test_utils.Table{
 	"simple": {
 		Name: "simple",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"id":                  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"tinyint_column":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
@@ -25,7 +25,7 @@ var tables = map[string]*datasource.Table{
 				"bool_column":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id": []*int32{

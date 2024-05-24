@@ -64,7 +64,7 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 	return apiErr.Status == ydb_proto.StatusIds_SUCCESS
 }
 
-//nolint:gocyclo,funlen
+//nolint:funlen,gocyclo
 func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
