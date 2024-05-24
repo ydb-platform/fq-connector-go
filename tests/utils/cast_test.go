@@ -77,7 +77,6 @@ func scanNoAlloc[IN stringLike, OUT stringLike](dest, value any) {
 }
 
 func BenchmarkScanAlloc(b *testing.B) {
-
 	value := "qwerty12345"
 
 	b.Run("scan no alloc", func(b *testing.B) {
