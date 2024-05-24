@@ -1,4 +1,4 @@
-//nolint:unused
+//nolint:linters
 package utils
 
 import "testing"
