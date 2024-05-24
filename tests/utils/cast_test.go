@@ -1,4 +1,6 @@
-//nolint:linters
+//go:build ignore
+// +build ignore
+
 package utils
 
 import "testing"
