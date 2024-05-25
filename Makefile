@@ -27,7 +27,7 @@ integration_test_env_run: integration_test_env_clean
 
 test_coverage: integration_test_env_run
 	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
-	sleep 3
+	sleep 8
 	go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.coverprofile=coverage_integration_tests.out 
 	cat coverage_unit_tests.out | grep -v 'pb.go\|mock.go\|library' > coverage.out
