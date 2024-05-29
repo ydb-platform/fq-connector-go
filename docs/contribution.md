@@ -144,8 +144,8 @@ make run
     ./ya ide vscode-clangd -P ~/projects/ydb.vscode-clangd ydb contrib/libs
     ```
 1. В целевой папке появится workspase для VSCode.
-1. (если работаете на виртуальную машину) В VSCode надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) для удалённой работы по ssh и зайти на хост.
-1. В VSCode на целевой машине надо поставьте [плагин](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) с поддержкой clangd.
+1. (если работаете на виртуальной машине) В VSCode надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) для удалённой работы по ssh и зайти на хост.
+1. В VSCode на целевой машине надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) с поддержкой clangd.
 1. После открытия воркспейса clangd начнёт индексацию проекта (ориентируйтесь на несколько часов).
 1. Скомпилируйте инструмент `kqprun` с помощью встроенного инструмента `ya`:
     ```
