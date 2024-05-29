@@ -139,12 +139,14 @@ make run
     cd ydb 
     git checkout -b feature-branch
     ```
-1. Заходите в папку
-1. Выполните команду ./ya ide vscode-clangd -P ~/projects/ydb.vscode-clangd ydb contrib/libs
-1. В целевой папке появится workspase для VSCode
-1. (если работаете на ВМ) В VSCode надо поставить плагин для удалённой работы по ssh и зайти на хост
-1. В VSCode на целевой машине надо поставьте плагин с поддержкой clangd
-1. После открытия воркспейса clangd начнёт индексацию проекта (ориентируйтесь на несколько часов)
+1. Выполните команду.
+    ```
+    ./ya ide vscode-clangd -P ~/projects/ydb.vscode-clangd ydb contrib/libs
+    ```
+1. В целевой папке появится workspase для VSCode.
+1. (если работаете на виртуальную машину) В VSCode надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) для удалённой работы по ssh и зайти на хост.
+1. В VSCode на целевой машине надо поставьте плагин с поддержкой clangd.
+1. После открытия воркспейса clangd начнёт индексацию проекта (ориентируйтесь на несколько часов).
 1. Скомпилируйте инструмент `kqprun` с помощью встроенного инструмента `ya`:
     ```
     ./ya make --build relwithdebinfo ydb/tests/tools/kqprun
