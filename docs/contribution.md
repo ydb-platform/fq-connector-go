@@ -147,6 +147,7 @@ make run
 1. (если работаете на виртуальной машине) В VSCode надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) для удалённой работы по ssh и зайти на хост.
 1. В VSCode на целевой машине надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) с поддержкой clangd.
 1. После открытия воркспейса clangd начнёт индексацию проекта (ориентируйтесь на несколько часов).
+1. Проверьте ваш git global user.name и user.email, от этого зависит будут ли в вашем профиле на Гитхабе видны PRы в YDB
 1. Скомпилируйте инструмент `kqprun` с помощью встроенного инструмента `ya`:
     ```
     ./ya make --build relwithdebinfo ydb/tests/tools/kqprun
@@ -216,7 +217,7 @@ make run
 * [Proto](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto)
     * https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L29-L38
 
-Список этих файлов может быть неисчерпывающим; если заметите что-то ещё - PRs are welcome :)
+Список этих файлов может быть неисчерпывающим; если заметите что-то ещё - PRs are welcome :) 
 
 
 ## Изменения в API и конфигурации коннектора
