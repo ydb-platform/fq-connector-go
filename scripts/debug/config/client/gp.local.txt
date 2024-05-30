@@ -1,24 +1,24 @@
 connector_server_endpoint {
-    host: "localhost"
+    host: "connector.yqv2-dev.cloud.yandex.net"
     port: 2130
 }
 
 metrics_server_endpoint {
-    host: "localhost"
-    port: 8766
+    host: "connector.yqv2-dev.cloud.yandex.net"
+    port: 50051
 }
 
 data_source_instance {
     kind: GREENPLUM
     endpoint {
-        host: "localhost"
-        port: 5432
+        host: "rc1d-51jc89m9q72vcdkn.mdb.yandexcloud.net"
+        port: 6432
     }
-    database: "template1"
+    database: postgres
     credentials {
         basic {
-            username: "gpadmin"
-            password: "123456"
+            username: "users"
+            password: "password"
         }
     }
     pg_options: {
