@@ -160,7 +160,7 @@ make run
     ```
     git config --global user.email "ваш user.email"
     ```
-    Это важно для того, чтобы в вашем профиле Гитхаб отображались PRы в Ydb
+    Это важно для того, чтобы в вашем профиле Гитхаб отображались PRы в Ydb.
 1. Скомпилируйте инструмент `kqprun` с помощью встроенного инструмента `ya`:
     ```
     ./ya make --build relwithdebinfo ydb/tests/tools/kqprun
