@@ -16,6 +16,7 @@ type sqlFormatter struct {
 }
 
 func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+	// TODO Json_document - binary form of json
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -38,6 +39,8 @@ func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	case Ydb.Type_FLOAT:
 		return true
 	case Ydb.Type_DOUBLE:
+		return true
+	case Ydb.Type_JSON:
 		return true
 	default:
 		return false
