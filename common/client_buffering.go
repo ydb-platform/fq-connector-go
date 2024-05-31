@@ -75,7 +75,7 @@ func dumpStream[T StreamResponse](rcvStream stream[T]) ([]T, error) {
 func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TClientConfig) (*ClientBuffering, error) {
 	conn, err := makeConnection(logger, clientCfg)
 	if err != nil {
-		return nil, fmt.Errorf("grpc dial: %w", err)
+		return nil, fmt.Errorf("make connection: %w", err)
 	}
 
 	grpcClient := api_service.NewConnectorClient(conn)
@@ -84,13 +84,14 @@ func NewClientBufferingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 		clientBasic: clientBasic{
 			client: grpcClient,
 			conn:   conn,
-			logger: logger},
+			logger: logger,
+		},
 	}, nil
 }
 
 func NewClientBufferingFromServerConfig(logger *zap.Logger, serverCfg *config.TServerConfig) (*ClientBuffering, error) {
 	clientCfg := &config.TClientConfig{
-		Endpoint: serverCfg.ConnectorServer.Endpoint,
+		ConnectorServerEndpoint: serverCfg.ConnectorServer.Endpoint,
 	}
 
 	if serverCfg.ConnectorServer.Tls != nil {

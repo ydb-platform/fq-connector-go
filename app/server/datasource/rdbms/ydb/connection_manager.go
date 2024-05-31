@@ -4,16 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -24,6 +27,7 @@ var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
 	*sql.DB
+	driver *ydb_sdk.Driver
 	logger common.QueryLogger
 }
 
@@ -50,7 +54,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 	return transformer, nil
 }
 
-func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.DB.QueryContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.ScanQueryMode), query, args...)
@@ -71,10 +75,26 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 	return rows{Rows: out}, nil
 }
 
+func (c *Connection) Close() error {
+	err1 := c.DB.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	err2 := c.driver.Close(ctx)
+
+	if err1 != nil || err2 != nil {
+		return fmt.Errorf("connection close err: %w; driver close err: %w", err1, err2)
+	}
+
+	return nil
+}
+
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
+	cfg *config.TYdbConfig
 	// TODO: cache of connections, remove unused connections with TTL
 }
 
@@ -99,7 +119,28 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
 
-	ydbDriver, err := ydb_sdk.Open(ctx, dsn, cred, ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())))
+	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
+	defer openCtxCancel()
+
+	ydbOptions := []ydb_sdk.Option{
+		cred,
+		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
+		ydb_sdk.WithBalancer(balancers.SingleConn()), // see YQ-3089
+		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+	}
+
+	// `u-` prefix is an implicit indicator of a dedicated YDB database.
+	// We have to use underlay networks when accessing this kind of database in cloud,
+	// so we add this prefix to every endpoint discovered.
+	if c.cfg.UseUnderlayNetworkForDedicatedDatabases && strings.HasPrefix(endpoint, "u-") {
+		ydbOptions = append(ydbOptions, ydb_sdk.WithNodeAddressMutator(
+			func(address string) string {
+				return "u-" + address
+			},
+		))
+	}
+
+	ydbDriver, err := ydb_sdk.Open(openCtx, dsn, ydbOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
@@ -113,34 +154,28 @@ func (c *connectionManager) Make(
 
 	logger.Debug("Pinging database")
 
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
+	defer pingCtxCancel()
 
 	if err := conn.PingContext(pingCtx); err != nil {
+		common.LogCloserError(logger, conn, "close YDB connection")
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
-
-	const (
-		maxIdleConns    = 5
-		maxOpenConns    = 10
-		connMaxLifetime = time.Hour
-	)
-
-	conn.SetMaxIdleConns(maxIdleConns)
-	conn.SetMaxOpenConns(maxOpenConns)
-	conn.SetConnMaxLifetime(connMaxLifetime)
 
 	logger.Debug("Connection is ready")
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return &Connection{DB: conn, logger: queryLogger}, nil
+	return &Connection{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close clickhouse connection")
+	common.LogCloserError(logger, conn, "close YDB connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	cfg *config.TYdbConfig,
+	base rdbms_utils.ConnectionManagerBase,
+) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }

@@ -12,6 +12,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 func fillServerConfigDefaults(c *config.TServerConfig) {
@@ -34,6 +35,28 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			UseUnsafeConverters: false,
 		}
 	}
+
+	if c.Datasources == nil {
+		c.Datasources = &config.TDatasourcesConfig{}
+	}
+
+	if c.Datasources.Ydb == nil {
+		c.Datasources.Ydb = &config.TYdbConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
+			ExponentialBackoff: &config.TExponentialBackoffConfig{
+				InitialInterval:     "500ms",
+				RandomizationFactor: 0.5,
+				Multiplier:          1.5,
+				MaxInterval:         "20s",
+				MaxElapsedTime:      "1m",
+			},
+		}
+	}
+
+	if c.Datasources.Mysql == nil {
+		c.Datasources.Mysql = &config.TMySQLConfig{ResultChanCapacity: 512}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {
@@ -55,6 +78,10 @@ func validateServerConfig(c *config.TServerConfig) error {
 
 	if err := validateConversionConfig(c.Conversion); err != nil {
 		return fmt.Errorf("validate `conversion`: %w", err)
+	}
+
+	if err := validateDatasourcesConfig(c.Datasources); err != nil {
+		return fmt.Errorf("validate `datasources`: %w", err)
 	}
 
 	return nil
@@ -162,6 +189,62 @@ func validatePagingConfig(c *config.TPagingConfig) error {
 func validateConversionConfig(c *config.TConversionConfig) error {
 	if c == nil {
 		return fmt.Errorf("required section is missing")
+	}
+
+	return nil
+}
+
+func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if err := validateYdbConfig(c.Ydb); err != nil {
+		return fmt.Errorf("validate `ydb`: %w", err)
+	}
+
+	return nil
+}
+
+func validateYdbConfig(c *config.TYdbConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if _, err := common.DurationFromString(c.OpenConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `open_connection_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
+		return fmt.Errorf("validate `exponential_backoff`: %v", err)
+	}
+
+	return nil
+}
+
+func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if _, err := common.DurationFromString(c.InitialInterval); err != nil {
+		return fmt.Errorf("validate `initial_interval`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.MaxInterval); err != nil {
+		return fmt.Errorf("validate `max_interval`: %v", err)
+	}
+
+	if c.Multiplier == 0 {
+		return errors.New("zero value for `multiplier`")
+	}
+
+	if _, err := common.DurationFromString(c.MaxElapsedTime); err != nil {
+		return fmt.Errorf("validate `max_elapsed_time`: %v", err)
 	}
 
 	return nil

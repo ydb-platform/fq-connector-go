@@ -7,6 +7,8 @@ import (
 	testify_suite "github.com/stretchr/testify/suite"
 
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/greenplum"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ydb"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
@@ -36,4 +38,12 @@ func TestPostgreSQL(t *testing.T) {
 
 func TestYDB(t *testing.T) {
 	testify_suite.Run(t, ydb.NewSuite(suite.NewBase(t, state, "YDB")))
+}
+
+func TestGreenplum(t *testing.T) {
+	testify_suite.Run(t, greenplum.NewSuite(suite.NewBase(t, state, "Greenplum")))
+}
+
+func TestMySQL(t *testing.T) {
+	testify_suite.Run(t, mysql.NewSuite(suite.NewBase(t, state, "MySQL")))
 }

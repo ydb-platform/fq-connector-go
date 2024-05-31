@@ -5,29 +5,29 @@ import (
 
 	"golang.org/x/exp/constraints"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
-
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 // key - test case name
 // value - table description
-var tables = map[string]*datasource.Table{
+var tables = map[string]*test_utils.Table{
 	"simple": {
 		Name: "simple",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":   common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":   common.MakePrimitiveType(Ydb.Type_INT32),
 				"col1": common.MakePrimitiveType(Ydb.Type_STRING),
 				"col2": common.MakePrimitiveType(Ydb.Type_INT32),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id": []int8{1, 2, 3, 4, 5},
+					"id": []int32{1, 2, 3, 4, 5},
 					"col1": [][]byte{
 						[]byte("ydb_a"),
 						[]byte("ydb_b"),
@@ -43,9 +43,9 @@ var tables = map[string]*datasource.Table{
 
 	"primitives": {
 		Name: "primitives",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_bool":      common.MakePrimitiveType(Ydb.Type_BOOL),
 				"col_02_int8":      common.MakePrimitiveType(Ydb.Type_INT8),
 				"col_03_int16":     common.MakePrimitiveType(Ydb.Type_INT16),
@@ -64,10 +64,10 @@ var tables = map[string]*datasource.Table{
 				"col_16_timestamp": common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id":            []int8{1},
+					"id":            []int32{1},
 					"col_01_bool":   []uint8{0}, // []bool{false}
 					"col_02_int8":   []int8{1},
 					"col_03_int16":  []int16{-2},
@@ -103,9 +103,9 @@ var tables = map[string]*datasource.Table{
 
 	"optionals": {
 		Name: "optionals",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_bool":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
 				"col_02_int8":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
 				"col_03_int16":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
@@ -124,10 +124,10 @@ var tables = map[string]*datasource.Table{
 				"col_16_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id":            []int8{1, 2},
+					"id":            []int32{1, 2},
 					"col_01_bool":   []*uint8{ptr.Uint8(1), nil}, // []*bool{true, nil}
 					"col_02_int8":   []*int8{ptr.Int8(1), nil},
 					"col_03_int16":  []*int16{ptr.Int16(-2), nil},
@@ -166,18 +166,18 @@ var tables = map[string]*datasource.Table{
 
 	"datetime_format_yql": {
 		Name: "datetime",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_date":      common.MakePrimitiveType(Ydb.Type_DATE),
 				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_DATETIME),
 				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id": []int8{1},
+					"id": []int32{1},
 					"col_01_date": []uint16{
 						common.MustTimeToYDBType[uint16](
 							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
@@ -201,18 +201,18 @@ var tables = map[string]*datasource.Table{
 
 	"datetime_format_string": {
 		Name: "datetime",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":               common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
 				"col_01_date":      common.MakePrimitiveType(Ydb.Type_UTF8),
 				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_UTF8),
 				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_UTF8),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id":               []int8{1},
+					"id":               []int32{1},
 					"col_01_date":      []string{"1988-11-20"},
 					"col_02_datetime":  []string{"1988-11-20T12:55:28Z"},
 					"col_03_timestamp": []string{"1988-11-20T12:55:28.123456Z"},
@@ -224,7 +224,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_L": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{1},
@@ -238,7 +238,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_LE": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{1, 2},
@@ -251,7 +251,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_EQ": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{2},
@@ -264,7 +264,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_GE": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{2, 3},
@@ -277,7 +277,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_G": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{1, 2, 3},
@@ -290,7 +290,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_NE": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{2, 3, 4},
@@ -303,7 +303,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_NULL": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{4},
@@ -316,7 +316,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_comparison_NOT_NULL": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{1, 2, 3},
@@ -329,7 +329,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_conjunction": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{2, 3},
@@ -342,7 +342,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_disjunction": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{1, 2, 3},
@@ -355,7 +355,7 @@ var tables = map[string]*datasource.Table{
 	"pushdown_negation": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id":          []int32{4},
@@ -368,12 +368,12 @@ var tables = map[string]*datasource.Table{
 
 	"large": {
 		Name: "large",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"id": common.MakePrimitiveType(Ydb.Type_INT32),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
 					"id": makeRange[int32](0, 1005),
@@ -384,16 +384,16 @@ var tables = map[string]*datasource.Table{
 
 	"parent/child": {
 		Name: "parent/child",
-		Schema: &datasource.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":  common.MakePrimitiveType(Ydb.Type_INT8),
+				"id":  common.MakePrimitiveType(Ydb.Type_INT32),
 				"col": common.MakePrimitiveType(Ydb.Type_UTF8),
 			},
 		},
-		Records: []*datasource.Record{
+		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id":  []int8{1, 2, 3, 4, 5},
+					"id":  []int32{1, 2, 3, 4, 5},
 					"col": []string{"a", "b", "c", "d", "e"},
 				},
 			},
@@ -401,8 +401,8 @@ var tables = map[string]*datasource.Table{
 	},
 }
 
-func pushdownSchemaYdb() *datasource.TableSchema {
-	return &datasource.TableSchema{
+func pushdownSchemaYdb() *test_utils.TableSchema {
+	return &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
 			"id":          common.MakePrimitiveType(Ydb.Type_INT32),
 			"col_01_int":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),

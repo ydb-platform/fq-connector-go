@@ -109,7 +109,7 @@ func (c *connectionManager) Make(
 
 	conn, err := pgx.ConnectConfig(ctx, connCfg)
 	if err != nil {
-		return nil, fmt.Errorf("open connection: %w", err)
+		return nil, fmt.Errorf("connect config: %w", err)
 	}
 
 	// set schema (public by default)

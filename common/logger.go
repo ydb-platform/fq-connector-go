@@ -33,8 +33,8 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TDataSo
 }
 
 func AnnotateLoggerForUnaryCall(l *zap.Logger, method string, dsi *api_common.TDataSourceInstance) *zap.Logger {
-	l = AnnotateLoggerWithMethod(l, method)
 	l = AnnotateLoggerWithDataSourceInstance(l, dsi)
+	l = AnnotateLoggerWithMethod(l, method)
 
 	return l
 }

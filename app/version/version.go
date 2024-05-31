@@ -8,53 +8,48 @@ import (
 )
 
 var (
-	HasInfo       string
-	Tag           string
-	Author        string
-	CommitHash    string
-	Branch        string
-	CommitDate    string
-	CommitMessage string
-	Username      string
-	BuildLocation string
-	Hostname      string
-	HostInfo      string
-	PathToGo      string
-	GoVersion     string
+	tag           string
+	author        string
+	commitHash    string
+	branch        string
+	commitDate    string
+	commitMessage string
+	username      string
+	buildLocation string
+	hostname      string
+	hostInfo      string
+	pathToGo      string
+	goVersion     string
 )
 
 var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "version of current build",
 	Run: func(cmd *cobra.Command, args []string) {
-		if HasInfo == "true" {
-			fmt.Println(GetInfo())
-		} else {
-			fmt.Println("No information provided")
-		}
+		fmt.Println(GetInfo())
 	},
 }
 
 func GetInfo() string {
 	sb := strings.Builder{}
 
-	sb.WriteString("Git info:\n")
-	sb.WriteString(fmt.Sprintf("\tBranch: %s\n", Branch))
-	sb.WriteString(fmt.Sprintf("\tCommit: %s\n", CommitHash))
-	sb.WriteString(fmt.Sprintf("\tTag: %s\n", Tag))
-	sb.WriteString(fmt.Sprintf("\tAuthor: %s\n", Author))
-	sb.WriteString(fmt.Sprintf("\tSummary: %s\n", CommitMessage))
-	sb.WriteString(fmt.Sprintf("\tCommit Date: %s\n\n", CommitDate))
-	sb.WriteString("Other info:\n")
-	sb.WriteString(fmt.Sprintf("\tBuilt by: %s\n", Username))
-	sb.WriteString(fmt.Sprintf("\tBuilding location: %s\n", BuildLocation))
-	sb.WriteString(fmt.Sprintf("\tHostname: %s\n", Hostname))
-	sb.WriteString("\tHost information:\n")
-	sb.WriteString(fmt.Sprintf("\t\t%s\n\n", HostInfo))
-	sb.WriteString("Build info:\n")
-	sb.WriteString(fmt.Sprintf("\tCompiler: %s\n", PathToGo))
-	sb.WriteString("\tCompiler version:\n")
-	sb.WriteString(fmt.Sprintf("\t\t%s\n", GoVersion))
+	sb.WriteString(`Git info:\n`)
+	sb.WriteString(fmt.Sprintf(`\tBranch: %s\n`, branch))
+	sb.WriteString(fmt.Sprintf(`\tCommit: %s\n`, commitHash))
+	sb.WriteString(fmt.Sprintf(`\tTag: %s\n`, tag))
+	sb.WriteString(fmt.Sprintf(`\tAuthor: %s\n`, author))
+	sb.WriteString(fmt.Sprintf(`\tSummary: %s\n`, commitMessage))
+	sb.WriteString(fmt.Sprintf(`\tCommit Date: %s\n\n`, commitDate))
+	sb.WriteString(`Other info:\n`)
+	sb.WriteString(fmt.Sprintf(`\tBuilt by: %s\n`, username))
+	sb.WriteString(fmt.Sprintf(`\tBuilding location: %s\n`, buildLocation))
+	sb.WriteString(fmt.Sprintf(`\tHostname: %s\n`, hostname))
+	sb.WriteString(`\tHost information:\n`)
+	sb.WriteString(fmt.Sprintf(`\t\t%s\n\n`, hostInfo))
+	sb.WriteString(`Build info:\n`)
+	sb.WriteString(fmt.Sprintf(`\tCompiler: %s\n`, pathToGo))
+	sb.WriteString(`\tCompiler version:\n`)
+	sb.WriteString(fmt.Sprintf(`\t\t%s\n`, goVersion))
 
 	return sb.String()
 }

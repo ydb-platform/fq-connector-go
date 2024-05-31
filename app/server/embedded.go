@@ -14,18 +14,19 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-// Embedded server is used in different kinds of tests, when it is important
+// serverEmbedded server is used in different kinds of tests, when it is important
 // to launch server in the same process with the tests itself.
-type Embedded struct {
+type serverEmbedded struct {
 	launcher        *Launcher
 	logger          *zap.Logger
 	clientBuffering *common.ClientBuffering
 	clientStreaming *common.ClientStreaming
+	cfg             *config.TServerConfig
 	operational     bool
 	mutex           sync.Mutex
 }
 
-func (s *Embedded) Start() {
+func (s *serverEmbedded) Start() {
 	go func() {
 		errChan := s.launcher.Start()
 
@@ -44,7 +45,7 @@ func (s *Embedded) Start() {
 	}()
 }
 
-func (s *Embedded) handleStartError(err error) {
+func (s *serverEmbedded) handleStartError(err error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -54,15 +55,28 @@ func (s *Embedded) handleStartError(err error) {
 			s.logger.Fatal("launcher start", zap.Error(err))
 		}
 	} else {
-		s.logger.Warn("launcher start", zap.Error(err))
+		s.logger.Debug("service termination", zap.Error(err))
 	}
 }
 
-func (s *Embedded) ClientBuffering() *common.ClientBuffering { return s.clientBuffering }
+func (s *serverEmbedded) ClientBuffering() *common.ClientBuffering { return s.clientBuffering }
 
-func (s *Embedded) ClientStreaming() *common.ClientStreaming { return s.clientStreaming }
+func (s *serverEmbedded) ClientStreaming() *common.ClientStreaming { return s.clientStreaming }
 
-func (s *Embedded) Stop() {
+func (s *serverEmbedded) MetricsSnapshot() (*common.MetricsSnapshot, error) {
+	if s.cfg.MetricsServer == nil {
+		return nil, fmt.Errorf("metrics server is not initialized")
+	}
+
+	mp, err := common.NewMetricsSnapshot(s.cfg.MetricsServer.Endpoint, s.cfg.Tls != nil)
+	if err != nil {
+		return nil, fmt.Errorf("new metrics provider: %w", err)
+	}
+
+	return mp, nil
+}
+
+func (s *serverEmbedded) Stop() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -73,60 +87,7 @@ func (s *Embedded) Stop() {
 	}
 }
 
-// EmbeddedOption parametrizes initialization of an embedded Connector server
-type EmbeddedOption interface {
-	apply(cfg *config.TServerConfig)
-}
-
-type withPagingConfig struct {
-	pagingConfig *config.TPagingConfig
-}
-
-func (o *withPagingConfig) apply(cfg *config.TServerConfig) {
-	cfg.Paging = o.pagingConfig
-}
-
-func WithPagingConfig(pagingConfig *config.TPagingConfig) EmbeddedOption {
-	return &withPagingConfig{pagingConfig: pagingConfig}
-}
-
-type withLoggerConfig struct {
-	loggerConfig *config.TLoggerConfig
-}
-
-func (o *withLoggerConfig) apply(cfg *config.TServerConfig) {
-	cfg.Logger = o.loggerConfig
-}
-
-func WithLoggerConfig(loggerConfig *config.TLoggerConfig) EmbeddedOption {
-	return &withLoggerConfig{loggerConfig: loggerConfig}
-}
-
-type withPprofServerConfig struct {
-	pprofServerConfig *config.TPprofServerConfig
-}
-
-func (o *withPprofServerConfig) apply(cfg *config.TServerConfig) {
-	cfg.PprofServer = o.pprofServerConfig
-}
-
-func WithPprofServerConfig(pprofServerConfig *config.TPprofServerConfig) EmbeddedOption {
-	return &withPprofServerConfig{pprofServerConfig: pprofServerConfig}
-}
-
-type withConversionConfig struct {
-	conversionConfig *config.TConversionConfig
-}
-
-func (o *withConversionConfig) apply(cfg *config.TServerConfig) {
-	cfg.Conversion = o.conversionConfig
-}
-
-func WithConversionConfig(conversionConfig *config.TConversionConfig) EmbeddedOption {
-	return &withConversionConfig{conversionConfig: conversionConfig}
-}
-
-func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
+func NewEmbedded(options ...EmbeddedOption) (common.TestingServer, error) {
 	cfg := app_server_config.NewDefaultConfig()
 	for _, o := range options {
 		o.apply(cfg)
@@ -152,12 +113,13 @@ func NewEmbedded(options ...EmbeddedOption) (*Embedded, error) {
 		return nil, fmt.Errorf("new client: %w", err)
 	}
 
-	sn := &Embedded{
+	sn := &serverEmbedded{
 		launcher:        launcher,
 		logger:          logger,
 		operational:     true,
 		clientBuffering: clientBuffering,
 		clientStreaming: clientStreaming,
+		cfg:             cfg,
 	}
 
 	return sn, nil

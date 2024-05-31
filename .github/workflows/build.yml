@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.21.3', ]
+        go-version: [ '1.22.1', ]
 
     steps:
       - uses: actions/checkout@v4
@@ -28,7 +28,7 @@ jobs:
           go get ./...
       - name: Run unit tests
         run: |
-          go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/...
+          go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
       - name: Setup integration tests
         uses: isbang/compose-action@v1.5.1
         with:
@@ -52,4 +52,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.out
       - name: Build
-        run: GOOS=linux go build -v -o fq-connector-go ./app
+        run: | 
+          git fetch --prune --unshallow
+          go run ./tools/version git
+          GOOS=linux go build -v -o fq-connector-go ./app

@@ -18,32 +18,41 @@ func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpt
 	var opts []grpc.DialOption
 
 	if cfg.Tls != nil {
+		tlsCfg := &tls.Config{}
+
 		logger.Info("client will use TLS connections")
 
-		caCrt, err := os.ReadFile(cfg.Tls.Ca)
-		if err != nil {
-			return nil, err
+		if cfg.Tls.InsecureSkipVerify {
+			logger.Warn("Certificate host name verification is disabled")
+
+			tlsCfg.InsecureSkipVerify = true
 		}
 
-		certPool := x509.NewCertPool()
-		if !certPool.AppendCertsFromPEM(caCrt) {
-			return nil, fmt.Errorf("failed to add server CA's certificate")
-		}
+		// Make custom cert pool only if necessary
+		if cfg.Tls.Ca != "" {
+			caCrt, err := os.ReadFile(cfg.Tls.Ca)
+			if err != nil {
+				return nil, fmt.Errorf("read file '%s': %w", cfg.Tls.Ca, err)
+			}
 
-		tlsCfg := &tls.Config{
-			RootCAs: certPool,
+			certPool := x509.NewCertPool()
+			if !certPool.AppendCertsFromPEM(caCrt) {
+				return nil, fmt.Errorf("failed to add server CA's certificate")
+			}
+
+			tlsCfg.RootCAs = certPool
 		}
 
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	} else {
-		logger.Info("client will use insecure connections")
+		logger.Warn("client will use insecure connections")
 
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	}
 
 	opts = append(opts, additionalOpts...)
 
-	conn, err := grpc.Dial(EndpointToString(cfg.Endpoint), opts...)
+	conn, err := grpc.Dial(EndpointToString(cfg.ConnectorServerEndpoint), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %w", err)
 	}

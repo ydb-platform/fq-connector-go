@@ -47,6 +47,7 @@ func (f *schemaProvider) GetSchema(
 			if err != nil {
 				return fmt.Errorf("describe table: %w", err)
 			}
+
 			return nil
 		},
 	)
@@ -62,6 +63,7 @@ func (f *schemaProvider) GetSchema(
 	}
 
 	schema, err := sb.Build(logger)
+
 	if err != nil {
 		return nil, fmt.Errorf("build schema: %w", err)
 	}

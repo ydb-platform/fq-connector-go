@@ -51,7 +51,7 @@ func (s *sinkImpl[T]) AddRow(rowTransformer RowTransformer[T]) error {
 
 	// If page is already too large, flush buffer to the channel and create a new one
 	if !ok {
-		if err := s.flush(true); err != nil {
+		if err := s.flush(true, false); err != nil {
 			return fmt.Errorf("flush: %w", err)
 		}
 
@@ -74,12 +74,12 @@ func (s *sinkImpl[T]) AddError(err error) {
 		panic(s.unexpectedState(operational))
 	}
 
-	s.respondWith(nil, nil, err)
+	s.respondWith(nil, nil, err, true)
 
 	s.state = failed
 }
 
-func (s *sinkImpl[T]) flush(makeNewBuffer bool) error {
+func (s *sinkImpl[T]) flush(makeNewBuffer bool, isTerminalMessage bool) error {
 	if s.currBuffer.TotalRows() == 0 {
 		return nil
 	}
@@ -87,7 +87,7 @@ func (s *sinkImpl[T]) flush(makeNewBuffer bool) error {
 	stats := s.trafficTracker.DumpStats(false)
 
 	// enqueue message to GRPC stream
-	s.respondWith(s.currBuffer, stats, nil)
+	s.respondWith(s.currBuffer, stats, nil, isTerminalMessage)
 
 	// create empty buffer and reset counters
 	s.currBuffer = nil
@@ -112,9 +112,9 @@ func (s *sinkImpl[T]) Finish() {
 
 	// if there is some data left, send it to the channel
 	if s.state == operational {
-		err := s.flush(false)
+		err := s.flush(false, true)
 		if err != nil {
-			s.respondWith(nil, nil, fmt.Errorf("flush: %w", err))
+			s.respondWith(nil, nil, fmt.Errorf("flush: %w", err), true)
 			s.state = failed
 		} else {
 			s.state = finished
@@ -132,9 +132,10 @@ func (s *sinkImpl[T]) ResultQueue() <-chan *ReadResult[T] {
 func (s *sinkImpl[T]) respondWith(
 	buf ColumnarBuffer[T],
 	stats *api_service_protos.TReadSplitsResponse_TStats,
-	err error) {
+	err error,
+	isTerminalMessage bool) {
 	select {
-	case s.resultQueue <- &ReadResult[T]{ColumnarBuffer: buf, Stats: stats, Error: err}:
+	case s.resultQueue <- &ReadResult[T]{ColumnarBuffer: buf, Stats: stats, Error: err, IsTerminalMessage: isTerminalMessage}:
 	case <-s.ctx.Done():
 	}
 }

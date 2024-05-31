@@ -1,13 +1,14 @@
-package client
+package connector
 
 import (
 	"context"
+	"flag"
 	"fmt"
-	"os"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -15,16 +16,33 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	tableName    = "primitives"
-	outputFormat = api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING
-)
+type md struct {
+	userID    string
+	sessionID string
+}
 
-func runClient(_ *cobra.Command, args []string) error {
-	var (
-		configPath = args[0]
-		cfg        config.TClientConfig
-	)
+func runClient(cmd *cobra.Command, _ []string) error {
+	configPath, err := cmd.Flags().GetString(configFlag)
+	if err != nil {
+		return fmt.Errorf("get config flag: %v", err)
+	}
+
+	tableName, err := cmd.Flags().GetString(tableFlag)
+	if err != nil {
+		return fmt.Errorf("get table flag: %v", err)
+	}
+
+	userID, err := cmd.Flags().GetString(userIDFlag)
+	if err != nil {
+		return fmt.Errorf("get user flag: %v", err)
+	}
+
+	sessionID, err := cmd.Flags().GetString(sessionIDFlag)
+	if err != nil {
+		return fmt.Errorf("get session flag: %v", err)
+	}
+
+	var cfg config.TClientConfig
 
 	if err := common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
 		return fmt.Errorf("unknown instance: %w", err)
@@ -32,17 +50,24 @@ func runClient(_ *cobra.Command, args []string) error {
 
 	logger := common.NewDefaultLogger()
 
-	if err := callServer(logger, &cfg); err != nil {
+	flag.Parse()
+
+	metainfo := md{
+		userID:    userID,
+		sessionID: sessionID,
+	}
+
+	if err := callServer(logger, &cfg, tableName, metainfo); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 
 	return nil
 }
 
-func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
+func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string, metainfo md) error {
 	cl, err := common.NewClientBufferingFromClientConfig(logger, cfg)
 	if err != nil {
-		return fmt.Errorf("grpc dial: %w", err)
+		return fmt.Errorf("new client buffering from client config: %w", err)
 	}
 
 	defer cl.Close()
@@ -50,12 +75,14 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 	var splits []*api_service_protos.TSplit
 
 	switch cfg.DataSourceInstance.Kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_YDB:
+	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
+		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
+		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
 		}
 
-		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName)
+		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName, metainfo)
 
 		if err != nil {
 			return fmt.Errorf("prepare splits: %w", err)
@@ -65,7 +92,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig) error {
 	}
 
 	// ReadSplits
-	if err := readSplits(logger, cl, splits); err != nil {
+	if err := readSplits(logger, cl, splits, metainfo); err != nil {
 		return fmt.Errorf("read splits: %w", err)
 	}
 
@@ -78,11 +105,15 @@ func prepareSplits(
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
+	metainfo md,
 ) ([]*api_service_protos.TSplit, error) {
 	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
 
+	md := metadata.New(map[string]string{"user_id": metainfo.userID, "session_id": metainfo.sessionID})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
 	// DescribeTable
-	describeTableResponse, err := cl.DescribeTable(context.TODO(), dsi, typeMappingSettings, tableName)
+	describeTableResponse, err := cl.DescribeTable(ctx, dsi, typeMappingSettings, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("describe table: %w", err)
 	}
@@ -104,7 +135,7 @@ func prepareSplits(
 
 	logger.Debug("Listing splits", zap.String("select", slct.String()))
 
-	listSplitsResponse, err := cl.ListSplits(context.TODO(), slct)
+	listSplitsResponse, err := cl.ListSplits(ctx, slct)
 	if err != nil {
 		return nil, fmt.Errorf("list splits: %w", err)
 	}
@@ -118,10 +149,14 @@ func readSplits(
 	logger *zap.Logger,
 	cl *common.ClientBuffering,
 	splits []*api_service_protos.TSplit,
+	metainfo md,
 ) error {
 	logger.Debug("Reading splits")
 
-	readSplitsResponses, err := cl.ReadSplits(context.Background(), splits)
+	md := metadata.New(map[string]string{"user_id": metainfo.userID, "session_id": metainfo.sessionID})
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	readSplitsResponses, err := cl.ReadSplits(ctx, splits)
 	if err != nil {
 		return fmt.Errorf("read splits: %w", err)
 	}
@@ -147,15 +182,4 @@ func dumpReadResponses(
 			logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
 		}
 	}
-}
-
-var Cmd = &cobra.Command{
-	Use:   "client",
-	Short: "client for Connector testing and debugging purposes",
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := runClient(cmd, args); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	},
 }

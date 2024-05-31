@@ -1,6 +1,11 @@
-endpoint {
+connector_server_endpoint {
     host: "localhost"
     port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
 }
 
 data_source_instance {

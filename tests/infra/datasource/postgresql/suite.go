@@ -3,6 +3,7 @@ package postgresql
 import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
@@ -227,6 +228,49 @@ func (s *Suite) TestPushdownNegation() {
 			},
 		}),
 	)
+}
+
+// Set of tests validating stats
+
+func (s *Suite) TestPositiveStats() {
+	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
+}
+
+func (s *Suite) TestMissingDataSource() {
+	dsi := &api_common.TDataSourceInstance{
+		Kind:     api_common.EDataSourceKind_POSTGRESQL,
+		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 5432},
+		Database: "it's not important",
+		Credentials: &api_common.TCredentials{
+			Payload: &api_common.TCredentials_Basic{
+				Basic: &api_common.TCredentials_TBasic{
+					Username: "it's not important",
+					Password: "it's not important",
+				},
+			},
+		},
+		UseTls:   false,
+		Protocol: api_common.EProtocol_NATIVE,
+		Options: &api_common.TDataSourceInstance_PgOptions{
+			PgOptions: &api_common.TPostgreSQLDataSourceOptions{
+				Schema: "public",
+			},
+		},
+	}
+
+	suite.TestMissingDataSource(s.Base, dsi)
+}
+
+func (s *Suite) TestInvalidLogin() {
+	for _, dsi := range s.dataSource.Instances {
+		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
+	}
+}
+
+func (s *Suite) TestInvalidPassword() {
+	for _, dsi := range s.dataSource.Instances {
+		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
+	}
 }
 
 func NewSuite(

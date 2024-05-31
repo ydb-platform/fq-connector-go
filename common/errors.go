@@ -3,9 +3,19 @@ package common
 import (
 	"errors"
 	"fmt"
+	"regexp"
+	"strconv"
+	"strings"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ch_proto "github.com/ClickHouse/ch-go/proto"
+	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	"github.com/go-mysql-org/go-mysql/mysql"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
+	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"go.uber.org/zap"
+	grpc_codes "google.golang.org/grpc/codes"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
@@ -30,9 +40,14 @@ var (
 	ErrPageSizeExceeded                    = fmt.Errorf("page size exceeded, check service configuration")
 )
 
+var (
+	// TODO: remove this and extract MyError somehow
+	mysqlRegex = regexp.MustCompile(`\d+`)
+)
+
 func NewSuccess() *api_service_protos.TError {
 	return &api_service_protos.TError{
-		Status:  Ydb.StatusIds_SUCCESS,
+		Status:  ydb_proto.StatusIds_SUCCESS,
 		Message: "succeeded",
 	}
 }
@@ -42,48 +57,138 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 		return true
 	}
 
-	if apiErr.Status == Ydb.StatusIds_STATUS_CODE_UNSPECIFIED {
+	if apiErr.Status == ydb_proto.StatusIds_STATUS_CODE_UNSPECIFIED {
 		panic("status uninitialized")
 	}
 
-	return apiErr.Status == Ydb.StatusIds_SUCCESS
+	return apiErr.Status == ydb_proto.StatusIds_SUCCESS
 }
 
+//nolint:funlen,gocyclo
 func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
-	var status Ydb.StatusIds_StatusCode
+	if err == nil {
+		panic("nil error")
+	}
+
+	var status ydb_proto.StatusIds_StatusCode
+
+	// check datasource-specific errors
+
+	chErr := &clickhouse_proto.Exception{}
+	if errors.As(err, &chErr) {
+		switch chErr.Code {
+		case int32(ch_proto.ErrAuthenticationFailed):
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		default:
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: chErr.Message,
+		}
+	}
+
+	pgConnectError := &pgconn.ConnectError{}
+	if errors.As(err, &pgConnectError) {
+		pgError, ok := pgConnectError.Unwrap().(*pgconn.PgError)
+		if ok {
+			switch pgError.Code {
+			case pgerrcode.InvalidPassword:
+				// Invalid password in PostgreSQL 15
+				status = ydb_proto.StatusIds_UNAUTHORIZED
+			case pgerrcode.InvalidAuthorizationSpecification:
+				// Invalid password in Greenplum 6.25
+				status = ydb_proto.StatusIds_UNAUTHORIZED
+			default:
+				status = ydb_proto.StatusIds_INTERNAL_ERROR
+			}
+
+			return &api_service_protos.TError{
+				Status:  status,
+				Message: pgError.Message,
+			}
+		}
+	}
+
+	// TODO: remove this and extract MyError somehow
+	//       for some reason errors.As() does not work with mysql.MyError
+	errorText := err.Error()
+	if strings.Contains(errorText, "mysql:") {
+		var code uint16
+
+		match := mysqlRegex.FindString(errorText)
+
+		if len(match) > 0 {
+			tmp, _ := strconv.ParseUint(match, 10, 16)
+			code = uint16(tmp)
+		}
+
+		switch code {
+		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		default:
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: errorText,
+		}
+	}
+
+	if ydb.IsYdbError(err) {
+		for status := range ydb_proto.StatusIds_StatusCode_name {
+			if ydb.IsOperationError(err, ydb_proto.StatusIds_StatusCode(status)) {
+				return &api_service_protos.TError{
+					Status:  ydb_proto.StatusIds_StatusCode(status),
+					Message: err.Error(),
+				}
+			}
+
+			if ydb.IsTransportError(err, grpc_codes.ResourceExhausted) {
+				return &api_service_protos.TError{
+					Status:  ydb_proto.StatusIds_OVERLOADED,
+					Message: err.Error(),
+				}
+			}
+		}
+	}
+
+	// check general errors that could happen within connector logic
 
 	switch {
 	case errors.Is(err, ErrTableDoesNotExist):
-		status = Ydb.StatusIds_NOT_FOUND
+		status = ydb_proto.StatusIds_NOT_FOUND
 	case errors.Is(err, ErrReadLimitExceeded):
 		// Return BAD_REQUEST to avoid retrying
-		status = Ydb.StatusIds_BAD_REQUEST
+		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrInvalidRequest):
-		status = Ydb.StatusIds_BAD_REQUEST
+		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrDataSourceNotSupported):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrDataTypeNotSupported):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrValueOutOfTypeBounds):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedTypedValue):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedExpression):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedOperation):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedPredicateType):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplemented):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedArithmeticalExpression):
-		status = Ydb.StatusIds_UNSUPPORTED
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrEmptyTableName):
-		status = Ydb.StatusIds_BAD_REQUEST
+		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrPageSizeExceeded):
-		status = Ydb.StatusIds_INTERNAL_ERROR
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	default:
-		status = Ydb.StatusIds_INTERNAL_ERROR
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	}
 
 	return &api_service_protos.TError{
@@ -109,7 +214,7 @@ func NewSTDErrorFromAPIError(apiErr *api_service_protos.TError) error {
 
 func AllStreamResponsesSuccessfull[T StreamResponse](responses []T) bool {
 	for _, resp := range responses {
-		if resp.GetError().Status != Ydb.StatusIds_SUCCESS {
+		if resp.GetError().Status != ydb_proto.StatusIds_SUCCESS {
 			return false
 		}
 	}

@@ -3,7 +3,7 @@ UPSERT OBJECT `my_sa_signature_name` (TYPE SECRET) WITH value=`my_sa_secret_valu
 CREATE EXTERNAL DATA SOURCE ydb_dev WITH (
     SOURCE_TYPE="Ydb",
     AUTH_METHOD="SERVICE_ACCOUNT",
-    DATABASE_ID="etnejle6hb72cdr6aqps",
+    DATABASE_ID="etnra7druh6pvp7obhdr",
     SERVICE_ACCOUNT_ID="my_sa",
     SERVICE_ACCOUNT_SECRET_NAME="my_sa_signature_name",
     USE_TLS="TRUE"

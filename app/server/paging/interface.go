@@ -21,11 +21,14 @@ type ColumnarBufferFactory[T Acceptor] interface {
 
 // ReadResult is an algebraic data type containing:
 // 1. a buffer (e. g. page) packed with data
-// 2. result of read operation (potentially with error)
+// 2. stats describing data that is kept in buffer
+// 3. result of read operation (potentially with error)
+// 4. flag marking this stream as completed
 type ReadResult[T Acceptor] struct {
-	ColumnarBuffer ColumnarBuffer[T]
-	Stats          *api_service_protos.TReadSplitsResponse_TStats
-	Error          error
+	ColumnarBuffer    ColumnarBuffer[T]
+	Stats             *api_service_protos.TReadSplitsResponse_TStats
+	Error             error
+	IsTerminalMessage bool
 }
 
 // Sink is a destination for a data stream that is read out of an external data source.
