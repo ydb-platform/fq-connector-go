@@ -3,7 +3,7 @@ version: '3'
 
 services:
   clickhouse:
-    image: clickhouse/clickhouse-server:24
+    image: mirror.gcr.io/clickhouse/clickhouse-server:24
     container_name: ${USER}-fq-connector-go-tests-clickhouse
     ports:
       - '8123'
@@ -22,7 +22,7 @@ services:
         hard: 262144
 
   postgresql:
-    image: postgres
+    image: mirror.gcr.io/postgres
     container_name: ${USER}-fq-connector-go-tests-postgresql
     ports:
       - '5432'
@@ -61,7 +61,7 @@ services:
 
 
   mysql:
-    image: docker.io/library/mysql:8.4
+    image: mirror.gcr.io/library/mysql:8.4
     container_name: ${USER}-fq-connector-go-tests-mysql
     ports:
       - '3306:3306'
