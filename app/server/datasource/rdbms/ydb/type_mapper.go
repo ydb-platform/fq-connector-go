@@ -38,6 +38,7 @@ const (
 	DoubleType    = "Double"
 	StringType    = "String"
 	Utf8Type      = "Utf8"
+	JsonType 	  = "Json"
 	DateType      = "Date"
 	DatetimeType  = "Datetime"
 	TimestampType = "Timestamp"
@@ -98,6 +99,8 @@ func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTyp
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
 	case Utf8Type:
 		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
+	case JsonType:
+		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	case DateType:
 		return common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
 	case DatetimeType:
@@ -240,6 +243,9 @@ func makeAcceptorAndAppenderFromSQLType(
 	case StringType:
 		return new(*[]byte), appendToBuilderWithValueConverter[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()), nil
 	case Utf8Type:
+		return new(*string), appendToBuilderWithValueConverter[string, string, *array.StringBuilder](cc.String()), nil
+	case JsonType:
+		// Copy of UTF8
 		return new(*string), appendToBuilderWithValueConverter[string, string, *array.StringBuilder](cc.String()), nil
 	case DateType:
 		switch ydbTypeID {
