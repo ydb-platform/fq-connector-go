@@ -17,7 +17,7 @@ Currently supported data sources:
 * YDB
 * Microsoft SQL Server
 * Greenplum
-* MySQL (5.7, 8.0)
+* MySQL 8.0
 
 ### Documentation 
 
