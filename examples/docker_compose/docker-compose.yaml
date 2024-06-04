@@ -35,6 +35,15 @@ services:
     ports:
       - '3306:3306'
 
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fq-example-mssql
+    environment:
+      ACCEPT_EULA: Y
+      MSSQL_SA_PASSWORD: Qwerty12345!
+    ports:
+      - '1433:1433'
+
   fq-connector-go:
     image: ghcr.io/ydb-platform/fq-connector-go:latest
     container_name: fq-example-connector
