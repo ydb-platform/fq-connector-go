@@ -82,4 +82,158 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 	},
+
+	"pushdown_comparison_L": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(1)},
+					"int_column":     []*int32{ptr.Int32(10)},
+					"varchar_column": []*string{ptr.T("a")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_LE": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(1), ptr.Int32(2)},
+					"int_column":     []*int32{ptr.Int32(10), ptr.Int32(20)},
+					"varchar_column": []*string{ptr.T("a"), ptr.T("b")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_EQ": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(2)},
+					"int_column":     []*int32{ptr.Int32(20)},
+					"varchar_column": []*string{ptr.T("b")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_GE": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(2), ptr.Int32(3)},
+					"int_column":     []*int32{ptr.Int32(20), ptr.Int32(30)},
+					"varchar_column": []*string{ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_G": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
+					"int_column":     []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"varchar_column": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NE": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
+					"int_column":     []*int32{ptr.Int32(20), ptr.Int32(30), nil},
+					"varchar_column": []*string{ptr.T("b"), ptr.T("c"), nil},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NULL": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(4)},
+					"int_column":     []*int32{nil},
+					"varchar_column": []*string{nil},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NOT_NULL": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
+					"int_column":     []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"varchar_column": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_conjunction": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(2), ptr.Int32(3)},
+					"int_column":     []*int32{ptr.Int32(20), ptr.Int32(30)},
+					"varchar_column": []*string{ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_disjunction": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
+					"int_column":     []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"varchar_column": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_negation": {
+		Name:   "pushdown",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":             []*int32{ptr.Int32(4)},
+					"int_column":     []*int32{nil},
+					"varchar_column": []*string{nil},
+				},
+			},
+		},
+	},
+}
+
+func pushdownSchemaYdb() *test_utils.TableSchema {
+	return &test_utils.TableSchema{
+		Columns: map[string]*Ydb.Type{
+			"id":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+			"int_column":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+			"varchar_column": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+		},
+	}
 }
