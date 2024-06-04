@@ -1,6 +1,7 @@
 fq-connector-go
 fq-connector-go-tests
 ydbinit
+kqprun
 
 coverage*
 scripts/bench/postgresql

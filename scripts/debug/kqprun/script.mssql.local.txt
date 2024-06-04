@@ -1,0 +1,1 @@
+SELECT * FROM mssql_external_datasource.users;
