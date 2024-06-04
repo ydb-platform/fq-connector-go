@@ -133,12 +133,34 @@ make run
 Для поддержки нового источника в YDB предлагается следующий алгоритм:
 
 1. Форкните [репозиторий](https://github.com/ydb-platform/ydb) YDB.
-1. Склонируйте его на локальную машину и создайте рабочую ветку:
+Склонируйте репозиторий на ту машину, где у вас будет идти разработка YDB. Эта машина должна быть достаточно мощной (минимум 16 ядер CPU , 32 Gb RAM), и создайте рабочую ветку.
     ```
     git clone git@gitlab.com:юзернейм/ydb.git  
     cd ydb 
     git checkout -b feature-branch
     ```
+1. Выполните команду.
+    ```
+    ./ya ide vscode-clangd -P ~/projects/ydb.vscode-clangd ydb contrib/libs
+    ```
+1. В целевой папке появится workspase для VSCode.
+1. (если работаете на виртуальной машине) В VSCode надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) для удалённой работы по ssh и зайти на хост.
+1. В VSCode на целевой машине надо поставить [плагин](https://marketplace.visualstudio.com/items?itemName=llvm-vs-code-extensions.vscode-clangd) с поддержкой clangd.
+1. После открытия воркспейса clangd начнёт индексацию проекта (ориентируйтесь на несколько часов).
+1. Проверьте ваш git global user.name и user.email командой:
+    ```
+    git config --list --show-origin 
+    ```
+    Если там не указано ничего, или указаны не ваши данные, поменяйте их командыми:
+   
+    ```
+    git config --global user.name "ваш user.name"
+    ```
+    
+    ```
+    git config --global user.email "ваш user.email"
+    ```
+    Это важно для того, чтобы в вашем профиле Гитхаб отображались PRы в Ydb.
 1. Скомпилируйте инструмент `kqprun` с помощью встроенного инструмента `ya`:
     ```
     ./ya make --build relwithdebinfo ydb/tests/tools/kqprun
@@ -205,8 +227,10 @@ make run
     * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_dq_integration.cpp#L158-L171
 * [External Sources](https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/core/external_sources/):
     * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/core/external_sources/external_source_factory.cpp#L35-L55
+* [Proto](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto)
+    * https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L29-L38
 
-Список этих файлов может быть неисчерпывающим; если заметите что-то ещё - PRs are welcome :)
+Список этих файлов может быть неисчерпывающим; если заметите что-то ещё - PRs are welcome :) 
 
 
 ## Изменения в API и конфигурации коннектора

@@ -44,13 +44,16 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Ydb = &config.TYdbConfig{
 			OpenConnectionTimeout: "5s",
 			PingConnectionTimeout: "5s",
-			ExponentialBackoff: &config.TExponentialBackoffConfig{
-				InitialInterval:     "500ms",
-				RandomizationFactor: 0.5,
-				Multiplier:          1.5,
-				MaxInterval:         "20s",
-				MaxElapsedTime:      "1m",
-			},
+		}
+	}
+
+	if c.Datasources.Ydb.ExponentialBackoff == nil {
+		c.Datasources.Ydb.ExponentialBackoff = &config.TExponentialBackoffConfig{
+			InitialInterval:     "500ms",
+			RandomizationFactor: 0.5,
+			Multiplier:          1.5,
+			MaxInterval:         "20s",
+			MaxElapsedTime:      "1m",
 		}
 	}
 
