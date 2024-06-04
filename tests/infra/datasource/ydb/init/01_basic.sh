@@ -41,18 +41,7 @@
                 col_14_date, col_15_datetime, col_16_timestamp, col_17_json)
     VALUES (1, false, 1, -2, 3, -4, 5, 6, 7, 8, 9.9f, -10.10, "ая", "az",
             Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123Z"),
-            @@{
-                  "friends": [
-                      {
-                          "name": "James Holden",
-                          "age": 35
-                      },
-                      {
-                          "name": "Naomi Nagata",
-                          "age": 30
-                      }
-                  ]
-            }@@
+            @@{ "friends" : [{"name": "James Holden","age": 35},{"name": "Naomi Nagata","age": 30}]}@@
             );
     COMMIT;
 
@@ -84,20 +73,9 @@
                col_08_uint32, col_09_uint64, col_10_float, col_11_double, col_12_string, col_13_utf8,
                col_14_date, col_15_datetime, col_16_timestamp, col_17_json)
     VALUES
-      (1, true, 1, -2, 3, -4, 5, 6, 7, 8, 9.9f, -10.10, "ая", "az",
-        Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123Z"), 
-        CAST(@@{
-                  "friends": [
-                      {
-                          "name": "James Holden",
-                          "age": 35
-                      },
-                      {
-                          "name": "Naomi Nagata",
-                          "age": 30
-                      }
-                  ]
-            }@@ AS Json)
+        (1, true, 1, -2, 3, -4, 5, 6, 7, 8, 9.9f, -10.10, "ая", "az",
+            Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123Z"), 
+            CAST(@@{ "friends" : [{"name": "James Holden","age": 35},{"name": "Naomi Nagata","age": 30}]}@@ AS Json)
         ),
         (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
     COMMIT;
