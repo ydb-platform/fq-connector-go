@@ -2,7 +2,7 @@ version: '3'
 
 services:
   ydb:
-    image: ghcr.io/ydb-platform/local-ydb:nightly
+    image: ghcr.io/ydb-platform/local-ydb:trunk
     container_name: fq-example-ydb
     hostname: localhost
     ports:
@@ -16,8 +16,10 @@ services:
       FQ_CONNECTOR_ENDPOINT: grpc://fq-connector-go:2130 
 
   postgresql:
-    image: postgres
+    image: mirror.gcr.io/postgres
     container_name: fq-example-postgresql
+    ports:
+      - '5432:5432'
     environment:
       POSTGRES_DB: fq
       POSTGRES_USER: admin
@@ -25,13 +27,13 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
 
   mysql:
-    image: docker.io/library/mysql:latest
+    image: mirror.gcr.io/library/mysql:8.0
     container_name: fq-example-mysql
     environment:
       MYSQL_DATABASE: fq
       MYSQL_ROOT_PASSWORD: password
     ports:
-      - 3306:3306
+      - '3306:3306'
 
   fq-connector-go:
     image: ghcr.io/ydb-platform/fq-connector-go:latest
