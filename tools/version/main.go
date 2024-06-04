@@ -44,7 +44,7 @@ func init() {
 	commitHash = "{{ .CommitHash }}"
 	branch = "{{ .Branch }}"
 	commitDate = "{{ .CommitDate }}"
-	commitMessage = "{{ .CommitMessage }}"
+	commitMessage = ` + "`{{ .CommitMessage }}`" + `
 	username = "{{ .Username }}"
 	buildLocation = "{{ .BuildLocation }}"
 	hostname = "{{ .Hostname }}"
