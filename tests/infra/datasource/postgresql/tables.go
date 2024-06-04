@@ -65,6 +65,7 @@ var tables = map[string]*test_utils.Table{
 				"col_22_text":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"col_23_timestamp":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"col_24_date":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				"col_25_json":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 			},
 		},
 		Records: []*test_utils.Record{
@@ -189,6 +190,13 @@ var tables = map[string]*test_utils.Table{
 							common.TimeToYDBDate, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
 						ptr.Uint16(common.MustTimeToYDBType[uint16](
 							common.TimeToYDBDate, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+						nil,
+					},
+					"col_25_json": []*string{
+						ptr.String("{ \"friends\": " +
+							"[{\"name\": \"James Holden\",\"age\": 35}," +
+							"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"),
+						ptr.String("{ \"TODO\" : \"unicode\" }"),
 						nil,
 					},
 				},

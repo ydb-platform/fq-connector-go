@@ -363,7 +363,7 @@ func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_
 }
 
 func (tb *Table) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
-	require.Equal(t, len(schema.Columns), len(tb.Schema.Columns),
+	require.Equal(t, len(tb.Schema.Columns), len(schema.Columns),
 		fmt.Sprintf(
 			"incorrect number of column, expected: %d\nactual:   %d\n",
 			len(tb.Schema.Columns),
@@ -371,7 +371,7 @@ func (tb *Table) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
 		))
 
 	for _, column := range schema.Columns {
-		require.Equal(t, column.Type, tb.Schema.Columns[column.Name],
+		require.Equal(t, tb.Schema.Columns[column.Name], column.Type,
 			fmt.Sprintf(
 				"incorrect column types, expected: %v\nactual:   %v\n",
 				tb.Schema,

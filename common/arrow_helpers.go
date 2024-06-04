@@ -158,6 +158,12 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 		builder = array.NewStringBuilder(arrowAllocator)
 		// TODO: find more reasonable constant, maybe make dependency on paging settings
 		builder.(*array.StringBuilder).ReserveData(1 << 20)
+	case Ydb.Type_JSON:
+		// TODO: what about LargeString?
+		// https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow4Type4type12LARGE_STRINGE
+		builder = array.NewStringBuilder(arrowAllocator)
+		// TODO: find more reasonable constant, maybe make dependency on paging settings
+		builder.(*array.StringBuilder).ReserveData(1 << 20)
 	case Ydb.Type_DATE:
 		builder = array.NewUint16Builder(arrowAllocator)
 	case Ydb.Type_DATETIME:
@@ -208,6 +214,8 @@ func ydbTypeToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (a
 	case Ydb.Type_UTF8:
 		// TODO: what about LargeString?
 		// https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow4Type4type12LARGE_STRINGE
+		field = arrow.Field{Name: column.Name, Type: arrow.BinaryTypes.String}
+	case Ydb.Type_JSON: // TODO: now it is copy from UTF8, review native mapping type
 		field = arrow.Field{Name: column.Name, Type: arrow.BinaryTypes.String}
 	case Ydb.Type_DATE:
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Uint16}
