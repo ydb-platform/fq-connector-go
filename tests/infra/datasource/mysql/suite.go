@@ -5,10 +5,11 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type Suite struct {
