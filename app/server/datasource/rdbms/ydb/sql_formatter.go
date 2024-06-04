@@ -41,7 +41,7 @@ func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	case Ydb.Type_STRING:
 		return true
 	case Ydb.Type_JSON:
-		return true
+		return false
 	default:
 		return false
 	}
