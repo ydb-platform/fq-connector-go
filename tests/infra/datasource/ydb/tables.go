@@ -62,7 +62,7 @@ var tables = map[string]*test_utils.Table{
 				"col_14_date":      common.MakePrimitiveType(Ydb.Type_DATE),
 				"col_15_datetime":  common.MakePrimitiveType(Ydb.Type_DATETIME),
 				"col_16_timestamp": common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
-				"col_17_json": 		common.MakePrimitiveType(Ydb.Type_JSON),
+				"col_17_json":      common.MakePrimitiveType(Ydb.Type_JSON),
 			},
 		},
 		Records: []*test_utils.Record{
@@ -97,7 +97,9 @@ var tables = map[string]*test_utils.Table{
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC),
 						),
 					},
-					"col_17_json":   []string{"{ \"friends\": [{\"name\": \"James Holden\",\"age\": 35},{\"name\": \"Naomi Nagata\",\"age\": 30}]}"},
+					"col_17_json": []string{"{ \"friends\": " +
+						"[{\"name\": \"James Holden\",\"age\": 35}," +
+						"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"},
 				},
 			},
 		},
@@ -124,7 +126,7 @@ var tables = map[string]*test_utils.Table{
 				"col_14_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
 				"col_15_datetime":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
 				"col_16_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
-				"col_17_json": 		common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
+				"col_17_json":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 			},
 		},
 		Records: []*test_utils.Record{
@@ -162,7 +164,9 @@ var tables = map[string]*test_utils.Table{
 						)),
 						nil,
 					},
-					"col_17_json":   []*string{ptr.String("{ \"friends\": [{\"name\": \"James Holden\",\"age\": 35},{\"name\": \"Naomi Nagata\",\"age\": 30}]}"), nil},
+					"col_17_json": []*string{ptr.String("{ \"friends\": " +
+						"[{\"name\": \"James Holden\",\"age\": 35}," +
+						"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"), nil},
 				},
 			},
 		},
