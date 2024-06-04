@@ -47,3 +47,5 @@ services:
   fq-connector-go:
     image: ghcr.io/ydb-platform/fq-connector-go:latest
     container_name: fq-example-connector
+    ports:
+      - '2130:2130'

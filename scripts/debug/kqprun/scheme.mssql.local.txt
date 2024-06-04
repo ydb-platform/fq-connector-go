@@ -2,7 +2,7 @@ CREATE OBJECT mssql_local_password (TYPE SECRET) WITH (value = "Qwerty12345!");
 
 CREATE EXTERNAL DATA SOURCE mssql_external_datasource WITH (
     SOURCE_TYPE="MsSQLServer",
-    LOCATION="localhost:1433",
+    LOCATION="mssql:1433",
     AUTH_METHOD="BASIC",
     LOGIN="SA",
     DATABASE_NAME="master",
