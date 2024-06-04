@@ -97,7 +97,7 @@ var tables = map[string]*test_utils.Table{
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC),
 						),
 					},
-					"col_17_json": []string{"{ \"friends\" : " +  // TODO: Add unicode tests
+					"col_17_json": []string{"{ \"friends\" : " + // TODO: Add unicode tests
 						"[{\"name\": \"James Holden\",\"age\": 35}," +
 						"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"},
 				},
@@ -164,7 +164,7 @@ var tables = map[string]*test_utils.Table{
 						)),
 						nil,
 					},
-					"col_17_json": []*string{ptr.String("{ \"friends\" : " +  // TODO: Add unicode tests
+					"col_17_json": []*string{ptr.String("{ \"friends\" : " + // TODO: Add unicode tests
 						"[{\"name\": \"James Holden\",\"age\": 35}," +
 						"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"), nil},
 				},
