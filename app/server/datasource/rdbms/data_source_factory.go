@@ -75,10 +75,7 @@ func NewDataSourceFactory(
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		postgresql: Preset{
-			SQLFormatter: postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, func(tsi *api_common.TDataSourceInstance) string {
-				return tsi.GetGpOptions().Schema
-			}),
+			SQLFormatter:   postgresql.NewSQLFormatter(),
 			TypeMapper:     postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
 			RetrierSet:     rdbms_utils.NewRetrierSetNoop(),
@@ -108,10 +105,7 @@ func NewDataSourceFactory(
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		greenplum: Preset{
-			SQLFormatter: postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, func(tsi *api_common.TDataSourceInstance) string {
-				return tsi.GetGpOptions().Schema
-			}),
+			SQLFormatter:   postgresql.NewSQLFormatter(),
 			TypeMapper:     postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
 			RetrierSet:     rdbms_utils.NewRetrierSetNoop(),
