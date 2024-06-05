@@ -107,8 +107,6 @@ func (c *connectionManager) Make(
 		connCfg.TLSConfig.ServerName = dsi.GetEndpoint().GetHost()
 	}
 
-	fmt.Println(connCfg)
-
 	conn, err := pgx.ConnectConfig(ctx, connCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect config: %w", err)
@@ -119,6 +117,7 @@ func (c *connectionManager) Make(
 	// set schema (public by default)
 	if dsi.Kind == api_common.EDataSourceKind_POSTGRESQL {
 		searchPath = fmt.Sprintf("set search_path=%s", NewSQLFormatter().SanitiseIdentifier(dsi.GetPgOptions().GetSchema()))
+
 	} else {
 		searchPath = fmt.Sprintf("set search_path=%s", NewSQLFormatter().SanitiseIdentifier(dsi.GetGpOptions().GetSchema()))
 	}
