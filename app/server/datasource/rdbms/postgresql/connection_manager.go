@@ -138,7 +138,6 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 
 func NewConnectionManager(
 	cfg rdbms_utils.ConnectionManagerBase,
-	schemaGetter func(*api_common.TDataSourceInstance) string,
 ) rdbms_utils.ConnectionManager {
 	return &connectionManager{ConnectionManagerBase: cfg}
 }
