@@ -75,11 +75,13 @@ func NewDataSourceFactory(
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		postgresql: Preset{
-			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
-			TypeMapper:        postgresqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			SQLFormatter: postgresql.NewSQLFormatter(),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, func(tsi *api_common.TDataSourceInstance) string {
+				return tsi.GetGpOptions().Schema
+			}),
+			TypeMapper:     postgresqlTypeMapper,
+			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
+			RetrierSet:     rdbms_utils.NewRetrierSetNoop(),
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
@@ -106,11 +108,13 @@ func NewDataSourceFactory(
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		greenplum: Preset{
-			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
-			TypeMapper:        postgresqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			SQLFormatter: postgresql.NewSQLFormatter(),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, func(tsi *api_common.TDataSourceInstance) string {
+				return tsi.GetGpOptions().Schema
+			}),
+			TypeMapper:     postgresqlTypeMapper,
+			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
+			RetrierSet:     rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}
