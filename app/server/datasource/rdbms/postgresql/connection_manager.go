@@ -135,8 +135,6 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close posgresql connection")
 }
 
-func NewConnectionManager(
-	cfg rdbms_utils.ConnectionManagerBase,
-) rdbms_utils.ConnectionManager {
+func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
 	return &connectionManager{ConnectionManagerBase: cfg}
 }
