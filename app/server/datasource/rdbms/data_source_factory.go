@@ -69,11 +69,11 @@ func NewDataSourceFactory(
 
 	// for PostgreSQL-like systems
 	schemaGetter := func(dsi *api_common.TDataSourceInstance) string {
-		if dsi.Kind == api_common.EDataSourceKind_POSTGRESQL {
-			return dsi.GetPgOptions().GetSchema()
-		} else {
+		if dsi.Kind == api_common.EDataSourceKind_GREENPLUM {
 			return dsi.GetGpOptions().GetSchema()
 		}
+
+		return dsi.GetPgOptions().GetSchema()
 	}
 
 	return &dataSourceFactory{
