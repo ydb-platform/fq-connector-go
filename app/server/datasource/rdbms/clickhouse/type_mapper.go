@@ -77,6 +77,8 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// https://clickhouse.com/docs/en/sql-reference/data-types/string#encodings
 	case typeName == "String", tm.isFixedString.MatchString(typeName):
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
+	case typeName == "Json":
+		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
 	case typeName == "Date", typeName == "Date32":
 		// NOTE: ClickHouse's Date32 value range is much more wide than YDB's Date value range
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
@@ -157,6 +159,10 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
 		case typeName == "String", isFixedString.MatchString(typeName):
 			// Looks like []byte would be a better option here, but clickhouse driver prefers string
+			acceptors = append(acceptors, new(*string))
+			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+		case typeName == "Json":
+			// Copy of UTF8 (String)
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		case typeName == "Date":
