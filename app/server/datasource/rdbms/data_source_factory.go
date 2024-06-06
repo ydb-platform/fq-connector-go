@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
@@ -66,6 +67,14 @@ func NewDataSourceFactory(
 	msSQLServerTypeMapper := ms_sql_server.NewTypeMapper()
 	mysqlTypeMapper := mysql.NewTypeMapper()
 
+	schemaGetter := func(dsi *api_common.TDataSourceInstance) string {
+		if dsi.Kind == api_common.EDataSourceKind_POSTGRESQL {
+			return dsi.GetPgOptions().GetSchema()
+		} else {
+			return dsi.GetGpOptions().GetSchema()
+		}
+	}
+
 	return &dataSourceFactory{
 		clickhouse: Preset{
 			SQLFormatter:      clickhouse.NewSQLFormatter(),
@@ -76,10 +85,12 @@ func NewDataSourceFactory(
 		},
 		postgresql: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetter),
 			TypeMapper:        postgresqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+				return postgresql.GetQueryAndArgs(request, schemaGetter)
+			}),
+			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
@@ -107,10 +118,12 @@ func NewDataSourceFactory(
 		},
 		greenplum: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetter),
 			TypeMapper:        postgresqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+				return postgresql.GetQueryAndArgs(request, schemaGetter)
+			}),
+			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}
