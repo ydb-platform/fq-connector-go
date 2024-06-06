@@ -110,7 +110,7 @@ func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_s
 
 func NewTypeMapper() datasource.TypeMapper {
 	return &typeMapper{
-		regexp.MustCompile(`(?<type>.*)(:?\((?<size>\d+)\))`),
+		regexp.MustCompile(`(?P<type>.*)(:?\((?P<size>\d+)\))`),
 	}
 }
 
