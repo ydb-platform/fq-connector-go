@@ -78,7 +78,7 @@ func (sqlFormatter) GetPlaceholder(n int) string {
 }
 
 func (sqlFormatter) SanitiseIdentifier(ident string) string {
-	// https://github.com/jackc/pgx/blob/v5.4.3/conn.go#L93
+	// https://github.com/jackc/pgx/blob/v4.0.0/conn.go#L93
 	// https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
 	sanitizedIdent := strings.ReplaceAll(ident, string([]byte{0}), "")
 	sanitizedIdent = `"` + strings.ReplaceAll(sanitizedIdent, `"`, `""`) + `"`

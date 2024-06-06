@@ -68,9 +68,12 @@ func NewDataSourceFactory(
 	mysqlTypeMapper := mysql.NewTypeMapper()
 
 	// for PostgreSQL-like systems
-	schemaGetters := map[api_common.EDataSourceKind]func(dsi *api_common.TDataSourceInstance) string{
-		api_common.EDataSourceKind_POSTGRESQL: func(dsi *api_common.TDataSourceInstance) string { return dsi.GetPgOptions().Schema },
-		api_common.EDataSourceKind_GREENPLUM:  func(dsi *api_common.TDataSourceInstance) string { return dsi.GetGpOptions().Schema },
+	schemaGetter := func(dsi *api_common.TDataSourceInstance) string {
+		if dsi.Kind == api_common.EDataSourceKind_POSTGRESQL {
+			return dsi.GetPgOptions().GetSchema()
+		} else {
+			return dsi.GetGpOptions().GetSchema()
+		}
 	}
 
 	return &dataSourceFactory{
@@ -83,14 +86,14 @@ func NewDataSourceFactory(
 		},
 		postgresql: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetters[api_common.EDataSourceKind_POSTGRESQL]),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetter),
 			TypeMapper:        postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
 				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
 					return postgresql.TableMetadataQuery(
 						request,
-						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
+						schemaGetter(request.DataSourceInstance))
 				}),
 			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
 		},
@@ -120,14 +123,14 @@ func NewDataSourceFactory(
 		},
 		greenplum: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetters[api_common.EDataSourceKind_GREENPLUM]),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetter),
 			TypeMapper:        postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
 				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
 					return postgresql.TableMetadataQuery(
 						request,
-						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
+						schemaGetter(request.DataSourceInstance))
 				}),
 			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
 		},

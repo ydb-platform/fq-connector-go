@@ -111,7 +111,9 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 		return nil
 
 	case api_common.EDataSourceKind_GREENPLUM:
-		return nil
+		if dsi.GetGpOptions().GetSchema() == "" {
+			return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
+		}
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB,
 		api_common.EDataSourceKind_MYSQL:
 	default:
