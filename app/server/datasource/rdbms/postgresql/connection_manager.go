@@ -65,6 +65,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
+	schemaGetter func(dsi *api_common.TDataSourceInstance) string
 	// TODO: cache of connections, remove unused connections with TTL
 }
 
@@ -113,7 +114,9 @@ func (c *connectionManager) Make(
 	}
 
 	// set schema (public by default)
-	searchPath := fmt.Sprintf("set search_path=%s", NewSQLFormatter().SanitiseIdentifier(dsi.GetPgOptions().GetSchema()))
+
+	searchPath := fmt.Sprintf("set search_path=%s", c.schemaGetter(dsi))
+
 	if _, err = conn.Exec(ctx, searchPath); err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
@@ -127,6 +130,12 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close posgresql connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	cfg rdbms_utils.ConnectionManagerBase,
+	schemaGetter func(*api_common.TDataSourceInstance) string,
+) rdbms_utils.ConnectionManager {
+	return &connectionManager{
+		ConnectionManagerBase: cfg,
+		schemaGetter:          schemaGetter,
+	}
 }
