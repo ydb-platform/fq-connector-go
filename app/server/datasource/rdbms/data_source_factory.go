@@ -47,7 +47,7 @@ func (dsf *dataSourceFactory) Make(
 	case api_common.EDataSourceKind_MYSQL:
 		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_GREENPLUM:
-		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
