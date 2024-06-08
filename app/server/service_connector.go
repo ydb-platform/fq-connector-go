@@ -178,8 +178,9 @@ func (s *serviceConnector) doReadSplits(
 	if err := ValidateReadSplitsRequest(logger, request); err != nil {
 		return fmt.Errorf("validate read splits request: %w", err)
 	}
-
+	logger.Debug("doReadSplits", zap.Any("request.Splists", request.Splits))
 	for i, split := range request.Splits {
+		// FIXME: YQ-3314: select what is empty, but it is constant expression
 		splitLogger := common.
 			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
 			With(zap.Int("split_id", i))

@@ -32,6 +32,8 @@ func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
 func SelectWhatToYDBTypes(selectWhat *api_service_protos.TSelect_TWhat) ([]*Ydb.Type, error) {
 	var ydbTypes []*Ydb.Type
 
+	fmt.Printf("SWTYT: selectWhat: %+v, items: %+v\n", selectWhat, selectWhat.Items)
+
 	for i, item := range selectWhat.Items {
 		ydbType := item.GetColumn().GetType()
 		if ydbType == nil {
