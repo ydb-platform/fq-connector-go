@@ -433,6 +433,25 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 	},
+
+	// TODO
+	// "array": {
+	// 	Name: "array",
+	// 	Schema: &test_utils.TableSchema{
+	// 		Columns: map[string]*Ydb.Type{
+	// 			"id":  common.MakePrimitiveType(Ydb.Type_INT32),
+	// 			"col": common.MakeListType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
+	// 		},
+	// 	},
+	// 	Records: []*test_utils.Record{
+	// 		{
+	// 			Columns: map[string]any{
+	// 				"id":  []int32{1, 2, 3, 4},
+	// 				"col": [][]time.Time{{}, {time.Now()}, {time.Now(), time.Now()}, {time.Now(), time.Now(), time.Now()}},
+	// 			},
+	// 		},
+	// 	},
+	// },
 }
 
 func pushdownSchema() *test_utils.TableSchema {

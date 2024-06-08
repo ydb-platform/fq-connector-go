@@ -23,6 +23,7 @@ type typeMapper struct {
 	isDateTime    *regexp.Regexp
 	isDateTime64  *regexp.Regexp
 	isNullable    *regexp.Regexp
+	isArray       *regexp.Regexp
 }
 
 //nolint:gocyclo
@@ -42,10 +43,19 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// 2. The column type is a date/time. CH value ranges for date/time are much wider than YQL value ranges,
 	// so every time we encounter a value that is out of YQL ranges, we have to return NULL.
 	nullable := false
+	array := false
 
 	if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 		nullable = true
 		typeName = matches[1]
+	}
+	// TODO: nullable array can not exist
+	if matches := tm.isArray.FindStringSubmatch(typeName); len(matches) > 0 {
+		array = true
+		typeName = matches[1]
+	}
+	if array == true {
+		return nil, fmt.Errorf("convert type '%s' (array is not supported): %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
@@ -346,5 +356,6 @@ func NewTypeMapper() datasource.TypeMapper {
 		isDateTime:    regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`),
 		isDateTime64:  regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`),
 		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+)\)`),
+		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+)\)`),
 	}
 }

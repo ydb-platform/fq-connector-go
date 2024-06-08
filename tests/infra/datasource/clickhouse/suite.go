@@ -17,7 +17,7 @@ type Suite struct {
 }
 
 func (s *Suite) TestSelect() {
-	testCaseNames := []string{"simple", "primitives", "optionals"}
+	testCaseNames := []string{"simple", "primitives", "optionals", "array"}
 
 	for _, tableName := range testCaseNames {
 		s.ValidateTable(s.dataSource, tables[tableName])
