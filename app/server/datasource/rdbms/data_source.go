@@ -74,7 +74,7 @@ func (ds *dataSourceImpl) doReadSplit(
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) error {
-	query, args, err := rdbms_utils.MakeReadSplitQuery(logger, ds.sqlFormatter, split.Select)
+	query, args, what, err := rdbms_utils.MakeReadSplitQuery(logger, ds.sqlFormatter, split.Select) //
 	if err != nil {
 		return fmt.Errorf("make read split query: %w", err)
 	}

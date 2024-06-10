@@ -52,6 +52,7 @@ func formatSelectColumns(
 		}
 
 		sb.WriteString("0")
+
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))
