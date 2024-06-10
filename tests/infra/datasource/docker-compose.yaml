@@ -39,8 +39,8 @@ services:
     container_name: ${USER}-fq-connector-go-tests-ydb
     hostname: localhost
     ports:
-      - '2136:2136'
-      - '8765:8765'
+      - '2136'
+      - '8765'
     environment:
       YDB_DEFAULT_LOG_LEVEL: ERROR
       POSTGRES_USER: admin
@@ -64,7 +64,7 @@ services:
     image: docker.io/library/mysql:8.4
     container_name: ${USER}-fq-connector-go-tests-mysql
     ports:
-      - '3306:3306'
+      - '3306'
     environment:
       MYSQL_DATABASE: fq
       MYSQL_ROOT_PASSWORD: password
