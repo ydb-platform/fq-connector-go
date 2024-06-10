@@ -43,7 +43,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// 2. The column type is a date/time. CH value ranges for date/time are much wider than YQL value ranges,
 	// so every time we encounter a value that is out of YQL ranges, we have to return NULL.
 	nullable := false
-	array := false
+	arrayContainer := false
 
 	if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 		nullable = true
@@ -51,10 +51,11 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	}
 	// TODO: nullable array can not exist
 	if matches := tm.isArray.FindStringSubmatch(typeName); len(matches) > 0 {
-		array = true
+		arrayContainer = true
 		typeName = matches[1]
 	}
-	if array == true {
+
+	if arrayContainer {
 		return nil, fmt.Errorf("convert type '%s' (array is not supported): %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
