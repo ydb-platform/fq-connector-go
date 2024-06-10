@@ -434,7 +434,7 @@ var tables = map[string]*test_utils.Table{
 		},
 	},
 
-	// TODO
+	// TODO YQ-3327
 	// "array": {
 	// 	Name: "array",
 	// 	Schema: &test_utils.TableSchema{
