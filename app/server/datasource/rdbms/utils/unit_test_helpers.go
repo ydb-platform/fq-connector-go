@@ -32,6 +32,22 @@ func NewDefaultWhat() *api_service_protos.TSelect_TWhat {
 	}
 }
 
+// NewEmptyColumnWhat generates What field with a one column of type Int32
+func NewEmptyColumnWhat() *api_service_protos.TSelect_TWhat {
+	return &api_service_protos.TSelect_TWhat{
+		Items: []*api_service_protos.TSelect_TWhat_TItem{
+			{
+				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+					Column: &Ydb.Column{
+						Name: "",
+						Type: common.MakePrimitiveType(Ydb.Type_INT32),
+					},
+				},
+			},
+		},
+	}
+}
+
 func NewColumnExpression(name string) *api_service_protos.TExpression {
 	return &api_service_protos.TExpression{
 		Payload: &api_service_protos.TExpression_Column{
