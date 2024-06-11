@@ -16,6 +16,10 @@ func MakeOptionalType(ydbType *Ydb.Type) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
 }
 
+func MakeListType(ydbType *Ydb.Type) *Ydb.Type {
+	return &Ydb.Type{Type: &Ydb.Type_ListType{ListType: &Ydb.ListType{Item: ydbType}}}
+}
+
 func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
 	out := &Ydb.TypedValue{Type: ydbType, Value: &Ydb.Value{}}
 

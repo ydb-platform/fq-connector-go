@@ -96,3 +96,17 @@ clickhouse client -n <<-EOSQL
         (3, 30, 'c') \
         (4, NULL, NULL);
 EOSQL
+
+
+clickhouse client -n <<-EOSQL
+    DROP TABLE IF EXISTS connector.arrays;
+    CREATE TABLE connector.arrays (
+        id Int32,
+        col_01_int32 Nullable(Int32),
+        col_02_array Array(DateTime)
+    ) ENGINE = MergeTree ORDER BY id;
+    INSERT INTO connector.arrays (*) VALUES 
+        (1, 10, []) \
+        (2, 20, ['1950-05-27 01:02:03']) \
+        (3, 30, ['1950-05-27 01:02:03', '2023-03-21 11:21:31']);
+EOSQL

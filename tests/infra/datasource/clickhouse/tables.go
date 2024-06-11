@@ -433,6 +433,45 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 	},
+
+	"array": {
+		Name: "array",
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":  common.MakePrimitiveType(Ydb.Type_INT32),
+				"col": common.MakeListType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
+			},
+		},
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id": []int32{1, 2, 3, 4},
+					"col": [][]*uint32{
+						{},
+						{
+							ptr.Uint32(common.MustTimeToYDBType[uint32](
+								common.TimeToYDBDatetime, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
+						},
+						{
+							ptr.Uint32(common.MustTimeToYDBType[uint32](
+								common.TimeToYDBDatetime, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
+							ptr.Uint32(common.MustTimeToYDBType[uint32](
+								common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
+						},
+						{
+							ptr.Uint32(common.MustTimeToYDBType[uint32](
+								common.TimeToYDBDatetime, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
+							ptr.Uint32(common.MustTimeToYDBType[uint32](
+								common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
+							ptr.Uint32(common.MustTimeToYDBType[uint32](
+								common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+						},
+					},
+					// "col": [][]time.Time{{}, {time.Now()}, {time.Now(), time.Now()}, {time.Now(), time.Now(), time.Now()}},
+				},
+			},
+		},
+	},
 }
 
 func pushdownSchema() *test_utils.TableSchema {
