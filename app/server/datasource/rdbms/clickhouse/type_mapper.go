@@ -61,17 +61,15 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		}
 	}
 
-	if arrayContainer && nullable {
-		return nil, fmt.Errorf("convert type '%s' (nullable array is not supported): %w",
-			typeName, common.ErrDataTypeNotSupported)
-	}
-
-	if arrayContainer && innerNullable && !nullable {
-		return nil, fmt.Errorf("convert type '%s' (array with nullable elements is not supported): %w",
-			typeName, common.ErrDataTypeNotSupported)
-	}
-
 	if arrayContainer {
+		if nullable {
+			return nil, fmt.Errorf("convert type '%s' (nullable array is not supported): %w",
+				typeName, common.ErrDataTypeNotSupported)
+		} else if innerNullable {
+			return nil, fmt.Errorf("convert type '%s' (array with nullable elements is not supported): %w",
+				typeName, common.ErrDataTypeNotSupported)
+		}
+
 		return nil, fmt.Errorf("convert type '%s' (array is not supported): %w",
 			typeName, common.ErrDataTypeNotSupported)
 	}
