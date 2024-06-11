@@ -49,10 +49,13 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		nullable = true
 		typeName = matches[1]
 	}
-	// TODO: nullable array can not exist
 	if matches := tm.isArray.FindStringSubmatch(typeName); len(matches) > 0 {
 		arrayContainer = true
 		typeName = matches[1]
+	}
+
+	if arrayContainer && nullable {
+		return nil, fmt.Errorf("convert type '%s' (nullable array is not supported): %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
 	if arrayContainer {
