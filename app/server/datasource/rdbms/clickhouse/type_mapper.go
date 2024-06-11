@@ -56,7 +56,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		typeName = matches[1]
 	}
 
-	if matches := tm.isArray.FindStringSubmatch(typeName); len(matches) > 0 {
+	if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 		innerNullable = true
 		typeName = matches[1]
 	}
