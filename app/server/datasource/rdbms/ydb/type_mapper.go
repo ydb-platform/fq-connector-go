@@ -183,7 +183,6 @@ func appendToBuilderWithValuePtrConverter[
 }
 
 func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	fmt.Printf("TFST: typeNames: %+v ydbTypes: +%v cc: %+v\n", typeNames, ydbTypes, cc)
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 

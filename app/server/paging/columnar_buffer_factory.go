@@ -29,7 +29,6 @@ func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer() (ColumnarBuffer[T], error)
 		}
 
 		if len(cbf.ydbTypes) == 0 {
-			// TODO fmt.Printf("got into empty buffer\n")
 			return &columnarBufferArrowIPCStreamingEmptyColumns[T]{
 				arrowAllocator: cbf.arrowAllocator,
 				schema:         cbf.schema,

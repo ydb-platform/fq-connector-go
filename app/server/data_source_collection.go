@@ -57,7 +57,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
-	split *api_service_protos.TSplit, // FIXME: YQ-3314: select what is empty, but it is constant expression
+	split *api_service_protos.TSplit,
 ) error {
 	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
