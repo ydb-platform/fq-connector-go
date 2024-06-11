@@ -9,7 +9,11 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
-func MakeReadSplitQuery(logger *zap.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, *api_service_protos.TSelect_TWhat, error) {
+func MakeReadSplitQuery(
+	logger *zap.Logger,
+	formatter SQLFormatter,
+	request *api_service_protos.TSelect,
+) (string, []any, *api_service_protos.TSelect_TWhat, error) {
 	var (
 		sb   strings.Builder
 		args []any
