@@ -70,8 +70,6 @@ func formatSelectColumns(
 
 		sb.WriteString("0")
 
-		fmt.Printf("got to empty")
-
 		newSelectWhat = generateTSelectTWhatForEmptyColumnsRequest()
 	} else {
 		for i, column := range columns {
