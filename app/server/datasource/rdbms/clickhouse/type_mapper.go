@@ -44,22 +44,36 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// so every time we encounter a value that is out of YQL ranges, we have to return NULL.
 	nullable := false
 	arrayContainer := false
+	innerNullable := false
 
 	if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 		nullable = true
 		typeName = matches[1]
 	}
+
 	if matches := tm.isArray.FindStringSubmatch(typeName); len(matches) > 0 {
 		arrayContainer = true
 		typeName = matches[1]
 	}
 
+	if matches := tm.isArray.FindStringSubmatch(typeName); len(matches) > 0 {
+		innerNullable = true
+		typeName = matches[1]
+	}
+
 	if arrayContainer && nullable {
-		return nil, fmt.Errorf("convert type '%s' (nullable array is not supported): %w", typeName, common.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s' (nullable array is not supported): %w",
+			typeName, common.ErrDataTypeNotSupported)
+	}
+
+	if arrayContainer && innerNullable && !nullable {
+		return nil, fmt.Errorf("convert type '%s' (array with nullable elements is not supported): %w",
+			typeName, common.ErrDataTypeNotSupported)
 	}
 
 	if arrayContainer {
-		return nil, fmt.Errorf("convert type '%s' (array is not supported): %w", typeName, common.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s' (array is not supported): %w",
+			typeName, common.ErrDataTypeNotSupported)
 	}
 
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
