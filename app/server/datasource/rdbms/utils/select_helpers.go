@@ -25,28 +25,18 @@ func selectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) ([]*Yd
 	return columns, nil
 }
 
-func generateTSelect_TWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat { // TODO maybe global static?
-	counterYdbTypeId := &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}
-
-	countYdbType := &Ydb.Type{
-		Type: counterYdbTypeId,
-	}
-
-	column := &Ydb.Column{
-		Name: "",
-		Type: countYdbType,
-	}
-
-	selectWhatItemColumn := &api_service_protos.TSelect_TWhat_TItem_Column{
-		Column: column,
-	}
-
-	selectWhatItem := &api_service_protos.TSelect_TWhat_TItem{
-		Payload: selectWhatItemColumn,
-	}
-
+func generateTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat { // TODO maybe global static?
 	return &api_service_protos.TSelect_TWhat{
-		Items: []*api_service_protos.TSelect_TWhat_TItem{selectWhatItem},
+		Items: []*api_service_protos.TSelect_TWhat_TItem{
+			{
+				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+					Column: &Ydb.Column{
+						Name: "",
+						Type: common.MakePrimitiveType(Ydb.Type_INT32),
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -80,7 +70,9 @@ func formatSelectColumns(
 
 		sb.WriteString("0")
 
-		newSelectWhat = generateTSelect_TWhatForEmptyColumnsRequest()
+		fmt.Printf("got to empty")
+
+		newSelectWhat = generateTSelectTWhatForEmptyColumnsRequest()
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))
