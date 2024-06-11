@@ -187,19 +187,6 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
-	// checking if select does not need any data from table, only number of rows
-	if len(typeNames) == 1 && len(ydbTypes) == 0 && typeNames[0] == "Int32" {
-		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType("Int32", Ydb.Type_INT32, cc)
-		if err != nil {
-			return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
-		}
-
-		acceptors = append(acceptors, acceptor)
-		appenders = append(appenders, appender)
-
-		return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
-	}
-
 	for i, typeName := range typeNames {
 		if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
 			typeName = matches[1]

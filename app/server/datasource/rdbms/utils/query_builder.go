@@ -9,15 +9,15 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
-func MakeReadSplitQuery(logger *zap.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, error) {
+func MakeReadSplitQuery(logger *zap.Logger, formatter SQLFormatter, request *api_service_protos.TSelect) (string, []any, *api_service_protos.TSelect_TWhat, error) {
 	var (
 		sb   strings.Builder
 		args []any
 	)
 
-	selectPart, err := formatSelectColumns(formatter, request.What, request.GetFrom().GetTable(), true)
+	selectPart, newSelectWhat, err := formatSelectColumns(formatter, request.What, request.GetFrom().GetTable(), true)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed to format select statement: %w", err)
+		return "", nil, nil, fmt.Errorf("failed to format select statement: %w", err)
 	}
 
 	sb.WriteString(selectPart)
@@ -40,5 +40,5 @@ func MakeReadSplitQuery(logger *zap.Logger, formatter SQLFormatter, request *api
 		args = []any{}
 	}
 
-	return query, args, nil
+	return query, args, newSelectWhat, nil
 }

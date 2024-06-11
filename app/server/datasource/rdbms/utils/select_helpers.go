@@ -25,15 +25,40 @@ func selectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) ([]*Yd
 	return columns, nil
 }
 
+func generateTSelect_TWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat { // TODO maybe global static?
+	counterYdbTypeId := &Ydb.Type_TypeId{TypeId: Ydb.Type_INT32}
+
+	countYdbType := &Ydb.Type{
+		Type: counterYdbTypeId,
+	}
+
+	column := &Ydb.Column{
+		Name: "",
+		Type: countYdbType,
+	}
+
+	selectWhatItemColumn := &api_service_protos.TSelect_TWhat_TItem_Column{
+		Column: column,
+	}
+
+	selectWhatItem := &api_service_protos.TSelect_TWhat_TItem{
+		Payload: selectWhatItemColumn,
+	}
+
+	return &api_service_protos.TSelect_TWhat{
+		Items: []*api_service_protos.TSelect_TWhat_TItem{selectWhatItem},
+	}
+}
+
 func formatSelectColumns(
 	formatter SQLFormatter,
 	selectWhat *api_service_protos.TSelect_TWhat,
 	tableName string,
 	fakeZeroOnEmptyColumnsSet bool,
-) (string, error) {
+) (string, *api_service_protos.TSelect_TWhat, error) {
 	// SELECT $columns FROM $from
 	if tableName == "" {
-		return "", common.ErrEmptyTableName
+		return "", nil, common.ErrEmptyTableName
 	}
 
 	var sb strings.Builder
@@ -42,17 +67,20 @@ func formatSelectColumns(
 
 	columns, err := selectWhatToYDBColumns(selectWhat)
 	if err != nil {
-		return "", fmt.Errorf("convert Select.What.Items to Ydb.Columns: %w", err)
+		return "", nil, fmt.Errorf("convert Select.What.Items to Ydb.Columns: %w", err)
 	}
+
+	var newSelectWhat *api_service_protos.TSelect_TWhat
 
 	// for the case of empty column set select some constant for constructing a valid sql statement
 	if len(columns) == 0 {
 		if !fakeZeroOnEmptyColumnsSet {
-			return "", fmt.Errorf("empty columns set")
+			return "", nil, fmt.Errorf("empty columns set")
 		}
 
 		sb.WriteString("0")
 
+		newSelectWhat = generateTSelect_TWhatForEmptyColumnsRequest()
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))
@@ -61,10 +89,12 @@ func formatSelectColumns(
 				sb.WriteString(", ")
 			}
 		}
+
+		newSelectWhat = selectWhat
 	}
 
 	sb.WriteString(" FROM ")
 	sb.WriteString(formatter.SanitiseIdentifier(tableName))
 
-	return sb.String(), nil
+	return sb.String(), newSelectWhat, nil
 }
