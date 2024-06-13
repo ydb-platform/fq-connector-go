@@ -116,22 +116,5 @@
       (4, "d"),
       (5, "e");
     COMMIT;
-
-    CREATE TABLE constant_NATIVE (col_00_id Int32 NOT NULL, PRIMARY KEY (col_00_id));
-    COMMIT;
-    INSERT INTO constant_NATIVE (col_00_id) VALUES
-      (1),
-      (2),
-      (3);
-    COMMIT;
-
-    CREATE TABLE count_NATIVE (col_00_id Int32 NOT NULL, PRIMARY KEY (col_00_id));
-    COMMIT;
-    INSERT INTO count_NATIVE (col_00_id) VALUES
-      (1),
-      (2),
-      (3),
-      (4);
-    COMMIT;
   '
   
