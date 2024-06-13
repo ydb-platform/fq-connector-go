@@ -25,7 +25,7 @@ func selectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) ([]*Yd
 	return columns, nil
 }
 
-func generateTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat { // TODO maybe global static?
+func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat {
 	return &api_service_protos.TSelect_TWhat{
 		Items: []*api_service_protos.TSelect_TWhat_TItem{
 			{
@@ -70,7 +70,10 @@ func formatSelectColumns(
 
 		sb.WriteString("0")
 
-		newSelectWhat = generateTSelectTWhatForEmptyColumnsRequest()
+		// YQ-3314: is needed only in select COUNT(*) for ydb datasource.
+		// 		In PostgreSQL or ClickHouse type_mapper is based on typeNames that are extraceted from column.DatabaseTypeName().
+		//		But in ydb type_mapper is based on ydbTypes, that are extracted from TSelect_TWhat
+		newSelectWhat = makeTSelectTWhatForEmptyColumnsRequest()
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))
