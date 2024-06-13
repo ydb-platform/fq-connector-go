@@ -35,6 +35,8 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		err     error
 	)
 
+	fmt.Printf("STTYC: columnName: %+v typeName: %+v rules: %+v\n", columnName, typeName, rules)
+
 	// By default all columns in CH are non-nullable, so
 	// we wrap YDB types into Optional type only in such cases:
 	//
@@ -77,7 +79,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// https://clickhouse.com/docs/en/sql-reference/data-types/string#encodings
 	case typeName == "String", tm.isFixedString.MatchString(typeName):
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case typeName == "Json":
+	case typeName == "Object('json')":
 		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
 	case typeName == "Date", typeName == "Date32":
 		// NOTE: ClickHouse's Date32 value range is much more wide than YDB's Date value range
@@ -117,6 +119,8 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 	isFixedString := regexp.MustCompile(`FixedString\([0-9]+\)`)
 	isDateTime := regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`)
 	isDateTime64 := regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`)
+
+	fmt.Printf("TFST: typeNames: %+v ydbTypes: %+v cc: %+v\n", typeNames, ydbTypes, cc)
 
 	for i, typeName := range typeNames {
 		if matches := isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
@@ -162,7 +166,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		case typeName == "Json":
-			// Copy of UTF8 (String)
+			// TODO need custom appender
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		case typeName == "Date":
