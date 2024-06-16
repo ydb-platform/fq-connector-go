@@ -96,18 +96,3 @@ clickhouse client -n <<-EOSQL
         (3, 30, 'c') \
         (4, NULL, NULL);
 EOSQL
-
-# Feel free to add new columns to this table to test new filters
-clickhouse client -n <<-EOSQL
-    DROP TABLE IF EXISTS connector.json;
-    SET allow_experimental_object_type = 1;
-    CREATE TABLE connector.json
-    (
-        id Int32,
-        col_01_json JSON
-    )
-    ENGINE = MergeTree ORDER BY id;
-    INSERT INTO connector.json (id, col_01_json) VALUES
-        (1, '{ "friends": [ {"name": "James Holden", "age": 35 }, { "name": "Naomi Nagata", "age": 30 }]}') \
-        (2, '{"TODO": "unicode"}');
-EOSQL

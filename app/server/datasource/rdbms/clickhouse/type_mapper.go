@@ -35,8 +35,6 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 		err     error
 	)
 
-	fmt.Printf("STTYC: columnName: %+v typeName: %+v rules: %+v\n", columnName, typeName, rules)
-
 	// By default all columns in CH are non-nullable, so
 	// we wrap YDB types into Optional type only in such cases:
 	//
@@ -79,8 +77,6 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	// https://clickhouse.com/docs/en/sql-reference/data-types/string#encodings
 	case typeName == "String", tm.isFixedString.MatchString(typeName):
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case typeName == "Object('json')":
-		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
 	case typeName == "Date", typeName == "Date32":
 		// NOTE: ClickHouse's Date32 value range is much more wide than YDB's Date value range
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
@@ -120,14 +116,12 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 	isDateTime := regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`)
 	isDateTime64 := regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`)
 
-	fmt.Printf("TFST: typeNames: %+v ydbTypes: %+v cc: %+v\n", typeNames, ydbTypes, cc)
-
 	for i, typeName := range typeNames {
 		if matches := isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 			typeName = matches[1]
 		}
 
-		switch {
+		switch { // JSON needs custom pareser, has composite type name structure
 		case typeName == "Bool":
 			acceptors = append(acceptors, new(*bool))
 			appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
@@ -163,10 +157,6 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
 		case typeName == "String", isFixedString.MatchString(typeName):
 			// Looks like []byte would be a better option here, but clickhouse driver prefers string
-			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
-		case typeName == "Json":
-			// TODO need custom appender
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		case typeName == "Date":

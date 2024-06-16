@@ -40,7 +40,6 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 
 	typeNames := make([]string, 0, len(columns))
 	for _, column := range columns {
-		fmt.Printf("MS: column: %+v column type name: %+v\n", column, column.DatabaseTypeName())
 		typeNames = append(typeNames, column.DatabaseTypeName())
 	}
 
