@@ -102,11 +102,17 @@ func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTyp
 	case JSONType:
 		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	case DateType:
-		return common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
+		// Connector always returns DateTime in YQL_FORMAT, because it is always in YDB DateTime range
+		// 	current mapping equals common.MakeYdbDateTimeType(Ydb.Type_DATE, api_service_protos.EDateTimeFormat_YQL_FORMAT)
+		return common.MakePrimitiveType(Ydb.Type_DATE), nil
 	case DatetimeType:
-		return common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
+		// Connector always returns DateTime in YQL_FORMAT, because it is always in YDB DateTime range
+		// 	current mapping equals return common.MakeYdbDateTimeType(Ydb.Type_DATETIME, api_service_protos.EDateTimeFormat_YQL_FORMAT)
+		return common.MakePrimitiveType(Ydb.Type_DATETIME), nil
 	case TimestampType:
-		return common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
+		// YDB always returns DateTime in YQL_FORMAT, because it is always in YDB DateTime range
+		// 	current mapping equals return common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, api_service_protos.EDateTimeFormat_YQL_FORMAT)
+		return common.MakePrimitiveType(Ydb.Type_TIMESTAMP), nil
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
