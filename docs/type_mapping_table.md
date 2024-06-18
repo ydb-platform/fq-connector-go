@@ -18,7 +18,7 @@
 :white_check_mark: - тип поддерживается
 :x: - тип не поддерживается
 
-| :one: YDB / YQL | Arrow | Go | :one: ClickHouse | :two: PostgreSQL / Greenplum | :two: MySQL | MS SQL Server |
+| :one: YDB / YQL | Arrow | Go | :one: ClickHouse | :two: PostgreSQL (15) / Greenplum (6)| :two: MySQL | MS SQL Server |
 | --- | ----- | -- | ---------- | ---------- | ----- | ------ |
 | `BOOL` | `UINT8` | `bool` | :white_check_mark: `Bool` | :white_check_mark: `boolean`, `bool` (1 байт) | :white_check_mark: `bool` (`tinyint(1)`) | `BIT` |
 | - | - | - | - | :x: `bit[(n)]`, `bit varying[(n)]`, `varbit` (битовые строки, состоящие из 0 и 1)| :x: `bit(n)` (bit-valued literals, до 64 бит) | |
@@ -53,7 +53,7 @@
 | `STRING` (строка с произвольными бинарными данными) | `BINARY` | `[]byte` | :white_check_mark: `String`, `FixedString` | :white_check_mark: `bytea` | :white_check_mark: `tinyblob`, `blob`, `mediumblob`, `longblob`, `binary`, `varbinary` | `BINARY`, `VARBINARY`| 
 | `UTF8` (текст в UTF-8) | `STRING` | `string` | - | :white_check_mark: `character [(n)]`, `character varying [(n)]`, `text`  | :white_check_mark: `char`, `varchar`, `tinytext`, `text`, `mediumtext`, `longtext` | `CHAR`, `VARCHAR`, `NCHAR`, `NVARCHAR`, `TEXT` | 
 | `YSON` | - | - | - | - | | | 
-| `JSON` (текстовое представление) | - | - | :question: `JSON` | - | | | 
+| `JSON` (текстовое представление) | `STRING` | `string` | :x: `JSON` | :white_check_mark: `json` | :x: `JSON` | :x: `json` |
 | `UUID` | :x: `BINARY(16)` | - | :x: `UUID` (16 байт) | :x: `uuid` (16 байт) | | |
 | `JSON_DOCUMENT` (текстовое представление) | - | - | :question: `JSON` | :x: `json` | | |
 | `DYNUMBER` | - | - | - | - | | |
