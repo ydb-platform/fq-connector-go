@@ -53,7 +53,7 @@
 | `STRING` (строка с произвольными бинарными данными) | `BINARY` | `[]byte` | :white_check_mark: `String`, `FixedString` | :white_check_mark: `bytea` | :white_check_mark: `tinyblob`, `blob`, `mediumblob`, `longblob`, `binary`, `varbinary` | `BINARY`, `VARBINARY`| 
 | `UTF8` (текст в UTF-8) | `STRING` | `string` | - | :white_check_mark: `character [(n)]`, `character varying [(n)]`, `text`  | :white_check_mark: `char`, `varchar`, `tinytext`, `text`, `mediumtext`, `longtext` | `CHAR`, `VARCHAR`, `NCHAR`, `NVARCHAR`, `TEXT` | 
 | `YSON` | - | - | - | - | | | 
-| `JSON` (текстовое представление) | `STRING` | `string` | :question: `JSON` | :white_check_mark: `json` | :question: `JSON` | :question: `json` |
+| `JSON` (текстовое представление) | `STRING` | `string` | :x: `JSON` | :white_check_mark: `json` | :x: `JSON` | :x: `json` |
 | `UUID` | :x: `BINARY(16)` | - | :x: `UUID` (16 байт) | :x: `uuid` (16 байт) | | |
 | `JSON_DOCUMENT` (текстовое представление) | - | - | :question: `JSON` | :x: `json` | | |
 | `DYNUMBER` | - | - | - | - | | |
