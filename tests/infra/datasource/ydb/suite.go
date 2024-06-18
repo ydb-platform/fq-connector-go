@@ -32,7 +32,7 @@ func (s *Suite) TestDatetimeFormatYQL() {
 	)
 }
 
-func (s *Suite) TestDatetimeFormatString() {
+func (s *Suite) TestDatetimeFormatString() { // YQ-3338 FIXME: remove test? Awaits table with UTF8 columns
 	s.ValidateTable(
 		s.dataSource,
 		tables["datetime_format_string"],
