@@ -212,18 +212,31 @@ var tables = map[string]*test_utils.Table{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
-				"col_01_date":      common.MakePrimitiveType(Ydb.Type_UTF8),
-				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_UTF8),
-				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_UTF8),
+				"col_01_date":      common.MakePrimitiveType(Ydb.Type_DATE),
+				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_DATETIME),
+				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
 			},
 		},
 		Records: []*test_utils.Record{
 			{
 				Columns: map[string]any{
-					"id":               []int32{1},
-					"col_01_date":      []string{"1988-11-20"},
-					"col_02_datetime":  []string{"1988-11-20T12:55:28Z"},
-					"col_03_timestamp": []string{"1988-11-20T12:55:28.123456Z"},
+					"id": []int32{1},
+					"col_01_date": []uint16{
+						common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
+						),
+					},
+
+					"col_02_datetime": []uint32{
+						common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC),
+						),
+					},
+					"col_03_timestamp": []uint64{
+						common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC),
+						),
+					},
 				},
 			},
 		},
