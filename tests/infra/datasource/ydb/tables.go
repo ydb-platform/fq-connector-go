@@ -207,6 +207,8 @@ var tables = map[string]*test_utils.Table{
 		},
 	},
 
+	// YQ-3338: YDB connector always returns date / time columns in YQL_FORMAT,
+	// 	because it is always fits YDB's date / time type value ranges
 	"datetime_format_string": {
 		Name: "datetime",
 		Schema: &test_utils.TableSchema{
