@@ -75,7 +75,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	}
 
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
-	switch {
+	switch { // JSON needs custom parser, has composite type name structure. Possible to parse into Arrow struct
 	case typeName == "Bool":
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
 	case typeName == "Int8":
