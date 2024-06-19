@@ -44,7 +44,7 @@ const (
 	TimestampType = "Timestamp"
 )
 
-func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
@@ -56,7 +56,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		typeName = matches[1]
 	}
 
-	ydbType, err = makePrimitiveTypeFromString(typeName, rules)
+	ydbType, err = makePrimitiveTypeFromString(typeName)
 	if err != nil {
 		return nil, fmt.Errorf("make type: %w", err)
 	}
@@ -69,7 +69,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 }
 
 //nolint:gocyclo
-func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
+func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 	// TODO: add all types support
 	// Reference table: https://ydb.yandex-team.ru/docs/yql/reference/types/
 	switch typeName {
@@ -102,16 +102,11 @@ func makePrimitiveTypeFromString(typeName string, rules *api_service_protos.TTyp
 	case JSONType:
 		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	case DateType:
-		// Connector always returns DateTime in YQL_FORMAT, because it is always in YDB DateTime range
-		// 	current mapping equals common.MakeYdbDateTimeType(Ydb.Type_DATE, api_service_protos.EDateTimeFormat_YQL_FORMAT)
+		// YDB connector always returns date / time columns in YQL_FORMAT, because it is always fits YDB's date / time type value ranges
 		return common.MakePrimitiveType(Ydb.Type_DATE), nil
 	case DatetimeType:
-		// Connector always returns DateTime in YQL_FORMAT, because it is always in YDB DateTime range
-		// 	current mapping equals return common.MakeYdbDateTimeType(Ydb.Type_DATETIME, api_service_protos.EDateTimeFormat_YQL_FORMAT)
 		return common.MakePrimitiveType(Ydb.Type_DATETIME), nil
 	case TimestampType:
-		// YDB always returns DateTime in YQL_FORMAT, because it is always in YDB DateTime range
-		// 	current mapping equals return common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, api_service_protos.EDateTimeFormat_YQL_FORMAT)
 		return common.MakePrimitiveType(Ydb.Type_TIMESTAMP), nil
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
