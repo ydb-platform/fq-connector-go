@@ -76,6 +76,7 @@ func TestRetry(t *testing.T) {
 			}
 		})
 
-		require.True(t, errors.Is(err, ctx.Err()))
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ctx.Err()), err)
 	})
 }
