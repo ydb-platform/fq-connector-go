@@ -140,8 +140,8 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 		isFixedString: regexp.MustCompile(`FixedString\([0-9]+\)`),
 		isDateTime:    regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`),
 		isDateTime64:  regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`),
-		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+)\)`),
-		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+)\)`),
+		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?)\)`),
+		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?")\)`),
 	}
 
 	var (
@@ -158,12 +158,12 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 		}
 
 		if nullable {
-			acceptors, appenders, err = appendAcceptorAppenderFromSQLTypeNameNullable(typeName, ydbTypes[i], acceptors, appenders, cc, tm)
+			acceptors, appenders, err = addAcceptorAppenderFromSQLTypeNameNullable(typeName, ydbTypes[i], acceptors, appenders, cc, tm)
 			if err != nil {
 				return nil, fmt.Errorf("nullable: %w", err)
 			}
 		} else {
-			acceptors, appenders, err = appendAcceptorAppenderFromSQLTypeName(typeName, ydbTypes[i], acceptors, appenders, cc, tm)
+			acceptors, appenders, err = addAcceptorAppenderFromSQLTypeName(typeName, ydbTypes[i], acceptors, appenders, cc, tm)
 			if err != nil {
 				return nil, fmt.Errorf("nonnullable: %w", err)
 			}
@@ -236,7 +236,7 @@ func NewTypeMapper() datasource.TypeMapper {
 		isFixedString: regexp.MustCompile(`FixedString\([0-9]+\)`),
 		isDateTime:    regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`),
 		isDateTime64:  regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`),
-		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+)\)`),
-		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+)\)`),
+		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?)\)`),
+		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?")\)`),
 	}
 }
