@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -43,20 +44,31 @@ func init() {
 	}
 }
 
-func flagToUint32() {
+func flagToPort(f *pflag.Flag, port *uint32, errs *[]error) {
+	val, err := strconv.Atoi(f.Value.String())
+	if err != nil {
+		*errs = append(*errs, fmt.Errorf("strconv '%s': %w", f.Value, err))
+		return
+	}
 
+	*port = uint32(val)
 }
 
 func overrideConfigWithFlags(cfg *app_config.TServerConfig, flags *pflag.FlagSet) error {
+	var errs []error
+
 	flags.Visit(func(f *pflag.Flag) {
-		var err error
 		switch f.Name {
 		case connectorPort:
-			cfg.ConnectorServer.Endpoint.Port, err = strconv.Atoi(f.Value.String())
+			flagToPort(f, &cfg.ConnectorServer.Endpoint.Port, &errs)
 		case metricsPort:
+			flagToPort(f, &cfg.MetricsServer.Endpoint.Port, &errs)
 		case pprofPort:
+			flagToPort(f, &cfg.PprofServer.Endpoint.Port, &errs)
 		}
 	})
+
+	return errors.Join(errs...)
 }
 
 func runFromCLI(cmd *cobra.Command, _ []string) error {
@@ -73,6 +85,10 @@ func runFromCLI(cmd *cobra.Command, _ []string) error {
 	logger, err := common.NewLoggerFromConfig(cfg.Logger)
 	if err != nil {
 		return fmt.Errorf("new logger from config: %w", err)
+	}
+
+	if err = overrideConfigWithFlags(cfg, cmd.Flags()); err != nil {
+		return fmt.Errorf("override config with flags: %w", err)
 	}
 
 	l, err := NewLauncher(logger, cfg)
