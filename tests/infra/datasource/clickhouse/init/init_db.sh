@@ -43,23 +43,23 @@ clickhouse client -n <<-EOSQL
     DROP TABLE IF EXISTS connector.optionals;
     CREATE TABLE connector.optionals (
         id Int32,
-        col_01_boolean Nullable(Boolean),
-        col_02_int8 Nullable(Int8),
-        col_03_uint8 Nullable(UInt8),
-        col_04_int16 Nullable(Int16),
-        col_05_uint16 Nullable(UInt16),
-        col_06_int32 Nullable(Int32),
-        col_07_uint32 Nullable(UInt32),
-        col_08_int64 Nullable(Int64),
-        col_09_uint64 Nullable(UInt64),
-        col_10_float32 Nullable(Float32),
-        col_11_float64 Nullable(Float64),
-        col_12_string Nullable(String),
-        col_13_string Nullable(FixedString(13)),
-        col_14_date Nullable(Date),
-        col_15_date32 Nullable(Date32),
-        col_16_datetime Nullable(DateTime),
-        col_17_datetime64 Nullable(DateTime64(3))
+        col_01_boolean Nullable(Boolean), 
+        col_02_int8 Nullable(Int8), 
+        col_03_uint8 Nullable(UInt8), 
+        col_04_int16 Nullable(Int16), 
+        col_05_uint16 Nullable(UInt16), 
+        col_06_int32 Nullable(Int32), 
+        col_07_uint32 Nullable(UInt32), 
+        col_08_int64 Nullable(Int64), 
+        col_09_uint64 Nullable(UInt64), 
+        col_10_float32 Nullable(Float32), 
+        col_11_float64 Nullable(Float64), 
+        col_12_string Nullable(String), 
+        col_13_fixed_string Nullable(FixedString(13)), 
+        col_14_date Nullable(Date), 
+        col_15_date32 Nullable(Date32), 
+        col_16_datetime Nullable(DateTime('Europe/London')), 
+        col_17_datetime64 Nullable(DateTime64(6, 'Europe/London'))
     ) ENGINE = MergeTree ORDER BY id;
     INSERT INTO connector.optionals (*) VALUES 
         (1, False, 2, 3, 4, 5, 6, 7, 8, 9, 10.10, 11.11, 'az', 'az', '1988-11-20', '1988-11-20', '1988-11-20 12:55:28', '1988-11-20 12:55:28.123') \
