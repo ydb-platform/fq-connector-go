@@ -11,15 +11,15 @@ metrics_server_endpoint {
 data_source_instance {
     kind: CLICKHOUSE
     endpoint {
-        host: "vitalyisaev-nux"
-        port: 8123
+        host: "localhost"
+        port: 9000
     }
-    database: "dqrun"
+    database: "connector"
     credentials {
         basic {
             username: "admin"
             password: "password"
         }
     }
-    protocol: HTTP
+    protocol: NATIVE
 }

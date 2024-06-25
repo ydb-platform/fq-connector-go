@@ -4,7 +4,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
-func GetQueryAndArgs(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (string, []any) {
 	// TODO: do not add 'unsigned' modifiers to column type and use the driver-provided fields instead.
 	// In MySQL schema and database are basically the same thing. So we can safely pass dbname as
 	// `schema_name` when quering `information_schema`.

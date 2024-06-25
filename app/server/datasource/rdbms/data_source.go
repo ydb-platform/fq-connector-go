@@ -74,7 +74,7 @@ func (ds *dataSourceImpl) doReadSplit(
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) error {
-	query, args, err := rdbms_utils.MakeReadSplitQuery(logger, ds.sqlFormatter, split.Select)
+	query, args, selectWhat, err := rdbms_utils.MakeReadSplitQuery(logger, ds.sqlFormatter, split.Select)
 	if err != nil {
 		return fmt.Errorf("make read split query: %w", err)
 	}
@@ -121,7 +121,7 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
+	ydbTypes, err := common.SelectWhatToYDBTypes(selectWhat)
 	if err != nil {
 		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}

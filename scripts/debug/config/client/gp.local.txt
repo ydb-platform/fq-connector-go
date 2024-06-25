@@ -12,7 +12,7 @@ data_source_instance {
     kind: GREENPLUM
     endpoint {
         host: "localhost"
-        port: 5432
+        port: 32806
     }
     database: "template1"
     credentials {
@@ -21,7 +21,7 @@ data_source_instance {
             password: "123456"
         }
     }
-    pg_options: {
+    gp_options: {
         schema: "public"
     }
     protocol: NATIVE

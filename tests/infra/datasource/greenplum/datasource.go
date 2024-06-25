@@ -31,8 +31,8 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 		},
 		Protocol: api_common.EProtocol_NATIVE,
 		UseTls:   false,
-		Options: &api_common.TDataSourceInstance_PgOptions{
-			PgOptions: &api_common.TPostgreSQLDataSourceOptions{
+		Options: &api_common.TDataSourceInstance_GpOptions{
+			GpOptions: &api_common.TGreenplumDataSourceOptions{
 				Schema: schema,
 			},
 		},

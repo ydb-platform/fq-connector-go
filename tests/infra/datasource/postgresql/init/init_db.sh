@@ -38,21 +38,26 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         col_21_character_varying_n character varying(21),
         col_22_text text,
         col_23_timestamp timestamp,
-        col_24_date date
+        col_24_date date,
+        col_25_json json
     );
     INSERT INTO primitives VALUES (
         1, false, 2, 3, DEFAULT, DEFAULT, 6, 7, 8, DEFAULT, DEFAULT, 11, 12, DEFAULT, DEFAULT,
         15.15, 16.16, 17.17, 18.18, 'az', 'az', 'az', 'az',
-        '1988-11-20 12:55:28.123000', '1988-11-20');
+        '1988-11-20 12:55:28.123000', '1988-11-20', 
+        '{ "friends": [{"name": "James Holden","age": 35},{"name": "Naomi Nagata","age": 30}]}'::json
+        );
     INSERT INTO primitives VALUES (
         2, true, -2, -3, DEFAULT, DEFAULT, -6, -7, -8, DEFAULT, DEFAULT, -11, -12, DEFAULT, DEFAULT,
         -15.15, -16.16, -17.17, -18.18, 'буки', 'буки', 'буки', 'буки',
-        '2023-03-21 11:21:31.456000', '2023-03-21');
+        '2023-03-21 11:21:31.456000', '2023-03-21',
+        '{ "TODO" : "unicode" }'::json
+        );
     INSERT INTO primitives VALUES (
         3, NULL, NULL, NULL, DEFAULT, DEFAULT, NULL,
         NULL, NULL, DEFAULT, DEFAULT, NULL, NULL,
         DEFAULT, DEFAULT, NULL, NULL, NULL, NULL,
-        NULL, NULL, NULL, NULL, NULL, NULL
+        NULL, NULL, NULL, NULL, NULL, NULL, NULL
         );
 EOSQL
 

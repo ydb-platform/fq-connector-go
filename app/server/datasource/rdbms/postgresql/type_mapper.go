@@ -44,6 +44,9 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "character", "character varying", "text":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case "json":
+		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
+	// TODO: jsonb to YDB_Json_document
 	case "date":
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
 	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
@@ -126,6 +129,14 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 
 				return appendValueToArrowBuilder[string, string, *array.StringBuilder](cast.String, builder, cast.Valid, cc.String())
 			})
+		case pgtype.JSONOID:
+			acceptors = append(acceptors, new(pgtype.Text))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				cast := acceptor.(*pgtype.Text)
+
+				return appendValueToArrowBuilder[string, string, *array.StringBuilder](cast.String, builder, cast.Valid, cc.String())
+			})
+			// TODO: review all pgtype.json* types
 		case pgtype.ByteaOID:
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {

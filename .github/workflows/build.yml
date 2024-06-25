@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.22.1', ]
+        go-version: [ '1.21.3', ]
 
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +53,7 @@ jobs:
           files: ./coverage.out
       - name: Build
         run: | 
-          git fetch --prune --unshallow
-          go run ./tools/version git
+          # FIXME: this script can't handle backticks in commit messages 
+          # git fetch --prune --unshallow
+          # go run ./tools/version git
           GOOS=linux go build -v -o fq-connector-go ./app

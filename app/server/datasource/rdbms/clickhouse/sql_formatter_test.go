@@ -14,11 +14,12 @@ import (
 
 func TestMakeSQLFormatterQuery(t *testing.T) {
 	type testCase struct {
-		testName    string
-		selectReq   *api_service_protos.TSelect
-		outputQuery string
-		outputArgs  []any
-		err         error
+		testName         string
+		selectReq        *api_service_protos.TSelect
+		outputQuery      string
+		outputArgs       []any
+		outputSelectWhat *api_service_protos.TSelect_TWhat
+		err              error
 	}
 
 	logger := common.NewTestLogger(t)
@@ -33,9 +34,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery: "",
-			outputArgs:  nil,
-			err:         common.ErrEmptyTableName,
+			outputQuery:      "",
+			outputArgs:       nil,
+			outputSelectWhat: nil,
+			err:              common.ErrEmptyTableName,
 		},
 		{
 			testName: "empty_no columns",
@@ -45,9 +47,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery: `SELECT 0 FROM "tab"`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT 0 FROM "tab"`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewEmptyColumnWhat(),
+			err:              nil,
 		},
 		{
 			testName: "select_col",
@@ -70,7 +73,19 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 			},
 			outputQuery: `SELECT "col" FROM "tab"`,
 			outputArgs:  []any{},
-			err:         nil,
+			outputSelectWhat: &api_service_protos.TSelect_TWhat{
+				Items: []*api_service_protos.TSelect_TWhat_TItem{
+					{
+						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+							Column: &ydb.Column{
+								Name: "col",
+								Type: common.MakePrimitiveType(ydb.Type_INT32),
+							},
+						},
+					},
+				},
+			},
+			err: nil,
 		},
 		{
 			testName: "is_null",
@@ -89,9 +104,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab" WHERE ("col1" IS NULL)`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col1" IS NULL)`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "is_not_null",
@@ -110,9 +126,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab" WHERE ("col2" IS NOT NULL)`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col2" IS NOT NULL)`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "bool_column",
@@ -131,9 +148,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab" WHERE "col2"`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE "col2"`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "complex_filter",
@@ -192,9 +210,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= ?)) OR (("col1" <> ?) AND ("col3" IS NULL)))`,
-			outputArgs:  []any{int32(42), uint64(0)},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= ?)) OR (("col1" <> ?) AND ("col3" IS NULL)))`,
+			outputArgs:       []any{int32(42), uint64(0)},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "unsupported_predicate",
@@ -215,9 +234,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab"`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "unsupported_type",
@@ -238,9 +258,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab"`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "partial_filter_removes_and",
@@ -279,9 +300,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab" WHERE ("col1" = ?)`,
-			outputArgs:  []any{int32(32)},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col1" = ?)`,
+			outputArgs:       []any{int32(32)},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "partial_filter",
@@ -334,9 +356,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col0", "col1" FROM "tab" WHERE (("col1" = ?) AND ("col3" IS NULL) AND ("col4" IS NOT NULL))`,
-			outputArgs:  []any{int32(32)},
-			err:         nil,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE (("col1" = ?) AND ("col3" IS NULL) AND ("col4" IS NOT NULL))`,
+			outputArgs:       []any{int32(32)},
+			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
+			err:              nil,
 		},
 		{
 			testName: "negative_sql_injection_by_table",
@@ -346,9 +369,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery: `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
-			outputArgs:  []any{},
-			err:         nil,
+			outputQuery:      `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
+			outputArgs:       []any{},
+			outputSelectWhat: rdbms_utils.NewEmptyColumnWhat(),
+			err:              nil,
 		},
 		{
 			testName: "negative_sql_injection_by_col",
@@ -371,7 +395,19 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 			},
 			outputQuery: `SELECT "0; DROP TABLE information_schema.columns" FROM "tab"`,
 			outputArgs:  []any{},
-			err:         nil,
+			outputSelectWhat: &api_service_protos.TSelect_TWhat{
+				Items: []*api_service_protos.TSelect_TWhat_TItem{
+					{
+						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+							Column: &ydb.Column{
+								Name: `0; DROP TABLE information_schema.columns`,
+								Type: common.MakePrimitiveType(ydb.Type_INT32),
+							},
+						},
+					},
+				},
+			},
+			err: nil,
 		},
 		{
 			testName: "negative_sql_injection_fake_quotes",
@@ -394,7 +430,19 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 			},
 			outputQuery: `SELECT "0""; DROP TABLE information_schema.columns;" FROM "tab"`,
 			outputArgs:  []any{},
-			err:         nil,
+			outputSelectWhat: &api_service_protos.TSelect_TWhat{
+				Items: []*api_service_protos.TSelect_TWhat_TItem{
+					{
+						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+							Column: &ydb.Column{
+								Name: `0"; DROP TABLE information_schema.columns;`,
+								Type: common.MakePrimitiveType(ydb.Type_INT32),
+							},
+						},
+					},
+				},
+			},
+			err: nil,
 		},
 	}
 
@@ -402,9 +450,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
-			outputQuery, outputArgs, err := rdbms_utils.MakeReadSplitQuery(logger, formatter, tc.selectReq)
+			outputQuery, outputArgs, outputSelectWhat, err := rdbms_utils.MakeReadSplitQuery(logger, formatter, tc.selectReq)
 			require.Equal(t, tc.outputQuery, outputQuery)
 			require.Equal(t, tc.outputArgs, outputArgs)
+			require.Equal(t, tc.outputSelectWhat, outputSelectWhat)
 
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))

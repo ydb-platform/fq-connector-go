@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
@@ -46,7 +47,7 @@ func (dsf *dataSourceFactory) Make(
 	case api_common.EDataSourceKind_MYSQL:
 		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_GREENPLUM:
-		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -66,20 +67,32 @@ func NewDataSourceFactory(
 	msSQLServerTypeMapper := ms_sql_server.NewTypeMapper()
 	mysqlTypeMapper := mysql.NewTypeMapper()
 
+	// for PostgreSQL-like systems
+	schemaGetters := map[api_common.EDataSourceKind]func(dsi *api_common.TDataSourceInstance) string{
+		api_common.EDataSourceKind_POSTGRESQL: func(dsi *api_common.TDataSourceInstance) string { return dsi.GetPgOptions().Schema },
+		api_common.EDataSourceKind_GREENPLUM:  func(dsi *api_common.TDataSourceInstance) string { return dsi.GetGpOptions().Schema },
+	}
+
 	return &dataSourceFactory{
 		clickhouse: Preset{
 			SQLFormatter:      clickhouse.NewSQLFormatter(),
 			ConnectionManager: clickhouse.NewConnectionManager(connManagerCfg),
 			TypeMapper:        clickhouseTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.GetQueryAndArgs),
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		postgresql: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetters[api_common.EDataSourceKind_POSTGRESQL]),
 			TypeMapper:        postgresqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
+				postgresqlTypeMapper,
+				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+					return postgresql.TableMetadataQuery(
+						request,
+						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
+				}),
+			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
@@ -95,22 +108,28 @@ func NewDataSourceFactory(
 			SQLFormatter:      ms_sql_server.NewSQLFormatter(),
 			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
 			TypeMapper:        msSQLServerTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.GetQueryAndArgs),
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		mysql: Preset{
 			SQLFormatter:      mysql.NewSQLFormatter(),
 			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerCfg),
 			TypeMapper:        mysqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.GetQueryAndArgs),
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.TableMetadataQuery),
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		greenplum: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg),
+			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetters[api_common.EDataSourceKind_GREENPLUM]),
 			TypeMapper:        postgresqlTypeMapper,
-			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(postgresqlTypeMapper, postgresql.GetQueryAndArgs),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
+				postgresqlTypeMapper,
+				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+					return postgresql.TableMetadataQuery(
+						request,
+						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
+				}),
+			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}

@@ -13,11 +13,10 @@ data extracted from the external sources.
 
 Currently supported data sources:
 * ClickHouse
-* PostgreSQL
+* PostgreSQL / Greenplum
 * YDB
 * Microsoft SQL Server
-* Greenplum
-* MySQL (5.7, 8.0)
+* MySQL / MariaDB
 
 ### Documentation 
 
