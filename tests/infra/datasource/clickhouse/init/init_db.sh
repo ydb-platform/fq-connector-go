@@ -58,8 +58,8 @@ clickhouse client -n <<-EOSQL
         col_13_fixed_string Nullable(FixedString(13)), 
         col_14_date Nullable(Date), 
         col_15_date32 Nullable(Date32), 
-        col_16_datetime Nullable(DateTime('Europe/London')), 
-        col_17_datetime64 Nullable(DateTime64(6, 'Europe/London'))
+        col_16_datetime Nullable(DateTime('UTC')), 
+        col_17_datetime64 Nullable(DateTime64(6, 'UTC'))
     ) ENGINE = MergeTree ORDER BY id;
     INSERT INTO connector.optionals (*) VALUES 
         (1, False, 2, 3, 4, 5, 6, 7, 8, 9, 10.10, 11.11, 'az', 'az', '1988-11-20', '1988-11-20', '1988-11-20 12:55:28', '1988-11-20 12:55:28.123') \
