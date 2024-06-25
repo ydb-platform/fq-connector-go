@@ -140,8 +140,8 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 		isFixedString: regexp.MustCompile(`FixedString\([0-9]+\)`),
 		isDateTime:    regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`),
 		isDateTime64:  regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`),
-		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?)\)`),
-		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?")\)`),
+		isNullable:    regexp.MustCompile(`Nullable\((.+)\)`),
+		isArray:       regexp.MustCompile(`Array\((.+)\)`),
 	}
 
 	var (
@@ -151,7 +151,6 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 
 	for i, typeName := range typeNames {
 		nullable = false
-
 		if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 			typeName = matches[1]
 			nullable = true
@@ -236,7 +235,7 @@ func NewTypeMapper() datasource.TypeMapper {
 		isFixedString: regexp.MustCompile(`FixedString\([0-9]+\)`),
 		isDateTime:    regexp.MustCompile(`DateTime(\('[\w,/]+'\))?`),
 		isDateTime64:  regexp.MustCompile(`DateTime64\(\d{1}(, '[\w,/]+')?\)`),
-		isNullable:    regexp.MustCompile(`Nullable\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?)\)`),
-		isArray:       regexp.MustCompile(`Array\((?P<Internal>[\w\(\)]+|DateTime64\(\d{1}(, '[\w,/]+')?\)|DateTime(\('[\w,/]+'\))?")\)`),
+		isNullable:    regexp.MustCompile(`Nullable\((.+)\)`),
+		isArray:       regexp.MustCompile(`Array\((.+)\)`),
 	}
 }
