@@ -151,6 +151,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 
 	for i, typeName := range typeNames {
 		nullable = false
+
 		if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 			typeName = matches[1]
 			nullable = true
