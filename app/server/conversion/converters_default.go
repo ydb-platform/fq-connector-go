@@ -94,7 +94,7 @@ func (datetimeConverter) Convert(in time.Time) (uint32, error) {
 type datetimeToStringConverter struct{}
 
 func (datetimeToStringConverter) Convert(in *time.Time) (string, error) {
-	return in.UTC().Format("2006-01-02T15:04:05Z"), nil
+	return in.Format("2006-01-02T15:04:05Z"), nil
 }
 
 type timestampConverter struct{}
@@ -117,5 +117,5 @@ func (timestampToStringConverter) Convert(in *time.Time) (string, error) {
 	// PostgreSQL - 1 microsecond (10^-6 s)
 	// ClickHouse - 1 nanosecond  (10^-9 s)
 	// Trailing zeros are omitted
-	return in.UTC().Format("2006-01-02T15:04:05.999999999Z"), nil
+	return in.Format("2006-01-02T15:04:05.999999999Z"), nil
 }
