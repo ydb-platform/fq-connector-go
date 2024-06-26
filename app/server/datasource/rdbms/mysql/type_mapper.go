@@ -24,20 +24,16 @@ type typeMapper struct {
 }
 
 //nolint:gocyclo
-func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
-	var matches []string
-
-	var typeName string
-
-	var typeSize uint64
-
-	var err error
-
-	typeSize = 0
+func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, typeMapperSettings *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+	var (
+		typeName string
+		typeSize uint64 = 0
+		err      error
+	)
 
 	typeNameWithoutModifier := strings.Split(columnType, " ")[0]
 
-	if matches = tm.reType.FindStringSubmatch(columnType); len(matches) > 0 {
+	if matches := tm.reType.FindStringSubmatch(columnType); len(matches) > 0 {
 		typeName = matches[tm.reType.SubexpIndex("type")]
 		typeSize, err = strconv.ParseUint(matches[tm.reType.SubexpIndex("size")], 10, 64)
 
@@ -99,8 +95,30 @@ func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, _ *api_s
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "varchar", "string", "text", "longtext", "tinytext", "mediumtext", "char":
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case "date":
+		ydbColumn.Type, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, typeMapperSettings.GetDateTimeFormat())
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date/time type: %w", err)
+		}
+	// case "time":
+	// TODO: YDB has no separate type representing time of the day
+	case "datetime", "timestamp":
+		// In MySQL `Datetime` and `Timestamp` are quite similar.
+		// Both of them can store fractional seconds (up to 6 digits).
+		//
+		// Here are the key differences:
+		// 1. Value range:
+		// 		- `Datetime`: '1000-01-01 00:00:00.000000' to '9999-12-31 23:59:59.499999' (8 bytes)
+		// 		- `Timestamp` range: '1970-01-01 00:00:01.000000' to '2038-01-19 03:14:07.499999' (4 bytes)
+		// 2. Timezone awareness: see https://dev.mysql.com/doc/refman/8.4/en/datetime.html for details
+		//
+		// So we map both into YDB's Timestamp.
+		ydbColumn.Type, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, typeMapperSettings.GetDateTimeFormat())
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date/time type: %w", err)
+		}
 	default:
-		return nil, fmt.Errorf("mysql: %w", common.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
 
 	ydbColumn.Type = common.MakeOptionalType(ydbColumn.GetType())
@@ -129,27 +147,33 @@ func transformerFromYdbTypes(ydbTypes []*Ydb.Type, cc conversion.Collection) (pa
 		}
 
 		switch typeId {
-		case Ydb.Type_UINT16:
-			acceptors = append(acceptors, new(*uint16))
-			appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
 		case Ydb.Type_BOOL:
 			acceptors = append(acceptors, new(*bool))
 			appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
+		case Ydb.Type_INT8:
+			acceptors = append(acceptors, new(*int8))
+			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
+		case Ydb.Type_UINT8:
+			acceptors = append(acceptors, new(*uint8))
+			appenders = append(appenders, makeAppender[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
 		case Ydb.Type_INT16:
 			acceptors = append(acceptors, new(*int16))
 			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
-		case Ydb.Type_UINT32:
-			acceptors = append(acceptors, new(*uint32))
-			appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
+		case Ydb.Type_UINT16:
+			acceptors = append(acceptors, new(*uint16))
+			appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
 		case Ydb.Type_INT32:
 			acceptors = append(acceptors, new(*int32))
 			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
-		case Ydb.Type_UINT64:
-			acceptors = append(acceptors, new(*uint64))
-			appenders = append(appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
+		case Ydb.Type_UINT32:
+			acceptors = append(acceptors, new(*uint32))
+			appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
 		case Ydb.Type_INT64:
 			acceptors = append(acceptors, new(*int64))
 			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+		case Ydb.Type_UINT64:
+			acceptors = append(acceptors, new(*uint64))
+			appenders = append(appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
 		case Ydb.Type_FLOAT:
 			acceptors = append(acceptors, new(*float32))
 			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
@@ -162,14 +186,8 @@ func transformerFromYdbTypes(ydbTypes []*Ydb.Type, cc conversion.Collection) (pa
 		case Ydb.Type_STRING:
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
-		case Ydb.Type_UINT8:
-			acceptors = append(acceptors, new(*uint8))
-			appenders = append(appenders, makeAppender[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
-		case Ydb.Type_INT8:
-			acceptors = append(acceptors, new(*int8))
-			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
 		default:
-			return nil, fmt.Errorf("mysql: %w", common.ErrDataTypeNotSupported)
+			return nil, fmt.Errorf("register appender for type '%s': %w", typeId.String(), common.ErrDataTypeNotSupported)
 		}
 	}
 
@@ -213,9 +231,6 @@ func appendNullableToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB 
 	}
 
 	builder.(AB).Append(out)
-
-	// TODO: is this reset needed?
-	// *cast = nil
 
 	return nil
 }
