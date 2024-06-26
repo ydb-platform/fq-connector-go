@@ -47,6 +47,7 @@ func parseClickHouseTimzoneFromDockerFile(path string) (string, error) {
 			log.Println("error closing file %w", err)
 		}
 	}()
+
 	decoder := yaml.NewDecoder(file)
 
 	var data map[any]any
