@@ -11,23 +11,28 @@ import (
 
 func extractClickHouseTimezoneFromMap(data map[any]any) (string, error) {
 	var timezoneStr string
+
 	if services, ok := data["services"].(map[any]any); ok {
-		if _, ok := services["clickhouse"].(map[any]any); !ok {
+		if _, ok = services["clickhouse"].(map[any]any); !ok {
 			return "", fmt.Errorf("error finding clickhouse in file")
 		}
 
 		clickhouseServ := services["clickhouse"].(map[any]any)
-		if environment, ok := clickhouseServ["environment"].(map[any]any); ok {
-			timezoneStr, ok = environment["TZ"].(string)
-			if !ok {
-				return "", fmt.Errorf("error finding TZ in file")
-			}
-		} else {
+
+		if _, ok = clickhouseServ["environment"].(map[any]any); !ok {
 			return "", fmt.Errorf("error finding environment in file")
+		}
+
+		environment := clickhouseServ["environment"].(map[any]any)
+
+		timezoneStr, ok = environment["TZ"].(string)
+		if !ok {
+			return "", fmt.Errorf("error finding TZ in file")
 		}
 	} else {
 		return "", fmt.Errorf("error finding services in file")
 	}
+
 	return timezoneStr, nil
 }
 
