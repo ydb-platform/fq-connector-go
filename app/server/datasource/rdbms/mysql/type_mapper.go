@@ -26,13 +26,10 @@ type typeMapper struct {
 }
 
 //nolint:gocyclo
-func (tm *typeMapper) SQLTypeToYDBColumn(
-	columnName, columnType string,
-	typeMapperSettings *api_service_protos.TTypeMappingSettings,
-) (*Ydb.Column, error) {
+func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, typeMapperSettings *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		typeName string
-		typeSize uint64
+		typeSize uint64 = 0
 		err      error
 	)
 
@@ -100,14 +97,14 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case typeDate:
+	case "date":
 		ydbColumn.Type, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, typeMapperSettings.GetDateTimeFormat())
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date/time type: %w", err)
 		}
 	// case "time":
 	// TODO: YDB has no separate type representing time of the day
-	case typeDatetime, typeTimestamp:
+	case "datetime", "timestamp":
 		// In MySQL `Datetime` and `Timestamp` are quite similar.
 		// Both of them can store fractional seconds (up to 6 digits).
 		//
@@ -145,9 +142,57 @@ func transformerFromSQLTypes(
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
 
-	for i := range mySQLTypes {
-		if err := addAcceptorAppender(mySQLTypes[i], ydbTypes[i], cc, &acceptors, &appenders); err != nil {
-			return nil, fmt.Errorf("add acceptor appender #%d: %w", i, err)
+	for _, ydbType := range ydbTypes {
+		var typeId Ydb.Type_PrimitiveTypeId
+
+		if opt := ydbType.GetOptionalType(); opt != nil {
+			typeId = opt.Item.GetTypeId()
+		} else {
+			typeId = ydbType.GetTypeId()
+		}
+
+		switch typeId {
+		case Ydb.Type_BOOL:
+			acceptors = append(acceptors, new(*bool))
+			appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
+		case Ydb.Type_INT8:
+			acceptors = append(acceptors, new(*int8))
+			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
+		case Ydb.Type_UINT8:
+			acceptors = append(acceptors, new(*uint8))
+			appenders = append(appenders, makeAppender[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
+		case Ydb.Type_INT16:
+			acceptors = append(acceptors, new(*int16))
+			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
+		case Ydb.Type_UINT16:
+			acceptors = append(acceptors, new(*uint16))
+			appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
+		case Ydb.Type_INT32:
+			acceptors = append(acceptors, new(*int32))
+			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+		case Ydb.Type_UINT32:
+			acceptors = append(acceptors, new(*uint32))
+			appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
+		case Ydb.Type_INT64:
+			acceptors = append(acceptors, new(*int64))
+			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+		case Ydb.Type_UINT64:
+			acceptors = append(acceptors, new(*uint64))
+			appenders = append(appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
+		case Ydb.Type_FLOAT:
+			acceptors = append(acceptors, new(*float32))
+			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+		case Ydb.Type_DOUBLE:
+			acceptors = append(acceptors, new(*float64))
+			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+		case Ydb.Type_UTF8:
+			acceptors = append(acceptors, new(*string))
+			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		case Ydb.Type_STRING:
+			acceptors = append(acceptors, new(*[]byte))
+			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+		default:
+			return nil, fmt.Errorf("register appender for type '%s': %w", typeId.String(), common.ErrDataTypeNotSupported)
 		}
 	}
 
