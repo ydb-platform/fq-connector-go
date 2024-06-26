@@ -26,44 +26,44 @@ func addAcceptorAppenderFromSQLTypeName(
 	error,
 ) {
 	switch {
-	case typeName == boolTN:
+	case typeName == typeBool:
 		acceptors = append(acceptors, new(bool))
 		appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
-	case typeName == int8TN:
+	case typeName == typeInt8:
 		acceptors = append(acceptors, new(int8))
 		appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
-	case typeName == int16TN:
+	case typeName == typeInt16:
 		acceptors = append(acceptors, new(int16))
 		appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
-	case typeName == int32TN:
+	case typeName == typeInt32:
 		acceptors = append(acceptors, new(int32))
 		appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
-	case typeName == int64TN:
+	case typeName == typeInt64:
 		acceptors = append(acceptors, new(int64))
 		appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
-	case typeName == uInt8TN:
+	case typeName == typeUInt8:
 		acceptors = append(acceptors, new(uint8))
 		appenders = append(appenders, makeAppender[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
-	case typeName == uInt16TN:
+	case typeName == typeUInt16:
 		acceptors = append(acceptors, new(uint16))
 		appenders = append(appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
-	case typeName == uInt32TN:
+	case typeName == typeUInt32:
 		acceptors = append(acceptors, new(uint32))
 		appenders = append(appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
-	case typeName == uInt64TN:
+	case typeName == typeUInt64:
 		acceptors = append(acceptors, new(uint64))
 		appenders = append(appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
-	case typeName == float32TN:
+	case typeName == typeFloat32:
 		acceptors = append(acceptors, new(float32))
 		appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
-	case typeName == float64TN:
+	case typeName == typeFload64:
 		acceptors = append(acceptors, new(float64))
 		appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
-	case typeName == stringTN, tm.isFixedString.MatchString(typeName):
+	case typeName == typeString, tm.isFixedString.MatchString(typeName):
 		// Looks like []byte would be a better option here, but clickhouse driver prefers string
 		acceptors = append(acceptors, new(string))
 		appenders = append(appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
-	case typeName == dateTN:
+	case typeName == typeDate:
 		acceptors = append(acceptors, new(time.Time))
 
 		ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbType)
@@ -80,7 +80,7 @@ func addAcceptorAppenderFromSQLTypeName(
 		default:
 			return nil, nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbType, typeName, common.ErrDataTypeNotSupported)
 		}
-	case typeName == date32TN:
+	case typeName == typeDate32:
 		acceptors = append(acceptors, new(time.Time))
 
 		ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbType)
