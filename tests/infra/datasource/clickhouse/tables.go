@@ -10,6 +10,9 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
+// timezone: function get relative path, assumes starts from project root
+var timezone = mustGetClickHouseDockerTimezone("./tests/infra/datasource/docker-compose.yaml")
+
 // key - test case name
 // value - table description
 var tables = map[string]*test_utils.Table{
@@ -216,29 +219,29 @@ var tables = map[string]*test_utils.Table{
 				Columns: map[string]any{
 					"id": []int32{1, 2, 3},
 					"col_01_date": []*uint16{
-						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
-						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
-						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1970, 01, 01, 3, 0, 0, 0, timezone))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 3, 0, 0, 0, timezone))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 3, 0, 0, 0, timezone))),
 					},
 					"col_02_date32": []*uint16{
 						nil,
-						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
-						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 3, 0, 0, 0, timezone))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(2023, 03, 21, 3, 0, 0, 0, timezone))),
 					},
 					"col_03_datetime": []*uint32{
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
-							common.TimeToYDBDatetime, time.Date(1970, 01, 01, 0, 0, 0, 0, time.UTC))),
+							common.TimeToYDBDatetime, time.Date(1970, 01, 01, 3, 0, 0, 0, timezone))),
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
-							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, timezone))),
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
-							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, timezone))),
 					},
 					"col_04_datetime64": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456780, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456780, timezone))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 987654320, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 987654320, timezone))),
 					},
 				},
 			},

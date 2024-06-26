@@ -9,6 +9,7 @@ services:
       - '8123:8123'
       - '9000:9000'
     environment:
+      TZ: "Europe/Moscow"
       CLICKHOUSE_DB: connector
       CLICKHOUSE_USER: admin
       CLICKHOUSE_PASSWORD: password
