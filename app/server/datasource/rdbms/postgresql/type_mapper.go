@@ -176,7 +176,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 					cast := acceptor.(*pgtype.Date)
 
 					return appendValuePtrToArrowBuilder[time.Time, uint16, *array.Uint16Builder](
-						&cast.Time, builder, cast.Valid, cc.Date())
+						cast.Time, builder, cast.Valid, cc.Date())
 				})
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)

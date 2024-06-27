@@ -30,7 +30,7 @@ func (collectionDefault) String() ValuePtrConverter[string, string] { return noo
 func (collectionDefault) StringToBytes() ValuePtrConverter[string, []byte] {
 	return stringToBytesConverter{}
 }
-func (collectionDefault) Bytes() ValuePtrConverter[[]byte, []byte]   { return noopConverter[[]byte]{} }
+func (collectionDefault) Bytes() ValueConverter[[]byte, []byte]      { return noopConverter[[]byte]{} }
 func (collectionDefault) Date() ValuePtrConverter[time.Time, uint16] { return dateConverter{} }
 func (collectionDefault) DateToString() ValuePtrConverter[time.Time, string] {
 	return dateToStringConverter{}
