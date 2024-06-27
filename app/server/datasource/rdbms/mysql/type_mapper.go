@@ -145,7 +145,7 @@ func transformerFromSQLTypes(
 
 	for i := range sqlTypeNames {
 		if err := addAcceptorAppender(sqlTypeNames[i], ydbTypes[i], cc, &acceptors, &appenders); err != nil {
-			return nil, fmt.Errorf("add acceptor appender %d: %w", err)
+			return nil, fmt.Errorf("add acceptor appender #%d: %w", i, err)
 		}
 	}
 

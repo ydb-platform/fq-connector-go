@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Integration tests",
+            "name": "Launch",
             "type": "go",
             "request": "launch",
             "mode": "test",
