@@ -224,7 +224,7 @@ func makeAcceptorAndAppenderFromSQLType(
 	case typeDatetime:
 		switch ydbTypeID {
 		case Ydb.Type_DATETIME:
-			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
+			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -232,7 +232,7 @@ func makeAcceptorAndAppenderFromSQLType(
 	case typeTimestamp:
 		switch ydbTypeID {
 		case Ydb.Type_TIMESTAMP:
-			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
+			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)

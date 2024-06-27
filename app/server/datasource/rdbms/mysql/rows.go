@@ -219,10 +219,5 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	mySQLTypes, ok := <-r.transformerInitChan
-	if !ok {
-		return nil, fmt.Errorf("mysql types are not ready")
-	}
-
-	return transformerFromSQLTypes(mySQLTypes, ydbTypes, cc)
+	return transformerFromSQLTypes(nil, ydbTypes, cc)
 }
