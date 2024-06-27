@@ -26,16 +26,18 @@ func (collectionDefault) String() ValueConverter[string, string]    { return noo
 func (collectionDefault) StringToBytes() ValueConverter[string, []byte] {
 	return stringToBytesConverter{}
 }
-func (collectionDefault) Bytes() ValueConverter[[]byte, []byte]   { return noopConverter[[]byte]{} }
-func (collectionDefault) Date() ValueConverter[time.Time, uint16] { return dateConverter{} }
+func (collectionDefault) Bytes() ValueConverter[[]byte, []byte]      { return noopConverter[[]byte]{} }
+func (collectionDefault) Date() ValuePtrConverter[time.Time, uint16] { return dateConverter{} }
 func (collectionDefault) DateToString() ValuePtrConverter[time.Time, string] {
 	return dateToStringConverter{}
 }
-func (collectionDefault) Datetime() ValueConverter[time.Time, uint32] { return datetimeConverter{} }
+func (collectionDefault) Datetime() ValuePtrConverter[time.Time, uint32] { return datetimeConverter{} }
 func (collectionDefault) DatetimeToString() ValuePtrConverter[time.Time, string] {
 	return datetimeToStringConverter{}
 }
-func (collectionDefault) Timestamp() ValueConverter[time.Time, uint64] { return timestampConverter{} }
+func (collectionDefault) Timestamp() ValuePtrConverter[time.Time, uint64] {
+	return timestampConverter{}
+}
 func (collectionDefault) TimestampToString() ValuePtrConverter[time.Time, string] {
 	return timestampToStringConverter{}
 }
@@ -63,8 +65,8 @@ func (stringToBytesConverter) Convert(in string) ([]byte, error) { return []byte
 
 type dateConverter struct{}
 
-func (dateConverter) Convert(in time.Time) (uint16, error) {
-	out, err := common.TimeToYDBDate(&in)
+func (dateConverter) Convert(in *time.Time) (uint16, error) {
+	out, err := common.TimeToYDBDate(in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Date: %w", err)
@@ -81,8 +83,8 @@ func (dateToStringConverter) Convert(in *time.Time) (string, error) {
 
 type datetimeConverter struct{}
 
-func (datetimeConverter) Convert(in time.Time) (uint32, error) {
-	out, err := common.TimeToYDBDatetime(&in)
+func (datetimeConverter) Convert(in *time.Time) (uint32, error) {
+	out, err := common.TimeToYDBDatetime(in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Datetime: %w", err)
@@ -99,8 +101,8 @@ func (datetimeToStringConverter) Convert(in *time.Time) (string, error) {
 
 type timestampConverter struct{}
 
-func (timestampConverter) Convert(in time.Time) (uint64, error) {
-	out, err := common.TimeToYDBTimestamp(&in)
+func (timestampConverter) Convert(in *time.Time) (uint64, error) {
+	out, err := common.TimeToYDBTimestamp(in)
 
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Timestamp: %w", err)

@@ -29,10 +29,10 @@ type Collection interface {
 	String() ValueConverter[string, string]
 	StringToBytes() ValueConverter[string, []byte]
 	Bytes() ValueConverter[[]byte, []byte]
-	Date() ValueConverter[time.Time, uint16]
+	Date() ValuePtrConverter[time.Time, uint16]
 	DateToString() ValuePtrConverter[time.Time, string]
-	Datetime() ValueConverter[time.Time, uint32]
+	Datetime() ValuePtrConverter[time.Time, uint32]
 	DatetimeToString() ValuePtrConverter[time.Time, string]
-	Timestamp() ValueConverter[time.Time, uint64]
+	Timestamp() ValuePtrConverter[time.Time, uint64]
 	TimestampToString() ValuePtrConverter[time.Time, string]
 }

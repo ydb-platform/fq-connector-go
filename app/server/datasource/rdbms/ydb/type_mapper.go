@@ -251,7 +251,7 @@ func makeAcceptorAndAppenderFromSQLType(
 	case typeDate:
 		switch ydbTypeID {
 		case Ydb.Type_DATE:
-			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint16, *array.Uint16Builder](cc.Date()), nil
+			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, uint16, *array.Uint16Builder](cc.Date()), nil
 		case Ydb.Type_UTF8:
 			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, string, *array.StringBuilder](cc.DateToString()), nil
 		default:
@@ -262,10 +262,6 @@ func makeAcceptorAndAppenderFromSQLType(
 		switch ydbTypeID {
 		case Ydb.Type_DATETIME:
 			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
-		case Ydb.Type_UTF8:
-			return new(*time.Time),
-				appendToBuilderWithValuePtrConverter[time.Time, string, *array.StringBuilder](cc.DatetimeToString()),
-				nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -274,10 +270,6 @@ func makeAcceptorAndAppenderFromSQLType(
 		switch ydbTypeID {
 		case Ydb.Type_TIMESTAMP:
 			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
-		case Ydb.Type_UTF8:
-			return new(*time.Time),
-				appendToBuilderWithValuePtrConverter[time.Time, string, *array.StringBuilder](cc.TimestampToString()),
-				nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)

@@ -173,7 +173,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Date)
 
-					return appendValueToArrowBuilder[time.Time, uint16, *array.Uint16Builder](
+					return appendValuePtrToArrowBuilder[time.Time, uint16, *array.Uint16Builder](
 						cast.Time, builder, cast.Valid, cc.Date())
 				})
 			default:
