@@ -187,23 +187,23 @@ var (
 	maxClickHouseDatetime64 = time.Date(2299, time.December, 31, 23, 59, 59, 99999999, time.UTC)
 )
 
-func saturateDateTime(in, min, max time.Time) *time.Time {
+func saturateDateTime(in *time.Time, min, max time.Time) *time.Time {
 	if in.Before(min) {
-		in = min
+		*in = min
 	}
 
 	if in.After(max) {
-		in = max
+		*in = max
 	}
 
-	return &in
+	return in
 }
 
 type dateToStringConverter struct {
 	conv conversion.ValuePtrConverter[time.Time, string]
 }
 
-func (c dateToStringConverter) Convert(in time.Time) (string, error) {
+func (c dateToStringConverter) Convert(in *time.Time) (string, error) {
 	return c.conv.Convert(saturateDateTime(in, minClickHouseDate, maxClickHouseDate))
 }
 
@@ -211,7 +211,7 @@ type date32ToStringConverter struct {
 	conv conversion.ValuePtrConverter[time.Time, string]
 }
 
-func (c date32ToStringConverter) Convert(in time.Time) (string, error) {
+func (c date32ToStringConverter) Convert(in *time.Time) (string, error) {
 	return c.conv.Convert(saturateDateTime(in, minClickHouseDate32, maxClickHouseDate32))
 }
 
@@ -219,7 +219,7 @@ type dateTimeToStringConverter struct {
 	conv conversion.ValuePtrConverter[time.Time, string]
 }
 
-func (c dateTimeToStringConverter) Convert(in time.Time) (string, error) {
+func (c dateTimeToStringConverter) Convert(in *time.Time) (string, error) {
 	return c.conv.Convert(saturateDateTime(in, minClickHouseDatetime, maxClickHouseDatetime))
 }
 
@@ -227,7 +227,7 @@ type dateTime64ToStringConverter struct {
 	conv conversion.ValuePtrConverter[time.Time, string]
 }
 
-func (c dateTime64ToStringConverter) Convert(in time.Time) (string, error) {
+func (c dateTime64ToStringConverter) Convert(in *time.Time) (string, error) {
 	return c.conv.Convert(saturateDateTime(in, minClickHouseDatetime64, maxClickHouseDatetime64))
 }
 

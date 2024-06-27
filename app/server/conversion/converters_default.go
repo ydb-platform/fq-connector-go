@@ -11,22 +11,26 @@ var _ Collection = collectionDefault{}
 
 type collectionDefault struct{}
 
-func (collectionDefault) Bool() ValueConverter[bool, uint8]         { return boolConverter{} }
-func (collectionDefault) Int8() ValueConverter[int8, int8]          { return noopConverter[int8]{} }
-func (collectionDefault) Int16() ValueConverter[int16, int16]       { return noopConverter[int16]{} }
-func (collectionDefault) Int32() ValueConverter[int32, int32]       { return noopConverter[int32]{} }
-func (collectionDefault) Int64() ValueConverter[int64, int64]       { return noopConverter[int64]{} }
-func (collectionDefault) Uint8() ValueConverter[uint8, uint8]       { return noopConverter[uint8]{} }
-func (collectionDefault) Uint16() ValueConverter[uint16, uint16]    { return noopConverter[uint16]{} }
-func (collectionDefault) Uint32() ValueConverter[uint32, uint32]    { return noopConverter[uint32]{} }
-func (collectionDefault) Uint64() ValueConverter[uint64, uint64]    { return noopConverter[uint64]{} }
-func (collectionDefault) Float32() ValueConverter[float32, float32] { return noopConverter[float32]{} }
-func (collectionDefault) Float64() ValueConverter[float64, float64] { return noopConverter[float64]{} }
-func (collectionDefault) String() ValueConverter[string, string]    { return noopConverter[string]{} }
-func (collectionDefault) StringToBytes() ValueConverter[string, []byte] {
+func (collectionDefault) Bool() ValuePtrConverter[bool, uint8]      { return boolConverter{} }
+func (collectionDefault) Int8() ValuePtrConverter[int8, int8]       { return noopConverter[int8]{} }
+func (collectionDefault) Int16() ValuePtrConverter[int16, int16]    { return noopConverter[int16]{} }
+func (collectionDefault) Int32() ValuePtrConverter[int32, int32]    { return noopConverter[int32]{} }
+func (collectionDefault) Int64() ValuePtrConverter[int64, int64]    { return noopConverter[int64]{} }
+func (collectionDefault) Uint8() ValuePtrConverter[uint8, uint8]    { return noopConverter[uint8]{} }
+func (collectionDefault) Uint16() ValuePtrConverter[uint16, uint16] { return noopConverter[uint16]{} }
+func (collectionDefault) Uint32() ValuePtrConverter[uint32, uint32] { return noopConverter[uint32]{} }
+func (collectionDefault) Uint64() ValuePtrConverter[uint64, uint64] { return noopConverter[uint64]{} }
+func (collectionDefault) Float32() ValuePtrConverter[float32, float32] {
+	return noopConverter[float32]{}
+}
+func (collectionDefault) Float64() ValuePtrConverter[float64, float64] {
+	return noopConverter[float64]{}
+}
+func (collectionDefault) String() ValuePtrConverter[string, string] { return noopConverter[string]{} }
+func (collectionDefault) StringToBytes() ValuePtrConverter[string, []byte] {
 	return stringToBytesConverter{}
 }
-func (collectionDefault) Bytes() ValueConverter[[]byte, []byte]      { return noopConverter[[]byte]{} }
+func (collectionDefault) Bytes() ValuePtrConverter[[]byte, []byte]   { return noopConverter[[]byte]{} }
 func (collectionDefault) Date() ValuePtrConverter[time.Time, uint16] { return dateConverter{} }
 func (collectionDefault) DateToString() ValuePtrConverter[time.Time, string] {
 	return dateToStringConverter{}
@@ -45,14 +49,14 @@ func (collectionDefault) TimestampToString() ValuePtrConverter[time.Time, string
 type noopConverter[T common.ValueType] struct {
 }
 
-func (noopConverter[T]) Convert(in T) (T, error) { return in, nil }
+func (noopConverter[T]) Convert(in *T) (T, error) { return *in, nil }
 
 type boolConverter struct{}
 
-func (boolConverter) Convert(in bool) (uint8, error) {
+func (boolConverter) Convert(in *bool) (uint8, error) {
 	// For a some reason, Bool values are converted to Arrow Uint8 rather than to Arrow native Bool.
 	// See https://st.yandex-team.ru/YQL-15332 for more details.
-	if in {
+	if *in {
 		return 1, nil
 	}
 
@@ -61,7 +65,7 @@ func (boolConverter) Convert(in bool) (uint8, error) {
 
 type stringToBytesConverter struct{}
 
-func (stringToBytesConverter) Convert(in string) ([]byte, error) { return []byte(in), nil }
+func (stringToBytesConverter) Convert(in *string) ([]byte, error) { return []byte(*in), nil }
 
 type dateConverter struct{}
 

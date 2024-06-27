@@ -203,6 +203,6 @@ func (r *rows) Scan(dest ...any) error {
 	return nil
 }
 
-func (*rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	return transformerFromYdbTypes(ydbTypes, cc)
+func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+	return transformerFromSQLTypes(nil, ydbTypes, cc)
 }

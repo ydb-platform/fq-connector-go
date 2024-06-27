@@ -220,34 +220,34 @@ func makeAcceptorAndAppenderFromSQLType(
 ) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case typeBool:
-		return new(*bool), appendToBuilderWithValueConverter[bool, uint8, *array.Uint8Builder](cc.Bool()), nil
+		return new(*bool), appendToBuilderWithValuePtrConverter[bool, uint8, *array.Uint8Builder](cc.Bool()), nil
 	case typeInt8:
-		return new(*int8), appendToBuilderWithValueConverter[int8, int8, *array.Int8Builder](cc.Int8()), nil
+		return new(*int8), appendToBuilderWithValuePtrConverter[int8, int8, *array.Int8Builder](cc.Int8()), nil
 	case typeInt16:
-		return new(*int16), appendToBuilderWithValueConverter[int16, int16, *array.Int16Builder](cc.Int16()), nil
+		return new(*int16), appendToBuilderWithValuePtrConverter[int16, int16, *array.Int16Builder](cc.Int16()), nil
 	case typeInt32:
-		return new(*int32), appendToBuilderWithValueConverter[int32, int32, *array.Int32Builder](cc.Int32()), nil
+		return new(*int32), appendToBuilderWithValuePtrConverter[int32, int32, *array.Int32Builder](cc.Int32()), nil
 	case typeInt64:
-		return new(*int64), appendToBuilderWithValueConverter[int64, int64, *array.Int64Builder](cc.Int64()), nil
+		return new(*int64), appendToBuilderWithValuePtrConverter[int64, int64, *array.Int64Builder](cc.Int64()), nil
 	case typeUint8:
-		return new(*uint8), appendToBuilderWithValueConverter[uint8, uint8, *array.Uint8Builder](cc.Uint8()), nil
+		return new(*uint8), appendToBuilderWithValuePtrConverter[uint8, uint8, *array.Uint8Builder](cc.Uint8()), nil
 	case typeUint16:
-		return new(*uint16), appendToBuilderWithValueConverter[uint16, uint16, *array.Uint16Builder](cc.Uint16()), nil
+		return new(*uint16), appendToBuilderWithValuePtrConverter[uint16, uint16, *array.Uint16Builder](cc.Uint16()), nil
 	case typeUint32:
-		return new(*uint32), appendToBuilderWithValueConverter[uint32, uint32, *array.Uint32Builder](cc.Uint32()), nil
+		return new(*uint32), appendToBuilderWithValuePtrConverter[uint32, uint32, *array.Uint32Builder](cc.Uint32()), nil
 	case typeUint64:
-		return new(*uint64), appendToBuilderWithValueConverter[uint64, uint64, *array.Uint64Builder](cc.Uint64()), nil
+		return new(*uint64), appendToBuilderWithValuePtrConverter[uint64, uint64, *array.Uint64Builder](cc.Uint64()), nil
 	case typeFloat:
-		return new(*float32), appendToBuilderWithValueConverter[float32, float32, *array.Float32Builder](cc.Float32()), nil
+		return new(*float32), appendToBuilderWithValuePtrConverter[float32, float32, *array.Float32Builder](cc.Float32()), nil
 	case typeDouble:
-		return new(*float64), appendToBuilderWithValueConverter[float64, float64, *array.Float64Builder](cc.Float64()), nil
+		return new(*float64), appendToBuilderWithValuePtrConverter[float64, float64, *array.Float64Builder](cc.Float64()), nil
 	case typeString:
-		return new(*[]byte), appendToBuilderWithValueConverter[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()), nil
+		return new(*[]byte), appendToBuilderWithValuePtrConverter[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()), nil
 	case typeUtf8:
-		return new(*string), appendToBuilderWithValueConverter[string, string, *array.StringBuilder](cc.String()), nil
+		return new(*string), appendToBuilderWithValuePtrConverter[string, string, *array.StringBuilder](cc.String()), nil
 	case typeJSON:
 		// Copy of UTF8
-		return new(*string), appendToBuilderWithValueConverter[string, string, *array.StringBuilder](cc.String()), nil
+		return new(*string), appendToBuilderWithValuePtrConverter[string, string, *array.StringBuilder](cc.String()), nil
 	case typeDate:
 		switch ydbTypeID {
 		case Ydb.Type_DATE:
@@ -261,7 +261,7 @@ func makeAcceptorAndAppenderFromSQLType(
 	case typeDatetime:
 		switch ydbTypeID {
 		case Ydb.Type_DATETIME:
-			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
+			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -269,7 +269,7 @@ func makeAcceptorAndAppenderFromSQLType(
 	case typeTimestamp:
 		switch ydbTypeID {
 		case Ydb.Type_TIMESTAMP:
-			return new(*time.Time), appendToBuilderWithValueConverter[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
+			return new(*time.Time), appendToBuilderWithValuePtrConverter[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)

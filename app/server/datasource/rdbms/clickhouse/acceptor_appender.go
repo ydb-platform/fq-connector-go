@@ -142,7 +142,7 @@ func makeAppender[
 	IN common.ValueType,
 	OUT common.ValueType,
 	AB common.ArrowBuilder[OUT],
-](conv conversion.ValueConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
+](conv conversion.ValuePtrConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
 	return func(acceptor any, builder array.Builder) error {
 		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
 	}
@@ -151,7 +151,7 @@ func makeAppender[
 func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
 	acceptor any,
 	builder array.Builder,
-	conv conversion.ValueConverter[IN, OUT],
+	conv conversion.ValuePtrConverter[IN, OUT],
 ) error {
 	cast := acceptor.(*IN)
 
@@ -161,9 +161,7 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 		return nil
 	}
 
-	value := *cast
-
-	out, err := conv.Convert(value)
+	out, err := conv.Convert(cast)
 	if err != nil {
 		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
 			// TODO: write warning to logger
@@ -172,7 +170,7 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 			return nil
 		}
 
-		return fmt.Errorf("convert value %v: %w", value, err)
+		return fmt.Errorf("convert value %v: %w", *cast, err)
 	}
 
 	//nolint:forcetypeassert
