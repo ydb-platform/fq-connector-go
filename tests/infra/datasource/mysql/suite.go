@@ -1,13 +1,13 @@
 package mysql
 
 import (
-	// api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	// api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	// tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 
-	// "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
-	// "github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
@@ -27,7 +27,6 @@ func (s *Suite) TestSelect() {
 
 // Set of tests validating stats
 
-/*
 func (s *Suite) TestPositiveStats() {
 	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }
@@ -256,7 +255,6 @@ func (s *Suite) TestInvalidPassword() {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
-*/
 
 func NewSuite(
 	baseSuite *suite.Base,
