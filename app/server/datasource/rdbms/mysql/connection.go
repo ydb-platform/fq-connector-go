@@ -28,14 +28,14 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 	c.logger.Dump(query, args...)
 
 	results := make(chan rowData, c.rowBufferCapacity)
+	result := &mysql.Result{}
 
 	r := &rows{
 		rowChan:                 results,
 		lastRow:                 nil,
-		result:                  &mysql.Result{},
-		busy:                    atomic.Bool{},
 		transformerInitChan:     make(chan []uint8, 1),
 		transformerInitFinished: atomic.Uint32{},
+		inputFinished:           false,
 	}
 
 	stmt, err := c.conn.Prepare(query)
@@ -43,13 +43,11 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 		return r, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
 
-	r.busy.Store(true)
-
 	go func() {
 		defer close(r.rowChan)
 
 		err = stmt.ExecuteSelectStreaming(
-			r.result,
+			result,
 			// In per-row handler copy entire row. The driver re-uses memory allocated for single row,
 			// so we need either to lock the row until the reader is done its reading and processing
 			// or simply copy it. Otherwise data races are inevitable.
@@ -57,29 +55,27 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 				newRow := make([]fieldValue, len(row))
 
 				for i, r := range row {
-					newRow[i].Type = r.Type
+					newRow[i].valueType = r.Type
 					val := r.Value()
 
 					switch val.(type) {
 					case []byte:
-						newRow[i].Value = make([]byte, len(val.([]byte)))
-						copy(newRow[i].Value.([]byte), val.([]byte))
+						newRow[i].value = make([]byte, len(val.([]byte)))
+						copy(newRow[i].value.([]byte), val.([]byte))
 					default:
-						newRow[i].Value = val
+						newRow[i].value = val
 					}
 				}
 
-				r.maybeInitializeTransformer(r.result.Fields)
+				r.maybeInitializeTransformer(result.Fields)
 
-				r.rowChan <- rowData{newRow, r.result.Fields}
+				r.rowChan <- rowData{newRow, result.Fields}
 
 				return nil
 			},
 			nil,
 			args...,
 		)
-
-		r.busy.Store(false)
 	}()
 
 	return r, nil

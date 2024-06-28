@@ -113,43 +113,6 @@ func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 	}
 }
 
-func appendToBuilderWithValueConverter[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](
-	conv conversion.ValueConverter[IN, OUT],
-) func(acceptor any, builder array.Builder) error {
-	return func(acceptor any, builder array.Builder) error {
-		doublePtr := acceptor.(**IN)
-
-		if *doublePtr == nil {
-			builder.AppendNull()
-
-			return nil
-		}
-
-		value := **doublePtr
-
-		out, err := conv.Convert(value)
-		if err != nil {
-			if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-				// TODO: write warning to logger
-				builder.AppendNull()
-
-				return nil
-			}
-
-			return fmt.Errorf("convert value %v: %w", value, err)
-		}
-
-		//nolint:forcetypeassert
-		builder.(AB).Append(out)
-
-		return nil
-	}
-}
-
 func appendToBuilderWithValuePtrConverter[
 	IN common.ValueType,
 	OUT common.ValueType,

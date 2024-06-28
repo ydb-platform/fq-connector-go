@@ -13,26 +13,20 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	COLUMN_TYPE_COLUMN   = "COLUMN_TYPE"
-	METAINFO_SCHEMA_NAME = "information_schema"
-)
-
 type fieldValue struct {
-	Value any
-	Type  mysql.FieldValueType
+	value     any
+	valueType mysql.FieldValueType
 }
 
 type rowData struct {
-	Row    []fieldValue
-	Fields []*mysql.Field
+	row    []fieldValue
+	fields []*mysql.Field
 }
 
 type rows struct {
-	rowChan chan rowData
-	lastRow *rowData
-	result  *mysql.Result
-	busy    atomic.Bool
+	rowChan       chan rowData
+	lastRow       *rowData
+	inputFinished bool
 
 	// This channel is used only once: when the first row arrives from the connection,
 	// it's used to initialize transformer with column types (which are encoded with uint8 values)
@@ -40,14 +34,9 @@ type rows struct {
 	transformerInitFinished atomic.Uint32
 }
 
-func (r *rows) Close() error {
-	r.result = nil
-	return nil
-}
+func (*rows) Close() error { return nil }
 
-func (*rows) Err() error {
-	return nil
-}
+func (*rows) Err() error { return nil }
 
 func (r *rows) Next() bool {
 	next, ok := <-r.rowChan
@@ -56,6 +45,7 @@ func (r *rows) Next() bool {
 		r.lastRow = &next
 	} else {
 		r.lastRow = nil
+		r.inputFinished = true
 	}
 
 	return ok
@@ -209,16 +199,16 @@ func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 }
 
 func (r *rows) Scan(dest ...any) error {
-	if r.lastRow == nil && !r.busy.Load() {
+	if r.inputFinished {
 		return io.EOF
 	}
 
-	for i, val := range r.lastRow.Row {
-		value := val.Value
+	for i, val := range r.lastRow.row {
+		value := val.value
 
-		valueType := r.lastRow.Fields[i].Type
-		fieldValueType := val.Type
-		flag := r.lastRow.Fields[i].Flag
+		valueType := r.lastRow.fields[i].Type
+		fieldValueType := val.valueType
+		flag := r.lastRow.fields[i].Flag
 
 		if err := scanToDest(dest[i], value, valueType, flag, fieldValueType); err != nil {
 			return err
@@ -229,10 +219,10 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	mySqlTypes, ok := <-r.transformerInitChan
+	mySQLTypes, ok := <-r.transformerInitChan
 	if !ok {
 		return nil, fmt.Errorf("mysql types are not ready")
 	}
 
-	return transformerFromSQLTypes(mySqlTypes, ydbTypes, cc)
+	return transformerFromSQLTypes(mySQLTypes, ydbTypes, cc)
 }
