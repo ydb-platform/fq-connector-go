@@ -26,10 +26,13 @@ type typeMapper struct {
 }
 
 //nolint:gocyclo
-func (tm *typeMapper) SQLTypeToYDBColumn(columnName, columnType string, typeMapperSettings *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (tm *typeMapper) SQLTypeToYDBColumn(
+	columnName, columnType string,
+	typeMapperSettings *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
 	var (
 		typeName string
-		typeSize uint64 = 0
+		typeSize uint64
 		err      error
 	)
 
@@ -134,7 +137,6 @@ func NewTypeMapper() datasource.TypeMapper {
 	}
 }
 
-//nolint:gocyclo
 func transformerFromSQLTypes(
 	mySQLTypes []uint8,
 	ydbTypes []*Ydb.Type,
@@ -152,6 +154,7 @@ func transformerFromSQLTypes(
 	return paging.NewRowTransformer(acceptors, appenders, nil), nil
 }
 
+//nolint:funlen,gocyclo
 func addAcceptorAppender(
 	mySQLType uint8,
 	ydbType *Ydb.Type,

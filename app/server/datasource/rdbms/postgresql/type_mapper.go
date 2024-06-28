@@ -113,14 +113,16 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Float4)
 
-				return appendValuePtrToArrowBuilder[float32, float32, *array.Float32Builder](cast.Float32, builder, cast.Valid, cc.Float32())
+				return appendValuePtrToArrowBuilder[float32, float32, *array.Float32Builder](
+					cast.Float32, builder, cast.Valid, cc.Float32())
 			})
 		case pgtype.Float8OID:
 			acceptors = append(acceptors, new(pgtype.Float8))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Float8)
 
-				return appendValuePtrToArrowBuilder[float64, float64, *array.Float64Builder](cast.Float64, builder, cast.Valid, cc.Float64())
+				return appendValuePtrToArrowBuilder[float64, float64, *array.Float64Builder](
+					cast.Float64, builder, cast.Valid, cc.Float64())
 			})
 		case pgtype.TextOID, pgtype.BPCharOID, pgtype.VarcharOID:
 			acceptors = append(acceptors, new(pgtype.Text))
@@ -199,7 +201,8 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 					cast := acceptor.(*pgtype.Timestamp)
 
-					return appendValuePtrToArrowBuilder[time.Time, uint64, *array.Uint64Builder](cast.Time, builder, cast.Valid, cc.Timestamp())
+					return appendValuePtrToArrowBuilder[time.Time, uint64, *array.Uint64Builder](
+						cast.Time, builder, cast.Valid, cc.Timestamp())
 				})
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)

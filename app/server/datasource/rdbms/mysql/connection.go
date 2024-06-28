@@ -33,10 +33,9 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 	r := &rows{
 		rowChan:                 results,
 		lastRow:                 nil,
-		result:                  &mysql.Result{},
-		busy:                    atomic.Bool{},
 		transformerInitChan:     make(chan []uint8, 1),
 		transformerInitFinished: atomic.Uint32{},
+		inputFinished:           false,
 	}
 
 	stmt, err := c.conn.Prepare(query)
@@ -68,9 +67,9 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 					}
 				}
 
-				r.maybeInitializeTransformer(r.result.Fields)
+				r.maybeInitializeTransformer(result.Fields)
 
-				r.rowChan <- rowData{newRow, r.result.Fields}
+				r.rowChan <- rowData{newRow, result.Fields}
 
 				return nil
 			},

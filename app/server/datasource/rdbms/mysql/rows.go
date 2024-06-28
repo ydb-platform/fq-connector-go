@@ -24,10 +24,9 @@ type rowData struct {
 }
 
 type rows struct {
-	rowChan chan rowData
-	lastRow *rowData
-	result  *mysql.Result
-	busy    atomic.Bool
+	rowChan       chan rowData
+	lastRow       *rowData
+	inputFinished bool
 
 	// This channel is used only once: when the first row arrives from the connection,
 	// it's used to initialize transformer with column types (which are encoded with uint8 values)
@@ -220,10 +219,10 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	mySqlTypes, ok := <-r.transformerInitChan
+	mySQLTypes, ok := <-r.transformerInitChan
 	if !ok {
 		return nil, fmt.Errorf("mysql types are not ready")
 	}
 
-	return transformerFromSQLTypes(mySqlTypes, ydbTypes, cc)
+	return transformerFromSQLTypes(mySQLTypes, ydbTypes, cc)
 }
