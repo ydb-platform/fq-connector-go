@@ -6,10 +6,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type ValueConverter[IN common.ValueType, OUT common.ValueType] interface {
-	Convert(in IN) (OUT, error)
-}
-
 type ValuePtrConverter[IN common.ValueType, OUT common.ValueType] interface {
 	Convert(in *IN) (OUT, error)
 }
