@@ -142,7 +142,7 @@ func makeAppenderNullable[
 	IN common.ValueType,
 	OUT common.ValueType,
 	AB common.ArrowBuilder[OUT],
-](conv conversion.ValueConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
+](conv conversion.ValuePtrConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
 	return func(acceptor any, builder array.Builder) error {
 		return appendValueToArrowBuilderNullable[IN, OUT, AB](acceptor, builder, conv)
 	}
@@ -151,7 +151,7 @@ func makeAppenderNullable[
 func appendValueToArrowBuilderNullable[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
 	acceptor any,
 	builder array.Builder,
-	conv conversion.ValueConverter[IN, OUT],
+	conv conversion.ValuePtrConverter[IN, OUT],
 ) error {
 	cast := acceptor.(**IN)
 
@@ -161,7 +161,7 @@ func appendValueToArrowBuilderNullable[IN common.ValueType, OUT common.ValueType
 		return nil
 	}
 
-	value := **cast
+	value := *cast
 
 	out, err := conv.Convert(value)
 	if err != nil {
