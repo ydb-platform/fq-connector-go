@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -135,15 +136,15 @@ func NewTypeMapper() datasource.TypeMapper {
 
 //nolint:gocyclo
 func transformerFromSQLTypes(
-	sqlTypeNames []string,
+	mySQLTypes []uint8,
 	ydbTypes []*Ydb.Type,
 	cc conversion.Collection,
 ) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
 
-	for i := range sqlTypeNames {
-		if err := addAcceptorAppender(sqlTypeNames[i], ydbTypes[i], cc, &acceptors, &appenders); err != nil {
+	for i := range mySQLTypes {
+		if err := addAcceptorAppender(mySQLTypes[i], ydbTypes[i], cc, &acceptors, &appenders); err != nil {
 			return nil, fmt.Errorf("add acceptor appender #%d: %w", i, err)
 		}
 	}
@@ -152,7 +153,7 @@ func transformerFromSQLTypes(
 }
 
 func addAcceptorAppender(
-	sqlTypeName string,
+	mySQLType uint8,
 	ydbType *Ydb.Type,
 	cc conversion.Collection,
 	acceptors *[]any,
@@ -163,8 +164,8 @@ func addAcceptorAppender(
 		return fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 	}
 
-	switch sqlTypeName {
-	case typeInt, typeMediumInt:
+	switch mySQLType {
+	case mysql.MYSQL_TYPE_INT24, mysql.MYSQL_TYPE_LONG:
 		switch ydbTypeId {
 		case Ydb.Type_UINT32:
 			*acceptors = append(*acceptors, new(*uint32))
@@ -173,9 +174,9 @@ func addAcceptorAppender(
 			*acceptors = append(*acceptors, new(*int32))
 			*appenders = append(*appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
 		default:
-			return fmt.Errorf("type mismatch: mysql '%s' vs ydb '%s': %w", sqlTypeName, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
-	case typeBigInt:
+	case mysql.MYSQL_TYPE_LONGLONG:
 		switch ydbTypeId {
 		case Ydb.Type_UINT64:
 			*acceptors = append(*acceptors, new(*uint64))
@@ -184,15 +185,15 @@ func addAcceptorAppender(
 			*acceptors = append(*acceptors, new(*int64))
 			*appenders = append(*appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
 		default:
-			return fmt.Errorf("type mismatch: mysql '%s' vs ydb '%s': %w", sqlTypeName, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
-	case typeFloat:
+	case mysql.MYSQL_TYPE_FLOAT:
 		*acceptors = append(*acceptors, new(*float32))
 		*appenders = append(*appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
-	case typeDouble:
+	case mysql.MYSQL_TYPE_DOUBLE:
 		*acceptors = append(*acceptors, new(*float64))
 		*appenders = append(*appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
-	case typeTinyInt:
+	case mysql.MYSQL_TYPE_TINY:
 		switch ydbTypeId {
 		case Ydb.Type_BOOL:
 			*acceptors = append(*acceptors, new(*bool))
@@ -204,9 +205,9 @@ func addAcceptorAppender(
 			*acceptors = append(*acceptors, new(*int8))
 			*appenders = append(*appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
 		default:
-			return fmt.Errorf("type mismatch: mysql '%s' vs ydb '%s': %w", sqlTypeName, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
-	case typeSmallInt:
+	case mysql.MYSQL_TYPE_SHORT:
 		switch ydbTypeId {
 		case Ydb.Type_UINT16:
 			*acceptors = append(*acceptors, new(*uint16))
@@ -215,15 +216,18 @@ func addAcceptorAppender(
 			*acceptors = append(*acceptors, new(*int16))
 			*appenders = append(*appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
 		default:
-			return fmt.Errorf("type mismatch: mysql '%s' vs ydb '%s': %w", sqlTypeName, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
-	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob, typeBinary, typeVarBinary:
+	case mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
+		// TODO: list of supported string types are longer
+		// case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob, typeBinary, typeVarBinary:
 		*acceptors = append(*acceptors, new(*[]byte))
 		*appenders = append(*appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
-	case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
+	case mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VAR_STRING:
+		// case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
 		*acceptors = append(*acceptors, new(*string))
 		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
-	case typeDate:
+	case mysql.MYSQL_TYPE_DATE:
 		*acceptors = append(*acceptors, new(*time.Time))
 
 		switch ydbTypeId {
@@ -240,11 +244,11 @@ func addAcceptorAppender(
 				return appendNullableToArrowBuilder[time.Time, uint16, *array.Uint16Builder](cast, builder, cc.Date())
 			})
 		default:
-			return fmt.Errorf("type mismatch: mysql '%s' vs ydb '%s': %w", sqlTypeName, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	// case "time":
 	// TODO: YDB has no separate type representing time of the day
-	case typeDatetime, typeTimestamp:
+	case mysql.MYSQL_TYPE_DATETIME, mysql.MYSQL_TYPE_DATETIME2, mysql.MYSQL_TYPE_TIMESTAMP, mysql.MYSQL_TYPE_TIMESTAMP2:
 		*acceptors = append(*acceptors, new(*time.Time))
 
 		switch ydbTypeId {
@@ -265,10 +269,10 @@ func addAcceptorAppender(
 					cast, builder, cc.Timestamp())
 			})
 		default:
-			return fmt.Errorf("type mismatch: mysql '%s' vs ydb '%s': %w", sqlTypeName, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	default:
-		return fmt.Errorf("unexpected type '%s': %w", sqlTypeName, common.ErrDataTypeNotSupported)
+		return fmt.Errorf("unexpected MySQL type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
 	}
 
 	return nil

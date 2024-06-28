@@ -33,6 +33,11 @@ type rows struct {
 	lastRow *rowData
 	result  *mysql.Result
 	busy    atomic.Bool
+
+	// This channel is used only once: when the first row arrives from the connection,
+	// it's used to initialize transformer with column types (which are encoded with uint8 values)
+	transformerInitChan     chan []uint8
+	transformerInitFinished atomic.Uint32
 }
 
 func (r *rows) Close() error {
@@ -58,6 +63,21 @@ func (r *rows) Next() bool {
 
 func (*rows) NextResultSet() bool {
 	return false
+}
+
+func (r *rows) maybeInitializeTransformer(fields []*mysql.Field) {
+	// Provide list of types in the resultset to initialize transformer
+	if r.transformerInitFinished.CompareAndSwap(0, 1) {
+		var mySQLTypes []uint8
+
+		for i := range fields {
+			t := fields[i].Type
+			mySQLTypes = append(mySQLTypes, t)
+		}
+
+		r.transformerInitChan <- mySQLTypes
+		close(r.transformerInitChan)
+	}
 }
 
 //nolint:gocyclo
@@ -209,5 +229,10 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	return transformerFromSQLTypes(nil, ydbTypes, cc)
+	mySqlTypes, ok := <-r.transformerInitChan
+	if !ok {
+		return nil, fmt.Errorf("mysql types are not ready")
+	}
+
+	return transformerFromSQLTypes(mySqlTypes, ydbTypes, cc)
 }
