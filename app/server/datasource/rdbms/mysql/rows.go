@@ -123,11 +123,11 @@ func scanToDest(
 	case mysql.MYSQL_TYPE_DOUBLE:
 		err = scanNumberValue[float64, float64](dest, value, fieldValueType)
 	default:
-		return fmt.Errorf("mysql: %w %v", common.ErrDataTypeNotSupported, valueType)
+		return fmt.Errorf("type %d: %w", valueType, common.ErrDataTypeNotSupported)
 	}
 
 	if err != nil {
-		return fmt.Errorf("mysql: %w", err)
+		return fmt.Errorf("scan value: %w", err)
 	}
 
 	return nil
@@ -211,7 +211,7 @@ func (r *rows) Scan(dest ...any) error {
 		flag := r.lastRow.fields[i].Flag
 
 		if err := scanToDest(dest[i], value, valueType, flag, fieldValueType); err != nil {
-			return err
+			return fmt.Errorf("scan to dest value #%d (%v): %w", i, val, err)
 		}
 	}
 

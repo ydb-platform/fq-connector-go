@@ -134,7 +134,7 @@ func (ds *dataSourceImpl) doReadSplit(
 	for cont := true; cont; cont = rows.NextResultSet() {
 		for rows.Next() {
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
-				return fmt.Errorf("rows scan error: %w", err)
+				return fmt.Errorf("rows scan: %w", err)
 			}
 
 			if err := sink.AddRow(transformer); err != nil {

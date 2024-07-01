@@ -43,7 +43,7 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		typeSize, err = strconv.ParseUint(matches[tm.reType.SubexpIndex("size")], 10, 64)
 
 		if err != nil {
-			return nil, fmt.Errorf("mysql: %w", common.ErrDataTypeNotSupported)
+			return nil, fmt.Errorf("parse uint: %w", err)
 		}
 	} else {
 		typeName = typeNameWithoutModifier
@@ -275,7 +275,7 @@ func addAcceptorAppender(
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	default:
-		return fmt.Errorf("unexpected MySQL type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
+		return fmt.Errorf("unexpected mysql type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
 	}
 
 	return nil

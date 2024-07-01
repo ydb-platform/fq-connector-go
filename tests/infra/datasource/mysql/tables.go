@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"time"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -40,80 +42,86 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 	},
-	// "simple": {
-	// 	Name: "simple",
-	// 	Schema: &test_utils.TableSchema{
-	// 		Columns: map[string]*Ydb.Type{
-	// 			"id":                  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-	// 			"tinyint_column":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
-	// 			"smallint_column":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
-	// 			"mediumint_column":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-	// 			"unsigned_int_column": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT32)),
-	// 			"int_column":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-	// 			"varchar_column":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-	// 			"float_column":        common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)),
-	// 			"double_column":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-	// 			"bool_column":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-	// 		},
-	// 	},
-	// 	Records: []*test_utils.Record{
-	// 		{
-	// 			Columns: map[string]any{
-	// 				"id": []*int32{
-	// 					ptr.Int32(1),
-	// 					ptr.Int32(2),
-	// 					ptr.Int32(3),
-	// 				},
-	// 				"tinyint_column": []*int8{
-	// 					ptr.Int8(-1),
-	// 					ptr.Int8(-2),
-	// 					ptr.Int8(-2),
-	// 				},
-	// 				"smallint_column": []*int16{
-	// 					ptr.Int16(2),
-	// 					nil,
-	// 					ptr.Int16(3),
-	// 				},
-	// 				"mediumint_column": []*int32{
-	// 					ptr.Int32(45),
-	// 					ptr.Int32(21),
-	// 					ptr.Int32(42),
-	// 				},
-	// 				"unsigned_int_column": []*uint32{
-	// 					ptr.Uint32(234),
-	// 					ptr.Uint32(532),
-	// 					ptr.Uint32(532),
-	// 				},
-	// 				"int_column": []*int32{
-	// 					ptr.Int32(-234),
-	// 					ptr.Int32(234),
-	// 					ptr.Int32(234),
-	// 				},
-	// 				"varchar_column": []*string{
-	// 					ptr.String("hello"),
-	// 					ptr.String("world"),
-	// 					ptr.String("!!!"),
-	// 				},
-	// 				"float_column": []*float32{
-	// 					ptr.Float32(4.24),
-	// 					ptr.Float32(-4.24),
-	// 					ptr.Float32(-1.23),
-	// 				},
-	// 				"double_column": []*float64{
-	// 					nil,
-	// 					ptr.Float64(-12.2),
-	// 					ptr.Float64(42.1),
-	// 				},
-	// 				"bool_column": []*uint8{
-	// 					ptr.Uint8(1),
-	// 					ptr.Uint8(0),
-	// 					ptr.Uint8(1),
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// },
-
+	"primitives": {
+		Name: "primitives",
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":                        common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col_01_tinyint":            common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT8)),
+				"col_02_tinyint_unsigned":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT8)),
+				"col_03_smallint":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT16)),
+				"col_04_smallint_unsigned":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT16)),
+				"col_05_mediumint":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col_06_mediumint_unsigned": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT32)),
+				"col_07_integer":            common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col_08_integer_unsigned":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT32)),
+				"col_09_bigint":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+				"col_10_bigint_unsigned":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UINT64)),
+				"col_11_float":              common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)),
+				"col_12_double":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
+				"col_13_date":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				"col_14_datetime":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				"col_15_timestamp":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				"col_16_char":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_17_varchar":            common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_18_tinytext":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_19_text":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_20_mediumtext":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_21_longtext":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_22_binary":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_23_varbinary":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_24_tinyblob":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_25_blob":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_26_mediumblob":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_27_longblob":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_28_bool":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
+			},
+		},
+		Records: []*test_utils.Record{
+			{
+				Columns: map[string]any{
+					"id":                        []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
+					"col_01_tinyint":            []*int8{ptr.Int8(1), ptr.Int8(-10), nil},
+					"col_02_tinyint_unsigned":   []*uint8{ptr.Uint8(2), ptr.Uint8(20), nil},
+					"col_03_smallint":           []*int16{ptr.Int16(3), ptr.Int16(-30), nil},
+					"col_04_smallint_unsigned":  []*uint16{ptr.Uint16(4), ptr.Uint16(40), nil},
+					"col_05_mediumint":          []*int32{ptr.Int32(5), ptr.Int32(-50), nil},
+					"col_06_mediumint_unsigned": []*uint32{ptr.Uint32(6), ptr.Uint32(60), nil},
+					"col_07_integer":            []*int32{ptr.Int32(7), ptr.Int32(-70), nil},
+					"col_08_integer_unsigned":   []*uint32{ptr.Uint32(8), ptr.Uint32(80), nil},
+					"col_09_bigint":             []*int64{ptr.Int64(9), ptr.Int64(-90), nil},
+					"col_10_bigint_unsigned":    []*uint64{ptr.Uint64(10), ptr.Uint64(100), nil},
+					"col_11_float":              []*float32{ptr.Float32(11.11), ptr.Float32(-1111.1111), nil},
+					"col_12_double":             []*float64{ptr.Float64(12.12), ptr.Float64(-1212.1212), nil},
+					"col_13_date": []*uint16{
+						ptr.Uint16(common.MustTimeToYDBType(common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType(common.TimeToYDBDate, time.Date(2024, 07, 01, 0, 0, 0, 0, time.UTC))),
+					},
+					"col_14_datetime": []*uint64{
+						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 34, 56, 777777, time.UTC))),
+						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp, time.Date(2024, 07, 01, 01, 02, 03, 444444, time.UTC))),
+					},
+					"col_15_timestamp": []*uint64{
+						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 34, 56, 777777, time.UTC))),
+						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp, time.Date(2024, 07, 01, 01, 02, 03, 444444, time.UTC))),
+					},
+					"col_16_char":       []*string{ptr.String("az"), ptr.String("буки"), nil},
+					"col_17_varchar":    []*string{ptr.String("az"), ptr.String("буки"), nil},
+					"col_18_tinytext":   []*string{ptr.String("az"), ptr.String("буки"), nil},
+					"col_19_text":       []*string{ptr.String("az"), ptr.String("буки"), nil},
+					"col_20_mediumtext": []*string{ptr.String("az"), ptr.String("буки"), nil},
+					"col_21_longtext":   []*string{ptr.String("az"), ptr.String("буки"), nil},
+					"col_22_binary":     []*[]byte{ptr.T([]byte("az")), ptr.T([]byte("буки")), nil},
+					"col_23_varbinary":  []*[]byte{ptr.T([]byte("az")), ptr.T([]byte("буки")), nil},
+					"col_24_tinyblob":   []*[]byte{ptr.T([]byte("az")), ptr.T([]byte("буки")), nil},
+					"col_25_blob":       []*[]byte{ptr.T([]byte("az")), ptr.T([]byte("буки")), nil},
+					"col_26_mediumblob": []*[]byte{ptr.T([]byte("az")), ptr.T([]byte("буки")), nil},
+					"col_27_longblob":   []*[]byte{ptr.T([]byte("az")), ptr.T([]byte("буки")), nil},
+					"col_28_bool":       []*bool{ptr.Bool(true), ptr.Bool(false), nil},
+				},
+			},
+		},
+	},
 	"pushdown_comparison_L": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
