@@ -151,7 +151,6 @@ func transformerFromSQLTypes(
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
 
 	for i := range mySQLTypes {
-		fmt.Println("TRANSFORMER FROM SQL TYPES", i, mySQLTypes[i], ydbTypes[i])
 		if err := addAcceptorAppender(mySQLTypes[i], ydbTypes[i], cc, &acceptors, &appenders); err != nil {
 			return nil, fmt.Errorf("add acceptor appender #%d: %w", i, err)
 		}
@@ -234,15 +233,7 @@ func addAcceptorAppender(
 		*acceptors = append(*acceptors, new(*string))
 		// TODO: remove debug
 		*appenders = append(*appenders,
-			func(acceptor any, builder array.Builder) error {
-				cast := acceptor.(**string)
-				if *cast != nil {
-					fmt.Println("WITHIN", mySQLType, ydbType, **cast)
-				}
-				f := makeAppender[string, string, *array.StringBuilder](cc.String())
-				return f(acceptor, builder)
-			})
-		// makeAppender[string, string, *array.StringBuilder](cc.String()))
+			makeAppender[string, string, *array.StringBuilder](cc.String()))
 	case mysql.MYSQL_TYPE_DATE:
 		*acceptors = append(*acceptors, new(*time.Time))
 
