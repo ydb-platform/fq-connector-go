@@ -39,7 +39,8 @@ CREATE TABLE primitives (
     col_25_blob BLOB,
     col_26_mediumblob MEDIUMBLOB,
     col_27_longblob LONGBLOB,
-    col_28_bool BOOL
+    col_28_bool BOOL,
+    PRIMARY KEY (id)
 );
 
 INSERT INTO primitives VALUES 
@@ -47,14 +48,15 @@ INSERT INTO primitives VALUES
                        '1988-11-20', '1988-11-20T12:34:56.777777', '1988-11-20T12:34:56.777777',
                        'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az',
                        true),
-                       (1, -10, 20, -30, 40, -50, 60, -70, 80, -90, 100, -1111.1111, -1212.1212, 
-                       '2024-07-01', '2024-07-01T01:02:03.444444', '2024-07-01T01:02:03.444444',
-                       'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки',
-                       false),
-                       (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
+                       (1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 
                        NULL, NULL, NULL,
                        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                       NULL);
+                       NULL),
+                       (2, -10, 20, -30, 40, -50, 60, -70, 80, -90, 100, -1111.1111, -1212.1212, 
+                       '2024-07-01', '2024-07-01T01:02:03.444444', '2024-07-01T01:02:03.444444',
+                       'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки',
+                       false)
+                       ;
 
 DROP TABLE IF EXISTS pushdown;
 CREATE TABLE pushdown (
