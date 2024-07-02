@@ -317,7 +317,12 @@ func appendNullableToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB 
 		return fmt.Errorf("convert value %v: %w", value, err)
 	}
 
-	builder.(AB).Append(out)
+	b, ok := builder.(AB)
+	if !ok {
+		return common.ErrDataTypeNotSupported
+	}
+
+	b.Append(out)
 
 	return nil
 }

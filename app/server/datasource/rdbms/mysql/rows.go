@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sync/atomic"
+	"time"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -70,6 +71,8 @@ func (r *rows) maybeInitializeTransformer(fields []*mysql.Field) {
 	}
 }
 
+// To find out low-level type mapping table, see https://github.com/go-mysql-org/go-mysql/issues/770
+//
 //nolint:gocyclo
 func scanToDest(
 	dest any,
@@ -122,6 +125,10 @@ func scanToDest(
 		err = scanNumberValue[float64, float32](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_DOUBLE:
 		err = scanNumberValue[float64, float64](dest, value, fieldValueType)
+	case mysql.MYSQL_TYPE_DATE:
+		err = scanDateValue(dest, value, fieldValueType)
+	case mysql.MYSQL_TYPE_DATETIME, mysql.MYSQL_TYPE_TIMESTAMP:
+		err = scanDatetimeValue(dest, value, fieldValueType)
 	default:
 		return fmt.Errorf("type %d: %w", valueType, common.ErrDataTypeNotSupported)
 	}
@@ -194,6 +201,43 @@ func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 	default:
 		return fmt.Errorf("mysql: %w", common.ErrValueOutOfTypeBounds)
 	}
+
+	return nil
+}
+
+func scanDateValue(dest, value any, fieldValueType mysql.FieldValueType) error {
+	out := dest.(**time.Time)
+
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*out = nil
+		return nil
+	}
+
+	// TODO: time.Parse is quite slow, think about other solutions
+	t, err := time.Parse("2006-01-02", string(value.([]byte)))
+	if err != nil {
+		return fmt.Errorf("time parse: %w", err)
+	}
+
+	*out = &t
+
+	return nil
+}
+
+func scanDatetimeValue(dest, value any, fieldValueType mysql.FieldValueType) error {
+	out := dest.(**time.Time)
+
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*out = nil
+		return nil
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05.999999", string(value.([]byte)))
+	if err != nil {
+		return fmt.Errorf("time parse: %w", err)
+	}
+
+	*out = &t
 
 	return nil
 }

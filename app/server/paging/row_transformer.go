@@ -34,7 +34,7 @@ func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(builders []array.Build
 		for i, columnID := range rt.wantedColumnIDs {
 			if err := rt.appenders[i](rt.acceptors[columnID], builders[i]); err != nil {
 				return fmt.Errorf(
-					"append acceptor %#v of %d column to arrow builder %#v: %w",
+					"append acceptor of type %T (column #%d) to arrow builder of type %T: %w",
 					rt.acceptors[columnID], i, builders[i], err)
 			}
 		}
@@ -42,7 +42,7 @@ func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(builders []array.Build
 		for i, acceptor := range rt.acceptors {
 			if err := rt.appenders[i](acceptor, builders[i]); err != nil {
 				return fmt.Errorf(
-					"append acceptor %#v of %d column to arrow builder %#v: %w",
+					"append acceptor of type %T (column #%d) to arrow builder of type %T: %w",
 					acceptor, i, builders[i], err)
 			}
 		}
