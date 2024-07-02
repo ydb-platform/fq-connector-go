@@ -43,7 +43,7 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		typeSize, err = strconv.ParseUint(matches[tm.reType.SubexpIndex("size")], 10, 64)
 
 		if err != nil {
-			return nil, fmt.Errorf("mysql: %w", common.ErrDataTypeNotSupported)
+			return nil, fmt.Errorf("parse uint: %w", err)
 		}
 	} else {
 		typeName = typeNameWithoutModifier
@@ -96,10 +96,15 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		}
 
 		ydbColumn.Type = common.MakePrimitiveType(ydbType)
-	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob, typeBinary, typeVarBinary:
+	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
-	case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
+	case typeVarChar, typeChar:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case typeBinary, typeVarBinary:
+		// it's strange, but... see col13 and col14 here: https://github.com/go-mysql-org/go-mysql/issues/770
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case typeText, typeLongText, typeTinyText, typeMediumText:
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeDate:
 		ydbColumn.Type, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, typeMapperSettings.GetDateTimeFormat())
 		if err != nil {
@@ -222,14 +227,13 @@ func addAcceptorAppender(
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	case mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
-		// TODO: list of supported string types are longer
-		// case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob, typeBinary, typeVarBinary:
 		*acceptors = append(*acceptors, new(*[]byte))
 		*appenders = append(*appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 	case mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VAR_STRING:
-		// case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
 		*acceptors = append(*acceptors, new(*string))
-		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		// TODO: remove debug
+		*appenders = append(*appenders,
+			makeAppender[string, string, *array.StringBuilder](cc.String()))
 	case mysql.MYSQL_TYPE_DATE:
 		*acceptors = append(*acceptors, new(*time.Time))
 
@@ -275,7 +279,7 @@ func addAcceptorAppender(
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	default:
-		return fmt.Errorf("unexpected MySQL type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
+		return fmt.Errorf("unexpected mysql type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
 	}
 
 	return nil
@@ -317,7 +321,12 @@ func appendNullableToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB 
 		return fmt.Errorf("convert value %v: %w", value, err)
 	}
 
-	builder.(AB).Append(out)
+	b, ok := builder.(AB)
+	if !ok {
+		return common.ErrDataTypeNotSupported
+	}
+
+	b.Append(out)
 
 	return nil
 }
