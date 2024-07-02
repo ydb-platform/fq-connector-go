@@ -254,6 +254,7 @@ func (r *rows) Scan(dest ...any) error {
 		fieldValueType := val.valueType
 		flag := r.lastRow.fields[i].Flag
 
+		fmt.Println(i, dest[i], value, valueType, flag, fieldValueType)
 		if err := scanToDest(dest[i], value, valueType, flag, fieldValueType); err != nil {
 			return fmt.Errorf("scan to dest value #%d (%v): %w", i, val, err)
 		}

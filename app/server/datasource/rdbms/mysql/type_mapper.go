@@ -96,10 +96,15 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		}
 
 		ydbColumn.Type = common.MakePrimitiveType(ydbType)
-	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob, typeBinary, typeVarBinary:
+	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
-	case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
+	case typeVarChar, typeChar:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case typeBinary, typeVarBinary:
+		// it's strange, but... see col13 and col14 here: https://github.com/go-mysql-org/go-mysql/issues/770
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case typeText, typeLongText, typeTinyText, typeMediumText:
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeDate:
 		ydbColumn.Type, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, typeMapperSettings.GetDateTimeFormat())
 		if err != nil {
@@ -146,6 +151,7 @@ func transformerFromSQLTypes(
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbTypes))
 
 	for i := range mySQLTypes {
+		fmt.Println("TRANSFORMER FROM SQL TYPES", i, mySQLTypes[i], ydbTypes[i])
 		if err := addAcceptorAppender(mySQLTypes[i], ydbTypes[i], cc, &acceptors, &appenders); err != nil {
 			return nil, fmt.Errorf("add acceptor appender #%d: %w", i, err)
 		}
@@ -222,14 +228,21 @@ func addAcceptorAppender(
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	case mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
-		// TODO: list of supported string types are longer
-		// case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob, typeBinary, typeVarBinary:
 		*acceptors = append(*acceptors, new(*[]byte))
 		*appenders = append(*appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 	case mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VAR_STRING:
-		// case typeVarChar, typeString, typeText, typeLongText, typeTinyText, typeMediumText, typeChar:
 		*acceptors = append(*acceptors, new(*string))
-		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		// TODO: remove debug
+		*appenders = append(*appenders,
+			func(acceptor any, builder array.Builder) error {
+				cast := acceptor.(**string)
+				if *cast != nil {
+					fmt.Println("WITHIN", mySQLType, ydbType, **cast)
+				}
+				f := makeAppender[string, string, *array.StringBuilder](cc.String())
+				return f(acceptor, builder)
+			})
+		// makeAppender[string, string, *array.StringBuilder](cc.String()))
 	case mysql.MYSQL_TYPE_DATE:
 		*acceptors = append(*acceptors, new(*time.Time))
 
