@@ -127,6 +127,8 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date/time type: %w", err)
 		}
+	case typeJSON:
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -231,9 +233,7 @@ func addAcceptorAppender(
 		*appenders = append(*appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 	case mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VAR_STRING:
 		*acceptors = append(*acceptors, new(*string))
-		// TODO: remove debug
-		*appenders = append(*appenders,
-			makeAppender[string, string, *array.StringBuilder](cc.String()))
+		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 	case mysql.MYSQL_TYPE_DATE:
 		*acceptors = append(*acceptors, new(*time.Time))
 
@@ -278,6 +278,9 @@ func addAcceptorAppender(
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
+	case mysql.MYSQL_TYPE_JSON:
+		*acceptors = append(*acceptors, new(*string))
+		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 	default:
 		return fmt.Errorf("unexpected mysql type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
 	}

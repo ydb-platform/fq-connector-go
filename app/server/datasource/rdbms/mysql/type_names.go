@@ -23,4 +23,5 @@ const (
 	typeDate       = "date"
 	typeDatetime   = "datetime"
 	typeTimestamp  = "timestamp"
+	typeJSON       = "json"
 )
