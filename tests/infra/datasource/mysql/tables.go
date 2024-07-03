@@ -75,6 +75,7 @@ var tables = map[string]*test_utils.Table{
 				"col_26_mediumblob":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 				"col_27_longblob":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 				"col_28_bool":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
+				"col_29_json":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record{
@@ -125,6 +126,13 @@ var tables = map[string]*test_utils.Table{
 					"col_26_mediumblob": []*[]byte{ptr.T([]byte("az")), nil, ptr.T([]byte("буки"))},
 					"col_27_longblob":   []*[]byte{ptr.T([]byte("az")), nil, ptr.T([]byte("буки"))},
 					"col_28_bool":       []*uint8{ptr.Uint8(1), nil, ptr.Uint8(0)},
+					"col_29_json": []*string{
+						ptr.String("{ \"friends\": " +
+							"[{\"name\": \"James Holden\",\"age\": 35}," +
+							"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"),
+						nil,
+						ptr.String("{ \"TODO\" : \"unicode\" }"),
+					},
 				},
 			},
 		},

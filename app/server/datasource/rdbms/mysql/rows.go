@@ -84,7 +84,7 @@ func scanToDest(
 	var err error
 
 	switch valueType {
-	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
+	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING, mysql.MYSQL_TYPE_JSON:
 		err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		// MySQL returns both TEXT and BLOB types as []byte, so we have to check destination beforehand
