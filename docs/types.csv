@@ -13,8 +13,8 @@
 "`DATE` (`uint16`, days since epoch)",`UINT16`,`time.Time`,:white_check_mark: `Date`,-,-,?
 "`DATE` (`uint16`, days since epoch)",`UINT16`,`time.Time`,:white_check_mark: `Date32`,-,:white_check_mark: `date` (since `1000-01-01` till `9999-12-31`),?
 "`DATE` (`uint16`, days since epoch)",`UINT16`,`time.Time`,-,":white_check_mark: `date` (`int32`, just date without time, since `4713 BC` till `5874897 AD`)",-,?
-"`DATETIME` (`uint32`, seconds since epoch)",`UINT32`,`time.Time`,:white_check_mark: `DateTime` ,-,:x: `datetime` (since `1000-01-01 00:00:00` till `9999-12-31 23:59:59`),?
-"`TIMESTAMP` (`uint64`, microseconds since epoch)",`UINT64`,`time.Time`,-,":white_check_mark: `timestamp[(p)][without time zone]` (`int64`, microseconds since epoch)",:x: `timestamp` (since `1970-01-01 00:00:01` till `2038-01-19 03:14:07`),?
+"`DATETIME` (`uint32`, seconds since epoch)",`UINT32`,`time.Time`,:white_check_mark: `DateTime` ,-,-,?
+"`TIMESTAMP` (`uint64`, microseconds since epoch)",`UINT64`,`time.Time`,-,":white_check_mark: `timestamp[(p)][without time zone]` (`int64`, microseconds since epoch)",":white_check_mark: `timestamp` (since `1970-01-01 00:00:01` till `2038-01-19 03:14:07`), :white_check_mark: `datetime` (since `1000-01-01 00:00:00` till `9999-12-31 23:59:59`)",?
 "`TIMESTAMP` (`uint64`, microseconds since epoch)",`UINT64`,`time.Time`,":white_check_mark: `DateTime64` (`int64`, arbitrary units)",-,-,?
 `STRING` (arbitrary binary data),`BINARY`,`[]byte`,":white_check_mark: `String`, `FixedString`",:white_check_mark: `bytea`,":white_check_mark: `tinyblob`, `blob`, `mediumblob`, `longblob`, `tinytext`, `text`, `mediumtext`, `longtext`","`BINARY`, `VARBINARY`"
 `UTF8`,`STRING`,`string`,-,":white_check_mark: `character [(n)]`, `character varying [(n)]`, `text`",":white_check_mark: `char`, `varchar`, `binary`, `varbinary`","`CHAR`, `VARCHAR`, `NCHAR`, `NVARCHAR`, `TEXT`"
