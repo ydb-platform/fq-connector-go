@@ -58,6 +58,19 @@ INSERT INTO primitives VALUES
                        false)
                        ;
 
+DROP TABLE IF EXISTS datetimes;
+CREATE TABLE datetimes (
+    id int,
+    col_01_date DATE,
+    col_02_datetime DATETIME(6),
+    col_03_timestamp TIMESTAMP(6),
+    PRIMARY KEY (id)
+);
+
+INSERT INTO datetimes VALUES (1, '1950-05-27', '1950-05-27 01:02:03.111111', NULL);
+INSERT INTO datetimes VALUES (2, '1988-11-20', '1988-11-20 12:55:28.123000', '1988-11-20 12:55:28.123000');
+INSERT INTO datetimes VALUES (3, '2023-03-21', '2023-03-21 11:21:31', '2023-03-21 11:21:31');
+
 DROP TABLE IF EXISTS pushdown;
 CREATE TABLE pushdown (
     id INT NOT NULL,
