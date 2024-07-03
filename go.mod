@@ -44,6 +44,7 @@ require (
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/apache/thrift v0.16.0 // indirect
+	github.com/araddon/dateparse v0.0.0-20190510211750-d2ba70357e92 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.5.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.0 // indirect
