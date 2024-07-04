@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -283,7 +284,11 @@ func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arr
 	case arrow.FLOAT64:
 		matchArrays[float64, *array.Float64](t, arrowField.Name, expected, actual, optional)
 	case arrow.STRING:
-		matchArrays[string, *array.String](t, arrowField.Name, expected, actual, optional)
+		if strings.Contains(arrowField.Name, "json") {
+			matchJSONArrays(t, arrowField.Name, expected, actual.(*array.String), optional)
+		} else {
+			matchArrays[string, *array.String](t, arrowField.Name, expected, actual, optional)
+		}
 	case arrow.BINARY:
 		matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional)
 	default:
@@ -305,7 +310,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		expected, ok := expectedRaw.([]*EXPECTED)
 		require.True(
 			t, ok,
-			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, actualRaw),
+			fmt.Sprintf("invalid type for column %v: %T", columnName, expectedRaw),
 		)
 		require.Equal(t, len(expected), actual.Len(),
 			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
@@ -330,6 +335,61 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		}
 	} else {
 		expected, ok := expectedRaw.([]EXPECTED)
+		require.True(
+			t, ok,
+			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, expected),
+		)
+
+		require.Equal(t, len(expected), actual.Len(),
+			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
+		)
+
+		for j := 0; j < len(expected); j++ {
+			require.Equal(
+				t, expected[j], actual.Value(j),
+				fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual))
+		}
+	}
+}
+
+// A separate function matching JSON columns appeared due to MySQL:
+// it stores JSONs as binary objects (BSON) and reorders JSON fields.
+func matchJSONArrays(
+	t *testing.T,
+	columnName string,
+	expectedRaw any,
+	actual *array.String,
+	optional bool,
+) {
+	if optional {
+		expected, ok := expectedRaw.([]*string)
+		require.True(
+			t, ok,
+			fmt.Sprintf("invalid type for column %v: %T", columnName, expectedRaw),
+		)
+		require.Equal(t, len(expected), actual.Len(),
+			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),
+		)
+
+		for j := 0; j < len(expected); j++ {
+			if expected[j] != nil {
+				require.JSONEq(
+					t, *expected[j], actual.Value(j),
+					fmt.Sprintf(
+						"expected val: %v\nactual val: %v\ncolumn:  %v\nexpected: %v\nactual:  %v\n",
+						*expected[j],
+						actual.Value(j),
+						columnName,
+						expected,
+						actual),
+				)
+			} else {
+				require.True(t, actual.IsNull(j),
+					fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual))
+			}
+		}
+	} else {
+		expected, ok := expectedRaw.([]string)
 		require.True(
 			t, ok,
 			fmt.Sprintf("invalid type for column %v: want %T, got %T", columnName, expectedRaw, expected),

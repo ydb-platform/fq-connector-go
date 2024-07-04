@@ -123,7 +123,7 @@ func makeAppender[
 	IN common.ValueType,
 	OUT common.ValueType,
 	AB common.ArrowBuilder[OUT],
-](conv conversion.ValueConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
+](conv conversion.ValuePtrConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
 	return func(acceptor any, builder array.Builder) error {
 		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
 	}
@@ -132,7 +132,7 @@ func makeAppender[
 func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
 	acceptor any,
 	builder array.Builder,
-	conv conversion.ValueConverter[IN, OUT],
+	conv conversion.ValuePtrConverter[IN, OUT],
 ) error {
 	cast := acceptor.(**IN)
 
@@ -142,7 +142,7 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 		return nil
 	}
 
-	value := **cast
+	value := *cast
 
 	out, err := conv.Convert(value)
 	if err != nil {

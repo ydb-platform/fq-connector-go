@@ -18,11 +18,27 @@ type Suite struct {
 }
 
 func (s *Suite) TestSelect() {
-	testCaseNames := []string{"simple"}
+	testCaseNames := []string{"simple", "primitives"}
 
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(s.dataSource, tables[testCase])
 	}
+}
+
+func (s *Suite) TestDatetimeFormatYQL() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_yql"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
+	)
+}
+
+func (s *Suite) TestDatetimeFormatString() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_string"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
+	)
 }
 
 // Set of tests validating stats

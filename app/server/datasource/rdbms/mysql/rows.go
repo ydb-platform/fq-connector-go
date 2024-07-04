@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"sync/atomic"
+	"time"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -13,36 +14,30 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	COLUMN_TYPE_COLUMN   = "COLUMN_TYPE"
-	METAINFO_SCHEMA_NAME = "information_schema"
-)
-
 type fieldValue struct {
-	Value any
-	Type  mysql.FieldValueType
+	value     any
+	valueType mysql.FieldValueType
 }
 
 type rowData struct {
-	Row    []fieldValue
-	Fields []*mysql.Field
+	row    []fieldValue
+	fields []*mysql.Field
 }
 
 type rows struct {
-	rowChan chan rowData
-	lastRow *rowData
-	result  *mysql.Result
-	busy    atomic.Bool
+	rowChan       chan rowData
+	lastRow       *rowData
+	inputFinished bool
+
+	// This channel is used only once: when the first row arrives from the connection,
+	// it's used to initialize transformer with column types (which are encoded with uint8 values)
+	transformerInitChan     chan []uint8
+	transformerInitFinished atomic.Uint32
 }
 
-func (r *rows) Close() error {
-	r.result = nil
-	return nil
-}
+func (*rows) Close() error { return nil }
 
-func (*rows) Err() error {
-	return nil
-}
+func (*rows) Err() error { return nil }
 
 func (r *rows) Next() bool {
 	next, ok := <-r.rowChan
@@ -51,6 +46,7 @@ func (r *rows) Next() bool {
 		r.lastRow = &next
 	} else {
 		r.lastRow = nil
+		r.inputFinished = true
 	}
 
 	return ok
@@ -60,13 +56,35 @@ func (*rows) NextResultSet() bool {
 	return false
 }
 
+func (r *rows) maybeInitializeTransformer(fields []*mysql.Field) {
+	// Provide list of types in the resultset to initialize transformer
+	if r.transformerInitFinished.CompareAndSwap(0, 1) {
+		var mySQLTypes []uint8
+
+		for i := range fields {
+			t := fields[i].Type
+			mySQLTypes = append(mySQLTypes, t)
+		}
+
+		r.transformerInitChan <- mySQLTypes
+		close(r.transformerInitChan)
+	}
+}
+
+// To find out low-level type mapping table, see https://github.com/go-mysql-org/go-mysql/issues/770
+//
 //nolint:gocyclo
-func scanToDest(dest any, value any, valueType uint8, flag uint16,
-	fieldValueType mysql.FieldValueType) error {
+func scanToDest(
+	dest any,
+	value any,
+	valueType uint8,
+	flag uint16,
+	fieldValueType mysql.FieldValueType,
+) error {
 	var err error
 
 	switch valueType {
-	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING:
+	case mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_VAR_STRING, mysql.MYSQL_TYPE_JSON:
 		err = scanStringValue[[]byte, string](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		// MySQL returns both TEXT and BLOB types as []byte, so we have to check destination beforehand
@@ -107,12 +125,16 @@ func scanToDest(dest any, value any, valueType uint8, flag uint16,
 		err = scanNumberValue[float64, float32](dest, value, fieldValueType)
 	case mysql.MYSQL_TYPE_DOUBLE:
 		err = scanNumberValue[float64, float64](dest, value, fieldValueType)
+	case mysql.MYSQL_TYPE_DATE:
+		err = scanDateValue(dest, value, fieldValueType)
+	case mysql.MYSQL_TYPE_DATETIME, mysql.MYSQL_TYPE_TIMESTAMP:
+		err = scanDatetimeValue(dest, value, fieldValueType)
 	default:
-		return fmt.Errorf("mysql: %w %v", common.ErrDataTypeNotSupported, valueType)
+		return fmt.Errorf("type %d: %w", valueType, common.ErrDataTypeNotSupported)
 	}
 
 	if err != nil {
-		return fmt.Errorf("mysql: %w", err)
+		return fmt.Errorf("scan value: %w", err)
 	}
 
 	return nil
@@ -183,26 +205,68 @@ func scanBoolValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 	return nil
 }
 
+func scanDateValue(dest, value any, fieldValueType mysql.FieldValueType) error {
+	out := dest.(**time.Time)
+
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*out = nil
+		return nil
+	}
+
+	// TODO: time.Parse is quite slow, think about other solutions
+	t, err := time.Parse("2006-01-02", string(value.([]byte)))
+	if err != nil {
+		return fmt.Errorf("time parse: %w", err)
+	}
+
+	*out = &t
+
+	return nil
+}
+
+func scanDatetimeValue(dest, value any, fieldValueType mysql.FieldValueType) error {
+	out := dest.(**time.Time)
+
+	if fieldValueType == mysql.FieldValueTypeNull {
+		*out = nil
+		return nil
+	}
+
+	t, err := time.Parse("2006-01-02 15:04:05.999999", string(value.([]byte)))
+	if err != nil {
+		return fmt.Errorf("time parse: %w", err)
+	}
+
+	*out = &t
+
+	return nil
+}
+
 func (r *rows) Scan(dest ...any) error {
-	if r.lastRow == nil && !r.busy.Load() {
+	if r.inputFinished {
 		return io.EOF
 	}
 
-	for i, val := range r.lastRow.Row {
-		value := val.Value
+	for i, val := range r.lastRow.row {
+		value := val.value
 
-		valueType := r.lastRow.Fields[i].Type
-		fieldValueType := val.Type
-		flag := r.lastRow.Fields[i].Flag
+		valueType := r.lastRow.fields[i].Type
+		fieldValueType := val.valueType
+		flag := r.lastRow.fields[i].Flag
 
 		if err := scanToDest(dest[i], value, valueType, flag, fieldValueType); err != nil {
-			return err
+			return fmt.Errorf("scan to dest value #%d (%v): %w", i, val, err)
 		}
 	}
 
 	return nil
 }
 
-func (*rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	return transformerFromYdbTypes(ydbTypes, cc)
+func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+	mySQLTypes, ok := <-r.transformerInitChan
+	if !ok {
+		return nil, fmt.Errorf("mysql types are not ready")
+	}
+
+	return transformerFromSQLTypes(mySQLTypes, ydbTypes, cc)
 }

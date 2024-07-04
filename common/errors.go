@@ -24,6 +24,7 @@ var (
 	ErrTableDoesNotExist                   = fmt.Errorf("table does not exist")
 	ErrDataSourceNotSupported              = fmt.Errorf("data source not supported")
 	ErrDataTypeNotSupported                = fmt.Errorf("data type not supported")
+	ErrDataTypeMismatch                    = fmt.Errorf("data type mismatch")
 	ErrMethodNotSupported                  = fmt.Errorf("method not supported")
 	ErrReadLimitExceeded                   = fmt.Errorf("read limit exceeded")
 	ErrInvalidRequest                      = fmt.Errorf("invalid request")
@@ -168,6 +169,8 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	case errors.Is(err, ErrDataSourceNotSupported):
 		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrDataTypeNotSupported):
+		status = ydb_proto.StatusIds_UNSUPPORTED
+	case errors.Is(err, ErrDataTypeMismatch):
 		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrValueOutOfTypeBounds):
 		status = ydb_proto.StatusIds_UNSUPPORTED

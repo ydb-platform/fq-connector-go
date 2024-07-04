@@ -45,3 +45,6 @@ cloc:
 
 docker_compose_update:
 	go run ./tools/docker_compose_update -path="$(path)"
+
+generate_docs:
+	python3 ./docs/generate.py ./docs

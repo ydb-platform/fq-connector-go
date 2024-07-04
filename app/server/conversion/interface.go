@@ -6,33 +6,29 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type ValueConverter[IN common.ValueType, OUT common.ValueType] interface {
-	Convert(in IN) (OUT, error)
-}
-
 type ValuePtrConverter[IN common.ValueType, OUT common.ValueType] interface {
 	Convert(in *IN) (OUT, error)
 }
 
 type Collection interface {
-	Bool() ValueConverter[bool, uint8]
-	Int8() ValueConverter[int8, int8]
-	Int16() ValueConverter[int16, int16]
-	Int32() ValueConverter[int32, int32]
-	Int64() ValueConverter[int64, int64]
-	Uint8() ValueConverter[uint8, uint8]
-	Uint16() ValueConverter[uint16, uint16]
-	Uint32() ValueConverter[uint32, uint32]
-	Uint64() ValueConverter[uint64, uint64]
-	Float32() ValueConverter[float32, float32]
-	Float64() ValueConverter[float64, float64]
-	String() ValueConverter[string, string]
-	StringToBytes() ValueConverter[string, []byte]
-	Bytes() ValueConverter[[]byte, []byte]
-	Date() ValueConverter[time.Time, uint16]
+	Bool() ValuePtrConverter[bool, uint8]
+	Int8() ValuePtrConverter[int8, int8]
+	Int16() ValuePtrConverter[int16, int16]
+	Int32() ValuePtrConverter[int32, int32]
+	Int64() ValuePtrConverter[int64, int64]
+	Uint8() ValuePtrConverter[uint8, uint8]
+	Uint16() ValuePtrConverter[uint16, uint16]
+	Uint32() ValuePtrConverter[uint32, uint32]
+	Uint64() ValuePtrConverter[uint64, uint64]
+	Float32() ValuePtrConverter[float32, float32]
+	Float64() ValuePtrConverter[float64, float64]
+	String() ValuePtrConverter[string, string]
+	StringToBytes() ValuePtrConverter[string, []byte]
+	Bytes() ValuePtrConverter[[]byte, []byte]
+	Date() ValuePtrConverter[time.Time, uint16]
 	DateToString() ValuePtrConverter[time.Time, string]
-	Datetime() ValueConverter[time.Time, uint32]
+	Datetime() ValuePtrConverter[time.Time, uint32]
 	DatetimeToString() ValuePtrConverter[time.Time, string]
-	Timestamp() ValueConverter[time.Time, uint64]
+	Timestamp() ValuePtrConverter[time.Time, uint64]
 	TimestampToString() ValuePtrConverter[time.Time, string]
 }
