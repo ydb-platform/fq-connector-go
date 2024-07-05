@@ -128,7 +128,7 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 			return nil, fmt.Errorf("make YDB date/time type: %w", err)
 		}
 	case typeJSON:
-		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_JSON)
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}

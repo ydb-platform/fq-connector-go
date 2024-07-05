@@ -75,7 +75,7 @@ var tables = map[string]*test_utils.Table{
 				"col_26_mediumblob":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 				"col_27_longblob":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 				"col_28_bool":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"col_29_json":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_29_json":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 			},
 		},
 		Records: []*test_utils.Record{
