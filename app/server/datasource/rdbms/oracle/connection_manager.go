@@ -2,13 +2,13 @@ package oracle
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"go.uber.org/zap"
 
-	"github.com/godror/godror"
+	go_ora "github.com/sijms/go-ora/v2"
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -33,25 +33,25 @@ func (c *connectionManager) Make(
 	var err error
 
 	// // godror
-	var connParams godror.ConnectionParams
+	// var connParams godror.ConnectionParams
 
-	connParams.Username = dsi.Credentials.GetBasic().GetUsername()
-	connParams.Password = godror.NewPassword(dsi.Credentials.GetBasic().GetPassword())
-	// TODO: review for safety
-	// connectionString = <db_host>:<port>/<service_name>
-	connParams.ConnectString = fmt.Sprintf("%s:%d/%s",
-		dsi.GetEndpoint().GetHost(),
-		uint16(dsi.GetEndpoint().GetPort()),
-		"FREE") // TODO service name from config
+	// connParams.Username = dsi.Credentials.GetBasic().GetUsername()
+	// connParams.Password = godror.NewPassword(dsi.Credentials.GetBasic().GetPassword())
+	// // TODO: review for safety
+	// // connectionString = <db_host>:<port>/<service_name>
+	// connParams.ConnectString = fmt.Sprintf("%s:%d/%s",
+	// 	dsi.GetEndpoint().GetHost(),
+	// 	uint16(dsi.GetEndpoint().GetPort()),
+	// 	"FREE") // TODO service name from config
 
-	// TODO: add tls
-	// if dsi.UseTls {
-	//	connParams.UseTLS
-	// } else {
-	//
-	// }
+	// // TODO: add tls
+	// // if dsi.UseTls {
+	// //	connParams.UseTLS
+	// // } else {
+	// //
+	// // }
 
-	db := sql.OpenDB(godror.NewConnector(connParams))
+	// db := sql.OpenDB(godror.NewConnector(connParams))
 
 	// // go-ora
 	// connStr := go_ora.BuildUrl(
@@ -68,18 +68,39 @@ func (c *connectionManager) Make(
 	// 	return nil, fmt.Errorf("failed to open connection: %w", err)
 	// }
 
+	// go-ora native
+	connStr1 := go_ora.BuildUrl(
+		"127.0.0.1",
+		int(1521),
+		"FREE", // TODO service name from config
+		"C##ADMIN",
+		"password",
+		nil,
+	)
+	connStr1 = "oracle://C%23%23ADMIN:password@localhost:1521/FREE"
+	log.Print(connStr1)
+	conn, err := go_ora.NewConnection(connStr1, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	// check for error
+	err = conn.Open()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
 	defer pingCtxCancel()
 
-	err = db.PingContext(pingCtx)
+	err = conn.Ping(pingCtx)
 	if err != nil {
-		defer db.Close()
+		defer conn.Close()
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return &Connection{db, queryLogger}, nil
+	return &Connection{conn, queryLogger}, nil
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {

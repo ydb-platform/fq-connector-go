@@ -33,7 +33,13 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		// TODO: NUMBER(p, s) can be float. Should convert to Decimal
 		// 	Note: NUMBER can be from 1 to 22 bytes. Has wider range than Int64 or Decimal. Possible representation - string
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
-	case "VARCHAR", "VARCHAR2":
+	//// godror
+	// case "VARCHAR", "VARCHAR2":
+	// 	ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
+	//// go-ora
+	// for some reason go-ora driver doesnot disringuish VARCHAR and NCHAR from time to time. go-ora valueTypes:
+	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/parameter.go#L30-L77
+	case "NCHAR", "VARCHAR", "VARCHAR2":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
@@ -62,7 +68,12 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		case "NUMBER":
 			acceptors = append(acceptors, new(*int64))
 			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
-		case "VARCHAR", "VARCHAR2":
+		//// godror
+		// case "VARCHAR", "VARCHAR2":
+		// 	acceptors = append(acceptors, new(*string))
+		// 	appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		//// go-ora
+		case "NCHAR", "VARCHAR", "VARCHAR2":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		default:

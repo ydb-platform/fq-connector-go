@@ -2,9 +2,10 @@ package oracle
 
 import (
 	"context"
-	"database/sql"
+	"database/sql/driver"
+	"fmt"
 
-	_ "github.com/denisenkom/go-mssqldb"
+	go_ora "github.com/sijms/go-ora/v2"
 
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -13,18 +14,31 @@ import (
 var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
-	db     *sql.DB
+	conn   *go_ora.Connection
 	logger common.QueryLogger
 }
 
 func (c Connection) Close() error {
-	return c.db.Close()
+	return c.conn.Close()
 }
 
 func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
-	out, err := c.db.QueryContext(ctx, query, args...)
+	valueArgs := make([]driver.NamedValue, len(args))
+	for i := 0; i < len(args); i++ {
+		valueArgs[i].Value = args[i]
+	}
 
-	return rows{out}, err
+	out, err := c.conn.QueryContext(ctx, query, valueArgs)
+	if err != nil {
+		return nil, fmt.Errorf("oracle can't query with context", err)
+	}
+
+	rows, err := NewRows(out)
+	if err != nil {
+		return nil, fmt.Errorf("oracle can't create rows", err)
+	}
+
+	return rows, nil
 }
