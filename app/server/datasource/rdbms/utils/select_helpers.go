@@ -32,7 +32,7 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "",
-						Type: common.MakePrimitiveType(Ydb.Type_INT32),
+						Type: common.MakePrimitiveType(Ydb.Type_INT64),
 					},
 				},
 			},
