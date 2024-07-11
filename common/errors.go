@@ -65,17 +65,12 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 	return apiErr.Status == ydb_proto.StatusIds_SUCCESS
 }
 
-//nolint:funlen,gocyclo
-func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
-	if err == nil {
-		panic("nil error")
-	}
+func newAPIErrorFromClickHouseError(err error) *api_service_protos.TError {
+	var (
+		status ydb_proto.StatusIds_StatusCode
+		chErr  = &clickhouse_proto.Exception{}
+	)
 
-	var status ydb_proto.StatusIds_StatusCode
-
-	// check datasource-specific errors
-
-	chErr := &clickhouse_proto.Exception{}
 	if errors.As(err, &chErr) {
 		switch chErr.Code {
 		case int32(ch_proto.ErrAuthenticationFailed):
@@ -90,7 +85,15 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
-	pgConnectError := &pgconn.ConnectError{}
+	return nil
+}
+
+func newAPIErrorFromPostgreSQLError(err error) *api_service_protos.TError {
+	var (
+		status         ydb_proto.StatusIds_StatusCode
+		pgConnectError = &pgconn.ConnectError{}
+	)
+
 	if errors.As(err, &pgConnectError) {
 		pgError, ok := pgConnectError.Unwrap().(*pgconn.PgError)
 		if ok {
@@ -112,6 +115,12 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
+	return nil
+}
+
+func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
+	var status ydb_proto.StatusIds_StatusCode
+
 	// TODO: remove this and extract MyError somehow
 	//       for some reason errors.As() does not work with mysql.MyError
 	errorText := err.Error()
@@ -128,6 +137,8 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		switch code {
 		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
 			status = ydb_proto.StatusIds_UNAUTHORIZED
+		case mysql.ER_BAD_DB_ERROR:
+			status = ydb_proto.StatusIds_NOT_FOUND
 		default:
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
 		}
@@ -138,6 +149,10 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
+	return nil
+}
+
+func newAPIErrorFromYdbError(err error) *api_service_protos.TError {
 	if ydb.IsYdbError(err) {
 		for status := range ydb_proto.StatusIds_StatusCode_name {
 			if ydb.IsOperationError(err, ydb_proto.StatusIds_StatusCode(status)) {
@@ -156,7 +171,12 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
-	// check general errors that could happen within connector logic
+	return nil
+}
+
+//nolint:gocyclo
+func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
+	var status ydb_proto.StatusIds_StatusCode
 
 	switch {
 	case errors.Is(err, ErrTableDoesNotExist):
@@ -198,6 +218,33 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		Status:  status,
 		Message: err.Error(),
 	}
+}
+
+
+func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
+	if err == nil {
+		panic("nil error")
+	}
+
+	// check datasource-specific errors
+	if apiErr := newAPIErrorFromClickHouseError(err); apiErr != nil {
+		return apiErr
+	}
+
+	if apiErr := newAPIErrorFromPostgreSQLError(err); apiErr != nil {
+		return apiErr
+	}
+
+	if apiErr := newAPIErrorFromMySQLError(err); apiErr != nil {
+		return apiErr
+	}
+
+	if apiErr := newAPIErrorFromYdbError(err); apiErr != nil {
+		return apiErr
+	}
+
+	// check general errors that could happen within connector logic
+	return newAPIErrorFromConnectorError(err)
 }
 
 func APIErrorToLogFields(apiErr *api_service_protos.TError) []zap.Field {
