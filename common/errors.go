@@ -220,7 +220,6 @@ func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	}
 }
 
-
 func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
