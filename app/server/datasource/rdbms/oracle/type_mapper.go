@@ -68,11 +68,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		case "NUMBER":
 			acceptors = append(acceptors, new(*int64))
 			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
-		//// godror
-		// case "VARCHAR", "VARCHAR2":
-		// 	acceptors = append(acceptors, new(*string))
-		// 	appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
-		//// go-ora
 		case "NCHAR", "VARCHAR", "VARCHAR2":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))

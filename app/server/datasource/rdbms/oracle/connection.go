@@ -32,12 +32,12 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 
 	out, err := c.conn.QueryContext(ctx, query, valueArgs)
 	if err != nil {
-		return nil, fmt.Errorf("oracle can't query with context", err)
+		return nil, fmt.Errorf("oracle can't query with context: %w", err)
 	}
 
 	rows, err := NewRows(out)
 	if err != nil {
-		return nil, fmt.Errorf("oracle can't create rows", err)
+		return nil, fmt.Errorf("oracle can't create rows: %w", err)
 	}
 
 	return rows, nil

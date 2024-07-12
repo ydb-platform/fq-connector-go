@@ -1,8 +1,6 @@
 package oracle
 
 import (
-	_ "github.com/denisenkom/go-mssqldb"
-
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
