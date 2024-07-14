@@ -37,7 +37,6 @@ func (dsf *dataSourceFactory) Make(
 	logger *zap.Logger,
 	dataSourceType api_common.EDataSourceKind,
 ) (datasource.DataSource[any], error) {
-	return NewDataSource(logger, &dsf.oracle, dsf.converterCollection), nil
 	switch dataSourceType {
 	case api_common.EDataSourceKind_CLICKHOUSE:
 		return NewDataSource(logger, &dsf.clickhouse, dsf.converterCollection), nil
@@ -51,6 +50,8 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_GREENPLUM:
 		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_ORACLE:
+		return NewDataSource(logger, &dsf.oracle, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
