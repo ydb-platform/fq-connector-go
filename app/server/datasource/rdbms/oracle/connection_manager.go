@@ -69,16 +69,25 @@ func (c *connectionManager) Make(
 	// }
 
 	// go-ora native
+	// connStr1 := go_ora.BuildUrl(
+	// 	"127.0.0.1",
+	// 	int(1522),
+	// 	"FREE", // TODO service name from config
+	// 	"C##ADMIN",
+	// 	"password",
+	// 	nil,
+	// )
+	// connStr1 = "oracle://C%23%23ADMIN:password@localhost:1522/FREE"
+	creds := dsi.GetCredentials().GetBasic()
+	ora_options := dsi.GetOraOptions()
 	connStr1 := go_ora.BuildUrl(
-		"127.0.0.1",
-		int(1521),
-		"FREE", // TODO service name from config
-		"C##ADMIN",
-		"password",
+		dsi.GetEndpoint().GetHost(),
+		int(dsi.GetEndpoint().Port),
+		ora_options.GetServiceName(), // TODO service name from config
+		creds.GetUsername(),
+		creds.GetPassword(),
 		nil,
 	)
-	connStr1 = "oracle://C%23%23ADMIN:password@localhost:1521/FREE"
-	log.Print(connStr1)
 	conn, err := go_ora.NewConnection(connStr1, nil)
 	if err != nil {
 		log.Fatal(err)
