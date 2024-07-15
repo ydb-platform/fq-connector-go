@@ -46,7 +46,7 @@ func (c *connectionManager) Make(
 	if err != nil {
 		return nil, fmt.Errorf("can't create new go-ora connection: %w", err)
 	}
-	// check for error
+
 	err = conn.Open()
 	if err != nil {
 		return nil, fmt.Errorf("can't open connection: %w", err)
