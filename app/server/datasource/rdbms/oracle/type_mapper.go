@@ -31,13 +31,11 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	switch typeName {
 	case "NUMBER":
 		// TODO: NUMBER(p, s) can be float. Should convert to Decimal
-		// 	Note: NUMBER can be from 1 to 22 bytes. Has wider range than Int64 or Decimal. Possible representation - string
+		// 	Note: NUMBER can be from 1 to 22 bytes. Has wider range than Int64 or YDB Decimal. Possible representation - string
+		//  		Possible optimisation: if p > 16 then to string, else to int64
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
-	//// godror
-	// case "VARCHAR", "VARCHAR2":
-	// 	ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	//// go-ora
-	// for some reason go-ora driver doesnot disringuish VARCHAR and NCHAR from time to time. go-ora valueTypes:
+	// for some reason go-ora driver does not distinguish VARCHAR and NCHAR from time to time. go-ora valueTypes:
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/parameter.go#L30-L77
 	case "NCHAR", "VARCHAR", "VARCHAR2":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)

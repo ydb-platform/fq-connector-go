@@ -16,7 +16,7 @@ type sqlFormatter struct {
 }
 
 func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
-	return false
+	return false // TODO: test pushdown
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -57,7 +57,7 @@ func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 }
 
 func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
-	return false
+	return false // TODO: test pushdown
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		return true

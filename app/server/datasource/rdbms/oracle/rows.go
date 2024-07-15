@@ -93,15 +93,6 @@ func scanToDest(dest, src any) error { // TODO pass column type names and make t
 			**d = int64(i)
 			return nil
 		}
-	case int64:
-		switch d := dest.(type) {
-		case *int64:
-			if d == nil {
-				return errNilPtr
-			}
-			*d = s
-			return nil
-		}
 	}
 	return fmt.Errorf("oracle unsupported Scan, storing driver.Value type %T into type %T", src, dest) // TODO add dest and val types
 }
