@@ -3,7 +3,6 @@ package oracle
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"go.uber.org/zap"
@@ -32,70 +31,25 @@ func (c *connectionManager) Make(
 
 	var err error
 
-	// // godror
-	// var connParams godror.ConnectionParams
-
-	// connParams.Username = dsi.Credentials.GetBasic().GetUsername()
-	// connParams.Password = godror.NewPassword(dsi.Credentials.GetBasic().GetPassword())
-	// // TODO: review for safety
-	// // connectionString = <db_host>:<port>/<service_name>
-	// connParams.ConnectString = fmt.Sprintf("%s:%d/%s",
-	// 	dsi.GetEndpoint().GetHost(),
-	// 	uint16(dsi.GetEndpoint().GetPort()),
-	// 	"FREE") // TODO service name from config
-
-	// // TODO: add tls
-	// // if dsi.UseTls {
-	// //	connParams.UseTLS
-	// // } else {
-	// //
-	// // }
-
-	// db := sql.OpenDB(godror.NewConnector(connParams))
-
-	// // go-ora
-	// connStr := go_ora.BuildUrl(
-	// 	dsi.GetEndpoint().GetHost(),
-	// 	int(dsi.GetEndpoint().GetPort()),
-	// 	"FREE", // TODO service name from config
-	// 	dsi.Credentials.GetBasic().GetUsername(),
-	// 	dsi.Credentials.GetBasic().GetPassword(),
-	// 	nil,
-	// )
-
-	// db, err := sql.Open("oracle", connStr)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to open connection: %w", err)
-	// }
-
 	// go-ora native
-	// connStr1 := go_ora.BuildUrl(
-	// 	"127.0.0.1",
-	// 	int(1522),
-	// 	"FREE", // TODO service name from config
-	// 	"C##ADMIN",
-	// 	"password",
-	// 	nil,
-	// )
-	// connStr1 = "oracle://C%23%23ADMIN:password@localhost:1522/FREE"
 	creds := dsi.GetCredentials().GetBasic()
 	ora_options := dsi.GetOraOptions()
 	connStr1 := go_ora.BuildUrl(
 		dsi.GetEndpoint().GetHost(),
 		int(dsi.GetEndpoint().Port),
-		ora_options.GetServiceName(), // TODO service name from config
+		ora_options.GetServiceName(),
 		creds.GetUsername(),
 		creds.GetPassword(),
 		nil,
 	)
 	conn, err := go_ora.NewConnection(connStr1, nil)
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("can't create new go-ora connection: %w", err)
 	}
 	// check for error
 	err = conn.Open()
 	if err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("can't open connection: %w", err)
 	}
 
 	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
