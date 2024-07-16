@@ -15,37 +15,38 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 type sqlFormatter struct {
 }
 
-func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (sqlFormatter) supportsType(_typeID Ydb.Type_PrimitiveTypeId) bool {
+	// switch typeID {
+	// case Ydb.Type_BOOL:
+	// 	return true
+	// case Ydb.Type_INT8:
+	// 	return true
+	// case Ydb.Type_UINT8:
+	// 	return true
+	// case Ydb.Type_INT16:
+	// 	return true
+	// case Ydb.Type_UINT16:
+	// 	return true
+	// case Ydb.Type_INT32:
+	// 	return true
+	// case Ydb.Type_UINT32:
+	// 	return true
+	// case Ydb.Type_INT64:
+	// 	return true
+	// case Ydb.Type_UINT64:
+	// 	return true
+	// case Ydb.Type_FLOAT:
+	// 	return true
+	// case Ydb.Type_DOUBLE:
+	// 	return true
+	// default:
+	// 	return false
+	// }
 	return false // TODO: test pushdown
-	switch typeID {
-	case Ydb.Type_BOOL:
-		return true
-	case Ydb.Type_INT8:
-		return true
-	case Ydb.Type_UINT8:
-		return true
-	case Ydb.Type_INT16:
-		return true
-	case Ydb.Type_UINT16:
-		return true
-	case Ydb.Type_INT32:
-		return true
-	case Ydb.Type_UINT32:
-		return true
-	case Ydb.Type_INT64:
-		return true
-	case Ydb.Type_UINT64:
-		return true
-	case Ydb.Type_FLOAT:
-		return true
-	case Ydb.Type_DOUBLE:
-		return true
-	default:
-		return false
-	}
 }
 
 func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
+	// TODO: test pushdown
 	switch v := t.Type.(type) {
 	case *Ydb.Type_TypeId:
 		return f.supportsType(v.TypeId)
@@ -57,7 +58,7 @@ func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 }
 
 func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
-	return false // TODO: test pushdown
+	// TODO: test pushdown
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		return true

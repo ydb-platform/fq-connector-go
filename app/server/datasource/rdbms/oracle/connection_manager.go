@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	go_ora "github.com/sijms/go-ora/v2"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -33,15 +34,16 @@ func (c *connectionManager) Make(
 
 	// go-ora native
 	creds := dsi.GetCredentials().GetBasic()
-	ora_options := dsi.GetOraOptions()
+	oraOptions := dsi.GetOraOptions()
 	connStr1 := go_ora.BuildUrl(
 		dsi.GetEndpoint().GetHost(),
 		int(dsi.GetEndpoint().Port),
-		ora_options.GetServiceName(),
+		oraOptions.GetServiceName(),
 		creds.GetUsername(),
 		creds.GetPassword(),
 		nil,
 	)
+
 	conn, err := go_ora.NewConnection(connStr1, nil)
 	if err != nil {
 		return nil, fmt.Errorf("can't create new go-ora connection: %w", err)

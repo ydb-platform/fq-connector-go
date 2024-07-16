@@ -26,7 +26,8 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 
 	_ = rules
 
-	// Oracle Data Types https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
+	// Oracle Data Types
+	//	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 	switch typeName {
 	case "NUMBER":
@@ -34,7 +35,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		// 	Note: NUMBER can be from 1 to 22 bytes. Has wider range than Int64 or YDB Decimal. Possible representation - string
 		//  		Possible optimisation: if p > 16 then to string, else to int64
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
-	//// go-ora
+	// // go-ora
 	// for some reason go-ora driver does not distinguish VARCHAR and NCHAR from time to time. go-ora valueTypes:
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/parameter.go#L30-L77
 	case "NCHAR", "VARCHAR", "VARCHAR2":
@@ -60,7 +61,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	acceptors := make([]any, 0, len(types))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 
-	fmt.Printf("TFST: typeNames: %v\n", types)
 	for _, typeName := range types {
 		switch typeName {
 		case "NUMBER":
