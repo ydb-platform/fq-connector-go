@@ -26,13 +26,13 @@ type rows struct {
 	err error
 }
 
-func newRows(queryRows driver.Rows) (rdbms_utils.Rows, error) {
+func newRows(queryRows driver.Rows) rdbms_utils.Rows {
 	return &rows{
 		rows:             queryRows,
 		nextValuesBuffer: make([]driver.Value, len(queryRows.Columns())),
 		inputFinished:    false,
 		err:              nil,
-	}, nil
+	}
 }
 
 func (r *rows) Next() bool {
@@ -67,11 +67,11 @@ func scanNilToDest(dest any) error {
 
 		return nil
 	}
+
 	return fmt.Errorf("unsupported Scan, storing driver.Value type <nil> into type %T: %w", dest, common.ErrDataTypeNotSupported)
 }
 
 func scanToDest(dest, src any) error {
-
 	// driver.Value can be only one of 6 standart types
 	// https://pkg.go.dev/database/sql/driver#Value
 

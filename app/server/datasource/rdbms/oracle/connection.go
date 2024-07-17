@@ -40,10 +40,7 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 		return nil, fmt.Errorf("query with context: %w", err)
 	}
 
-	rows, err := newRows(out)
-	if err != nil {
-		return nil, fmt.Errorf("new rows: %w", err)
-	}
+	rows := newRows(out)
 
 	return rows, nil
 }
