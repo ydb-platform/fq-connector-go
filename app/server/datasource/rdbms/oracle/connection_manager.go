@@ -35,7 +35,7 @@ func (c *connectionManager) Make(
 	// go-ora native
 	creds := dsi.GetCredentials().GetBasic()
 	oraOptions := dsi.GetOraOptions()
-	connStr1 := go_ora.BuildUrl(
+	connStr := go_ora.BuildUrl(
 		dsi.GetEndpoint().GetHost(),
 		int(dsi.GetEndpoint().Port),
 		oraOptions.GetServiceName(),
@@ -44,7 +44,7 @@ func (c *connectionManager) Make(
 		nil,
 	)
 
-	conn, err := go_ora.NewConnection(connStr1, nil)
+	conn, err := go_ora.NewConnection(connStr, nil)
 	if err != nil {
 		return nil, fmt.Errorf("new go-ora connection: %w", err)
 	}
