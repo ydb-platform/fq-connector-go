@@ -32,6 +32,17 @@ func (c *connectionManager) Make(
 
 	var err error
 
+	// url options example:
+	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L1403C112-L1408
+	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L115-L137
+	// urlOptions := map[string]string {
+	// 	"TRACE FILE": "trace.log",
+	// 	"AUTH TYPE":  "TCPS",
+	// 	"SSL": "enable",
+	// 	"SSL VERIFY": "FALSE",
+	// 	"WALLET": "PATH TO WALLET".
+	// }
+
 	// go-ora native
 	creds := dsi.GetCredentials().GetBasic()
 	oraOptions := dsi.GetOraOptions()
@@ -49,7 +60,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("new go-ora connection: %w", err)
 	}
 
-	err = conn.Open()
+	err = conn.OpenWithContext(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("open connection: %w", err)
 	}
