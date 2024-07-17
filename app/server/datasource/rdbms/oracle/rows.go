@@ -26,7 +26,7 @@ type rows struct {
 	err error
 }
 
-func NewRows(queryRows driver.Rows) (rdbms_utils.Rows, error) {
+func newRows(queryRows driver.Rows) (rdbms_utils.Rows, error) {
 	return &rows{
 		rows:             queryRows,
 		nextValuesBuffer: make([]driver.Value, len(queryRows.Columns())),

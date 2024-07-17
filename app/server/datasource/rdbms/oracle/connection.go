@@ -35,7 +35,7 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 		return nil, fmt.Errorf("query context: %w", err)
 	}
 
-	rows, err := NewRows(out)
+	rows, err := newRows(out)
 	if err != nil {
 		return nil, fmt.Errorf("new rows: %w", err)
 	}
