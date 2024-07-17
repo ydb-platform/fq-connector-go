@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -36,6 +35,10 @@ func newRows(queryRows driver.Rows) (rdbms_utils.Rows, error) {
 }
 
 func (r *rows) Next() bool {
+	if r.inputFinished {
+		return false
+	}
+
 	err := r.rows.Next(r.nextValuesBuffer)
 	if err != nil {
 		if err != io.EOF {
@@ -52,17 +55,8 @@ func (r *rows) Next() bool {
 
 func (r *rows) Err() error { return r.err }
 
-var (
-	errNilPtr          = errors.New("destination pointer is nil")
-	errUnsupportedType = errors.New("unsupported source type")
-)
-
 func scanToDest(dest, src any) error {
-	s, ok := src.(string)
-	if !ok {
-		return errUnsupportedType
-	}
-	// TODO pass column type names and make type mapping
+	s, _ := src.(string)
 
 	// driver.Value can be only one of 6 standart types
 	// https://pkg.go.dev/database/sql/driver#Value
@@ -70,15 +64,8 @@ func scanToDest(dest, src any) error {
 	// partial copy of standart code:
 	// https://cs.opensource.google/go/go/+/master:src/database/sql/convert.go;l=230
 
-	// switch s := src.(type) {
-	// case string:
-
 	switch d := dest.(type) {
 	case **string:
-		if d == nil {
-			return errNilPtr
-		}
-
 		if *d == nil {
 			*d = new(string)
 		}
@@ -87,10 +74,6 @@ func scanToDest(dest, src any) error {
 
 		return nil
 	case **int64:
-		if dest == nil {
-			return errNilPtr
-		}
-
 		i, err := strconv.Atoi(s)
 		if err != nil {
 			return fmt.Errorf("unsupported scan, convert \"%s\"(string) to **int64: %w", s, err)
@@ -104,25 +87,18 @@ func scanToDest(dest, src any) error {
 
 		return nil
 	}
-	// }
-	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest) // TODO add dest and val types
+
+	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
 }
 
 func (r *rows) Scan(dest ...any) error {
 	if r.inputFinished {
 		return io.EOF
 	}
-	// TODO think about standart implemetation
-	// 	maybe error if Scan colled twice withoud Next
-
-	// TODO maybe check length of buffer and dest to be equal
-	// if len(dest) != len(r.nextValuesBuffer) {
-	// 	return fmt.Errorf("oracle wanted %d args, but got %d", len(r.nextValuesBuffer), len(dest))
-	// }
 
 	for i, val := range r.nextValuesBuffer {
 		if err := scanToDest(dest[i], val); err != nil {
-			return err
+			return fmt.Errorf("scan to dest column %d (starts from 1): %w", i+1, err)
 		}
 	}
 
