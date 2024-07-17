@@ -28,7 +28,7 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 	valueArgs := make([]driver.NamedValue, len(args))
 	for i := 0; i < len(args); i++ {
 		valueArgs[i].Value = args[i]
-		// TODO: research
+		// TODO YQ-3455: research
 		// 	for some reason queyr works with all Ordinal = 0
 		// 	Golang docs states, what Ordinal is used, when Name is not set. Setted always. And starts with 1:
 		// 		https://pkg.go.dev/database/sql/driver#NamedValue
