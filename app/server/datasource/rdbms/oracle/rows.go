@@ -12,6 +12,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 var _ rdbms_utils.Rows = (*rows)(nil)
@@ -55,40 +56,57 @@ func (r *rows) Next() bool {
 
 func (r *rows) Err() error { return r.err }
 
+func scanNilToDest(dest any) error {
+	switch d := dest.(type) {
+	case **string:
+		*d = nil
+
+		return nil
+	case **int64:
+		*d = nil
+
+		return nil
+	}
+	return fmt.Errorf("unsupported Scan, storing driver.Value type <nil> into type %T: %w", dest, common.ErrDataTypeNotSupported)
+}
+
 func scanToDest(dest, src any) error {
-	s, _ := src.(string)
 
 	// driver.Value can be only one of 6 standart types
 	// https://pkg.go.dev/database/sql/driver#Value
 
 	// partial copy of standart code:
 	// https://cs.opensource.google/go/go/+/master:src/database/sql/convert.go;l=230
+	switch s := src.(type) {
+	case string:
+		switch d := dest.(type) {
+		case **string:
+			if *d == nil {
+				*d = new(string)
+			}
 
-	switch d := dest.(type) {
-	case **string:
-		if *d == nil {
-			*d = new(string)
+			**d = s
+
+			return nil
+		case **int64:
+			i, err := strconv.Atoi(s)
+			if err != nil {
+				return fmt.Errorf("unsupported scan, convert \"%s\"(string) to **int64: %w", s, err)
+			}
+
+			if *d == nil {
+				*d = new(int64)
+			}
+
+			**d = int64(i)
+
+			return nil
 		}
-
-		**d = s
-
-		return nil
-	case **int64:
-		i, err := strconv.Atoi(s)
-		if err != nil {
-			return fmt.Errorf("unsupported scan, convert \"%s\"(string) to **int64: %w", s, err)
-		}
-
-		if *d == nil {
-			*d = new(int64)
-		}
-
-		**d = int64(i)
-
-		return nil
+	case nil:
+		return scanNilToDest(dest)
 	}
 
-	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T: %w", src, dest, common.ErrDataTypeNotSupported)
 }
 
 func (r *rows) Scan(dest ...any) error {

@@ -117,9 +117,6 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 	//nolint:forcetypeassert
 	builder.(AB).Append(out)
 
-	// it was copied from ClickHouse, not sure if it is necessary
-	*cast = nil
-
 	return nil
 }
 
