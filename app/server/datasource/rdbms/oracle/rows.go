@@ -39,7 +39,7 @@ func (r *rows) Next() bool {
 	err := r.rows.Next(r.nextValuesBuffer)
 	if err != nil {
 		if err != io.EOF {
-			r.err = fmt.Errorf("oracle can't get next row calues: %w", err)
+			r.err = fmt.Errorf("next row values: %w", err)
 		} else {
 			r.inputFinished = true
 		}
@@ -93,7 +93,7 @@ func scanToDest(dest, src any) error {
 
 		i, err := strconv.Atoi(s)
 		if err != nil {
-			return fmt.Errorf("oracle cant convert \"%s\"(string) to **int64: %w", s, err)
+			return fmt.Errorf("unsupported scan, convert \"%s\"(string) to **int64: %w", s, err)
 		}
 
 		if *d == nil {
@@ -105,7 +105,7 @@ func scanToDest(dest, src any) error {
 		return nil
 	}
 	// }
-	return fmt.Errorf("oracle unsupported Scan, storing driver.Value type %T into type %T", src, dest) // TODO add dest and val types
+	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest) // TODO add dest and val types
 }
 
 func (r *rows) Scan(dest ...any) error {
