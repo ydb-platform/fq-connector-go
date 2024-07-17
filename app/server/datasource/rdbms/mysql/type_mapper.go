@@ -101,8 +101,7 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 	case typeVarChar, typeChar:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case typeBinary, typeVarBinary:
-		// it's strange, but... see col13 and col14 here: https://github.com/go-mysql-org/go-mysql/issues/770
-		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
+		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeText, typeLongText, typeTinyText, typeMediumText:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeDate:
@@ -233,7 +232,15 @@ func addAcceptorAppender(
 		*appenders = append(*appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 	case mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VAR_STRING:
 		*acceptors = append(*acceptors, new(*string))
-		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+
+		switch ydbTypeId {
+		case Ydb.Type_UTF8:
+			*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		case Ydb.Type_STRING:
+			*appenders = append(*appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+		default:
+			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
+		}
 	case mysql.MYSQL_TYPE_DATE:
 		*acceptors = append(*acceptors, new(*time.Time))
 
