@@ -30,8 +30,9 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 		valueArgs[i].Value = args[i]
 		// TODO YQ-3455: research
 		// 	for some reason query works with all Ordinal = 0
-		// 	Golang docs states, that Ordinal is used, when Name is not set. Setted always. And starts with 1:
-		// 		https://pkg.go.dev/database/sql/driver#NamedValue
+		// 	Golang docs states: Ordinal position of the parameter starting from one and is always set.
+		//		If Name is empty, Ordinal value is used as parameter identifier:
+		// 			https://pkg.go.dev/database/sql/driver#NamedValue
 		valueArgs[i].Ordinal = i + 1
 	}
 
