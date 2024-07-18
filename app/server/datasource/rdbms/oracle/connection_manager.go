@@ -35,6 +35,7 @@ func (c *connectionManager) Make(
 	// url options example:
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L1403C112-L1408
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L115-L137
+	// https://oracle-base.com/articles/misc/configure-tcpip-with-ssl-and-tls-for-database-connections
 	// urlOptions := map[string]string {
 	// 	"TRACE FILE": "trace.log",
 	// 	"AUTH TYPE":  "TCPS",

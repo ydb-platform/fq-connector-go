@@ -71,12 +71,12 @@ func scanNilToDest(dest any) error {
 	return fmt.Errorf("unsupported Scan, storing driver.Value type <nil> into type %T: %w", dest, common.ErrDataTypeNotSupported)
 }
 
-func scanToDest(dest, src any) error {
-	// driver.Value can be only one of 6 standart types
-	// https://pkg.go.dev/database/sql/driver#Value
+// driver.Value can be only one of 6 standart types
+// https://pkg.go.dev/database/sql/driver#Value
 
-	// partial copy of standart code:
-	// https://cs.opensource.google/go/go/+/master:src/database/sql/convert.go;l=230
+// partial copy of standart code:
+// https://cs.opensource.google/go/go/+/master:src/database/sql/convert.go;l=230
+func scanToDest(dest, src any) error {
 	switch s := src.(type) {
 	case string:
 		switch d := dest.(type) {
