@@ -32,6 +32,7 @@ func (c *connectionManager) Make(
 
 	var err error
 
+	// TODO YQ-3456: Add TLS
 	// url options example:
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L1403C112-L1408
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L115-L137
@@ -71,7 +72,7 @@ func (c *connectionManager) Make(
 
 	err = conn.Ping(pingCtx)
 	if err != nil {
-		defer conn.Close()
+		conn.Close()
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
