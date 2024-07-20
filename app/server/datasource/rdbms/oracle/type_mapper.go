@@ -38,7 +38,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	// // go-ora
 	// for some reason go-ora driver does not distinguish VARCHAR and NCHAR from time to time. go-ora valueTypes:
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/parameter.go#L30-L77
-	case "NCHAR", "VARCHAR", "VARCHAR2":
+	case "NCHAR", "CHAR", "VARCHAR", "VARCHAR2", "NVARCHAR", "NVARCHAR2", "CLOB", "NCLOB", "LONG", "ROWID", "UROWID":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
@@ -61,12 +61,16 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	acceptors := make([]any, 0, len(types))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 
+	// there is incostintance between table metadata query and go-ora driver.
+	// for some reason driver renames some types for its own names.
+
 	for _, typeName := range types {
 		switch typeName {
 		case "NUMBER":
 			acceptors = append(acceptors, new(*int64))
 			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
-		case "NCHAR", "VARCHAR", "VARCHAR2":
+		// case "NCHAR", "CHAR", "VARCHAR", "VARCHAR2", "NVARCHAR", "NVARCHAR2", "CLOB", "NCLOB", "LONG", "ROWID", "UROWID":
+		case "NCHAR", "CHAR", "LongVarChar", "LONG", "ROWID", "UROWID":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		default:
