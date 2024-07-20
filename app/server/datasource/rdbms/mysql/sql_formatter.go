@@ -75,6 +75,10 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return ident
 }
 
+func (f sqlFormatter) FormatFrom(tableName string) string {
+	return f.SanitiseIdentifier(tableName)
+}
+
 func NewSQLFormatter() rdbms_utils.SQLFormatter {
 	return sqlFormatter{}
 }
