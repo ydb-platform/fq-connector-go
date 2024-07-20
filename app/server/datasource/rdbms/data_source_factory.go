@@ -13,6 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ms_sql_server"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/mysql"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/oracle"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
@@ -28,6 +29,7 @@ type dataSourceFactory struct {
 	msSQLServer         Preset
 	mysql               Preset
 	greenplum           Preset
+	oracle              Preset
 	converterCollection conversion.Collection
 }
 
@@ -48,6 +50,8 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_GREENPLUM:
 		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_ORACLE:
+		return NewDataSource(logger, &dsf.oracle, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -66,6 +70,7 @@ func NewDataSourceFactory(
 	ydbTypeMapper := ydb.NewTypeMapper()
 	msSQLServerTypeMapper := ms_sql_server.NewTypeMapper()
 	mysqlTypeMapper := mysql.NewTypeMapper()
+	oracleTypeMapper := oracle.NewTypeMapper()
 
 	// for PostgreSQL-like systems
 	schemaGetters := map[api_common.EDataSourceKind]func(dsi *api_common.TDataSourceInstance) string{
@@ -130,6 +135,13 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
 			RetrierSet: rdbms_utils.NewRetrierSetNoop(),
+		},
+		oracle: Preset{
+			SQLFormatter:      oracle.NewSQLFormatter(),
+			ConnectionManager: oracle.NewConnectionManager(connManagerCfg),
+			TypeMapper:        oracleTypeMapper,
+			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
+			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
 		},
 		converterCollection: converterCollection,
 	}
