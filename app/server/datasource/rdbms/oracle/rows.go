@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 
 	"database/sql/driver"
 
@@ -66,6 +67,14 @@ func scanNilToDest(dest any) error {
 		*d = nil
 
 		return nil
+	case **[]byte:
+		*d = nil
+
+		return nil
+	case **time.Time:
+		*d = nil
+
+		return nil
 	}
 
 	return fmt.Errorf("unsupported Scan, storing driver.Value type <nil> into type %T: %w", dest, common.ErrDataTypeNotSupported)
@@ -99,6 +108,28 @@ func scanToDest(dest, src any) error {
 			}
 
 			**d = int64(i)
+
+			return nil
+		}
+	case []byte:
+		d, ok := dest.(**[]byte)
+		if ok {
+			if *d == nil {
+				*d = new([]byte)
+			}
+
+			**d = s
+
+			return nil
+		}
+	case time.Time:
+		d, ok := dest.(**time.Time)
+		if ok {
+			if *d == nil {
+				*d = new(time.Time)
+			}
+
+			**d = s
 
 			return nil
 		}
