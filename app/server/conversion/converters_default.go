@@ -122,6 +122,7 @@ func (timestampToStringConverter) Convert(in *time.Time) (string, error) {
 	// Max accuracy of date/time formats:
 	// PostgreSQL - 1 microsecond (10^-6 s)
 	// ClickHouse - 1 nanosecond  (10^-9 s)
+	// Oracle -  1 nanosecond  (10^-9 s)
 	// Trailing zeros are omitted
 	return in.UTC().Format("2006-01-02T15:04:05.999999999Z"), nil
 }
