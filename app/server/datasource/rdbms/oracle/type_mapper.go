@@ -87,6 +87,8 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	// "TIMESTAMP(*) WITH TIME ZONE" -> "TimeStampDTY"
 	// "TIMESTAMP(*) WITH LOCAL TIME ZONE" -> "TimeStampLTZ_DTY"
 
+	// Oracle data types:
+	// 	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
 	for i, typeName := range types {
 		switch typeName {
 		case "NUMBER":
@@ -99,8 +101,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		case "DATE":
-			// Oracle data types:
-			// 	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
 			// Oracle Date value range is much more wide than YDB's Datetime value range
 			ydbType := ydbTypes[i]
 
@@ -121,8 +121,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbType, typeName, common.ErrDataTypeNotSupported)
 			}
 		case "TimeStampDTY", "TimeStampTZ_DTY", "TimeStampLTZ_DTY": // TIMESTAMP
-			// Oracle data types:
-			// 	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
 			// Oracle Timestamp value range is much more wide than YDB's Timestamp value range, and/or more precise
 			ydbType := ydbTypes[i]
 
