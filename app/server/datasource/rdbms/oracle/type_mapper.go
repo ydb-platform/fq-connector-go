@@ -82,7 +82,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	// there is incostintance between table metadata query and go-ora driver.
 	// for some reason driver renames some types to its own names.
 	// "LONG RAW" -> "LongRaw"
-	// ? -> "LongVarChar"
+	// "CLOB", "NCLOB" -> "LongVarChar"
 	// "TIMESTAMP(*)" -> "TimeStampDTY"
 	// "TIMESTAMP(*) WITH TIME ZONE" -> "TimeStampDTY"
 	// "TIMESTAMP(*) WITH LOCAL TIME ZONE" -> "TimeStampLTZ_DTY"
