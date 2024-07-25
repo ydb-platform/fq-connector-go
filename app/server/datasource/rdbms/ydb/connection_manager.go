@@ -145,7 +145,12 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
 
-	ydbConn, err := ydb_sdk.Connector(ydbDriver, ydb_sdk.WithAutoDeclare(), ydb_sdk.WithPositionalArgs())
+	ydbConn, err := ydb_sdk.Connector(
+		ydbDriver,
+		ydb_sdk.WithAutoDeclare(),
+		ydb_sdk.WithPositionalArgs(),
+		ydb_sdk.WithTablePathPrefix(dsi.Database),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("connector error: %w", err)
 	}

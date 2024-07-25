@@ -19,7 +19,7 @@ func MakeReadSplitQuery(
 		args []any
 	)
 
-	selectPart, newSelectWhat, err := formatSelectColumns(formatter, request.What, request.GetFrom().GetTable(), true)
+	selectPart, newSelectWhat, err := formatSelectHead(formatter, request.GetWhat(), request.GetFrom().GetTable(), true)
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("failed to format select statement: %w", err)
 	}
