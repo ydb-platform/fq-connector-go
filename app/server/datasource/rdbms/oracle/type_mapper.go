@@ -92,7 +92,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		case "NUMBER":
 			acceptors = append(acceptors, new(*int64))
 			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
-		// case "NCHAR", "CHAR", "VARCHAR", "VARCHAR2", "NVARCHAR", "NVARCHAR2", "CLOB", "NCLOB", "LONG", "ROWID", "UROWID":
 		case "NCHAR", "CHAR", "LongVarChar", "LONG", "ROWID", "UROWID":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
