@@ -113,11 +113,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				fmt.Printf("Setting string format\n")
 				appenders = append(appenders,
 					makeAppender[time.Time, string, *array.StringBuilder](cc.DatetimeToString()))
 			case Ydb.Type_DATETIME:
-				fmt.Printf("Setting YDB\n")
 				appenders = append(appenders, makeAppender[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbType, typeName, common.ErrDataTypeNotSupported)
@@ -137,11 +135,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				fmt.Printf("Setting string format\n")
 				appenders = append(appenders,
 					makeAppender[time.Time, string, *array.StringBuilder](cc.TimestampToString()))
 			case Ydb.Type_TIMESTAMP:
-				fmt.Printf("Setting YDB\n")
 				appenders = append(appenders, makeAppender[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbType, typeName, common.ErrDataTypeNotSupported)
