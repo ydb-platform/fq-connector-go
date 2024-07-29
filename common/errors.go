@@ -44,6 +44,8 @@ var (
 var (
 	// TODO: remove this and extract MyError somehow
 	mysqlRegex = regexp.MustCompile(`\d+`)
+	// TODO: remove this and extract OracleError somehow
+	oracleRegex = regexp.MustCompile(`ORA-(\d+):`)
 )
 
 func NewSuccess() *api_service_protos.TError {
@@ -112,6 +114,47 @@ func newAPIErrorFromPostgreSQLError(err error) *api_service_protos.TError {
 				Status:  status,
 				Message: pgError.Message,
 			}
+		}
+	}
+
+	return nil
+}
+
+func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
+	// go-ora error mapping:
+	// https://github.com/sijms/go-ora/blob
+	// 	/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/v2/network/oracle_error.go#L20-L57
+	var status ydb_proto.StatusIds_StatusCode
+
+	// TODO: remove this and extract OracleError somehow
+	//       errors.As() does not work with go_ora.OracleError because it does not implement Error interface
+	errorText := err.Error()
+	if strings.Contains(errorText, "oracle:") {
+		var code uint16
+
+		match := oracleRegex.FindStringSubmatch(errorText)
+
+		if len(match) == 2 {
+			tmp, _ := strconv.ParseUint(match[1], 10, 16)
+			code = uint16(tmp)
+		}
+
+		// TODO FIXME: remove after debug
+		// fmt.Printf("GOT GERE: \"%s\" \"%v\" %d\n", errorText, match, code)
+
+		switch code {
+		case 1017:
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		case 12514: // TNS:listener does not currently know of service requested in connect descriptor
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		// TODO: more codes from go-ora error mapping or Oracle docs
+		default:
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: errorText,
 		}
 	}
 
@@ -239,6 +282,10 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 	}
 
 	if apiErr := newAPIErrorFromYdbError(err); apiErr != nil {
+		return apiErr
+	}
+
+	if apiErr := newAPIErrorFromOracleError(err); apiErr != nil {
 		return apiErr
 	}
 
