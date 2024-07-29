@@ -52,11 +52,11 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 	case typeName == "RAW", typeName == "LONG RAW", typeName == "BLOB":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeName == "DATE":
-		ydbType = common.MakePrimitiveType(Ydb.Type_DATETIME)
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
 	case tm.isTimestamp.MatchString(typeName),
 		tm.isTimestampWTZ.MatchString(typeName),
 		tm.isTimestampWLTZ.MatchString(typeName):
-		ydbType = common.MakePrimitiveType(Ydb.Type_TIMESTAMP)
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
