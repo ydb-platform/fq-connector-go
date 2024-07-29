@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/apache/arrow/go/v13/arrow/array"
 	testify_suite "github.com/stretchr/testify/suite"
 	"golang.org/x/exp/constraints"
 
@@ -21,7 +20,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
-type Base[T constraints.Integer, K array.Int64Builder | array.Int32Builder] struct {
+type Base[T constraints.Integer, K test_utils.ArrowIDBuilder[T]] struct {
 	testify_suite.Suite
 	*State
 	Connector common.TestingServer
@@ -179,7 +178,7 @@ func (b *Base[T, K]) doValidateTable(table *test_utils.Table[T, K], dsi *api_com
 	table.MatchRecords(b.T(), records, schema)
 }
 
-func NewBase[T constraints.Integer, K array.Int64Builder | array.Int32Builder](t *testing.T, state *State, name string) *Base[T, K] {
+func NewBase[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](t *testing.T, state *State, name string) *Base[T, K] {
 	b := &Base[T, K]{
 		State: state,
 		name:  name,

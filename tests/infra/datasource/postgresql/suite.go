@@ -13,7 +13,7 @@ import (
 )
 
 type Suite struct {
-	*suite.Base[int32, array.Int32Builder]
+	*suite.Base[int32, *array.Int32Builder]
 	dataSource *datasource.DataSource
 }
 
@@ -275,7 +275,7 @@ func (s *Suite) TestInvalidPassword() {
 }
 
 func NewSuite(
-	baseSuite *suite.Base[int32, array.Int32Builder],
+	baseSuite *suite.Base[int32, *array.Int32Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

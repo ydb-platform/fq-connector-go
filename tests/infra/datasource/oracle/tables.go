@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -11,7 +12,9 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
+var memPool memory.Allocator = memory.NewGoAllocator()
+
+var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 	"simple": {
 		Name: "SIMPLE",
 		Schema: &test_utils.TableSchema{
@@ -21,8 +24,9 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 				"COL2": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 			},
 		},
-		Records: []*test_utils.Record[int64, array.Int64Builder]{
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
 			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"ID": []*int64{
 						ptr.Int64(1),
@@ -72,8 +76,9 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 				// "COL_22_JSON": TODO
 			},
 		},
-		Records: []*test_utils.Record[int64, array.Int64Builder]{
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
 			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"ID": []*int64{
 						ptr.Int64(1),
@@ -192,8 +197,9 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 				"COL_01_LONG": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},
-		Records: []*test_utils.Record[int64, array.Int64Builder]{
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
 			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"ID": []*int64{
 						ptr.Int64(1),
@@ -217,8 +223,9 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 				"COL_01_LONG_RAW": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 			},
 		},
-		Records: []*test_utils.Record[int64, array.Int64Builder]{
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
 			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"ID": []*int64{
 						ptr.Int64(1),
@@ -243,8 +250,9 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 				"COL_02_TIMESTAMP": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 			},
 		},
-		Records: []*test_utils.Record[int64, array.Int64Builder]{
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
 			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
 				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
 				// are returned as NULL
 				Columns: map[string]any{
@@ -280,8 +288,9 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 				"COL_02_TIMESTAMP": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},
-		Records: []*test_utils.Record[int64, array.Int64Builder]{
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
 			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
 				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
 				// are returned without saturating them to the epoch start
 				Columns: map[string]any{
@@ -304,6 +313,12 @@ var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 			},
 		},
 	},
+}
+
+func newInt64IDArrayBuilder(pool memory.Allocator) func() *array.Int64Builder {
+	return func() *array.Int64Builder {
+		return array.NewInt64Builder(pool)
+	}
 }
 
 // func pushdownSchemaYdb() *test_utils.TableSchema {

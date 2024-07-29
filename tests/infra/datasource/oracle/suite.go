@@ -9,7 +9,6 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"golang.org/x/exp/constraints"
 
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
@@ -17,17 +16,17 @@ import (
 )
 
 type Suite struct {
-	*suite.Base[int64, array.Int64Builder]
+	*suite.Base[int64, *array.Int64Builder]
 	dataSource *datasource.DataSource
 }
 
-func (b *Suite) ValidateTable(ds *datasource.DataSource, table *test_utils.Table[int64, array.Int64Builder], customOptions ...suite.ValidateTableOption) {
+func (b *Suite) ValidateTable(ds *datasource.DataSource, table *test_utils.Table[int64, *array.Int64Builder], customOptions ...suite.ValidateTableOption) {
 	for _, dsi := range ds.Instances {
 		b.doValidateTable(table, dsi, customOptions...)
 	}
 }
 
-func (b *Suite) doValidateTable(table *test_utils.Table[int64, array.Int64Builder], dsi *api_common.TDataSourceInstance, customOptions ...suite.ValidateTableOption) {
+func (b *Suite) doValidateTable(table *test_utils.Table[int64, *array.Int64Builder], dsi *api_common.TDataSourceInstance, customOptions ...suite.ValidateTableOption) {
 	options := suite.NewDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.Apply(options)
@@ -152,8 +151,8 @@ func (s *Suite) TestInvalidServiceName() {
 	// }
 }
 
-func NewSuite[T constraints.Integer, K array.Int64Builder | array.Int32Builder](
-	baseSuite *suite.Base[int64, array.Int64Builder],
+func NewSuite(
+	baseSuite *suite.Base[int64, *array.Int64Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)
