@@ -77,28 +77,28 @@ func (b *Base) TearDownSuite() {
 }
 
 type validateTableOptions struct {
-	typeMappingSettings *api_service_protos.TTypeMappingSettings
-	predicate           *api_service_protos.TPredicate
+	TypeMappingSettings *api_service_protos.TTypeMappingSettings
+	Predicate           *api_service_protos.TPredicate
 }
 
-func newDefaultValidateTableOptions() *validateTableOptions {
+func NewDefaultValidateTableOptions() *validateTableOptions {
 	return &validateTableOptions{
-		typeMappingSettings: &api_service_protos.TTypeMappingSettings{
+		TypeMappingSettings: &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
 		},
 	}
 }
 
 type ValidateTableOption interface {
-	apply(o *validateTableOptions)
+	Apply(o *validateTableOptions)
 }
 
 type withDateTimeFormatOption struct {
 	val api_service_protos.EDateTimeFormat
 }
 
-func (o withDateTimeFormatOption) apply(options *validateTableOptions) {
-	options.typeMappingSettings.DateTimeFormat = o.val
+func (o withDateTimeFormatOption) Apply(options *validateTableOptions) {
+	options.TypeMappingSettings.DateTimeFormat = o.val
 }
 
 func WithDateTimeFormat(val api_service_protos.EDateTimeFormat) ValidateTableOption {
@@ -109,8 +109,8 @@ type withPredicateOption struct {
 	val *api_service_protos.TPredicate
 }
 
-func (o withPredicateOption) apply(options *validateTableOptions) {
-	options.predicate = o.val
+func (o withPredicateOption) Apply(options *validateTableOptions) {
+	options.Predicate = o.val
 }
 
 func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
@@ -126,9 +126,9 @@ func (b *Base) ValidateTable(ds *datasource.DataSource, table *test_utils.Table,
 }
 
 func (b *Base) doValidateTable(table *test_utils.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
-	options := newDefaultValidateTableOptions()
+	options := NewDefaultValidateTableOptions()
 	for _, option := range customOptions {
-		option.apply(options)
+		option.Apply(options)
 	}
 
 	b.Require().NotEmpty(table.Name)
@@ -137,7 +137,7 @@ func (b *Base) doValidateTable(table *test_utils.Table, dsi *api_common.TDataSou
 	defer cancel()
 
 	// describe table
-	describeTableResponse, err := b.Connector.ClientBuffering().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
+	describeTableResponse, err := b.Connector.ClientBuffering().DescribeTable(ctx, dsi, options.TypeMappingSettings, table.Name)
 	b.Require().NoError(err)
 	b.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
 
@@ -154,9 +154,9 @@ func (b *Base) doValidateTable(table *test_utils.Table, dsi *api_common.TDataSou
 		},
 	}
 
-	if options.predicate != nil {
+	if options.Predicate != nil {
 		slct.Where = &api_service_protos.TSelect_TWhere{
-			FilterTyped: options.predicate,
+			FilterTyped: options.Predicate,
 		}
 	}
 
