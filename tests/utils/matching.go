@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -18,21 +19,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// type ArrowIDBuilder[T constraints.Integer] interface {
+// 	array.Int64Builder | array.Int32Builder
+// 	Append(T)
+// }
+
 // Record is somewhat equivalent to arrow.Record.
 // Store columns in map because order of columns in some datasource is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
-type Record struct {
+type Record[T constraints.Integer, K array.Int64Builder | array.Int32Builder] struct {
 	Columns map[string]any
 }
+
+// TODO FIXME: remove after debug
+// type Record struct {
+// 	Columns map[string]any
+// }
 
 type TableSchema struct {
 	Columns map[string]*Ydb.Type
 }
 
-func (r *Record) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
+func (r *Record[T, K]) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed)
+	// recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed)
+	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed) // TODO FIXME: remove after debug
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
 		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
@@ -59,7 +71,14 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 			idIndex = i
 			break
 		}
+		// TODO: FIXME: remove after debug
+		if field.Name == "ID" {
+			idIndex = i
+			break
+		}
 	}
+	// TODO: FIXME: remove after debug
+	// fmt.Printf("table arrow.Record: %v\n", table)
 
 	// build new record with the correct order of columns
 	newColumns := make([]arrow.Array, table.NumCols())
@@ -101,8 +120,11 @@ func processColumn[VT common.ValueType, ARRAY common.ArrowArrayType[VT]](table a
 	}
 }
 
-type tableRow struct {
-	ID   int32
+type tableRow[T constraints.Integer] struct {
+	// ID int32
+	// ID int64
+	// type tableRow[T constraints.Integer] struct {
+	ID   T // TODO: FIXME: remove after debug
 	Rest []any
 }
 
@@ -114,15 +136,76 @@ func appendToBuilder[VT common.ValueType](builder common.ArrowBuilder[VT], val a
 	}
 }
 
+// TODO: FIXME: remove after debug
+// // possible to make generic implementation, but then it will need to make a lot of changes to all tests
+type arrowIDCol[T constraints.Integer] struct {
+	idCol arrow.Array
+}
+
+func newTableIDColumn[T constraints.Integer](arr arrow.Array) arrowIDCol[T] {
+	return arrowIDCol[T]{arr}
+}
+
+func (c arrowIDCol[T]) mustValue(i int) T {
+	switch col := c.idCol.(type) {
+	case *array.Int32:
+		return T(col.Value(i))
+	case *array.Int64:
+		return T(col.Value(i))
+	default:
+		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
+	}
+}
+
+type arrowIDBuilder[T constraints.Integer, K array.Int64Builder | array.Int32Builder] struct {
+	builder array.Builder
+}
+
+func newArrowIDBuilder[T constraints.Integer, K array.Int64Builder | array.Int32Builder](pool memory.Allocator, idCol any) arrowIDBuilder[T, K] {
+	switch idCol.(type) {
+	case arrowIDCol[int64]:
+		concBuilder := array.NewInt64Builder(pool)
+		return arrowIDBuilder[T, K]{builder: concBuilder}
+	case arrowIDCol[int32]:
+		concBuilder := array.NewInt32Builder(pool)
+		return arrowIDBuilder[T, K]{builder: concBuilder}
+	default:
+		panic(fmt.Sprintf("New Arrow ID Builder with ID col type %T", idCol))
+	}
+}
+
+func (b arrowIDBuilder[T, K]) mustAppend(val T) {
+	switch b := b.builder.(type) {
+	case *array.Int64Builder:
+		b.Append(int64(val))
+		return
+	case *array.Int32Builder:
+		b.Append(int32(val))
+	default:
+		panic(fmt.Sprintf("While append unknown builder %T", b))
+	}
+}
+
+func (b arrowIDBuilder[_, _]) newArray() arrow.Array {
+	return b.builder.NewArray()
+}
+
 // This code creates a new instance of a table with the desired order of columns.
 // The main purpose is to sort the table by the ID column while preserving the order of the other columns.
 // This is necessary because the columns in Greenplum come in random order, and it is necessary to sort them
 //
-//nolint:funlen,gocyclo
-func sortTableByID(table arrow.Record) arrow.Record {
-	records := make([]tableRow, table.NumRows())
 
-	idCol := table.Column(0).(*array.Int32)
+// nolint:funlen,gocyclo
+func sortTableByID[T constraints.Integer, K array.Int64Builder | array.Int32Builder](table arrow.Record) arrow.Record {
+	records := make([]tableRow[T], table.NumRows())
+
+	// //nolint:funlen,gocyclo
+	// func sortTableByID(table arrow.Record) arrow.Record {
+	// 	records := make([]tableRow, table.NumRows())
+
+	// idCol := table.Column(0).(*array.Int32)
+	// idCol := table.Column(0).(*array.Int64) // TODO: FIXME: remove after debug
+	idCol := newTableIDColumn[T](table.Column(0))
 
 	restCols := make([][]any, table.NumRows())
 
@@ -158,8 +241,11 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	}
 
 	for i := int64(0); i < table.NumRows(); i++ {
-		records[i] = tableRow{
-			ID:   idCol.Value(int(i)),
+		// TODO: FIXME: remove after debug
+		records[i] = tableRow[T]{
+			ID: idCol.mustValue(int(i)),
+			// records[i] = tableRow{
+			// 	ID:   idCol.Value(int(i)),
 			Rest: restCols[i],
 		}
 	}
@@ -169,11 +255,14 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	})
 
 	pool := memory.NewGoAllocator()
-	idBuilder := array.NewInt32Builder(pool)
+	// idBuilder := array.NewInt32Builder(pool)
+	idBuilder := newArrowIDBuilder[T, K](pool, idCol)
+	// idBuilder := array.NewInt64Builder(pool) // TODO: FIXME: remove after debug
 	restBuilders := make([]array.Builder, table.NumCols()-1)
 
 	for _, r := range records {
-		idBuilder.Append(r.ID)
+		idBuilder.mustAppend(r.ID) // TODO: FIXME: remove after debug
+		// idBuilder.Append(r.ID)
 
 		for colIdx, val := range r.Rest {
 			if restBuilders[colIdx] == nil {
@@ -242,7 +331,8 @@ func sortTableByID(table arrow.Record) arrow.Record {
 		}
 	}
 
-	idArr := idBuilder.NewArray()
+	idArr := idBuilder.newArray() // TODO FIXME: remove after debug
+	// idArr := idBuilder.NewArray()
 	defer idArr.Release()
 
 	restArrs := make([]arrow.Array, len(restBuilders))
@@ -407,13 +497,15 @@ func matchJSONArrays(
 	}
 }
 
-type Table struct {
-	Name    string
-	Schema  *TableSchema
-	Records []*Record // Large tables may consist of multiple records
+type Table[T constraints.Integer, K array.Int64Builder | array.Int32Builder] struct { // TODO FIXME: remove after debug
+	// type Table struct {
+	Name   string
+	Schema *TableSchema
+	// Records []*Record // Large tables may consist of multiple records // TODO FIXME: remove after debug
+	Records []*Record[T, K] // Large tables may consist of multiple records // TODO FIXME: remove after debug
 }
 
-func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
+func (tb *Table[_, _]) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Records), len(records))
 
 	for i := range tb.Records {
@@ -422,7 +514,7 @@ func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_
 	}
 }
 
-func (tb *Table) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
+func (tb *Table[_, _]) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Schema.Columns), len(schema.Columns),
 		fmt.Sprintf(
 			"incorrect number of column, expected: %d\nactual:   %d\n",

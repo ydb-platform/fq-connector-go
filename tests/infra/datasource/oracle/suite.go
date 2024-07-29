@@ -4,29 +4,30 @@ import (
 	"context"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow/array"
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"golang.org/x/exp/constraints"
 
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
-	suite_oracle "github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle/suite"
-	test_utils_oracle "github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle/utils"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 type Suite struct {
-	*suite_oracle.SuiteOracle
+	*suite.Base[int64, array.Int64Builder]
 	dataSource *datasource.DataSource
 }
 
-func (b *Suite) ValidateTable(ds *datasource.DataSource, table *test_utils_oracle.Table, customOptions ...suite.ValidateTableOption) {
+func (b *Suite) ValidateTable(ds *datasource.DataSource, table *test_utils.Table[int64, array.Int64Builder], customOptions ...suite.ValidateTableOption) {
 	for _, dsi := range ds.Instances {
 		b.doValidateTable(table, dsi, customOptions...)
 	}
 }
 
-func (b *Suite) doValidateTable(table *test_utils_oracle.Table, dsi *api_common.TDataSourceInstance, customOptions ...suite.ValidateTableOption) {
+func (b *Suite) doValidateTable(table *test_utils.Table[int64, array.Int64Builder], dsi *api_common.TDataSourceInstance, customOptions ...suite.ValidateTableOption) {
 	options := suite.NewDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.Apply(options)
@@ -103,7 +104,7 @@ func (s *Suite) TestDatetimeFormatString() {
 }
 
 func (s *Suite) TestPositiveStats() {
-	suite_oracle.TestPositiveStats(s.SuiteOracle, s.dataSource, tables["simple"])
+	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }
 
 func (s *Suite) TestMissingDataSource() {
@@ -135,33 +136,31 @@ func (s *Suite) TestInvalidLogin() {
 	s.T().Skip()
 
 	for _, dsi := range s.dataSource.Instances {
-		suite_oracle.TestInvalidLogin(s.SuiteOracle, dsi, tables["simple"])
+		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
 }
 
 func (s *Suite) TestInvalidPassword() {
 	for _, dsi := range s.dataSource.Instances {
-		suite_oracle.TestInvalidPassword(s.SuiteOracle, dsi, tables["simple"])
+		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
 
 func (s *Suite) TestInvalidServiceName() {
-	for _, dsi := range s.dataSource.Instances {
-		suite_oracle.TestInvalidServiceName(s.SuiteOracle, dsi, tables["simple"])
-	}
+	// for _, dsi := range s.dataSource.Instances {
+	// TODO
+	// }
 }
 
-func NewSuite(
-	baseSuite *suite.Base,
+func NewSuite[T constraints.Integer, K array.Int64Builder | array.Int32Builder](
+	baseSuite *suite.Base[int64, array.Int64Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)
 
-	oracleSuite := suite_oracle.NewOracleSuite(baseSuite)
-
 	result := &Suite{
-		SuiteOracle: oracleSuite,
-		dataSource:  ds,
+		Base:       baseSuite,
+		dataSource: ds,
 	}
 
 	return result

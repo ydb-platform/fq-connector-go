@@ -3,24 +3,25 @@ package oracle
 import (
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
-	test_utils_oracle "github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle/utils"
+	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-var tables = map[string]*test_utils_oracle.Table{
+var tables = map[string]*test_utils.Table[int64, array.Int64Builder]{
 	"simple": {
 		Name: "SIMPLE",
-		Schema: &test_utils_oracle.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"ID":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL1": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"COL2": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 			},
 		},
-		Records: []*test_utils_oracle.Record{
+		Records: []*test_utils.Record[int64, array.Int64Builder]{
 			{
 				Columns: map[string]any{
 					"ID": []*int64{
@@ -44,7 +45,7 @@ var tables = map[string]*test_utils_oracle.Table{
 	},
 	"optionals": {
 		Name: "OPTIONALS",
-		Schema: &test_utils_oracle.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"ID":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL_01_INT": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
@@ -71,7 +72,7 @@ var tables = map[string]*test_utils_oracle.Table{
 				// "COL_22_JSON": TODO
 			},
 		},
-		Records: []*test_utils_oracle.Record{
+		Records: []*test_utils.Record[int64, array.Int64Builder]{
 			{
 				Columns: map[string]any{
 					"ID": []*int64{
@@ -185,13 +186,13 @@ var tables = map[string]*test_utils_oracle.Table{
 	},
 	"long_table": {
 		Name: "LONG_TABLE",
-		Schema: &test_utils_oracle.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"ID":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL_01_LONG": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},
-		Records: []*test_utils_oracle.Record{
+		Records: []*test_utils.Record[int64, array.Int64Builder]{
 			{
 				Columns: map[string]any{
 					"ID": []*int64{
@@ -210,13 +211,13 @@ var tables = map[string]*test_utils_oracle.Table{
 	},
 	"longraw": {
 		Name: "LONGRAW",
-		Schema: &test_utils_oracle.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"ID":              common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL_01_LONG_RAW": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 			},
 		},
-		Records: []*test_utils_oracle.Record{
+		Records: []*test_utils.Record[int64, array.Int64Builder]{
 			{
 				Columns: map[string]any{
 					"ID": []*int64{
@@ -235,14 +236,14 @@ var tables = map[string]*test_utils_oracle.Table{
 	},
 	"datetime_format_yql": {
 		Name: "DATETIMES",
-		Schema: &test_utils_oracle.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"ID":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL_01_DATE":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
 				"COL_02_TIMESTAMP": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 			},
 		},
-		Records: []*test_utils_oracle.Record{
+		Records: []*test_utils.Record[int64, array.Int64Builder]{
 			{
 				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
 				// are returned as NULL
@@ -272,14 +273,14 @@ var tables = map[string]*test_utils_oracle.Table{
 	},
 	"datetime_format_string": {
 		Name: "DATETIMES",
-		Schema: &test_utils_oracle.TableSchema{
+		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"ID":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL_01_DATE":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"COL_02_TIMESTAMP": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},
-		Records: []*test_utils_oracle.Record{
+		Records: []*test_utils.Record[int64, array.Int64Builder]{
 			{
 				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
 				// are returned without saturating them to the epoch start
@@ -305,8 +306,8 @@ var tables = map[string]*test_utils_oracle.Table{
 	},
 }
 
-// func pushdownSchemaYdb() *test_utils_oracle.TableSchema {
-// 	return &test_utils_oracle.TableSchema{
+// func pushdownSchemaYdb() *test_utils.TableSchema {
+// 	return &test_utils.TableSchema{
 // 		Columns: map[string]*Ydb.Type{
 // 			"id":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 // 			"int_column":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),

@@ -3,6 +3,7 @@ package postgresql
 import (
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -10,7 +11,7 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-var tables = map[string]*test_utils.Table{
+var tables = map[string]*test_utils.Table[int32, array.Int32Builder]{
 	"simple": {
 		Name: "simple",
 		Schema: &test_utils.TableSchema{
@@ -20,7 +21,7 @@ var tables = map[string]*test_utils.Table{
 				"col2": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 			},
 		},
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id": []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4), ptr.Int32(5)},
@@ -68,7 +69,7 @@ var tables = map[string]*test_utils.Table{
 				"col_25_json":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 			},
 		},
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
@@ -212,7 +213,7 @@ var tables = map[string]*test_utils.Table{
 				"col_02_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
 			},
 		},
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
 				// are returned as NULL
@@ -247,7 +248,7 @@ var tables = map[string]*test_utils.Table{
 				"col_02_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
 				// are returned without saturating them to the epoch start
@@ -274,7 +275,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_L": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1)},
@@ -287,7 +288,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_LE": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2)},
@@ -300,7 +301,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_EQ": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2)},
@@ -313,7 +314,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_GE": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2), ptr.Int32(3)},
@@ -326,7 +327,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_G": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
@@ -339,7 +340,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_NE": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
@@ -352,7 +353,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_NULL": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(4)},
@@ -365,7 +366,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_NOT_NULL": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
@@ -378,7 +379,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_conjunction": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2), ptr.Int32(3)},
@@ -391,7 +392,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_disjunction": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
@@ -404,7 +405,7 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_negation": {
 		Name:   "pushdown",
 		Schema: pushdownSchemaYdb(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(4)},
