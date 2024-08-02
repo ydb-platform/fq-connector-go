@@ -4,11 +4,13 @@ import (
 	"log"
 	"testing"
 
+	"github.com/apache/arrow/go/v13/arrow/array"
 	testify_suite "github.com/stretchr/testify/suite"
 
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/greenplum"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ydb"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
@@ -29,21 +31,25 @@ func TestMain(m *testing.M) {
 }
 
 func TestClickHouse(t *testing.T) {
-	testify_suite.Run(t, clickhouse.NewSuite(suite.NewBase(t, state, "ClickHouse")))
+	testify_suite.Run(t, clickhouse.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "ClickHouse")))
 }
 
 func TestPostgreSQL(t *testing.T) {
-	testify_suite.Run(t, postgresql.NewSuite(suite.NewBase(t, state, "PostgreSQL")))
+	testify_suite.Run(t, postgresql.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "PostgreSQL")))
 }
 
 func TestYDB(t *testing.T) {
-	testify_suite.Run(t, ydb.NewSuite(suite.NewBase(t, state, "YDB")))
+	testify_suite.Run(t, ydb.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "YDB")))
 }
 
 func TestGreenplum(t *testing.T) {
-	testify_suite.Run(t, greenplum.NewSuite(suite.NewBase(t, state, "Greenplum")))
+	testify_suite.Run(t, greenplum.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "Greenplum")))
 }
 
 func TestMySQL(t *testing.T) {
-	testify_suite.Run(t, mysql.NewSuite(suite.NewBase(t, state, "MySQL")))
+	testify_suite.Run(t, mysql.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MySQL")))
+}
+
+func TestOracle(t *testing.T) {
+	testify_suite.Run(t, oracle.NewSuite(suite.NewBase[int64, *array.Int64Builder](t, state, "Oracle")))
 }

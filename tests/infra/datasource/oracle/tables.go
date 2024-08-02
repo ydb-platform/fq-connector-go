@@ -51,12 +51,12 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 		Name: "OPTIONALS",
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"ID":         common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+				"COL_00_ID":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"COL_01_INT": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				// "COL_02_FLOAT": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)), TODO
 				"COL_03_INT_NUMBER": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				// "COL_04_FRAC_NUMBER": TODO
-				"COL_05_BINARY_FLOAT":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)),
+				// "COL_05_BINARY_FLOAT":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)), TODO go-ora bug
 				"COL_06_BINARY_DOUBLE":              common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
 				"COL_07_VARCHAR2":                   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"COL_08_NVARCHAR2":                  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
@@ -72,6 +72,7 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 				"COL_18_TIMESTAMP":                  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"COL_19_TIMESTAMP_W_TIMEZONE":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"COL_20_TIMESTAMP_W_LOCAL_TIMEZONE": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				"COL_21_JSON":                       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 				// "COL_21_BFILE": TODO
 				// "COL_22_JSON": TODO
 			},
@@ -97,11 +98,11 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 						nil,
 					},
 					// "COL_04_FRAC_NUMBER": TODO
-					"COL_05_BINARY_FLOAT": []*float32{
-						ptr.Float32(1.1),
-						ptr.Float32(-1.1),
-						nil,
-					},
+					// "COL_05_BINARY_FLOAT": []*float32{
+					// 	ptr.Float32(1.1),
+					// 	ptr.Float32(-1.1),
+					// 	nil,
+					// },
 					"COL_06_BINARY_DOUBLE": []*float64{
 						ptr.Float64(1.1),
 						ptr.Float64(-1.1),
@@ -183,6 +184,13 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 							time.Date(1970, 01, 01, 02, 02, 12, 111111000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
 							time.Date(1970, 01, 01, 02, 02, 12, 111111000, time.UTC))),
+						nil,
+					},
+					"COL_21_JSON": []*string{
+						ptr.String("{ \"friends\": " +
+							"[{\"name\": \"James Holden\",\"age\": 35}," +
+							"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"),
+						ptr.String("{ \"TODO\" : \"unicode\" }"),
 						nil,
 					},
 				},
@@ -313,6 +321,170 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 			},
 		},
 	},
+	"pushdown_comparison_L": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(1)},
+					"INT_COLUMN":     []*int64{ptr.Int64(10)},
+					"VARCHAR_COLUMN": []*string{ptr.T("a")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_LE": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(1), ptr.Int64(2)},
+					"INT_COLUMN":     []*int64{ptr.Int64(10), ptr.Int64(20)},
+					"VARCHAR_COLUMN": []*string{ptr.T("a"), ptr.T("b")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_EQ": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(2)},
+					"INT_COLUMN":     []*int64{ptr.Int64(20)},
+					"VARCHAR_COLUMN": []*string{ptr.T("b")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_GE": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(2), ptr.Int64(3)},
+					"INT_COLUMN":     []*int64{ptr.Int64(20), ptr.Int64(30)},
+					"VARCHAR_COLUMN": []*string{ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_G": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(1), ptr.Int64(2), ptr.Int64(3)},
+					"INT_COLUMN":     []*int64{ptr.Int64(10), ptr.Int64(20), ptr.Int64(30)},
+					"VARCHAR_COLUMN": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NE": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(2), ptr.Int64(3), ptr.Int64(4)},
+					"INT_COLUMN":     []*int64{ptr.Int64(20), ptr.Int64(30), nil},
+					"VARCHAR_COLUMN": []*string{ptr.T("b"), ptr.T("c"), nil},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NULL": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(4)},
+					"INT_COLUMN":     []*int64{nil},
+					"VARCHAR_COLUMN": []*string{nil},
+				},
+			},
+		},
+	},
+	"pushdown_comparison_NOT_NULL": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(1), ptr.Int64(2), ptr.Int64(3)},
+					"INT_COLUMN":     []*int64{ptr.Int64(10), ptr.Int64(20), ptr.Int64(30)},
+					"VARCHAR_COLUMN": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_conjunction": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(2), ptr.Int64(3)},
+					"INT_COLUMN":     []*int64{ptr.Int64(20), ptr.Int64(30)},
+					"VARCHAR_COLUMN": []*string{ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_disjunction": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(1), ptr.Int64(2), ptr.Int64(3)},
+					"INT_COLUMN":     []*int64{ptr.Int64(10), ptr.Int64(20), ptr.Int64(30)},
+					"VARCHAR_COLUMN": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_negation": {
+		Name:   "PUSHDOWN",
+		Schema: pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				NewArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+				Columns: map[string]any{
+					"ID":             []*int64{ptr.Int64(4)},
+					"INT_COLUMN":     []*int64{nil},
+					"VARCHAR_COLUMN": []*string{nil},
+				},
+			},
+		},
+	},
+}
+
+func pushdownSchemaYdb() *test_utils.TableSchema {
+	return &test_utils.TableSchema{
+		Columns: map[string]*Ydb.Type{
+			"ID":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+			"INT_COLUMN":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+			"VARCHAR_COLUMN": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+		},
+	}
 }
 
 func newInt64IDArrayBuilder(pool memory.Allocator) func() *array.Int64Builder {
@@ -320,13 +492,3 @@ func newInt64IDArrayBuilder(pool memory.Allocator) func() *array.Int64Builder {
 		return array.NewInt64Builder(pool)
 	}
 }
-
-// func pushdownSchemaYdb() *test_utils.TableSchema {
-// 	return &test_utils.TableSchema{
-// 		Columns: map[string]*Ydb.Type{
-// 			"id":             common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-// 			"int_column":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-// 			"varchar_column": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-// 		},
-// 	}
-// }

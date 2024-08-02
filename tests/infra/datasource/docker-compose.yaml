@@ -73,3 +73,22 @@ services:
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d
       - ./mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
+  
+  oracle:
+    image: container-registry.oracle.com/database/free@sha256:83edd0756fda0e5faecc0fdf047814f0177d4224d7bf037e4900123ee3e08718
+    container_name: ${USER}-fq-connector-go-tests-oracle
+    hostname: localhost
+    ports:
+      - '1521:1521'
+      - '1522:1522'
+      - '2484:2484'
+      - '5500:5500'
+    environment:
+      ORACLE_PWD: password
+    volumes:
+      - ./oracle/init/scripts/startup:/opt/oracle/scripts/startup
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 262144
+        hard: 262144
