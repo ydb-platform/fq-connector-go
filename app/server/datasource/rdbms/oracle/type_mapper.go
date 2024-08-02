@@ -81,6 +81,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 	}, nil
 }
 
+//nolint:gocyclo
 func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	_ = ydbTypes
 	acceptors := make([]any, 0, len(types))
@@ -112,7 +113,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		case "OCIBlobLocator":
 			// FOR JSON, review if conflicts with other blob types
-			//// possible optimisation: map Oracle JSON to YDB String and cast to Json in YDB
+			// possible optimisation: map Oracle JSON to YDB String and cast to Json in YDB
 			// copy of RAW
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
