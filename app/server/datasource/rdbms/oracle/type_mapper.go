@@ -87,7 +87,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	acceptors := make([]any, 0, len(types))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 
-	// there is a mismatch between the table metadata query and the go or driver.
+	// there is a mismatch between the table metadata query and the go ora driver.
 	// for some reason driver renames some types to its own names.
 	// "LONG RAW" -> "LongRaw"
 	// "BINARY_FLOAT" -> "IBFloat"
