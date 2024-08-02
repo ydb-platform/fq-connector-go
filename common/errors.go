@@ -128,6 +128,7 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 
 	// TODO: remove this and extract OracleError somehow
 	//       errors.As() does not work with go_ora.OracleError because it does not implement Error interface
+	// seems impossible as OracleError
 	errorText := err.Error()
 	if strings.Contains(errorText, "oracle:") {
 		var code uint16
@@ -138,9 +139,6 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 			tmp, _ := strconv.ParseUint(match[1], 10, 16)
 			code = uint16(tmp)
 		}
-
-		// TODO FIXME: remove after debug
-		// fmt.Printf("GOT GERE: \"%s\" \"%v\" %d\n", errorText, match, code)
 
 		switch code {
 		case 1017:
