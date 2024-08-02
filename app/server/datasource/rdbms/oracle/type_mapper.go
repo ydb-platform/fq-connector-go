@@ -112,8 +112,8 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		case "OCIBlobLocator":
-			// FOR JSON, review if conflicts with other blob types
-			// possible optimisation: map Oracle JSON to YDB String and cast to Json in YDB
+			// FOR JSON, review if conflicts with other blob types.
+			// possible: optimisation: map Oracle JSON to YDB String and cast to Json in YDB.
 			// copy of RAW
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
