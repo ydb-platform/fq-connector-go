@@ -165,11 +165,6 @@ func scanToDest(dest, src any) error {
 
 		// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
 		// case **float32: // for some reason driver.Value is float64 when reading BINARY_FLOAT
-		// 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/v2/converters/other_types.go#L27-L51
-		// 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/v2/parameter.go#L691-L692
-		// 	// Sprintf and some math convert???:
-		//	// 	https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/v2/converters/other_types.go#L38-L44
-		// 	// TODO BUG: !!! returns -1.2 when -1.1 in database in column BINARY_FLOAT
 		// 	if *d == nil {
 		// 		*d = new(float32)
 		// 	}
