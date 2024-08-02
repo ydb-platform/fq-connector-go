@@ -41,6 +41,11 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 		// 	Note: NUMBER can be from 1 to 22 bytes. Has wider range than Int64 or YDB Decimal. Possible representation - string
 		//  		Possible optimisation: if p > 16 then to string, else to int64
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
+	// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
+	// case typeName == "BINARY_FLOAT":
+	// 	ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT) // driver giver float64 in driver.Value
+	case typeName == "BINARY_DOUBLE":
+		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
 	// // go-ora
 	// for some reason go-ora driver does not distinguish VARCHAR and NCHAR from time to time. go-ora valueTypes:
 	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/parameter.go#L30-L77
@@ -51,6 +56,8 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case typeName == "RAW", typeName == "LONG RAW", typeName == "BLOB":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
+	case typeName == "JSON":
+		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
 	case typeName == "DATE":
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
 	case tm.isTimestamp.MatchString(typeName),
@@ -82,10 +89,13 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	// there is a mismatch between the table metadata query and the go or driver.
 	// for some reason driver renames some types to its own names.
 	// "LONG RAW" -> "LongRaw"
+	// "BINARY_FLOAT" -> "IBFloat"
+	// "BINARY_DOUBLE" -> "IBDouble"
 	// "CLOB", "NCLOB" -> "LongVarChar"
 	// "TIMESTAMP(*)" -> "TimeStampDTY"
 	// "TIMESTAMP(*) WITH TIME ZONE" -> "TimeStampDTY"
 	// "TIMESTAMP(*) WITH LOCAL TIME ZONE" -> "TimeStampLTZ_DTY"
+	// "JSON" -> "OCIBlobLocator" (driver returns []byte)
 
 	// Oracle data types:
 	// 	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
@@ -100,6 +110,33 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		case "RAW", "LongRaw":
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+		case "OCIBlobLocator":
+			// FOR JSON, review if conflicts with other blob types
+			//// possible optimisation: map Oracle JSON to YDB String and cast to Json in YDB
+			// copy of RAW
+			acceptors = append(acceptors, new(*[]byte))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				newAcc := new(*string)
+
+				if acceptor != nil {
+					cast := acceptor.(**[]byte)
+
+					if *cast != nil {
+						*newAcc = new(string)
+						**newAcc = string((**cast)[:])
+					}
+				}
+
+				return appendValueToArrowBuilder[string, string, *array.StringBuilder](newAcc, builder, cc.String())
+			})
+		// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
+		// case "IBFloat":
+		// 	// driver giver float64 in driver.Value, also error while reading -1.1 (got -1.2)
+		// 	acceptors = append(acceptors, new(*float32))
+		// 	appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+		case "IBDouble":
+			acceptors = append(acceptors, new(*float64))
+			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
 		case "DATE":
 			// Oracle Date value range is much more wide than YDB's Datetime value range
 			ydbType := ydbTypes[i]
