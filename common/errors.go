@@ -128,7 +128,6 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 
 	// TODO: remove this and extract OracleError somehow
 	//       errors.As() does not work with go_ora.OracleError because it does not implement Error interface
-	// seems impossible as OracleError
 	errorText := err.Error()
 	if strings.Contains(errorText, "oracle:") {
 		var code uint16
@@ -144,7 +143,7 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 		case 1017:
 			status = ydb_proto.StatusIds_UNAUTHORIZED
 		case 12514: // TNS:listener does not currently know of service requested in connect descriptor
-			status = ydb_proto.StatusIds_UNAUTHORIZED
+			status = ydb_proto.StatusIds_NOT_FOUND
 		// TODO: more codes from go-ora error mapping or Oracle docs
 		default:
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
