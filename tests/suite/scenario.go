@@ -13,7 +13,11 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-func TestPositiveStats[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *Base[T, K], dataSource *datasource.DataSource, table *test_utils.Table[T, K]) {
+func TestPositiveStats[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *Base[T, K],
+	dataSource *datasource.DataSource,
+	table *test_utils.Table[T, K],
+) {
 	// read some table to "heat" metrics
 	s.ValidateTable(dataSource, table)
 
@@ -67,7 +71,11 @@ func TestMissingDataSource[T constraints.Integer, K test_utils.ArrowIDBuilder[T]
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidLogin[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *Base[T, K], dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table[T, K]) {
+func TestInvalidLogin[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *Base[T, K],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[T, K],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Username = "wrong"
@@ -96,7 +104,11 @@ func TestInvalidLogin[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidPassword[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *Base[T, K], dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table[T, K]) {
+func TestInvalidPassword[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *Base[T, K],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[T, K],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Password = "wrong"

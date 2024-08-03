@@ -3,17 +3,22 @@ package oracle
 import (
 	"context"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/common"
 
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-func testInvalidServiceName[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *suite.Base[T, K], dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table[T, K]) {
+func testInvalidServiceName[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *suite.Base[T, K],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[T, K],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 	oraOpts := dsi.Options.(*api_common.TDataSourceInstance_OraOptions)
 

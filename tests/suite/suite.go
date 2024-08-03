@@ -126,7 +126,11 @@ func (b *Base[T, K]) ValidateTable(ds *datasource.DataSource, table *test_utils.
 	}
 }
 
-func (b *Base[T, K]) doValidateTable(table *test_utils.Table[T, K], dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
+func (b *Base[T, K]) doValidateTable(
+	table *test_utils.Table[T, K],
+	dsi *api_common.TDataSourceInstance,
+	customOptions ...ValidateTableOption,
+) {
 	options := NewDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.Apply(options)

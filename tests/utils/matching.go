@@ -69,10 +69,6 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 			idIndex = i
 			break
 		}
-		if field.Name == "ID" {
-			idIndex = i
-			break
-		}
 	}
 
 	// build new record with the correct order of columns
@@ -152,7 +148,7 @@ func (c arrowIDCol[T]) mustValue(i int) T {
 // This is necessary because the columns in Greenplum come in random order, and it is necessary to sort them
 //
 
-// nolint:funlen,gocyclo
+//nolint:funlen,gocyclo
 func sortTableByID[T constraints.Integer, K ArrowIDBuilder[T]](table arrow.Record, idBuilder K) arrow.Record {
 	records := make([]tableRow[T], table.NumRows())
 
