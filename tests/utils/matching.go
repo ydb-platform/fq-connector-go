@@ -34,11 +34,6 @@ type Record[T constraints.Integer, K ArrowIDBuilder[T]] struct {
 	NewArrayBuilderFactory func() K
 }
 
-// TODO FIXME: remove after debug
-// type Record struct {
-// 	Columns map[string]any
-// }
-
 type TableSchema struct {
 	Columns map[string]*Ydb.Type
 }
@@ -46,9 +41,8 @@ type TableSchema struct {
 func (r *Record[T, K]) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	// recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed)
 	newArrayBuilder := r.NewArrayBuilderFactory()
-	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, newArrayBuilder) // TODO FIXME: remove after debug
+	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, newArrayBuilder)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
 		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
@@ -71,18 +65,15 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	idIndex := -1
 
 	for i, field := range table.Schema().Fields() {
-		if field.Name == "id" {
+		if field.Name == "id" || field.Name == "ID" {
 			idIndex = i
 			break
 		}
-		// TODO: FIXME: remove after debug
 		if field.Name == "ID" {
 			idIndex = i
 			break
 		}
 	}
-	// TODO: FIXME: remove after debug
-	// fmt.Printf("table arrow.Record: %v\n", table)
 
 	// build new record with the correct order of columns
 	newColumns := make([]arrow.Array, table.NumCols())
@@ -125,10 +116,7 @@ func processColumn[VT common.ValueType, ARRAY common.ArrowArrayType[VT]](table a
 }
 
 type tableRow[T constraints.Integer] struct {
-	// ID int32
-	// ID int64
-	// type tableRow[T constraints.Integer] struct {
-	ID   T // TODO: FIXME: remove after debug
+	ID   T
 	Rest []any
 }
 
@@ -140,8 +128,6 @@ func appendToBuilder[VT common.ValueType](builder common.ArrowBuilder[VT], val a
 	}
 }
 
-// TODO: FIXME: remove after debug
-// // possible to make generic implementation, but then it will need to make a lot of changes to all tests
 type arrowIDCol[T constraints.Integer] struct {
 	idCol arrow.Array
 }
@@ -170,12 +156,6 @@ func (c arrowIDCol[T]) mustValue(i int) T {
 func sortTableByID[T constraints.Integer, K ArrowIDBuilder[T]](table arrow.Record, idBuilder K) arrow.Record {
 	records := make([]tableRow[T], table.NumRows())
 
-	// //nolint:funlen,gocyclo
-	// func sortTableByID(table arrow.Record) arrow.Record {
-	// 	records := make([]tableRow, table.NumRows())
-
-	// idCol := table.Column(0).(*array.Int32)
-	// idCol := table.Column(0).(*array.Int64) // TODO: FIXME: remove after debug
 	idCol := newTableIDColumn[T](table.Column(0))
 
 	restCols := make([][]any, table.NumRows())
@@ -212,11 +192,8 @@ func sortTableByID[T constraints.Integer, K ArrowIDBuilder[T]](table arrow.Recor
 	}
 
 	for i := int64(0); i < table.NumRows(); i++ {
-		// TODO: FIXME: remove after debug
 		records[i] = tableRow[T]{
-			ID: idCol.mustValue(int(i)),
-			// records[i] = tableRow{
-			// 	ID:   idCol.Value(int(i)),
+			ID:   idCol.mustValue(int(i)),
 			Rest: restCols[i],
 		}
 	}
@@ -226,14 +203,10 @@ func sortTableByID[T constraints.Integer, K ArrowIDBuilder[T]](table arrow.Recor
 	})
 
 	pool := memory.NewGoAllocator()
-	// idBuilder := array.NewInt32Builder(pool)
-	// idBuilder :=
-	// idBuilder := array.NewInt64Builder(pool) // TODO: FIXME: remove after debug
 	restBuilders := make([]array.Builder, table.NumCols()-1)
 
 	for _, r := range records {
-		idBuilder.Append(r.ID) // TODO: FIXME: remove after debug
-		// idBuilder.Append(r.ID)
+		idBuilder.Append(r.ID)
 
 		for colIdx, val := range r.Rest {
 			if restBuilders[colIdx] == nil {
@@ -302,8 +275,7 @@ func sortTableByID[T constraints.Integer, K ArrowIDBuilder[T]](table arrow.Recor
 		}
 	}
 
-	idArr := idBuilder.NewArray() // TODO FIXME: remove after debug
-	// idArr := idBuilder.NewArray()
+	idArr := idBuilder.NewArray()
 	defer idArr.Release()
 
 	restArrs := make([]arrow.Array, len(restBuilders))
@@ -468,12 +440,10 @@ func matchJSONArrays(
 	}
 }
 
-type Table[T constraints.Integer, K ArrowIDBuilder[T]] struct { // TODO FIXME: remove after debug
-	// type Table struct {
-	Name   string
-	Schema *TableSchema
-	// Records []*Record // Large tables may consist of multiple records // TODO FIXME: remove after debug
-	Records []*Record[T, K] // Large tables may consist of multiple records // TODO FIXME: remove after debug
+type Table[T constraints.Integer, K ArrowIDBuilder[T]] struct {
+	Name    string
+	Schema  *TableSchema
+	Records []*Record[T, K] // Large tables may consist of multiple records
 }
 
 func (tb *Table[_, _]) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
