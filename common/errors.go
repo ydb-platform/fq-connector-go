@@ -139,14 +139,11 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 			code = uint16(tmp)
 		}
 
-		// TODO FIXME: remove after debug
-		// fmt.Printf("GOT GERE: \"%s\" \"%v\" %d\n", errorText, match, code)
-
 		switch code {
 		case 1017:
 			status = ydb_proto.StatusIds_UNAUTHORIZED
 		case 12514: // TNS:listener does not currently know of service requested in connect descriptor
-			status = ydb_proto.StatusIds_UNAUTHORIZED
+			status = ydb_proto.StatusIds_NOT_FOUND
 		// TODO: more codes from go-ora error mapping or Oracle docs
 		default:
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
