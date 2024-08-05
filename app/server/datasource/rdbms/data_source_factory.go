@@ -138,7 +138,7 @@ func NewDataSourceFactory(
 		},
 		oracle: Preset{
 			SQLFormatter:      oracle.NewSQLFormatter(),
-			ConnectionManager: oracle.NewConnectionManager(connManagerCfg),
+			ConnectionManager: oracle.NewConnectionManager(cfg.Oracle, connManagerCfg),
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
 			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),

@@ -2,7 +2,9 @@ package oracle
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
+	"io"
 	"time"
 
 	"go.uber.org/zap"
@@ -10,6 +12,7 @@ import (
 	go_ora "github.com/sijms/go-ora/v2"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -18,7 +21,37 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
+	cfg *config.TOracleConfig
 	// TODO: cache of connections, remove unused connections with TTL
+}
+
+func checkTLSConneciton(ctx context.Context, conn *go_ora.Connection) error {
+	rows, err := conn.QueryContext(ctx, `SELECT sys_context('USERENV', 'NETWORK_PROTOCOL') as network_protocol FROM dual`, nil)
+	if err != nil {
+		return fmt.Errorf("query TLS connection: %w", err)
+	}
+	values := make([]driver.Value, 1)
+	if err = rows.Next(values); err != nil {
+		return fmt.Errorf("get rows TLS connection: %w", err)
+	}
+
+	if err = rows.Next(values); err != io.EOF {
+		return fmt.Errorf("more than 1 row TLS connection")
+	}
+
+	if len(values) != 1 {
+		return fmt.Errorf("more than 1 column in row TLS connection")
+	}
+
+	connType, ok := values[0].(string)
+	if !ok {
+		return fmt.Errorf("value is not a string: %+v", connType)
+	}
+
+	if connType != "tcps" {
+		return fmt.Errorf("not TLS connection type: \"%s\"", connType)
+	}
+	return nil
 }
 
 func (c *connectionManager) Make(
@@ -32,29 +65,25 @@ func (c *connectionManager) Make(
 
 	var err error
 
-	// TODO YQ-3456: Add TLS
-	// url options example:
-	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L1403C112-L1408
-	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L115-L137
-	// https://oracle-base.com/articles/misc/configure-tcpip-with-ssl-and-tls-for-database-connections
-	// urlOptions := map[string]string {
-	// 	"TRACE FILE": "trace.log",
-	// 	"AUTH TYPE":  "TCPS",
-	// 	"SSL": "enable",
-	// 	"SSL VERIFY": "FALSE",
-	// 	"WALLET": "PATH TO WALLET".
-	// }
+	urlOptions := make(map[string]string)
+	if dsi.UseTls {
+		// more information in YQ-3456
+		urlOptions["SSL"] = "TRUE"
+		urlOptions["AUTH TYPE"] = "TCPS"
+		urlOptions["WALLET"] = c.cfg.GetWalletPath()
+		urlOptions["WALLET PASSWORD"] = c.cfg.GetWalletPassword()
+	}
 
 	// go-ora native
 	creds := dsi.GetCredentials().GetBasic()
-	oraOptions := dsi.GetOraOptions()
+	oraOptions := dsi.GetOracleOptions()
 	connStr := go_ora.BuildUrl(
 		dsi.GetEndpoint().GetHost(),
 		int(dsi.GetEndpoint().Port),
 		oraOptions.GetServiceName(),
 		creds.GetUsername(),
 		creds.GetPassword(),
-		nil,
+		urlOptions,
 	)
 
 	conn, err := go_ora.NewConnection(connStr, nil)
@@ -76,6 +105,11 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("oracle: ping database: %w", err)
 	}
 
+	err = checkTLSConneciton(ctx, conn)
+	if err != nil {
+		return nil, fmt.Errorf("oracle: TLS check: %w", err)
+	}
+
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
 	return &Connection{conn, queryLogger}, nil
@@ -85,6 +119,9 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close Oracle connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	cfg *config.TOracleConfig,
+	base rdbms_utils.ConnectionManagerBase,
+) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }

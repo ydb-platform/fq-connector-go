@@ -107,7 +107,7 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 			return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
 		}
 	case api_common.EDataSourceKind_ORACLE:
-		if dsi.GetOraOptions().GetServiceName() == "" {
+		if dsi.GetOracleOptions().GetServiceName() == "" {
 			return fmt.Errorf("service_name field is empty: %w", common.ErrInvalidRequest)
 		}
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
