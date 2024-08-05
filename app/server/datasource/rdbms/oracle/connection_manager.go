@@ -2,9 +2,7 @@ package oracle
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
-	"io"
 	"time"
 
 	"go.uber.org/zap"
@@ -23,35 +21,6 @@ type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
 	cfg *config.TOracleConfig
 	// TODO: cache of connections, remove unused connections with TTL
-}
-
-func checkTLSConneciton(ctx context.Context, conn *go_ora.Connection) error {
-	rows, err := conn.QueryContext(ctx, `SELECT sys_context('USERENV', 'NETWORK_PROTOCOL') as network_protocol FROM dual`, nil)
-	if err != nil {
-		return fmt.Errorf("query TLS connection: %w", err)
-	}
-	values := make([]driver.Value, 1)
-	if err = rows.Next(values); err != nil {
-		return fmt.Errorf("get rows TLS connection: %w", err)
-	}
-
-	if err = rows.Next(values); err != io.EOF {
-		return fmt.Errorf("more than 1 row TLS connection")
-	}
-
-	if len(values) != 1 {
-		return fmt.Errorf("more than 1 column in row TLS connection")
-	}
-
-	connType, ok := values[0].(string)
-	if !ok {
-		return fmt.Errorf("value is not a string: %+v", connType)
-	}
-
-	if connType != "tcps" {
-		return fmt.Errorf("not TLS connection type: \"%s\"", connType)
-	}
-	return nil
 }
 
 func (c *connectionManager) Make(
@@ -103,11 +72,6 @@ func (c *connectionManager) Make(
 	if err != nil {
 		conn.Close()
 		return nil, fmt.Errorf("oracle: ping database: %w", err)
-	}
-
-	err = checkTLSConneciton(ctx, conn)
-	if err != nil {
-		return nil, fmt.Errorf("oracle: TLS check: %w", err)
 	}
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
