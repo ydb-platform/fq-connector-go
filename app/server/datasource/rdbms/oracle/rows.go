@@ -44,7 +44,7 @@ func (r *rows) Next() bool {
 	err := r.rows.Next(r.nextValuesBuffer)
 	if err != nil {
 		if err != io.EOF {
-			r.err = fmt.Errorf("oracle: next row values: %w", err)
+			r.err = fmt.Errorf("next row values: %w", err)
 		} else {
 			r.inputFinished = true
 		}
@@ -55,13 +55,7 @@ func (r *rows) Next() bool {
 	return true
 }
 
-func (r *rows) Err() error {
-	if r.err != nil {
-		return fmt.Errorf("oracle: %w", r.err)
-	}
-
-	return nil
-}
+func (r *rows) Err() error { return r.err }
 
 func scanNilToDest(dest any) error {
 	switch d := dest.(type) {
@@ -187,7 +181,7 @@ func (r *rows) Scan(dest ...any) error {
 
 	for i, val := range r.nextValuesBuffer {
 		if err := scanToDest(dest[i], val); err != nil {
-			return fmt.Errorf("oracle: scan to dest column %d (starts from 1): %w", i+1, err)
+			return fmt.Errorf("scan to dest column %d (starts from 1): %w", i+1, err)
 		}
 	}
 
@@ -203,7 +197,7 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 	// https://cs.opensource.google/go/go/+/refs/tags/go1.22.5:src/database/sql/sql.go;l=3244
 	prop, ok := r.rows.(driver.RowsColumnTypeDatabaseTypeName)
 	if !ok {
-		return nil, fmt.Errorf("oracle: can't cast driver.Rows to driver.RowsColumnTypeDatabaseTypeName")
+		return nil, fmt.Errorf("can't cast driver.Rows to driver.RowsColumnTypeDatabaseTypeName")
 	}
 
 	typeNames := make([]string, 0, len(r.rows.Columns()))
@@ -213,7 +207,7 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 
 	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes, cc)
 	if err != nil {
-		return nil, fmt.Errorf("oracle: transformer from sql types: %w", err)
+		return nil, fmt.Errorf("transformer from sql types: %w", err)
 	}
 
 	return transformer, nil

@@ -57,12 +57,12 @@ func (c *connectionManager) Make(
 
 	conn, err := go_ora.NewConnection(connStr, nil)
 	if err != nil {
-		return nil, fmt.Errorf("oracle: new go-ora connection: %w", err)
+		return nil, fmt.Errorf("new go-ora connection: %w", err)
 	}
 
 	err = conn.OpenWithContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("oracle: open connection: %w", err)
+		return nil, fmt.Errorf("open connection: %w", err)
 	}
 
 	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
@@ -71,7 +71,7 @@ func (c *connectionManager) Make(
 	err = conn.Ping(pingCtx)
 	if err != nil {
 		conn.Close()
-		return nil, fmt.Errorf("oracle: ping database: %w", err)
+		return nil, fmt.Errorf("ping database: %w", err)
 	}
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)

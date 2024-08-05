@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap"
 	grpc_codes "google.golang.org/grpc/codes"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -129,33 +130,31 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	// TODO: remove this and extract OracleError somehow
 	//       errors.As() does not work with go_ora.OracleError because it does not implement Error interface
 	errorText := err.Error()
-	if strings.Contains(errorText, "oracle:") {
-		var code uint16
+	var code uint16
 
-		match := oracleRegex.FindStringSubmatch(errorText)
+	match := oracleRegex.FindStringSubmatch(errorText)
 
-		if len(match) == 2 {
-			tmp, _ := strconv.ParseUint(match[1], 10, 16)
-			code = uint16(tmp)
-		}
-
-		switch code {
-		case 1017:
-			status = ydb_proto.StatusIds_UNAUTHORIZED
-		case 12514: // TNS:listener does not currently know of service requested in connect descriptor
-			status = ydb_proto.StatusIds_NOT_FOUND
-		// TODO: more codes from go-ora error mapping or Oracle docs
-		default:
-			status = ydb_proto.StatusIds_INTERNAL_ERROR
-		}
-
-		return &api_service_protos.TError{
-			Status:  status,
-			Message: errorText,
-		}
+	if len(match) != 2 {
+		return nil
 	}
 
-	return nil
+	tmp, _ := strconv.ParseUint(match[1], 10, 16)
+	code = uint16(tmp)
+
+	switch code {
+	case 1017:
+		status = ydb_proto.StatusIds_UNAUTHORIZED
+	case 12514: // TNS:listener does not currently know of service requested in connect descriptor
+		status = ydb_proto.StatusIds_NOT_FOUND
+	// TODO: more codes from go-ora error mapping or Oracle docs
+	default:
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: errorText,
+	}
 }
 
 func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
@@ -260,30 +259,28 @@ func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	}
 }
 
-func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
+func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
 	}
 
 	// check datasource-specific errors
-	if apiErr := newAPIErrorFromClickHouseError(err); apiErr != nil {
-		return apiErr
+	var apiError *api_service_protos.TError
+	switch kind {
+	case api_common.EDataSourceKind_CLICKHOUSE:
+		apiError = newAPIErrorFromClickHouseError(err)
+	case api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_GREENPLUM:
+		apiError = newAPIErrorFromPostgreSQLError(err)
+	case api_common.EDataSourceKind_MYSQL:
+		apiError = newAPIErrorFromMySQLError(err)
+	case api_common.EDataSourceKind_YDB:
+		apiError = newAPIErrorFromYdbError(err)
+	case api_common.EDataSourceKind_ORACLE:
+		apiError = newAPIErrorFromOracleError(err)
 	}
 
-	if apiErr := newAPIErrorFromPostgreSQLError(err); apiErr != nil {
-		return apiErr
-	}
-
-	if apiErr := newAPIErrorFromMySQLError(err); apiErr != nil {
-		return apiErr
-	}
-
-	if apiErr := newAPIErrorFromYdbError(err); apiErr != nil {
-		return apiErr
-	}
-
-	if apiErr := newAPIErrorFromOracleError(err); apiErr != nil {
-		return apiErr
+	if apiError != nil {
+		return apiError
 	}
 
 	// check general errors that could happen within connector logic
