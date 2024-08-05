@@ -130,7 +130,6 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	// TODO: remove this and extract OracleError somehow
 	//       errors.As() does not work with go_ora.OracleError because it does not implement Error interface
 	errorText := err.Error()
-	var code uint16
 
 	match := oracleRegex.FindStringSubmatch(errorText)
 
@@ -139,7 +138,7 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	}
 
 	tmp, _ := strconv.ParseUint(match[1], 10, 16)
-	code = uint16(tmp)
+	code := uint16(tmp)
 
 	switch code {
 	case 1017:
@@ -266,6 +265,7 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 
 	// check datasource-specific errors
 	var apiError *api_service_protos.TError
+
 	switch kind {
 	case api_common.EDataSourceKind_CLICKHOUSE:
 		apiError = newAPIErrorFromClickHouseError(err)
