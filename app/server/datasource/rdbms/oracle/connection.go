@@ -38,7 +38,7 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 
 	out, err := c.conn.QueryContext(ctx, query, valueArgs)
 	if err != nil {
-		return nil, fmt.Errorf("oracle: query with context: %w", err)
+		return nil, fmt.Errorf("query with context: %w", err)
 	}
 
 	rows := newRows(out)

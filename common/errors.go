@@ -19,6 +19,7 @@ import (
 	grpc_codes "google.golang.org/grpc/codes"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -132,6 +133,7 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	errorText := err.Error()
 
 	match := oracleRegex.FindStringSubmatch(errorText)
+	match := oracleRegex.FindStringSubmatch(errorText)
 
 	if len(match) != 2 {
 		return nil
@@ -154,6 +156,10 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	}
 
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: errorText,
+	}
 	return &api_service_protos.TError{
 		Status:  status,
 		Message: errorText,
@@ -282,6 +288,7 @@ func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	}
 }
 
+func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_service_protos.TError {
 func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
