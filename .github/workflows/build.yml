@@ -30,10 +30,7 @@ jobs:
         run: |
           go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
       - name: Setup integration tests
-        uses: actions/checkout@v4
-        run: |
-          docker-compose -f /home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml up -d build
-          docker-compose -f /home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml down --volumes
+        uses: isbang/compose-action@v1.5.1
         with:
           compose-file: "/home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml"
           down-flags: "--volumes"
