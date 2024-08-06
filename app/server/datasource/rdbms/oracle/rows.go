@@ -89,7 +89,7 @@ func scanNilToDest(dest any) error {
 	return fmt.Errorf("unsupported Scan, storing driver.Value type <nil> into type %T: %w", dest, common.ErrDataTypeNotSupported)
 }
 
-// driver.Value can be only one of 6 standart types
+// driver.Value can be only one of 6 standard types
 // https://pkg.go.dev/database/sql/driver#Value
 // but go-ora can give other types too
 
