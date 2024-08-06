@@ -43,7 +43,7 @@ func (c *connectionManager) Make(
 		urlOptions["WALLET PASSWORD"] = c.cfg.GetWalletPassword()
 	}
 
-	// go-ora native
+	// go-ora  native
 	creds := dsi.GetCredentials().GetBasic()
 	oraOptions := dsi.GetOracleOptions()
 	connStr := go_ora.BuildUrl(
