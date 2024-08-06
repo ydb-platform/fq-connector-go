@@ -145,7 +145,7 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	switch code {
 	case 1017: // ORA-01017: invalid username/password
 		status = ydb_proto.StatusIds_UNAUTHORIZED
-	case 12514: // TNS:listener does not currently know of service requested in connect descriptor
+	case 12514: // ORA-12514 TNS: ... --- wrong SERVICE_NAME
 		status = ydb_proto.StatusIds_NOT_FOUND
 	// TODO: more codes from go-ora error mapping or Oracle docs
 	default:
