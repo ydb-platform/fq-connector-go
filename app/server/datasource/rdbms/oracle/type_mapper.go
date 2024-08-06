@@ -94,7 +94,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	// "BINARY_DOUBLE" -> "IBDouble"
 	// "CLOB", "NCLOB" -> "LongVarChar"
 	// "TIMESTAMP(*)" -> "TimeStampDTY"
-	// "TIMESTAMP(*) WITH TIME ZONE" -> "TimeStampDTY"
+	// "TIMESTAMP(*) WITH TIME ZONE" -> "TimeStampTZ_DTY"
 	// "TIMESTAMP(*) WITH LOCAL TIME ZONE" -> "TimeStampLTZ_DTY"
 	// "JSON" -> "OCIBlobLocator" (driver returns []byte)
 
@@ -231,8 +231,8 @@ func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB com
 
 func NewTypeMapper() datasource.TypeMapper {
 	return typeMapper{
-		isTimestamp:     regexp.MustCompile(`TIMESTAMP\((.+)\)`),
-		isTimestampWTZ:  regexp.MustCompile(`TIMESTAMP\((.+)\) WITH TIME ZONE`),
-		isTimestampWLTZ: regexp.MustCompile(`TIMESTAMP\((.+)\) WITH LOCAL TIME ZONE`),
+		isTimestamp:     regexp.MustCompile(`TIMESTAMP\((.+)\)$`),
+		isTimestampWTZ:  regexp.MustCompile(`TIMESTAMP\((.+)\) WITH TIME ZONE$`),
+		isTimestampWLTZ: regexp.MustCompile(`TIMESTAMP\((.+)\) WITH LOCAL TIME ZONE$`),
 	}
 }
