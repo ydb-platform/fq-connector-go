@@ -17,7 +17,7 @@ type EndpointDeterminer struct {
 }
 
 func (ed *EndpointDeterminer) GetEndpoint(service string, internalPort int) (*api_common.TEndpoint, error) {
-	cmd := "docker-compose"
+	cmd := "docker compose"
 	args := []string{
 		"-f",
 		ed.dockerComposeFile,
