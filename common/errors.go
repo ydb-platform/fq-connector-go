@@ -123,8 +123,7 @@ func newAPIErrorFromPostgreSQLError(err error) *api_service_protos.TError {
 
 func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	// go-ora error mapping:
-	// https://github.com/sijms/go-ora/blob
-	// 	/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/v2/network/oracle_error.go#L20-L57
+	// https://github.com/sijms/go-ora/blob/v2.8.19/v2/network/oracle_error.go#L20-L57
 	var status ydb_proto.StatusIds_StatusCode
 
 	// TODO: remove this and extract OracleError somehow
@@ -137,11 +136,14 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 		return nil
 	}
 
-	tmp, _ := strconv.ParseUint(match[1], 10, 16)
+	tmp, err := strconv.ParseUint(match[1], 10, 16)
+	if err != nil {
+		panic(fmt.Errorf("API error from Oracle error: %w", err))
+	}
 	code := uint16(tmp)
 
 	switch code {
-	case 1017:
+	case 1017: // ORA-01017: invalid username/password
 		status = ydb_proto.StatusIds_UNAUTHORIZED
 	case 12514: // TNS:listener does not currently know of service requested in connect descriptor
 		status = ydb_proto.StatusIds_NOT_FOUND
