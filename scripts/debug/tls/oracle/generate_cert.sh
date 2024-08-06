@@ -24,7 +24,7 @@ function createCerts {
 
     echo "Generate client.csr"
 
-    openssl req -new -key client.key -out client.csr -subj '/CN=some_domain' -addext "subjectAltName = DNS:some_domain"
+    openssl req -new -key client.key -out client.csr -subj '/CN=oracle' -addext "subjectAltName = DNS:oracle"
 
     echo "Generate RSA caCert.key 4096"
 
@@ -32,7 +32,7 @@ function createCerts {
 
     echo "Generate caCert.crt"
 
-    openssl req -new -x509 -days 1826 -key caCert.key -out caCert.crt -subj '/CN=some_domain/C=US/OU=Class 2 Public Primary Certification Authority/O=VeriSign' -addext "subjectAltName = DNS:some_domain"
+    openssl req -new -x509 -days 1826 -key caCert.key -out caCert.crt -subj '/CN=oracle/C=US/OU=Class 2 Public Primary Certification Authority/O=VeriSign' -addext "subjectAltName = DNS:oracle"
 
     echo "Generate cert.crt subscribing by caCert from client.csr"
 
