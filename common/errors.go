@@ -269,6 +269,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 	var apiError *api_service_protos.TError
 
 	switch kind {
+	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
+		break
 	case api_common.EDataSourceKind_CLICKHOUSE:
 		apiError = newAPIErrorFromClickHouseError(err)
 	case api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_GREENPLUM:
@@ -279,6 +281,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 		apiError = newAPIErrorFromYdbError(err)
 	case api_common.EDataSourceKind_ORACLE:
 		apiError = newAPIErrorFromOracleError(err)
+	default:
+		panic("DataSource kind not specified for API error")
 	}
 
 	if apiError != nil {
