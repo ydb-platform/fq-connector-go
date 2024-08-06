@@ -115,21 +115,20 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			// FOR JSON, review if conflicts with other blob types.
 			// possible: optimisation: map Oracle JSON to YDB String and cast to Json in YDB.
 			// copy of RAW
+			ydbType := ydbTypes[i]
+
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbType)
+			if err != nil {
+				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
+			}
+
 			acceptors = append(acceptors, new(*[]byte))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				newAcc := new(*string)
+			if ydbTypeID == Ydb.Type_JSON {
+				appenders = append(appenders, makeAppender[[]byte, string, *array.StringBuilder](cc.BytesToString()))
+			} else {
+				appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+			}
 
-				if acceptor != nil {
-					cast := acceptor.(**[]byte)
-
-					if *cast != nil {
-						*newAcc = new(string)
-						**newAcc = string((**cast)[:])
-					}
-				}
-
-				return appendValueToArrowBuilder[string, string, *array.StringBuilder](newAcc, builder, cc.String())
-			})
 		// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
 		// case "IBFloat":
 		// 	// driver giver float64 in driver.Value, also error while reading -1.1 (got -1.2)
