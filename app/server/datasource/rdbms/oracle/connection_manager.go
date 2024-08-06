@@ -10,7 +10,6 @@ import (
 	go_ora "github.com/sijms/go-ora/v2"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -19,7 +18,6 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
-	cfg *config.TOracleConfig
 	// TODO: cache of connections, remove unused connections with TTL
 }
 
@@ -39,8 +37,6 @@ func (c *connectionManager) Make(
 		// more information in YQ-3456
 		urlOptions["SSL"] = "TRUE"
 		urlOptions["AUTH TYPE"] = "TCPS"
-		urlOptions["WALLET"] = c.cfg.GetWalletPath()
-		urlOptions["WALLET PASSWORD"] = c.cfg.GetWalletPassword()
 	}
 
 	// go-ora native
@@ -84,8 +80,7 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 }
 
 func NewConnectionManager(
-	cfg *config.TOracleConfig,
 	base rdbms_utils.ConnectionManagerBase,
 ) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
+	return &connectionManager{ConnectionManagerBase: base}
 }

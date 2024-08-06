@@ -152,18 +152,8 @@ message TMySQLConfig {
     uint64 result_chan_capacity = 1;
 }
 
-// TOracleConfig contains settings specific for Oracle data source
-message TOracleConfig {
-    // Path to oracle wallet with all certs
-    string wallet_path = 1; 
-    // Password for oracle wallet. 
-    // If password specified - ewallet.p12 will be used, if password is empty - cwallet.sso will be used
-    string wallet_password = 2; 
-}
-
 // TDatasouceConfig is a collection of datasource-specific settings
 message TDatasourcesConfig {
     TYdbConfig ydb = 1;
     TMySQLConfig mysql = 2;
-    TOracleConfig oracle = 3;
 }
