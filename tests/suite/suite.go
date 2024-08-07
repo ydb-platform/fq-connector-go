@@ -78,13 +78,13 @@ func (b *Base[_, _]) TearDownSuite() {
 }
 
 type validateTableOptions struct {
-	TypeMappingSettings *api_service_protos.TTypeMappingSettings
-	Predicate           *api_service_protos.TPredicate
+	typeMappingSettings *api_service_protos.TTypeMappingSettings
+	predicate           *api_service_protos.TPredicate
 }
 
-func NewDefaultValidateTableOptions() *validateTableOptions {
+func newDefaultValidateTableOptions() *validateTableOptions {
 	return &validateTableOptions{
-		TypeMappingSettings: &api_service_protos.TTypeMappingSettings{
+		typeMappingSettings: &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
 		},
 	}
@@ -99,7 +99,7 @@ type withDateTimeFormatOption struct {
 }
 
 func (o withDateTimeFormatOption) Apply(options *validateTableOptions) {
-	options.TypeMappingSettings.DateTimeFormat = o.val
+	options.typeMappingSettings.DateTimeFormat = o.val
 }
 
 func WithDateTimeFormat(val api_service_protos.EDateTimeFormat) ValidateTableOption {
@@ -111,7 +111,7 @@ type withPredicateOption struct {
 }
 
 func (o withPredicateOption) Apply(options *validateTableOptions) {
-	options.Predicate = o.val
+	options.predicate = o.val
 }
 
 func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
@@ -131,7 +131,7 @@ func (b *Base[T, K]) doValidateTable(
 	dsi *api_common.TDataSourceInstance,
 	customOptions ...ValidateTableOption,
 ) {
-	options := NewDefaultValidateTableOptions()
+	options := newDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.Apply(options)
 	}
@@ -142,7 +142,7 @@ func (b *Base[T, K]) doValidateTable(
 	defer cancel()
 
 	// describe table
-	describeTableResponse, err := b.Connector.ClientBuffering().DescribeTable(ctx, dsi, options.TypeMappingSettings, table.Name)
+	describeTableResponse, err := b.Connector.ClientBuffering().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
 	b.Require().NoError(err)
 	b.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
 
@@ -159,9 +159,9 @@ func (b *Base[T, K]) doValidateTable(
 		},
 	}
 
-	if options.Predicate != nil {
+	if options.predicate != nil {
 		slct.Where = &api_service_protos.TSelect_TWhere{
-			FilterTyped: options.Predicate,
+			FilterTyped: options.predicate,
 		}
 	}
 
