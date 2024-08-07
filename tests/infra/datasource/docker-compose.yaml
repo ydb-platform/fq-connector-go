@@ -70,3 +70,12 @@ services:
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d
       - ./mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
+  
+  mssql:
+    build: ./mssql/init
+    container_name: ${USER}-fq-connector-go-tests-mssql
+    ports:
+      - '1433:1433'
+    environment:
+      ACCEPT_EULA: Y
+      SA_PASSWORD: "Qwerty12345!"

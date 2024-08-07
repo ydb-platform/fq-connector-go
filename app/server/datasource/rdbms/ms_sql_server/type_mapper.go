@@ -46,13 +46,13 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		// Float may store either 4 or 8 bytes
 		// https://learn.microsoft.com/ru-ru/sql/t-sql/data-types/float-and-real-transact-sql?view=sql-server-ver16#remarks
 		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
-	case "binary", "varbinary":
+	case "binary", "varbinary", "image":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "char", "varchar", "text":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "nchar", "nvarchar", "ntext":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
+	case "date", "time", "smalldatetime", "datetime", "datetime2":
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
@@ -98,7 +98,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		case "FLOAT":
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
-		case "BINARY", "VARBINARY":
+		case "BINARY", "VARBINARY", "IMAGE":
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(**[]byte)
@@ -110,10 +110,13 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 				return nil
 			})
-		case "CHAR", "VARCHAR", "NCHAR", "NVARCHAR", "TEXT":
+		case "CHAR", "VARCHAR", "TEXT":
+			acceptors = append(acceptors, new(*[]byte))
+			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+		case "NCHAR", "NVARCHAR", "NTEXT":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
-		case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
+		case "date", "time", "smalldatetime", "datetime", "datetime2":
 			// TODO: add date & time processing
 			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 		default:
