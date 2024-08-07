@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   ydb:
     image: ghcr.io/ydb-platform/local-ydb:trunk
