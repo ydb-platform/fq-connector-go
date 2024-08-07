@@ -30,9 +30,9 @@ jobs:
         run: |
           go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
       - name: Setup integration tests
-        uses: isbang/compose-action@v1.5.1
+        uses: hoverkraft-tech/compose-action@v2.0.1
         with:
-          compose-file: "/home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml"
+          compose-file: "tests/infra/datasource/docker-compose.yaml"
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
