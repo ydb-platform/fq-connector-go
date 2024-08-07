@@ -141,6 +141,7 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	if err != nil {
 		panic(fmt.Errorf("API error from Oracle error: %w", err))
 	}
+
 	code := uint16(tmp)
 
 	switch code {

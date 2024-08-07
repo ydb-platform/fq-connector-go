@@ -120,6 +120,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			}
 
 			acceptors = append(acceptors, new(*[]byte))
+
 			if ydbTypeID == Ydb.Type_JSON {
 				appenders = append(appenders, makeAppender[[]byte, string, *array.StringBuilder](cc.BytesToString()))
 			} else {
