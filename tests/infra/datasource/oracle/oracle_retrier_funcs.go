@@ -3,6 +3,7 @@ package oracle
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -62,7 +63,7 @@ func checkTableInitialized[
 
 	switch resp.Error.Status {
 	case Ydb.StatusIds_NOT_FOUND:
-		return waiter.ErrUserNotInitialized
+		return waiter.ErrTableNotInitialized
 	}
 
 	return nil
@@ -93,6 +94,7 @@ func checkDbInitialized[
 	s *suite.Base[T, K],
 	dsiSrc *api_common.TDataSourceInstance,
 ) error {
+	fmt.Printf("DB CHECK\n")
 	err := checkUserInitialized(s, dsiSrc)
 	if err != nil {
 		return err
