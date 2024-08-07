@@ -1,6 +1,3 @@
----
-version: '3'
-
 services:
   clickhouse:
     image: mirror.gcr.io/clickhouse/clickhouse-server:24
