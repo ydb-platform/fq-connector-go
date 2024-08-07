@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -18,21 +19,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type ArrowIDBuilder[T constraints.Integer] interface {
+	*array.Int64Builder | *array.Int32Builder
+	Append(T)
+	NewArray() arrow.Array
+	Release()
+}
+
 // Record is somewhat equivalent to arrow.Record.
 // Store columns in map because order of columns in some datasource is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
-type Record struct {
-	Columns map[string]any
+type Record[T constraints.Integer, K ArrowIDBuilder[T]] struct {
+	Columns                map[string]any
+	NewIDArrayBuilderFactory func() K
 }
 
 type TableSchema struct {
 	Columns map[string]*Ydb.Type
 }
 
-func (r *Record) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
+func (r *Record[T, K]) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed)
+	newArrayBuilder := r.NewIDArrayBuilderFactory()
+	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, newArrayBuilder)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
 		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
@@ -55,7 +65,7 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	idIndex := -1
 
 	for i, field := range table.Schema().Fields() {
-		if field.Name == "id" {
+		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" {
 			idIndex = i
 			break
 		}
@@ -101,8 +111,8 @@ func processColumn[VT common.ValueType, ARRAY common.ArrowArrayType[VT]](table a
 	}
 }
 
-type tableRow struct {
-	ID   int32
+type tableRow[T constraints.Integer] struct {
+	ID   T
 	Rest []any
 }
 
@@ -114,15 +124,35 @@ func appendToBuilder[VT common.ValueType](builder common.ArrowBuilder[VT], val a
 	}
 }
 
+type arrowIDCol[T constraints.Integer] struct {
+	idCol arrow.Array
+}
+
+func newTableIDColumn[T constraints.Integer](arr arrow.Array) arrowIDCol[T] {
+	return arrowIDCol[T]{arr}
+}
+
+func (c arrowIDCol[T]) mustValue(i int) T {
+	switch col := c.idCol.(type) {
+	case *array.Int32:
+		return T(col.Value(i))
+	case *array.Int64:
+		return T(col.Value(i))
+	default:
+		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
+	}
+}
+
 // This code creates a new instance of a table with the desired order of columns.
 // The main purpose is to sort the table by the ID column while preserving the order of the other columns.
 // This is necessary because the columns in Greenplum come in random order, and it is necessary to sort them
 //
-//nolint:funlen,gocyclo
-func sortTableByID(table arrow.Record) arrow.Record {
-	records := make([]tableRow, table.NumRows())
 
-	idCol := table.Column(0).(*array.Int32)
+//nolint:funlen,gocyclo
+func sortTableByID[T constraints.Integer, K ArrowIDBuilder[T]](table arrow.Record, idBuilder K) arrow.Record {
+	records := make([]tableRow[T], table.NumRows())
+
+	idCol := newTableIDColumn[T](table.Column(0))
 
 	restCols := make([][]any, table.NumRows())
 
@@ -158,8 +188,8 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	}
 
 	for i := int64(0); i < table.NumRows(); i++ {
-		records[i] = tableRow{
-			ID:   idCol.Value(int(i)),
+		records[i] = tableRow[T]{
+			ID:   idCol.mustValue(int(i)),
 			Rest: restCols[i],
 		}
 	}
@@ -169,7 +199,6 @@ func sortTableByID(table arrow.Record) arrow.Record {
 	})
 
 	pool := memory.NewGoAllocator()
-	idBuilder := array.NewInt32Builder(pool)
 	restBuilders := make([]array.Builder, table.NumCols()-1)
 
 	for _, r := range records {
@@ -407,13 +436,13 @@ func matchJSONArrays(
 	}
 }
 
-type Table struct {
+type Table[T constraints.Integer, K ArrowIDBuilder[T]] struct {
 	Name    string
 	Schema  *TableSchema
-	Records []*Record // Large tables may consist of multiple records
+	Records []*Record[T, K] // Large tables may consist of multiple records
 }
 
-func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
+func (tb *Table[_, _]) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Records), len(records))
 
 	for i := range tb.Records {
@@ -422,7 +451,7 @@ func (tb *Table) MatchRecords(t *testing.T, records []arrow.Record, schema *api_
 	}
 }
 
-func (tb *Table) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
+func (tb *Table[_, _]) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Schema.Columns), len(schema.Columns),
 		fmt.Sprintf(
 			"incorrect number of column, expected: %d\nactual:   %d\n",
