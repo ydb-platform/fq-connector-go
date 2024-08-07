@@ -325,8 +325,9 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 		Name: "TIMESTAMPS",
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				// oracle rounds on insert if data more precise than column
 				"COL_00_ID":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"COL_01_TIMESTAMP_0": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)), // oracle rounds on insert if data more precise than column
+				"COL_01_TIMESTAMP_0": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"COL_02_TIMESTAMP_1": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"COL_03_TIMESTAMP_6": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"COL_04_TIMESTAMP_7": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
@@ -387,8 +388,9 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 		Name: "TIMESTAMPS",
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
+				// oracle rounds on insert if data more precise than column
 				"COL_00_ID":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"COL_01_TIMESTAMP_0": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), // oracle rounds on insert if data more precise than column
+				"COL_01_TIMESTAMP_0": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"COL_02_TIMESTAMP_1": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"COL_03_TIMESTAMP_6": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"COL_04_TIMESTAMP_7": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
