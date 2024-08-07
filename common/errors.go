@@ -292,7 +292,6 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 
 	switch kind {
 	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
-		break
 	case api_common.EDataSourceKind_CLICKHOUSE:
 		apiError = newAPIErrorFromClickHouseError(err)
 	case api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_GREENPLUM:
