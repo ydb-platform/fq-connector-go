@@ -3,6 +3,8 @@ package clickhouse
 import (
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -10,9 +12,11 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
+var memPool memory.Allocator = memory.NewGoAllocator()
+
 // key - test case name
 // value - table description
-var tables = map[string]*test_utils.Table{
+var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 	"simple": {
 		Name: "simple",
 		Schema: &test_utils.TableSchema{
@@ -23,8 +27,9 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id": []int32{1, 2, 3, 4, 5},
 					"col1": [][]byte{
@@ -65,8 +70,9 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":             []int32{1, 2},
 					"col_01_boolean": []uint8{0, 1}, // []bool{false, true}
@@ -139,8 +145,9 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":             []int32{1, 2, 3},
 					"col_01_boolean": []*uint8{ptr.Uint8(0), ptr.Uint8(1), nil}, // []bool{false, true, nil}
@@ -207,12 +214,13 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
 				// In YQL mode, CH time values exceeding YQL date/datetime/timestamp type bounds
 				// are handled in two ways:
 				// 1. if value exceeds CH own type bounds, min or max time is returned
 				// 2. if value exceeds only YQL type bounds, nil is returned
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id": []int32{1, 2, 3},
 					"col_01_date": []*uint16{
@@ -257,11 +265,12 @@ var tables = map[string]*test_utils.Table{
 			},
 		},
 
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
 				// In string mode, CH time values exceeding YQL date/datetime/timestamp type bounds
 				// are saturated to the epoch start 1970.01.01 because Connector tries to imitate
 				// ClickHouse behavior.
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":              []int32{1, 2, 3},
 					"col_01_date":     []string{"1970-01-01", "1988-11-20", "2023-03-21"},
@@ -280,8 +289,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_L": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{1},
 					"col_01_int32":  []*int32{ptr.Int32(10)},
@@ -293,8 +303,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_LE": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{1, 2},
 					"col_01_int32":  []*int32{ptr.Int32(10), ptr.Int32(20)},
@@ -306,8 +317,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_EQ": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{2},
 					"col_01_int32":  []*int32{ptr.Int32(20)},
@@ -319,8 +331,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_GE": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{2, 3},
 					"col_01_int32":  []*int32{ptr.Int32(20), ptr.Int32(30)},
@@ -332,8 +345,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_G": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{1, 2, 3},
 					"col_01_int32":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
@@ -345,8 +359,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_NE": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{2, 3, 4},
 					"col_01_int32":  []*int32{ptr.Int32(20), ptr.Int32(30), nil},
@@ -358,8 +373,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_NULL": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{4},
 					"col_01_int32":  []*int32{nil},
@@ -371,8 +387,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_comparison_NOT_NULL": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{1, 2, 3},
 					"col_01_int32":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
@@ -384,8 +401,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_conjunction": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{2, 3},
 					"col_01_int32":  []*int32{ptr.Int32(20), ptr.Int32(30)},
@@ -397,8 +415,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_disjunction": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{1, 2, 3},
 					"col_01_int32":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
@@ -410,8 +429,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_negation": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{4},
 					"col_01_int32":  []*int32{nil},
@@ -423,8 +443,9 @@ var tables = map[string]*test_utils.Table{
 	"pushdown_between": {
 		Name:   "pushdown",
 		Schema: pushdownSchema(),
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":            []int32{2},
 					"col_01_int32":  []*int32{ptr.Int32(20)},
@@ -442,8 +463,9 @@ var tables = map[string]*test_utils.Table{
 				"col": common.MakeListType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
 			},
 		},
-		Records: []*test_utils.Record{
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
+				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id": []int32{1, 2, 3, 4},
 					"col": [][]*uint32{
@@ -481,5 +503,11 @@ func pushdownSchema() *test_utils.TableSchema {
 			"col_01_int32":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 			"col_02_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		},
+	}
+}
+
+func newInt32IDArrayBuilder(pool memory.Allocator) func() *array.Int32Builder {
+	return func() *array.Int32Builder {
+		return array.NewInt32Builder(pool)
 	}
 }
