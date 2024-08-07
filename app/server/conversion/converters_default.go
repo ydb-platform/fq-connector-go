@@ -30,7 +30,10 @@ func (collectionDefault) String() ValuePtrConverter[string, string] { return noo
 func (collectionDefault) StringToBytes() ValuePtrConverter[string, []byte] {
 	return stringToBytesConverter{}
 }
-func (collectionDefault) Bytes() ValuePtrConverter[[]byte, []byte]   { return noopConverter[[]byte]{} }
+func (collectionDefault) Bytes() ValuePtrConverter[[]byte, []byte] { return noopConverter[[]byte]{} }
+func (collectionDefault) BytesToString() ValuePtrConverter[[]byte, string] {
+	return bytesToStringConverter{}
+}
 func (collectionDefault) Date() ValuePtrConverter[time.Time, uint16] { return dateConverter{} }
 func (collectionDefault) DateToString() ValuePtrConverter[time.Time, string] {
 	return dateToStringConverter{}
@@ -79,6 +82,12 @@ func (dateConverter) Convert(in *time.Time) (uint16, error) {
 	return out, nil
 }
 
+type bytesToStringConverter struct{}
+
+func (bytesToStringConverter) Convert(in *[]byte) (string, error) {
+	return string(*in), nil
+}
+
 type dateToStringConverter struct{}
 
 func (dateToStringConverter) Convert(in *time.Time) (string, error) {
@@ -122,6 +131,7 @@ func (timestampToStringConverter) Convert(in *time.Time) (string, error) {
 	// Max accuracy of date/time formats:
 	// PostgreSQL - 1 microsecond (10^-6 s)
 	// ClickHouse - 1 nanosecond  (10^-9 s)
+	// Oracle -  1 nanosecond  (10^-9 s)
 	// Trailing zeros are omitted
 	return in.UTC().Format("2006-01-02T15:04:05.999999999Z"), nil
 }

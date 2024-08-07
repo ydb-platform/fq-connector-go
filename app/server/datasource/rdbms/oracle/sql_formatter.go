@@ -15,9 +15,9 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 type sqlFormatter struct {
 }
 
-func (sqlFormatter) supportsType(_typeID Ydb.Type_PrimitiveTypeId) bool {
-	// switch typeID {
-	// case Ydb.Type_BOOL:
+func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+	switch typeID {
+	// case Ydb.Type_BOOL:  // TODO: YQ-3527
 	// 	return true
 	// case Ydb.Type_INT8:
 	// 	return true
@@ -31,18 +31,17 @@ func (sqlFormatter) supportsType(_typeID Ydb.Type_PrimitiveTypeId) bool {
 	// 	return true
 	// case Ydb.Type_UINT32:
 	// 	return true
-	// case Ydb.Type_INT64:
+	case Ydb.Type_INT64:
+		return true
+	// case Ydb.Type_UINT64: // TODO: YQ-3527
 	// 	return true
-	// case Ydb.Type_UINT64:
+	// case Ydb.Type_FLOAT:  // TODO: YQ-3498
 	// 	return true
-	// case Ydb.Type_FLOAT:
-	// 	return true
-	// case Ydb.Type_DOUBLE:
-	// 	return true
-	// default:
-	// 	return false
-	// }
-	return false // TODO: test pushdown
+	case Ydb.Type_DOUBLE:
+		return true
+	default:
+		return false
+	}
 }
 
 func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
