@@ -1,8 +1,6 @@
 package oracle
 
 import (
-	"time"
-
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -277,8 +275,6 @@ func NewSuite(
 	// 	err := waiter.wait()
 	// 	baseSuite.Require().NoError(err)
 	// }
-
-	time.Sleep(time.Second * 30)
 
 	result := &Suite{
 		Base:       baseSuite,

@@ -28,6 +28,7 @@ type Base[T constraints.Integer, K test_utils.ArrowIDBuilder[T]] struct {
 }
 
 func (b *Base[_, _]) BeforeTest(_, testName string) {
+	time.Sleep(time.Second * 30)
 	fmt.Printf("\n>>>>>>>>>> TEST STARTED: %s/%s <<<<<<<<<<\n\n", b.name, testName)
 }
 
