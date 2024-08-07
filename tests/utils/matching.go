@@ -31,7 +31,7 @@ type ArrowIDBuilder[T constraints.Integer] interface {
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record[T constraints.Integer, K ArrowIDBuilder[T]] struct {
 	Columns                map[string]any
-	NewArrayBuilderFactory func() K
+	NewIDArrayBuilderFactory func() K
 }
 
 type TableSchema struct {
@@ -41,7 +41,7 @@ type TableSchema struct {
 func (r *Record[T, K]) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	newArrayBuilder := r.NewArrayBuilderFactory()
+	newArrayBuilder := r.NewIDArrayBuilderFactory()
 	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, newArrayBuilder)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
@@ -65,7 +65,7 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	idIndex := -1
 
 	for i, field := range table.Schema().Fields() {
-		if field.Name == "id" || field.Name == "ID" {
+		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" {
 			idIndex = i
 			break
 		}

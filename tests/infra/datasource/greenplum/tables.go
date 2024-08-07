@@ -26,7 +26,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id": []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4), ptr.Int32(5)},
 					"col1": []*string{
@@ -74,7 +74,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
 					"col_01_bool": []*uint8{ptr.Uint8(0), ptr.Uint8(1), nil},
@@ -214,7 +214,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			{
 				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
 				// are returned as NULL
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id": []*int32{
 						ptr.Int32(1),
@@ -250,7 +250,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			{
 				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
 				// are returned without saturating them to the epoch start
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id": []*int32{
 						ptr.Int32(1),
@@ -276,7 +276,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1)},
 					"col_01_int":  []*int32{ptr.Int32(10)},
@@ -290,7 +290,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2)},
 					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20)},
@@ -304,7 +304,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2)},
 					"col_01_int":  []*int32{ptr.Int32(20)},
@@ -318,7 +318,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2), ptr.Int32(3)},
 					"col_01_int":  []*int32{ptr.Int32(20), ptr.Int32(30)},
@@ -332,7 +332,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
 					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
@@ -346,7 +346,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
 					"col_01_int":  []*int32{ptr.Int32(20), ptr.Int32(30), nil},
@@ -360,7 +360,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(4)},
 					"col_01_int":  []*int32{nil},
@@ -374,7 +374,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
 					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
@@ -388,7 +388,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(2), ptr.Int32(3)},
 					"col_01_int":  []*int32{ptr.Int32(20), ptr.Int32(30)},
@@ -402,7 +402,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
 					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
@@ -416,7 +416,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: pushdownSchemaYdb(),
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
-				NewArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+				NewIDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 				Columns: map[string]any{
 					"id":          []*int32{ptr.Int32(4)},
 					"col_01_int":  []*int32{nil},

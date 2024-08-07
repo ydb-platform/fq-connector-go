@@ -27,19 +27,27 @@ func (s *Suite) TestSelect() {
 }
 
 func (s *Suite) TestDatetimeFormatYQL() {
-	s.ValidateTable(
-		s.dataSource,
-		tables["datetime_format_yql"],
-		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
-	)
+	testCaseNames := []string{"datetime_format_yql", "timestamps_format_yql"}
+
+	for _, testCase := range testCaseNames {
+		s.ValidateTable(
+			s.dataSource,
+			tables[testCase],
+			suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
+		)
+	}
 }
 
 func (s *Suite) TestDatetimeFormatString() {
-	s.ValidateTable(
-		s.dataSource,
-		tables["datetime_format_string"],
-		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
-	)
+	testCaseNames := []string{"datetime_format_string", "timestamps_format_string"}
+
+	for _, testCase := range testCaseNames {
+		s.ValidateTable(
+			s.dataSource,
+			tables[testCase],
+			suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
+		)
+	}
 }
 
 func (s *Suite) TestPushdownComparisonL() {
@@ -223,8 +231,8 @@ func (s *Suite) TestMissingDataSource() {
 				},
 			},
 		},
-		Options: &api_common.TDataSourceInstance_OraOptions{
-			OraOptions: &api_common.TOracleDataSourceOptions{
+		Options: &api_common.TDataSourceInstance_OracleOptions{
+			OracleOptions: &api_common.TOracleDataSourceOptions{
 				ServiceName: "it's not important",
 			},
 		},

@@ -29,8 +29,8 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 				},
 			},
 		},
-		Options: &api_common.TDataSourceInstance_OraOptions{
-			OraOptions: &api_common.TOracleDataSourceOptions{
+		Options: &api_common.TDataSourceInstance_OracleOptions{
+			OracleOptions: &api_common.TOracleDataSourceOptions{
 				ServiceName: dbServiceName,
 			},
 		},

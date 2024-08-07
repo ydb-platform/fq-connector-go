@@ -20,9 +20,9 @@ func testInvalidServiceName[T constraints.Integer, K test_utils.ArrowIDBuilder[T
 	table *test_utils.Table[T, K],
 ) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
-	oraOpts := dsi.Options.(*api_common.TDataSourceInstance_OraOptions)
+	oraOpts := dsi.Options.(*api_common.TDataSourceInstance_OracleOptions)
 
-	oraOpts.OraOptions.ServiceName = "wrong"
+	oraOpts.OracleOptions.ServiceName = "wrong"
 
 	// read some table to "heat" metrics
 	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
