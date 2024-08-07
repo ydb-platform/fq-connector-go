@@ -36,7 +36,10 @@ func checkUserInitialized[
 
 	s.Require().NoError(err)
 
-	if Ydb.StatusIds_UNAUTHORIZED == resp.Error.Status {
+	switch resp.Error.Status {
+	case Ydb.StatusIds_UNAUTHORIZED,
+		Ydb.StatusIds_UNAVAILABLE,
+		Ydb.StatusIds_INTERNAL_ERROR:
 		return waiter.ErrUserNotInitialized
 	}
 
@@ -57,8 +60,9 @@ func checkTableInitialized[
 	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, tableName)
 	s.Require().NoError(err)
 
-	if Ydb.StatusIds_NOT_FOUND == resp.Error.Status {
-		return waiter.ErrTableNotInitialized
+	switch resp.Error.Status {
+	case Ydb.StatusIds_NOT_FOUND:
+		return waiter.ErrUserNotInitialized
 	}
 
 	return nil

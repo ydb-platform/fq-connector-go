@@ -149,6 +149,10 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 		status = ydb_proto.StatusIds_UNAUTHORIZED
 	case 12514: // ORA-12514 TNS: ... --- wrong SERVICE_NAME
 		status = ydb_proto.StatusIds_NOT_FOUND
+	case 1033: // ORA-01033: ORACLE initialization or shutdown in progress
+		status = ydb_proto.StatusIds_UNAVAILABLE
+	case 12528: // ORA-12528: TNS: listemer: ...blocking new connections --- maybe startup or shutdown
+		status = ydb_proto.StatusIds_UNAVAILABLE
 	// TODO: more codes from go-ora error mapping or Oracle docs
 	default:
 		status = ydb_proto.StatusIds_INTERNAL_ERROR
