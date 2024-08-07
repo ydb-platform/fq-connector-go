@@ -278,7 +278,7 @@ func NewSuite(
 	// 	baseSuite.Require().NoError(err)
 	// }
 
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 30)
 
 	result := &Suite{
 		Base:       baseSuite,
