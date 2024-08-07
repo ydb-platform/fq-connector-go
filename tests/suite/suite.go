@@ -23,12 +23,12 @@ import (
 type Base[T constraints.Integer, K test_utils.ArrowIDBuilder[T]] struct {
 	testify_suite.Suite
 	*State
-	Connector common.TestingServer
-	name      string
+	Connector      common.TestingServer
+	name           string
+	waiterProvider DBWaiterFactory[T, K]
 }
 
 func (b *Base[_, _]) BeforeTest(_, testName string) {
-	time.Sleep(time.Second * 30)
 	fmt.Printf("\n>>>>>>>>>> TEST STARTED: %s/%s <<<<<<<<<<\n\n", b.name, testName)
 }
 
@@ -39,7 +39,7 @@ func (b *Base[_, _]) TearDownTest() {
 	}
 }
 
-func (b *Base[_, _]) BeforeSuite(_ string) {
+func (b *Base[_, _]) BeforeSuite(_ string) { // TODO: is not ever called, maybe SetupSuite is used now?
 	fmt.Printf("\n>>>>>>>>>> SUITE STARTED: %s <<<<<<<<<<\n", b.name)
 }
 
@@ -70,6 +70,11 @@ func (b *Base[_, _]) SetupSuite() {
 	)
 	b.Require().NoError(err)
 	b.Connector.Start()
+
+	dbWaiter := b.waiterProvider.NewDbWaiter(b)
+
+	err = dbWaiter.Wait()
+	b.Require().NoError(err)
 }
 
 func (b *Base[_, _]) TearDownSuite() {
@@ -183,10 +188,19 @@ func (b *Base[T, K]) doValidateTable(
 	table.MatchRecords(b.T(), records, schema)
 }
 
-func NewBase[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](t *testing.T, state *State, name string) *Base[T, K] {
+func NewBase[
+	T constraints.Integer,
+	K test_utils.ArrowIDBuilder[T],
+](
+	t *testing.T,
+	state *State,
+	name string,
+	waitFactory DBWaiterFactory[T, K],
+) *Base[T, K] {
 	b := &Base[T, K]{
-		State: state,
-		name:  name,
+		State:          state,
+		name:           name,
+		waiterProvider: waitFactory,
 	}
 
 	b.SetT(t)
