@@ -85,7 +85,7 @@ func (dateConverter) Convert(in *time.Time) (uint16, error) {
 type bytesToStringConverter struct{}
 
 func (bytesToStringConverter) Convert(in *[]byte) (string, error) {
-	return string((*in)[:]), nil
+	return string(*in), nil
 }
 
 type dateToStringConverter struct{}
