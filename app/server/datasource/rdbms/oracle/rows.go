@@ -80,16 +80,28 @@ func scanNilToDest(dest any) error {
 		*d = nil
 
 		return nil
+	// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
+	// case **float32:
+	// 	*d = nil
+
+	// 	return nil
+	case **float64:
+		*d = nil
+
+		return nil
 	}
 
 	return fmt.Errorf("unsupported Scan, storing driver.Value type <nil> into type %T: %w", dest, common.ErrDataTypeNotSupported)
 }
 
-// driver.Value can be only one of 6 standart types
+// driver.Value can be only one of 6 standard types
 // https://pkg.go.dev/database/sql/driver#Value
+// but go-ora can give other types too
 
 // partial copy of standart code:
 // https://cs.opensource.google/go/go/+/master:src/database/sql/convert.go;l=230
+//
+//nolint:gocyclo
 func scanToDest(dest, src any) error {
 	switch s := src.(type) {
 	case string:
@@ -138,6 +150,28 @@ func scanToDest(dest, src any) error {
 
 			return nil
 		}
+	case float64:
+		d, ok := dest.(**float64)
+		if ok {
+			if *d == nil {
+				*d = new(float64)
+			}
+
+			**d = s
+
+			return nil
+		}
+
+		// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
+		// case **float32: // for some reason driver.Value is float64 when reading BINARY_FLOAT
+		// 	if *d == nil {
+		// 		*d = new(float32)
+		// 	}
+
+		// 	**d = float32(s)
+
+		// 	return nil
+		// }
 	case nil:
 		return scanNilToDest(dest)
 	}

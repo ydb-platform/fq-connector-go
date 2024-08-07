@@ -17,9 +17,25 @@ type sqlFormatter struct {
 
 func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
+	// case Ydb.Type_BOOL:  // TODO: YQ-3527
+	// 	return true
+	// case Ydb.Type_INT8:
+	// 	return true
+	// case Ydb.Type_UINT8:
+	// 	return true
+	// case Ydb.Type_INT16:
+	// 	return true
+	// case Ydb.Type_UINT16:
+	// 	return true
+	// case Ydb.Type_INT32:
+	// 	return true
+	// case Ydb.Type_UINT32:
+	// 	return true
 	case Ydb.Type_INT64:
 		return true
-	// case Ydb.Type_FLOAT:
+	// case Ydb.Type_UINT64: // TODO: YQ-3527
+	// 	return true
+	// case Ydb.Type_FLOAT:  // TODO: YQ-3498
 	// 	return true
 	case Ydb.Type_DOUBLE:
 		return true

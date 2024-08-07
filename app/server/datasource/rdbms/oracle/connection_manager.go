@@ -32,29 +32,23 @@ func (c *connectionManager) Make(
 
 	var err error
 
-	// TODO YQ-3456: Add TLS
-	// url options example:
-	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L1403C112-L1408
-	// https://github.com/sijms/go-ora/blob/78d53fdf18c31d74e7fc9e0ebe49ee1c6af0abda/README.md?plain=1#L115-L137
-	// https://oracle-base.com/articles/misc/configure-tcpip-with-ssl-and-tls-for-database-connections
-	// urlOptions := map[string]string {
-	// 	"TRACE FILE": "trace.log",
-	// 	"AUTH TYPE":  "TCPS",
-	// 	"SSL": "enable",
-	// 	"SSL VERIFY": "FALSE",
-	// 	"WALLET": "PATH TO WALLET".
-	// }
+	urlOptions := make(map[string]string)
+	if dsi.UseTls {
+		// more information in YQ-3456
+		urlOptions["SSL"] = "TRUE"
+		urlOptions["AUTH TYPE"] = "TCPS"
+	}
 
 	// go-ora native
 	creds := dsi.GetCredentials().GetBasic()
-	oraOptions := dsi.GetOraOptions()
+	oraOptions := dsi.GetOracleOptions()
 	connStr := go_ora.BuildUrl(
 		dsi.GetEndpoint().GetHost(),
 		int(dsi.GetEndpoint().Port),
 		oraOptions.GetServiceName(),
 		creds.GetUsername(),
 		creds.GetPassword(),
-		nil,
+		urlOptions,
 	)
 
 	conn, err := go_ora.NewConnection(connStr, nil)
@@ -85,6 +79,8 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close Oracle connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	base rdbms_utils.ConnectionManagerBase,
+) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base}
 }

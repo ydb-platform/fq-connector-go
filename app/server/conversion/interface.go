@@ -25,6 +25,7 @@ type Collection interface {
 	String() ValuePtrConverter[string, string]
 	StringToBytes() ValuePtrConverter[string, []byte]
 	Bytes() ValuePtrConverter[[]byte, []byte]
+	BytesToString() ValuePtrConverter[[]byte, string]
 	Date() ValuePtrConverter[time.Time, uint16]
 	DateToString() ValuePtrConverter[time.Time, string]
 	Datetime() ValuePtrConverter[time.Time, uint32]

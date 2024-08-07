@@ -47,7 +47,7 @@ func (s *serviceConnector) DescribeTable(
 		logger.Error("request handling failed", zap.Error(err))
 
 		return &api_service_protos.TDescribeTableResponse{
-			Error: common.NewAPIErrorFromStdError(err),
+			Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind),
 		}, nil
 	}
 
@@ -55,7 +55,7 @@ func (s *serviceConnector) DescribeTable(
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
-		out = &api_service_protos.TDescribeTableResponse{Error: common.NewAPIErrorFromStdError(err)}
+		out = &api_service_protos.TDescribeTableResponse{Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind)}
 
 		return out, nil
 	}
@@ -72,7 +72,13 @@ func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsReq
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
-			&api_service_protos.TListSplitsResponse{Error: common.NewAPIErrorFromStdError(err)})
+			&api_service_protos.TListSplitsResponse{
+				Error: common.NewAPIErrorFromStdError(
+					err,
+					api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
+				),
+			},
+		)
 	}
 
 	// Make a trivial copy of requested selects
@@ -158,7 +164,12 @@ func (s *serviceConnector) ReadSplits(
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
-		response := &api_service_protos.TReadSplitsResponse{Error: common.NewAPIErrorFromStdError(err)}
+		response := &api_service_protos.TReadSplitsResponse{
+			Error: common.NewAPIErrorFromStdError(
+				err,
+				api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
+			),
+		}
 
 		if err := stream.Send(response); err != nil {
 			return fmt.Errorf("stream send: %w", err)
