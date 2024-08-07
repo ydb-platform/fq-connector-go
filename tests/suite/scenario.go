@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -12,7 +13,11 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-func TestPositiveStats(s *Base, dataSource *datasource.DataSource, table *test_utils.Table) {
+func TestPositiveStats[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *Base[T, K],
+	dataSource *datasource.DataSource,
+	table *test_utils.Table[T, K],
+) {
 	// read some table to "heat" metrics
 	s.ValidateTable(dataSource, table)
 
@@ -41,7 +46,7 @@ func TestPositiveStats(s *Base, dataSource *datasource.DataSource, table *test_u
 	s.Require().Equal(float64(len(dataSource.Instances)), readSplitsStatusOK)
 }
 
-func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
+func TestMissingDataSource[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *Base[T, K], dsi *api_common.TDataSourceInstance) {
 	// read some table to "heat" metrics
 	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
 	s.Require().NoError(err)
@@ -66,7 +71,11 @@ func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidLogin(s *Base, dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table) {
+func TestInvalidLogin[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *Base[T, K],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[T, K],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Username = "wrong"
@@ -95,7 +104,11 @@ func TestInvalidLogin(s *Base, dsiSrc *api_common.TDataSourceInstance, table *te
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidPassword(s *Base, dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table) {
+func TestInvalidPassword[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
+	s *Base[T, K],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[T, K],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Password = "wrong"
