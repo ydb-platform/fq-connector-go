@@ -40,12 +40,17 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	case "bigint":
 		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
 	case "real":
+		// Real always stores 4 bytes
 		ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT)
 	case "float":
+		// Float may store either 4 or 8 bytes
+		// https://learn.microsoft.com/ru-ru/sql/t-sql/data-types/float-and-real-transact-sql?view=sql-server-ver16#remarks
 		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
 	case "binary", "varbinary":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case "char", "varchar", "nchar", "nvarchar", "text":
+	case "char", "varchar", "text":
+		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
+	case "nchar", "nvarchar", "ntext":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case "date", "time", "smalldatetime", "datetime", "datetime2", "datetimeoffset":
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
