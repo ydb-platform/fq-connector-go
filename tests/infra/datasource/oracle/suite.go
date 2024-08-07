@@ -1,6 +1,8 @@
 package oracle
 
 import (
+	"time"
+
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -268,6 +270,15 @@ func NewSuite(
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)
+
+	// for _, dsi := range ds.Instances {
+	// 	waiter := newDefaultDBWaiter(baseSuite, dsi)
+
+	// 	err := waiter.wait()
+	// 	baseSuite.Require().NoError(err)
+	// }
+
+	time.Sleep(time.Second * 5)
 
 	result := &Suite{
 		Base:       baseSuite,
