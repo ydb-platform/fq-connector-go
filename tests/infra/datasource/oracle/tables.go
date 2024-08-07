@@ -241,7 +241,7 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 						ptr.Int64(3),
 					},
 					"COL_01_LONG_RAW": []*[]byte{
-						ptr.T([]byte{18}),
+						ptr.T([]byte("12")),
 						nil,
 						nil,
 					},

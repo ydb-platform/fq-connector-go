@@ -26,6 +26,8 @@ func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
 	switch v := value.(type) {
 	case int32:
 		out.Value.Value = &Ydb.Value_Int32Value{Int32Value: v}
+	case int64:
+		out.Value.Value = &Ydb.Value_Int64Value{Int64Value: v}
 	default:
 		panic(fmt.Sprintf("unexpected type %T", value))
 	}
