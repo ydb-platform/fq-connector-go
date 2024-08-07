@@ -1,20 +1,21 @@
 DROP TABLE IF EXISTS simple;
-GO
 
 CREATE TABLE simple (
     id INT IDENTITY(1,1) PRIMARY KEY, 
-    col1 VARCHAR(7) NOT NULL,
+    col1 NVARCHAR(7) NOT NULL,
     col2 INTEGER NOT NULL
 );
-GO
 
-INSERT INTO simple (col1, col2) VALUES 
-    ('a', 10),
-    ('b', 20),
-    ('c', 30);
-GO
+INSERT INTO simple (id, col1, col2) VALUES 
+    (1, 'mssql_a', 10),
+    (2, 'mssql_b', 20),
+    (3, 'mssql_c', 30);
 
 SELECT * FROM simple;
+
+-- CREATE TABLE simple (id INT IDENTITY(1,1) PRIMARY KEY, col1 NVARCHAR(7) NOT NULL, col2 INTEGER NOT NULL);
+-- INSERT INTO simple (col1, col2) VALUES ('mssql_a', 10), ('mssql_b', 20), ('mssql_c', 30);
+-- SELECT * FROM simple;
 
 -- ### Numeric Data Types
 -- 1. bit – Integer that can be 0, 1, or NULL.

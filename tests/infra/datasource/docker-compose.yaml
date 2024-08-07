@@ -71,9 +71,9 @@ services:
       - ./mysql/init:/docker-entrypoint-initdb.d
       - ./mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
   
-  mssql:
-    build: ./mssql/init
-    container_name: ${USER}-fq-connector-go-tests-mssql
+  ms_sql_server:
+    build: ./ms_sql_server/init
+    container_name: ${USER}-fq-connector-go-tests-ms_sql_server
     ports:
       - '1433:1433'
     environment:
