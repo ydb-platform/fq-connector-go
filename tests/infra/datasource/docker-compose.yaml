@@ -80,7 +80,6 @@ services:
     hostname: localhost
     ports:
       - '1521:1521'
-      - '1522:1522'
       - '2484:2484'
       - '5500:5500'
     environment:

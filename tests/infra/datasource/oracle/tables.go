@@ -47,8 +47,8 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 			},
 		},
 	},
-	"optionals": {
-		Name: "OPTIONALS",
+	"primitives": {
+		Name: "PRIMITIVES",
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"COL_00_ID":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
