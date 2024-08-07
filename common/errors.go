@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"regexp"
@@ -214,6 +215,26 @@ func newAPIErrorFromYdbError(err error) *api_service_protos.TError {
 	return nil
 }
 
+func newAPIErrorFromTLSError(err error) *api_service_protos.TError {
+	var (
+		// status ydb_proto.StatusIds_StatusCode  // TODO: parse specific TLS errors
+		// unknownAuthorityError   = &x509.UnknownAuthorityError{}
+		// certificateInvalidError = &x509.CertificateInvalidError{}
+		// hostnameError           = &x509.HostnameError{}
+		// systemRooteError      = &x509.SystemRootsError{}
+		certVerificationError = &tls.CertificateVerificationError{} // tls.CertificateVerificationError wraps all the x509 errors
+	)
+
+	if errors.As(err, &certVerificationError) {
+		return &api_service_protos.TError{
+			Status:  ydb_proto.StatusIds_UNAVAILABLE,
+			Message: err.Error(),
+		}
+	}
+
+	return nil
+}
+
 //nolint:gocyclo
 func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	var status ydb_proto.StatusIds_StatusCode
@@ -285,6 +306,11 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 		panic("DataSource kind not specified for API error")
 	}
 
+	if apiError != nil {
+		return apiError
+	}
+
+	apiError = newAPIErrorFromTLSError(err)
 	if apiError != nil {
 		return apiError
 	}
