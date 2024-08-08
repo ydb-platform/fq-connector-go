@@ -33,11 +33,12 @@ jobs:
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
           compose-file: "tests/infra/datasource/docker-compose.yaml"
+          up-flags: "--build"
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
           # give datasources some time to initialize
-          sleep 15 
+          sleep 10 
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 
       - name: Union coverage

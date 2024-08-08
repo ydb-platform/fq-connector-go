@@ -49,14 +49,15 @@ jobs:
       - name: Run unit tests
         run: go test -v ./app/...
       - name: Setup integration tests
-        uses: isbang/compose-action@v1.5.1
+        uses: hoverkraft-tech/compose-action@v2.0.1
         with:
           compose-file: "/home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml"
+          up-flags: "--build"
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
           # give datasources some time to initialize
-          sleep 15
+          sleep 10
           go test -c -o fq-connector-go-tests ./tests
           ./fq-connector-go-tests -projectPath=$(pwd)
       - name: Build binary package
