@@ -38,8 +38,7 @@ jobs:
       - name: Run integration tests
         run: |
           # give datasources some time to initialize
-          sleep 10 
-          docker logs runner-fq-connector-go-tests-ms_sql_server
+          sleep 15
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 
       - name: Union coverage
