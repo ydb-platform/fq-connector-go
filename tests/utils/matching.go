@@ -310,7 +310,7 @@ func matchArrays[EXPECTED common.ValueType, ACTUAL common.ArrowArrayType[EXPECTE
 		expected, ok := expectedRaw.([]*EXPECTED)
 		require.True(
 			t, ok,
-			fmt.Sprintf("invalid type for column %v: %T", columnName, expectedRaw),
+			fmt.Sprintf("invalid type for column %v: expected=%T, actual=%T", columnName, expectedRaw, actualRaw),
 		)
 		require.Equal(t, len(expected), actual.Len(),
 			fmt.Sprintf("column:  %v\nexpected: %v\nactual:  %v\n", columnName, expected, actual),

@@ -48,9 +48,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
 	case "binary", "varbinary", "image":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case "char", "varchar", "text":
-		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case "nchar", "nvarchar", "ntext":
+	case "char", "varchar", "text", "nchar", "nvarchar", "ntext":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case "date", "time", "smalldatetime", "datetime", "datetime2":
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
@@ -110,10 +108,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 				return nil
 			})
-		case "CHAR", "VARCHAR", "TEXT":
-			acceptors = append(acceptors, new(*[]byte))
-			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
-		case "NCHAR", "NVARCHAR", "NTEXT":
+		case "CHAR", "VARCHAR", "TEXT", "NCHAR", "NVARCHAR", "NTEXT":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
 		case "date", "time", "smalldatetime", "datetime", "datetime2":

@@ -22,21 +22,23 @@ CREATE TABLE primitives (
     col_05_bigint BIGINT,
     col_06_float FLOAT,
     col_07_real REAL,
-    col_08_char CHAR(10),
-    col_09_varchar VARCHAR(10),
+    col_08_char CHAR(8),
+    col_09_varchar VARCHAR(8),
     col_10_text TEXT,
-    col_11_nchar NCHAR(10),
-    col_12_nvarchar NVARCHAR(10),
+    col_11_nchar NCHAR(8),
+    col_12_nvarchar NVARCHAR(8),
     col_13_ntext NTEXT,
-    col_14_binary BINARY(10),
-    col_15_varbinary VARBINARY(10),
+    col_14_binary BINARY(8),
+    col_15_varbinary VARBINARY(8),
     col_16_image IMAGE 
 );
 
 INSERT INTO primitives VALUES
-    (0, True, 2, 3, 4, 5, 6.6, 7.7, 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az'),
+    (0, 1, 2, 3, 4, 5, 6.6, 7.7, 'az', 'az', 'az', 'az', 'az', 'az', 0x1234567890ABCDEF, 0x1234567890ABCDEF, 0x1234567890ABCDEF),
     (1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-    (2, False, -2, -3, -4, -5, -6.6, -7.7, 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки');
+    (2, 0, 2, -3, -4, -5, -6.6, -7.7, N'буки', N'буки', N'буки', N'буки', N'буки', N'буки', 0x1234567890ABCDEF, 0x1234567890ABCDEF, 0x1234567890ABCDEF);
+
+SELECT * FROM primitives;
 
 -- ### Numeric Data Types
 -- 1. bit – Integer that can be 0, 1, or NULL.
