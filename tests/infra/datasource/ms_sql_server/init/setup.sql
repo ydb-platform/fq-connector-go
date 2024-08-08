@@ -13,9 +13,30 @@ INSERT INTO simple (id, col1, col2) VALUES
 
 SELECT * FROM simple;
 
--- CREATE TABLE simple (id INT IDENTITY(1,1) PRIMARY KEY, col1 NVARCHAR(7) NOT NULL, col2 INTEGER NOT NULL);
--- INSERT INTO simple (col1, col2) VALUES ('mssql_a', 10), ('mssql_b', 20), ('mssql_c', 30);
--- SELECT * FROM simple;
+CREATE TABLE primitives (
+    id INTEGER PRIMARY KEY,
+    col_01_bit BIT,
+    col_02_tinyint TINYINT,
+    col_03_smallint SMALLINT,
+    col_04_int INT,
+    col_05_bigint BIGINT,
+    col_06_float FLOAT,
+    col_07_real REAL,
+    col_08_char CHAR(10),
+    col_09_varchar VARCHAR(10),
+    col_10_text TEXT,
+    col_11_nchar NCHAR(10),
+    col_12_nvarchar NVARCHAR(10),
+    col_13_ntext NTEXT,
+    col_14_binary BINARY(10),
+    col_15_varbinary VARBINARY(10),
+    col_16_image IMAGE 
+);
+
+INSERT INTO primitives VALUES
+    (0, True, 2, 3, 4, 5, 6.6, 7.7, 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az', 'az'),
+    (1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+    (2, False, -2, -3, -4, -5, -6.6, -7.7, 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки', 'буки');
 
 -- ### Numeric Data Types
 -- 1. bit – Integer that can be 0, 1, or NULL.
