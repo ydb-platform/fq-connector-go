@@ -30,8 +30,8 @@ type ArrowIDBuilder[T constraints.Integer] interface {
 // Store columns in map because order of columns in some datasource is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record[T constraints.Integer, K ArrowIDBuilder[T]] struct {
-	Columns                  map[string]any
-	NewIDArrayBuilderFactory func() K
+	Columns              map[string]any
+	DArrayBuilderFactory func() K
 }
 
 type TableSchema struct {
@@ -41,7 +41,7 @@ type TableSchema struct {
 func (r *Record[T, K]) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	newArrayBuilder := r.NewIDArrayBuilderFactory()
+	newArrayBuilder := r.DArrayBuilderFactory()
 	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, newArrayBuilder)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {

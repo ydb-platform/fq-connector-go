@@ -91,14 +91,14 @@ func newDefaultValidateTableOptions() *validateTableOptions {
 }
 
 type ValidateTableOption interface {
-	Apply(o *validateTableOptions)
+	apply(o *validateTableOptions)
 }
 
 type withDateTimeFormatOption struct {
 	val api_service_protos.EDateTimeFormat
 }
 
-func (o withDateTimeFormatOption) Apply(options *validateTableOptions) {
+func (o withDateTimeFormatOption) apply(options *validateTableOptions) {
 	options.typeMappingSettings.DateTimeFormat = o.val
 }
 
@@ -110,7 +110,7 @@ type withPredicateOption struct {
 	val *api_service_protos.TPredicate
 }
 
-func (o withPredicateOption) Apply(options *validateTableOptions) {
+func (o withPredicateOption) apply(options *validateTableOptions) {
 	options.predicate = o.val
 }
 
@@ -133,7 +133,7 @@ func (b *Base[T, K]) doValidateTable(
 ) {
 	options := newDefaultValidateTableOptions()
 	for _, option := range customOptions {
-		option.Apply(options)
+		option.apply(options)
 	}
 
 	b.Require().NotEmpty(table.Name)
