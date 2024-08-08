@@ -56,7 +56,7 @@ jobs:
       - name: Run integration tests
         run: |
           # give datasources some time to initialize
-          sleep 10
+          sleep 15
           go test -c -o fq-connector-go-tests ./tests
           ./fq-connector-go-tests -projectPath=$(pwd)
       - name: Build binary package
