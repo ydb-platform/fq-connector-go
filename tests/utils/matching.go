@@ -30,7 +30,7 @@ type ArrowIDBuilder[T constraints.Integer] interface {
 // Store columns in map because order of columns in some datasource is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record[T constraints.Integer, K ArrowIDBuilder[T]] struct {
-	Columns                map[string]any
+	Columns                  map[string]any
 	NewIDArrayBuilderFactory func() K
 }
 
