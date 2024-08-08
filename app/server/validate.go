@@ -91,7 +91,8 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 		return fmt.Errorf("endpoint.port is empty: %w", common.ErrInvalidRequest)
 	}
 
-	if dsi.Database == "" {
+	// For Oracle DATABASE_NAME is optional
+	if dsi.Database == "" && dsi.Kind != api_common.EDataSourceKind_ORACLE {
 		return fmt.Errorf("database field is empty: %w", common.ErrInvalidRequest)
 	}
 
