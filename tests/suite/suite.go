@@ -7,7 +7,6 @@ import (
 	"time"
 
 	testify_suite "github.com/stretchr/testify/suite"
-	"golang.org/x/exp/constraints"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -20,7 +19,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
-type Base[T constraints.Integer, K test_utils.ArrowIDBuilder[T]] struct {
+type Base[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]] struct {
 	testify_suite.Suite
 	*State
 	Connector common.TestingServer
@@ -120,14 +119,18 @@ func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
 	}
 }
 
-func (b *Base[T, K]) ValidateTable(ds *datasource.DataSource, table *test_utils.Table[T, K], customOptions ...ValidateTableOption) {
+func (b *Base[ID, IDBUILDER]) ValidateTable(
+	ds *datasource.DataSource,
+	table *test_utils.Table[ID, IDBUILDER],
+	customOptions ...ValidateTableOption,
+) {
 	for _, dsi := range ds.Instances {
 		b.doValidateTable(table, dsi, customOptions...)
 	}
 }
 
-func (b *Base[T, K]) doValidateTable(
-	table *test_utils.Table[T, K],
+func (b *Base[ID, IDBUILDER]) doValidateTable(
+	table *test_utils.Table[ID, IDBUILDER],
 	dsi *api_common.TDataSourceInstance,
 	customOptions ...ValidateTableOption,
 ) {
@@ -182,8 +185,11 @@ func (b *Base[T, K]) doValidateTable(
 	table.MatchRecords(b.T(), records, schema)
 }
 
-func NewBase[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](t *testing.T, state *State, name string) *Base[T, K] {
-	b := &Base[T, K]{
+func NewBase[
+	ID test_utils.TableIDTypes,
+	IDBUILDER test_utils.ArrowIDBuilder[ID],
+](t *testing.T, state *State, name string) *Base[ID, IDBUILDER] {
+	b := &Base[ID, IDBUILDER]{
 		State: state,
 		name:  name,
 	}

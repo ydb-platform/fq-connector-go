@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -13,10 +12,10 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-func TestPositiveStats[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
-	s *Base[T, K],
+func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
 	dataSource *datasource.DataSource,
-	table *test_utils.Table[T, K],
+	table *test_utils.Table[ID, IDBUILDER],
 ) {
 	// read some table to "heat" metrics
 	s.ValidateTable(dataSource, table)
@@ -46,7 +45,10 @@ func TestPositiveStats[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
 	s.Require().Equal(float64(len(dataSource.Instances)), readSplitsStatusOK)
 }
 
-func TestMissingDataSource[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](s *Base[T, K], dsi *api_common.TDataSourceInstance) {
+func TestMissingDataSource[
+	ID test_utils.TableIDTypes,
+	IDBUILDER test_utils.ArrowIDBuilder[ID],
+](s *Base[ID, IDBUILDER], dsi *api_common.TDataSourceInstance) {
 	// read some table to "heat" metrics
 	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
 	s.Require().NoError(err)
@@ -71,10 +73,10 @@ func TestMissingDataSource[T constraints.Integer, K test_utils.ArrowIDBuilder[T]
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidLogin[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
-	s *Base[T, K],
+func TestInvalidLogin[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
 	dsiSrc *api_common.TDataSourceInstance,
-	table *test_utils.Table[T, K],
+	table *test_utils.Table[ID, IDBUILDER],
 ) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
@@ -104,10 +106,10 @@ func TestInvalidLogin[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidPassword[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
-	s *Base[T, K],
+func TestInvalidPassword[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
 	dsiSrc *api_common.TDataSourceInstance,
-	table *test_utils.Table[T, K],
+	table *test_utils.Table[ID, IDBUILDER],
 ) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 

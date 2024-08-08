@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"golang.org/x/exp/constraints"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -14,10 +13,10 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-func testInvalidServiceName[T constraints.Integer, K test_utils.ArrowIDBuilder[T]](
-	s *suite.Base[T, K],
+func testInvalidServiceName[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *suite.Base[ID, IDBUILDER],
 	dsiSrc *api_common.TDataSourceInstance,
-	table *test_utils.Table[T, K],
+	table *test_utils.Table[ID, IDBUILDER],
 ) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 	oraOpts := dsi.Options.(*api_common.TDataSourceInstance_OracleOptions)
