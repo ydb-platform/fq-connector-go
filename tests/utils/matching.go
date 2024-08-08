@@ -30,19 +30,21 @@ type ArrowIDBuilder[T constraints.Integer] interface {
 // Store columns in map because order of columns in some datasource is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record[T constraints.Integer, K ArrowIDBuilder[T]] struct {
-	Columns              map[string]any
-	DArrayBuilderFactory func() K
+	Columns map[string]any
 }
 
 type TableSchema struct {
 	Columns map[string]*Ydb.Type
 }
 
-func (r *Record[T, K]) MatchRecord(t *testing.T, receivedRecord arrow.Record, receivedSchema *api_service_protos.TSchema) {
+func (r *Record[T, K]) MatchRecord(
+	t *testing.T,
+	receivedRecord arrow.Record,
+	receivedSchema *api_service_protos.TSchema,
+	idArrBuilder K) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	newArrayBuilder := r.DArrayBuilderFactory()
-	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, newArrayBuilder)
+	recordWithRowsSorted := sortTableByID[T, K](recordWithColumnOrderFixed, idArrBuilder)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
 		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
@@ -437,16 +439,18 @@ func matchJSONArrays(
 }
 
 type Table[T constraints.Integer, K ArrowIDBuilder[T]] struct {
-	Name    string
-	Schema  *TableSchema
-	Records []*Record[T, K] // Large tables may consist of multiple records
+	Name                  string
+	Schema                *TableSchema
+	Records               []*Record[T, K] // Large tables may consist of multiple records
+	IDArrayBuilderFactory func() K
 }
 
-func (tb *Table[_, _]) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
+func (tb *Table[T, K]) MatchRecords(t *testing.T, records []arrow.Record, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Records), len(records))
 
 	for i := range tb.Records {
-		tb.Records[i].MatchRecord(t, records[i], schema)
+		idArrayBuilder := tb.IDArrayBuilderFactory()
+		tb.Records[i].MatchRecord(t, records[i], schema, idArrayBuilder)
 		records[i].Release()
 	}
 }
