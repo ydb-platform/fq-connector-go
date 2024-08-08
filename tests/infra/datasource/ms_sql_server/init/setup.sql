@@ -1,15 +1,15 @@
 DROP TABLE IF EXISTS simple;
 
 CREATE TABLE simple (
-    id INT IDENTITY(1,1) PRIMARY KEY, 
-    col1 NVARCHAR(7) NOT NULL,
+    id INTEGER PRIMARY KEY, 
+    col1 NTEXT NOT NULL,
     col2 INTEGER NOT NULL
 );
 
 INSERT INTO simple (id, col1, col2) VALUES 
-    (1, 'mssql_a', 10),
-    (2, 'mssql_b', 20),
-    (3, 'mssql_c', 30);
+    (1, 'ms_sql_server_a', 10),
+    (2, 'ms_sql_server_b', 20),
+    (3, 'ms_sql_server_c', 30);
 
 SELECT * FROM simple;
 
