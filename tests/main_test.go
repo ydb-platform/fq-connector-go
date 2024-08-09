@@ -56,5 +56,5 @@ func TestOracle(t *testing.T) {
 }
 
 func TestMsSqlServer(t *testing.T) {
-	testify_suite.Run(t, ms_sql_server.NewSuite(suite.NewBase(t, state, "MS SQL Server")))
+	testify_suite.Run(t, ms_sql_server.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MS SQL Server")))
 }
