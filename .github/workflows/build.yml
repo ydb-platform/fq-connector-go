@@ -29,7 +29,6 @@ jobs:
       - name: Run unit tests
         run: |
           go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
-          df -h
       - name: Setup integration tests
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
@@ -38,12 +37,11 @@ jobs:
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
-          # give datasources some time to initialize
+          # cleanup some cache
           go clean -cache
           sudo rm -rf /usr/share/dotnet
-          df -h
+          # give datasources some time to initialize
           sleep 25
-          df -h
           docker logs runner-fq-connector-go-tests-ms_sql_server
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 
