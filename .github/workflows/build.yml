@@ -39,6 +39,7 @@ jobs:
       - name: Run integration tests
         run: |
           # give datasources some time to initialize
+          go clean -cache
           df -h
           sleep 25
           df -h
