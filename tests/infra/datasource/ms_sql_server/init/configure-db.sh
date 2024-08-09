@@ -11,7 +11,7 @@ i=0
 
 while [[ $i -lt 60 ]] && [[ $ERRCODE -ne 0 ]]; do
 	i=$i+1
-	DBSTATUS=$(/opt/mssql-tools/bin/sqlcmd -U sa -P $SA_PASSWORD -Q "SET NOCOUNT ON; Select SUM(state) from sys.databases")
+	DBSTATUS=$(/opt/mssql-tools18/bin/sqlcmd -C -U sa -P $SA_PASSWORD -Q "SET NOCOUNT ON; Select SUM(state) from sys.databases")
 	ERRCODE=$?
 	echo "$i $DBSTATUS $ERRCODE"
 	sleep 1
@@ -23,4 +23,4 @@ if [[ "$ERRCODE" -ne 0 ]]; then
 fi
 
 # Run the setup script to create the DB and the schema in the DB
-/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P $SA_PASSWORD -d master -i setup.sql
+/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $SA_PASSWORD -d master -i setup.sql
