@@ -23,11 +23,11 @@ integration_test_env_clean:
 	docker-compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v
 
 integration_test_env_run: integration_test_env_clean
-	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d
+	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d --build
 
 test_coverage: integration_test_env_run
 	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
-	sleep 8
+	sleep 10
 	go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.coverprofile=coverage_integration_tests.out 
 	cat coverage_unit_tests.out | grep -v 'pb.go\|mock.go\|library' > coverage.out
