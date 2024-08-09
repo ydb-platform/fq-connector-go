@@ -1,12 +1,14 @@
 package ms_sql_server
 
 import (
+	"github.com/apache/arrow/go/v13/arrow/array"
+
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
 
 type Suite struct {
-	*suite.Base
+	*suite.Base[int32, *array.Int32Builder]
 	dataSource *datasource.DataSource
 }
 
@@ -268,7 +270,7 @@ func (s *Suite) TestInvalidPassword() {
 */
 
 func NewSuite(
-	baseSuite *suite.Base,
+	baseSuite *suite.Base[int32, *array.Int32Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

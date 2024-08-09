@@ -25,8 +25,9 @@ func TestSortTableByID(t *testing.T) {
 			{Name: "id", Type: arrow.PrimitiveTypes.Int32},
 		}, nil)
 		table := array.NewRecord(schema, []arrow.Array{idArr}, 1)
+		newIDBuilder := NewInt32IDArrayBuilder(pool)
 
-		sortedTable := sortTableByID(table)
+		sortedTable := sortTableByID[int32, *array.Int32Builder](table, newIDBuilder)
 
 		require.Equal(t, int64(1), sortedTable.NumRows())
 		require.Equal(t, int32(1), sortedTable.Column(0).(*array.Int32).Value(0))
@@ -51,8 +52,9 @@ func TestSortTableByID(t *testing.T) {
 			{Name: "value", Type: arrow.BinaryTypes.String},
 		}, nil)
 		table := array.NewRecord(schema, []arrow.Array{idArr, stringArr}, 3)
+		newIDBuilder := NewInt32IDArrayBuilder(pool)
 
-		sortedTable := sortTableByID(table)
+		sortedTable := sortTableByID[int32, *array.Int32Builder](table, newIDBuilder)
 
 		expectedIDValues := []int32{1, 2, 3}
 		expectedStringValues := []string{"one", "two", "three"}
@@ -90,8 +92,9 @@ func TestSortTableByID(t *testing.T) {
 			{Name: "value2", Type: arrow.PrimitiveTypes.Float32},
 		}, nil)
 		table := array.NewRecord(schema, []arrow.Array{idArr, int64Arr, float32Arr}, 3)
+		newIDBuilder := NewInt32IDArrayBuilder(pool)
 
-		sortedTable := sortTableByID(table)
+		sortedTable := sortTableByID[int32, *array.Int32Builder](table, newIDBuilder)
 
 		expectedIDValues := []int32{1, 2, 3}
 		expectedInt64Values := []int64{100, 200, 300}
@@ -124,8 +127,9 @@ func TestSortTableByID(t *testing.T) {
 			{Name: "value", Type: arrow.PrimitiveTypes.Int32},
 		}, nil)
 		table := array.NewRecord(schema, []arrow.Array{idArr, int32Arr}, 3)
+		newIDBuilder := NewInt32IDArrayBuilder(pool)
 
-		sortedTable := sortTableByID(table)
+		sortedTable := sortTableByID[int32, *array.Int32Builder](table, newIDBuilder)
 
 		expectedIDValues := []int32{1, 2, 3}
 		expectedInt32Values := []*int32{nil, ptr.Int32(20), ptr.Int32(30)}

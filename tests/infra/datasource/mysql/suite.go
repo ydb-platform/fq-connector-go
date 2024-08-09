@@ -1,6 +1,8 @@
 package mysql
 
 import (
+	"github.com/apache/arrow/go/v13/arrow/array"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
@@ -13,7 +15,7 @@ import (
 )
 
 type Suite struct {
-	*suite.Base
+	*suite.Base[int32, *array.Int32Builder]
 	dataSource *datasource.DataSource
 }
 
@@ -273,7 +275,7 @@ func (s *Suite) TestInvalidPassword() {
 }
 
 func NewSuite(
-	baseSuite *suite.Base,
+	baseSuite *suite.Base[int32, *array.Int32Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

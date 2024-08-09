@@ -1,7 +1,4 @@
-version: '3'
-
 services:
-
   clickhouse:
     image: clickhouse/clickhouse-server:23.8
     container_name: yq-connector-clickhouse
