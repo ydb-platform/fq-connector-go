@@ -34,8 +34,8 @@ func (f *DefaultSchemaProvider) GetSchema(
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
 	var (
-		columnName string
-		typeName   string
+		columnName *string
+		typeName   *string
 	)
 
 	sb := NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
@@ -45,7 +45,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 			return nil, fmt.Errorf("rows scan: %w", err)
 		}
 
-		if err = sb.AddColumn(columnName, typeName); err != nil {
+		if err = sb.AddColumn(*columnName, *typeName); err != nil {
 			return nil, fmt.Errorf("add column to schema builder: %w", err)
 		}
 	}

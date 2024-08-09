@@ -2,6 +2,7 @@ package ydb
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -82,6 +83,14 @@ func (sqlFormatter) GetPlaceholder(_ int) string {
 // TODO: add identifiers processing
 func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", ident)
+}
+
+func (f sqlFormatter) FormatFrom(tableName string) string {
+	// Trim leading slash, otherwise TablePathPrefix won't work.
+	// See https://ydb.tech/docs/ru/yql/reference/syntax/pragma#table-path-prefix
+	tableName = strings.TrimPrefix(tableName, "/")
+
+	return f.SanitiseIdentifier(tableName)
 }
 
 func NewSQLFormatter() rdbms_utils.SQLFormatter {

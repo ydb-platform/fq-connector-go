@@ -40,7 +40,7 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 	}
 }
 
-func formatSelectColumns(
+func formatSelectHead(
 	formatter SQLFormatter,
 	selectWhat *api_service_protos.TSelect_TWhat,
 	tableName string,
@@ -87,7 +87,7 @@ func formatSelectColumns(
 	}
 
 	sb.WriteString(" FROM ")
-	sb.WriteString(formatter.SanitiseIdentifier(tableName))
+	sb.WriteString(formatter.FormatFrom(tableName))
 
 	return sb.String(), newSelectWhat, nil
 }

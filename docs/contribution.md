@@ -225,12 +225,28 @@ make run
     * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_dq_integration.cpp#L191-L207
     * https://github.com/ydb-platform/ydb/blob/6f2b38f212e36e0bcd0729525aef2e04494141a0/ydb/library/yql/providers/generic/actors/yql_generic_provider_factories.cpp#L34-L37
     * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/library/yql/providers/generic/provider/yql_generic_dq_integration.cpp#L158-L171
+    * https://github.com/ydb-platform/ydb/blob/38a7ef26dd27509de68226e2d1117ed6ef933646/ydb/library/yql/providers/generic/provider/yql_generic_dq_integration.cpp#L24-L41
+    * https://github.com/ydb-platform/ydb/blob/e5ae52da8cfbfcdfa05ff85a236b85f19419d168/ydb/library/yql/providers/generic/provider/yql_generic_cluster_config.cpp#L195
 * [External Sources](https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/core/external_sources/):
     * https://github.com/ydb-platform/ydb/blob/24.1.14/ydb/core/external_sources/external_source_factory.cpp#L35-L55
+    * https://github.com/ydb-platform/ydb/blob/a6eb07c046fa5e88777549a74558adc62787aaf0/ydb/core/external_sources/external_data_source.cpp#L39-L41
 * [Proto](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto)
     * https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L29-L38
+* [DDL](https://github.com/ydb-platform/ydb/blob/2f30f742e93b5da271129a91b5d2093ef52da21b/ydb/core/kqp/gateway/behaviour/external_data_source/manager.cpp) (Если потребуется)
+    * https://github.com/ydb-platform/ydb/blob/2f30f742e93b5da271129a91b5d2093ef52da21b/ydb/core/kqp/gateway/behaviour/external_data_source/manager.cpp#L72-L79
+
 
 Список этих файлов может быть неисчерпывающим; если заметите что-то ещё - PRs are welcome :) 
+
+Примеры PR в YDB
+* Oracle
+    * https://github.com/ydb-platform/ydb/pull/6723/files
+
+Примеры PR в fq-connector-go
+* MS SQL Server
+    * https://github.com/ydb-platform/fq-connector-go/pull/93
+* MySQL
+    * https://github.com/ydb-platform/fq-connector-go/pull/94
 
 
 ## Изменения в API и конфигурации коннектора

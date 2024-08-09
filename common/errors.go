@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"regexp"
@@ -17,6 +18,7 @@ import (
 	"go.uber.org/zap"
 	grpc_codes "google.golang.org/grpc/codes"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -44,6 +46,8 @@ var (
 var (
 	// TODO: remove this and extract MyError somehow
 	mysqlRegex = regexp.MustCompile(`\d+`)
+	// TODO: remove this and extract OracleError somehow
+	oracleRegex = regexp.MustCompile(`ORA-(\d+):`)
 )
 
 func NewSuccess() *api_service_protos.TError {
@@ -65,17 +69,12 @@ func IsSuccess(apiErr *api_service_protos.TError) bool {
 	return apiErr.Status == ydb_proto.StatusIds_SUCCESS
 }
 
-//nolint:funlen,gocyclo
-func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
-	if err == nil {
-		panic("nil error")
-	}
+func newAPIErrorFromClickHouseError(err error) *api_service_protos.TError {
+	var (
+		status ydb_proto.StatusIds_StatusCode
+		chErr  = &clickhouse_proto.Exception{}
+	)
 
-	var status ydb_proto.StatusIds_StatusCode
-
-	// check datasource-specific errors
-
-	chErr := &clickhouse_proto.Exception{}
 	if errors.As(err, &chErr) {
 		switch chErr.Code {
 		case int32(ch_proto.ErrAuthenticationFailed):
@@ -90,7 +89,15 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
-	pgConnectError := &pgconn.ConnectError{}
+	return nil
+}
+
+func newAPIErrorFromPostgreSQLError(err error) *api_service_protos.TError {
+	var (
+		status         ydb_proto.StatusIds_StatusCode
+		pgConnectError = &pgconn.ConnectError{}
+	)
+
 	if errors.As(err, &pgConnectError) {
 		pgError, ok := pgConnectError.Unwrap().(*pgconn.PgError)
 		if ok {
@@ -112,6 +119,50 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
+	return nil
+}
+
+func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
+	// go-ora error mapping:
+	// https://github.com/sijms/go-ora/blob/v2.8.19/v2/network/oracle_error.go#L20-L57
+	var status ydb_proto.StatusIds_StatusCode
+
+	// TODO: remove this and extract OracleError somehow
+	//       errors.As() does not work with go_ora.OracleError because it does not implement Error interface
+	errorText := err.Error()
+
+	match := oracleRegex.FindStringSubmatch(errorText)
+
+	if len(match) != 2 {
+		return nil
+	}
+
+	tmp, err := strconv.ParseUint(match[1], 10, 16)
+	if err != nil {
+		panic(fmt.Errorf("API error from Oracle error: %w", err))
+	}
+
+	code := uint16(tmp)
+
+	switch code {
+	case 1017: // ORA-01017: invalid username/password
+		status = ydb_proto.StatusIds_UNAUTHORIZED
+	case 12514: // ORA-12514 TNS: ... --- wrong SERVICE_NAME
+		status = ydb_proto.StatusIds_NOT_FOUND
+	// TODO: more codes from go-ora error mapping or Oracle docs
+	default:
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: errorText,
+	}
+}
+
+func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
+	var status ydb_proto.StatusIds_StatusCode
+
 	// TODO: remove this and extract MyError somehow
 	//       for some reason errors.As() does not work with mysql.MyError
 	errorText := err.Error()
@@ -128,6 +179,8 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		switch code {
 		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
 			status = ydb_proto.StatusIds_UNAUTHORIZED
+		case mysql.ER_BAD_DB_ERROR:
+			status = ydb_proto.StatusIds_NOT_FOUND
 		default:
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
 		}
@@ -138,6 +191,10 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
+	return nil
+}
+
+func newAPIErrorFromYdbError(err error) *api_service_protos.TError {
 	if ydb.IsYdbError(err) {
 		for status := range ydb_proto.StatusIds_StatusCode_name {
 			if ydb.IsOperationError(err, ydb_proto.StatusIds_StatusCode(status)) {
@@ -156,7 +213,32 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		}
 	}
 
-	// check general errors that could happen within connector logic
+	return nil
+}
+
+func newAPIErrorFromTLSError(err error) *api_service_protos.TError {
+	var (
+		// status ydb_proto.StatusIds_StatusCode  // TODO: parse specific TLS errors
+		// unknownAuthorityError   = &x509.UnknownAuthorityError{}
+		// certificateInvalidError = &x509.CertificateInvalidError{}
+		// hostnameError           = &x509.HostnameError{}
+		// systemRooteError      = &x509.SystemRootsError{}
+		certVerificationError = &tls.CertificateVerificationError{} // tls.CertificateVerificationError wraps all the x509 errors
+	)
+
+	if errors.As(err, &certVerificationError) {
+		return &api_service_protos.TError{
+			Status:  ydb_proto.StatusIds_UNAVAILABLE,
+			Message: err.Error(),
+		}
+	}
+
+	return nil
+}
+
+//nolint:gocyclo
+func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
+	var status ydb_proto.StatusIds_StatusCode
 
 	switch {
 	case errors.Is(err, ErrTableDoesNotExist):
@@ -198,6 +280,43 @@ func NewAPIErrorFromStdError(err error) *api_service_protos.TError {
 		Status:  status,
 		Message: err.Error(),
 	}
+}
+
+func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_service_protos.TError {
+	if err == nil {
+		panic("nil error")
+	}
+
+	// check datasource-specific errors
+	var apiError *api_service_protos.TError
+
+	switch kind {
+	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
+	case api_common.EDataSourceKind_CLICKHOUSE:
+		apiError = newAPIErrorFromClickHouseError(err)
+	case api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_GREENPLUM:
+		apiError = newAPIErrorFromPostgreSQLError(err)
+	case api_common.EDataSourceKind_MYSQL:
+		apiError = newAPIErrorFromMySQLError(err)
+	case api_common.EDataSourceKind_YDB:
+		apiError = newAPIErrorFromYdbError(err)
+	case api_common.EDataSourceKind_ORACLE:
+		apiError = newAPIErrorFromOracleError(err)
+	default:
+		panic("DataSource kind not specified for API error")
+	}
+
+	if apiError != nil {
+		return apiError
+	}
+
+	apiError = newAPIErrorFromTLSError(err)
+	if apiError != nil {
+		return apiError
+	}
+
+	// check general errors that could happen within connector logic
+	return newAPIErrorFromConnectorError(err)
 }
 
 func APIErrorToLogFields(apiErr *api_service_protos.TError) []zap.Field {

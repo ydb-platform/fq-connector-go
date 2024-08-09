@@ -1,6 +1,3 @@
----
-version: '3'
-
 services:
   clickhouse:
     image: mirror.gcr.io/clickhouse/clickhouse-server:24
@@ -73,3 +70,14 @@ services:
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d
       - ./mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
+  
+  ms_sql_server:
+    build: ./ms_sql_server/init
+    container_name: ${USER}-fq-connector-go-tests-ms_sql_server
+    ports:
+      - '1433:1433'
+    environment:
+      ACCEPT_EULA: Y
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "false"
+      LANG: ru_RU.UTF-8 
+      SA_PASSWORD: "Qwerty12345!"

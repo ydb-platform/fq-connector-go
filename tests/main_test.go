@@ -8,6 +8,7 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/greenplum"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ms_sql_server"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ydb"
@@ -46,4 +47,8 @@ func TestGreenplum(t *testing.T) {
 
 func TestMySQL(t *testing.T) {
 	testify_suite.Run(t, mysql.NewSuite(suite.NewBase(t, state, "MySQL")))
+}
+
+func TestMsSqlServer(t *testing.T) {
+	testify_suite.Run(t, ms_sql_server.NewSuite(suite.NewBase(t, state, "MS SQL Server")))
 }
