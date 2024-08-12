@@ -3,6 +3,7 @@ package ms_sql_server
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -18,6 +19,7 @@ var _ datasource.TypeMapper = typeMapper{}
 
 type typeMapper struct{}
 
+//nolint:gocyclo
 func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
@@ -50,8 +52,24 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "char", "varchar", "text", "nchar", "nvarchar", "ntext":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case "date", "time", "smalldatetime", "datetime", "datetime2":
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
+	case "date":
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
+
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
+	case "smalldatetime":
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
+
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
+	case "datetime", "datetime2":
+		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
+
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -68,12 +86,13 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	}, nil
 }
 
+//nolint:funlen,gocyclo
 func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	_ = ydbTypes
 	acceptors := make([]any, 0, len(types))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 
-	for _, typeName := range types {
+	for i, typeName := range types {
 		switch typeName {
 		case "BIT":
 			acceptors = append(acceptors, new(*bool))
@@ -111,9 +130,60 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		case "CHAR", "VARCHAR", "TEXT", "NCHAR", "NVARCHAR", "NTEXT":
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
-		case "date", "time", "smalldatetime", "datetime", "datetime2":
-			// TODO: add date & time processing
-			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
+		case "DATE":
+			acceptors = append(acceptors, new(*time.Time))
+
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			if err != nil {
+				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
+			}
+
+			switch ydbTypeID {
+			case Ydb.Type_UTF8:
+				appenders = append(appenders, makeAppender[time.Time, string, *array.StringBuilder](cc.DateToString()))
+			case Ydb.Type_DATE:
+				appenders = append(appenders, makeAppender[time.Time, uint16, *array.Uint16Builder](cc.Date()))
+			default:
+				return nil, fmt.Errorf(
+					"unexpected ydb type %v for ms sql server type %v: %w",
+					ydbTypes[i], types[i], common.ErrDataTypeNotSupported)
+			}
+		case "SMALLDATETIME":
+			acceptors = append(acceptors, new(*time.Time))
+
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			if err != nil {
+				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
+			}
+
+			switch ydbTypeID {
+			case Ydb.Type_UTF8:
+				appenders = append(appenders, makeAppender[time.Time, string, *array.StringBuilder](cc.DatetimeToString()))
+			case Ydb.Type_DATETIME:
+				appenders = append(appenders, makeAppender[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
+			default:
+				return nil, fmt.Errorf(
+					"unexpected ydb type %v for ms sql server type %v: %w",
+					ydbTypes[i], types[i], common.ErrDataTypeNotSupported)
+			}
+		case "DATETIME", "DATETIME2":
+			acceptors = append(acceptors, new(*time.Time))
+
+			ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
+			if err != nil {
+				return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
+			}
+
+			switch ydbTypeID {
+			case Ydb.Type_UTF8:
+				appenders = append(appenders, makeAppender[time.Time, string, *array.StringBuilder](cc.TimestampToString()))
+			case Ydb.Type_TIMESTAMP:
+				appenders = append(appenders, makeAppender[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
+			default:
+				return nil, fmt.Errorf(
+					"unexpected ydb type %v for ms sql server type %v: %w",
+					ydbTypes[i], types[i], common.ErrDataTypeNotSupported)
+			}
 		default:
 			return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 		}

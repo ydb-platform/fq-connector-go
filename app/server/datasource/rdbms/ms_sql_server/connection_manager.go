@@ -64,7 +64,7 @@ func (c *connectionManager) Make(
 }
 
 func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close MS SQL Server connection")
+	common.LogCloserError(logger, conn, "close connection")
 }
 
 func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
