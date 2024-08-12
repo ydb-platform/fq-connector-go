@@ -40,10 +40,18 @@ INSERT INTO primitives VALUES
 
 SELECT * FROM primitives;
 
--- ### Date and Time Data Types
--- 1. date – Stores date data.
--- 2. time – Stores time of day data.
--- 3. datetime – Stores date and time data.
--- 4. datetime2 – Extended date and time data.
--- 5. smalldatetime – Stores date and time data.
--- 6. datetimeoffset – Date and time with time zone awareness.
+DROP TABLE IF EXISTS datetimes;
+CREATE TABLE datetimes (
+    id INTEGER PRIMARY KEY,
+    col_01_date DATE,
+    col_02_smalldatetime SMALLDATETIME,
+    col_03_datetime DATETIME,
+    col_04_datetime2 DATETIME2(7)
+);
+
+INSERT INTO datetimes VALUES 
+    (1, '1950-05-27', '1950-05-27 01:02:00', '1950-05-27 01:02:03.110', '1950-05-27 01:02:03.1111111'),
+    (2, '1988-11-20', '1988-11-20 12:55:00', '1988-11-20 12:55:28.123', '1988-11-20 12:55:28.1231231'),
+    (3, '2023-03-21', '2023-03-21 11:21:00', '2023-03-21 11:21:31', '2023-03-21 11:21:31');
+
+SELECT * FROM datetimes;

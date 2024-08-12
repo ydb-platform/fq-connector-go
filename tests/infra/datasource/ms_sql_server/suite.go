@@ -5,6 +5,8 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 type Suite struct {
@@ -20,7 +22,6 @@ func (s *Suite) TestSelect() {
 	}
 }
 
-/*
 func (s *Suite) TestDatetimeFormatYQL() {
 	s.ValidateTable(
 		s.dataSource,
@@ -39,6 +40,7 @@ func (s *Suite) TestDatetimeFormatString() {
 
 // Set of tests validating stats
 
+/*
 func (s *Suite) TestPositiveStats() {
 	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }

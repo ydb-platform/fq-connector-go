@@ -1,6 +1,8 @@
 package ms_sql_server
 
 import (
+	"time"
+
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -105,93 +107,107 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"datetime_format_yql": {
+		Name:                  "datetimes",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":                   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col_01_date":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				"col_02_smalldatetime": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
+				"col_03_datetime":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				"col_04_datetime2":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
+				// are returned as NULL
+				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(1),
+						ptr.Int32(2),
+						ptr.Int32(3),
+					},
+					"col_01_date": []*uint16{
+						nil,
+						ptr.Uint16(common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+						ptr.Uint16(common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
+					},
+					"col_02_smalldatetime": []*uint32{
+						nil,
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 0, 0, time.UTC))),
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 0, 0, time.UTC))),
+					},
+					"col_03_datetime": []*uint64{
+						nil,
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+					},
+					"col_04_datetime2": []*uint64{
+						nil,
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123123100, time.UTC))),
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+					},
+				},
+			},
+		},
+	},
+	"datetime_format_string": {
+		Name:                  "datetimes",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":                   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col_01_date":          common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_02_smalldatetime": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_03_datetime":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"col_04_datetime2":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
+				// are returned without saturating them to the epoch start
+				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(1),
+						ptr.Int32(2),
+						ptr.Int32(3),
+					},
+					"col_01_date": []*string{
+						ptr.String("1950-05-27"),
+						ptr.String("1988-11-20"),
+						ptr.String("2023-03-21"),
+					},
+					"col_02_smalldatetime": []*string{
+						ptr.String("1950-05-27T01:02:00Z"),
+						ptr.String("1988-11-20T12:55:00Z"),
+						ptr.String("2023-03-21T11:21:00Z"),
+					},
+					"col_03_datetime": []*string{
+						ptr.String("1950-05-27T01:02:03.11Z"),
+						ptr.String("1988-11-20T12:55:28.123Z"),
+						ptr.String("2023-03-21T11:21:31Z"),
+					},
+					"col_04_datetime2": []*string{
+						ptr.String("1950-05-27T01:02:03.1111111Z"),
+						ptr.String("1988-11-20T12:55:28.1231231Z"),
+						ptr.String("2023-03-21T11:21:31Z"),
+					},
+				},
+			},
+		},
+	},
 	/*
-		"datetime_format_yql": {
-			Name: "datetimes",
-			IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
-			Schema: &test_utils.TableSchema{
-				Columns: map[string]*Ydb.Type{
-					"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-					"col_01_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
-					"col_02_datetime":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
-					"col_03_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
-				},
-			},
-			Records: []*test_utils.Record[int32, *array.Int32Builder]{
-				{
-					// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
-					// are returned as NULL
-					Columns: map[string]any{
-						"id": []*int32{
-							ptr.Int32(1),
-							ptr.Int32(2),
-							ptr.Int32(3),
-						},
-						"col_01_date": []*uint16{
-							nil,
-							ptr.Uint16(common.MustTimeToYDBType[uint16](
-								common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
-							ptr.Uint16(common.MustTimeToYDBType[uint16](
-								common.TimeToYDBDate, time.Date(2023, 03, 21, 0, 0, 0, 0, time.UTC))),
-						},
-						"col_02_datetime": []*uint64{
-							nil,
-							ptr.Uint64(common.MustTimeToYDBType[uint64](
-								common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
-							ptr.Uint64(common.MustTimeToYDBType[uint64](
-								common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
-						},
-						"col_03_timestamp": []*uint64{
-							nil,
-							ptr.Uint64(common.MustTimeToYDBType[uint64](
-								common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
-							ptr.Uint64(common.MustTimeToYDBType[uint64](
-								common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
-						},
-					},
-				},
-			},
-		},
-		"datetime_format_string": {
-			Name: "datetimes",
-			IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
-			Schema: &test_utils.TableSchema{
-				Columns: map[string]*Ydb.Type{
-					"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-					"col_01_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-					"col_02_datetime":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-					"col_03_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				},
-			},
-			Records: []*test_utils.Record[int32, *array.Int32Builder]{
-				{
-					// In string mode, PG time values exceeding YQL date/datetime/timestamp type bounds
-					// are returned without saturating them to the epoch start
-					Columns: map[string]any{
-						"id": []*int32{
-							ptr.Int32(1),
-							ptr.Int32(2),
-							ptr.Int32(3),
-						},
-						"col_01_date": []*string{
-							ptr.String("1950-05-27"),
-							ptr.String("1988-11-20"),
-							ptr.String("2023-03-21"),
-						},
-						"col_02_datetime": []*string{
-							ptr.String("1950-05-27T01:02:03.111111Z"),
-							ptr.String("1988-11-20T12:55:28.123Z"),
-							ptr.String("2023-03-21T11:21:31Z"),
-						},
-						"col_03_timestamp": []*string{
-							nil,
-							ptr.String("1988-11-20T12:55:28.123Z"),
-							ptr.String("2023-03-21T11:21:31Z"),
-						},
-					},
-				},
-			},
-		},
 		"pushdown_comparison_L": {
 			Name:   "pushdown",
 			IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
