@@ -10,6 +10,7 @@ import (
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	mssql "github.com/denisenkom/go-mssqldb"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -160,6 +161,27 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	}
 }
 
+func newAPIErrorFromMsSQLServer(err error) *api_service_protos.TError {
+	var (
+		target mssql.Error
+		status ydb_proto.StatusIds_StatusCode
+	)
+
+	if errors.As(err, &target) {
+		switch {
+		case strings.Contains(target.Message, "Login failed"):
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		default:
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: err.Error(),
+	}
+}
+
 func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
 	var status ydb_proto.StatusIds_StatusCode
 
@@ -302,6 +324,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 		apiError = newAPIErrorFromYdbError(err)
 	case api_common.EDataSourceKind_ORACLE:
 		apiError = newAPIErrorFromOracleError(err)
+	case api_common.EDataSourceKind_MS_SQL_SERVER:
+		apiError = newAPIErrorFromMsSQLServer(err)
 	default:
 		panic("DataSource kind not specified for API error")
 	}

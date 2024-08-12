@@ -4,6 +4,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
@@ -42,7 +43,6 @@ func (s *Suite) TestDatetimeFormatString() {
 
 // Set of tests validating stats
 
-/*
 func (s *Suite) TestPositiveStats() {
 	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }
@@ -66,7 +66,6 @@ func (s *Suite) TestMissingDataSource() {
 
 	suite.TestMissingDataSource(s.Base, dsi)
 }
-*/
 
 func (s *Suite) TestPushdownComparisonL() {
 	s.ValidateTable(
@@ -258,10 +257,7 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
-/*
 func (s *Suite) TestInvalidLogin() {
-	s.T().Skip()
-
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
@@ -272,7 +268,6 @@ func (s *Suite) TestInvalidPassword() {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
-*/
 
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
