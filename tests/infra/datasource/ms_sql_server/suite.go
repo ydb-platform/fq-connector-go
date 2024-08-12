@@ -2,11 +2,13 @@ package ms_sql_server
 
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
-
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
-	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
+	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 type Suite struct {
@@ -64,6 +66,7 @@ func (s *Suite) TestMissingDataSource() {
 
 	suite.TestMissingDataSource(s.Base, dsi)
 }
+*/
 
 func (s *Suite) TestPushdownComparisonL() {
 	s.ValidateTable(
@@ -201,7 +204,7 @@ func (s *Suite) TestPushdownConjunction() {
 							),
 						},
 						{
-							Payload: tests_utils.MakePredicateIsNotNullColumn("varchar_column"),
+							Payload: tests_utils.MakePredicateIsNotNullColumn("text_column"),
 						},
 					},
 				},
@@ -227,7 +230,7 @@ func (s *Suite) TestPushdownDisjunction() {
 							),
 						},
 						{
-							Payload: tests_utils.MakePredicateIsNotNullColumn("varchar_column"),
+							Payload: tests_utils.MakePredicateIsNotNullColumn("text_column"),
 						},
 					},
 				},
@@ -255,7 +258,7 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
-// TODO: fix error mapping in `common/errors.go`
+/*
 func (s *Suite) TestInvalidLogin() {
 	s.T().Skip()
 

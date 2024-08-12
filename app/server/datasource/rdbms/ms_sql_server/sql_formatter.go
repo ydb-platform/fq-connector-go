@@ -72,7 +72,7 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 }
 
 func (sqlFormatter) GetPlaceholder(n int) string {
-	return fmt.Sprintf("@%d", n+1)
+	return fmt.Sprintf("@p%d", n+1)
 }
 
 func (sqlFormatter) SanitiseIdentifier(ident string) string {

@@ -62,3 +62,18 @@ INSERT INTO datetimes VALUES
     (3, '2023-03-21', '2023-03-21 11:21:00', '2023-03-21 11:21:31', '2023-03-21 11:21:31');
 
 SELECT * FROM datetimes;
+
+DROP TABLE IF EXISTS pushdown;
+CREATE TABLE pushdown (
+    id INTEGER PRIMARY KEY,
+    int_column INT,
+    text_column TEXT 
+);
+
+INSERT INTO pushdown VALUES
+                     (1, 10, 'a'),
+                     (2, 20, 'b'),
+                     (3, 30, 'c'),
+                     (4, NULL, NULL);
+
+SELECT * FROM pushdown;
