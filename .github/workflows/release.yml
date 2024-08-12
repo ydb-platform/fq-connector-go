@@ -55,8 +55,11 @@ jobs:
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
+          # cleanup some cache
+          go clean -cache
+          sudo rm -rf /usr/share/dotnet
           # give datasources some time to initialize
-          sleep 10
+          sleep 25
           go test -c -o fq-connector-go-tests ./tests
           ./fq-connector-go-tests -projectPath=$(pwd)
       # Build and tests are OK - only now we can push the tag
