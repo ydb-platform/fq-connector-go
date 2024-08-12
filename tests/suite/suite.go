@@ -19,29 +19,29 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
-type Base struct {
+type Base[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]] struct {
 	testify_suite.Suite
 	*State
 	Connector common.TestingServer
 	name      string
 }
 
-func (b *Base) BeforeTest(_, testName string) {
+func (b *Base[_, _]) BeforeTest(_, testName string) {
 	fmt.Printf("\n>>>>>>>>>> TEST STARTED: %s/%s <<<<<<<<<<\n\n", b.name, testName)
 }
 
-func (b *Base) TearDownTest() {
+func (b *Base[_, _]) TearDownTest() {
 	if b.T().Failed() {
 		// Do not launch other tests if this test failed
 		b.T().FailNow()
 	}
 }
 
-func (b *Base) BeforeSuite(_ string) {
+func (b *Base[_, _]) BeforeSuite(_ string) {
 	fmt.Printf("\n>>>>>>>>>> SUITE STARTED: %s <<<<<<<<<<\n", b.name)
 }
 
-func (b *Base) SetupSuite() {
+func (b *Base[_, _]) SetupSuite() {
 	// We want to run a distinct instance of Connector for every suite
 	var err error
 
@@ -70,7 +70,7 @@ func (b *Base) SetupSuite() {
 	b.Connector.Start()
 }
 
-func (b *Base) TearDownSuite() {
+func (b *Base[_, _]) TearDownSuite() {
 	b.Connector.Stop()
 
 	fmt.Printf("\n>>>>>>>>>> Suite stopped: %s <<<<<<<<<<\n", b.name)
@@ -119,13 +119,21 @@ func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
 	}
 }
 
-func (b *Base) ValidateTable(ds *datasource.DataSource, table *test_utils.Table, customOptions ...ValidateTableOption) {
+func (b *Base[ID, IDBUILDER]) ValidateTable(
+	ds *datasource.DataSource,
+	table *test_utils.Table[ID, IDBUILDER],
+	customOptions ...ValidateTableOption,
+) {
 	for _, dsi := range ds.Instances {
 		b.doValidateTable(table, dsi, customOptions...)
 	}
 }
 
-func (b *Base) doValidateTable(table *test_utils.Table, dsi *api_common.TDataSourceInstance, customOptions ...ValidateTableOption) {
+func (b *Base[ID, IDBUILDER]) doValidateTable(
+	table *test_utils.Table[ID, IDBUILDER],
+	dsi *api_common.TDataSourceInstance,
+	customOptions ...ValidateTableOption,
+) {
 	options := newDefaultValidateTableOptions()
 	for _, option := range customOptions {
 		option.apply(options)
@@ -177,8 +185,11 @@ func (b *Base) doValidateTable(table *test_utils.Table, dsi *api_common.TDataSou
 	table.MatchRecords(b.T(), records, schema)
 }
 
-func NewBase(t *testing.T, state *State, name string) *Base {
-	b := &Base{
+func NewBase[
+	ID test_utils.TableIDTypes,
+	IDBUILDER test_utils.ArrowIDBuilder[ID],
+](t *testing.T, state *State, name string) *Base[ID, IDBUILDER] {
+	b := &Base[ID, IDBUILDER]{
 		State: state,
 		name:  name,
 	}
