@@ -37,12 +37,11 @@ func (c *connectionManager) Make(
 		uint16(dsi.GetEndpoint().GetPort()),
 		dsi.Database)
 
-	// TODO: add tls
-	// if dsi.UseTls {
-	// 	connectString += "&encrypt=true&trustServerCertificate=true"
-	// } else {
-	// 	connectString += "&encrypt=false"
-	// }
+	if dsi.UseTls {
+		connectString += "&encrypt=true&trustServerCertificate=false"
+	} else {
+		connectString += "&encrypt=disable"
+	}
 
 	db, err := sql.Open("sqlserver", connectString)
 	if err != nil {
