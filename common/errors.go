@@ -174,12 +174,14 @@ func newAPIErrorFromMsSQLServer(err error) *api_service_protos.TError {
 		default:
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
 		}
+
+		return &api_service_protos.TError{
+			Status:  status,
+			Message: err.Error(),
+		}
 	}
 
-	return &api_service_protos.TError{
-		Status:  status,
-		Message: err.Error(),
-	}
+	return nil
 }
 
 func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
