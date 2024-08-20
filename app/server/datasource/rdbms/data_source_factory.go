@@ -81,10 +81,15 @@ func NewDataSourceFactory(
 	return &dataSourceFactory{
 		clickhouse: Preset{
 			SQLFormatter:      clickhouse.NewSQLFormatter(),
-			ConnectionManager: clickhouse.NewConnectionManager(connManagerCfg),
+			ConnectionManager: clickhouse.NewConnectionManager(connManagerCfg, cfg.Clickhouse),
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			RetrierSet: &rdbms_utils.RetrierSet{
+				MakeConnection: rdbms_utils.NewRetrierFromConfig(
+					cfg.Clickhouse.ExponentialBackoff, clickhouse.RetriableErrorCheckerMakeConnection),
+				Query: rdbms_utils.NewRetrierFromConfig(
+					cfg.Clickhouse.ExponentialBackoff, clickhouse.RetriableErrorCheckerQuery),
+			},
 		},
 		postgresql: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),

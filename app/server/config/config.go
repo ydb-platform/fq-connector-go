@@ -15,6 +15,16 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
+	return &config.TExponentialBackoffConfig{
+		InitialInterval:     "500ms",
+		RandomizationFactor: 0.5,
+		Multiplier:          1.5,
+		MaxInterval:         "20s",
+		MaxElapsedTime:      "1m",
+	}
+}
+
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Paging == nil {
 		c.Paging = &config.TPagingConfig{
@@ -40,6 +50,8 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources = &config.TDatasourcesConfig{}
 	}
 
+	// 1. YDB
+
 	if c.Datasources.Ydb == nil {
 		c.Datasources.Ydb = &config.TYdbConfig{
 			OpenConnectionTimeout: "5s",
@@ -48,17 +60,26 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	}
 
 	if c.Datasources.Ydb.ExponentialBackoff == nil {
-		c.Datasources.Ydb.ExponentialBackoff = &config.TExponentialBackoffConfig{
-			InitialInterval:     "500ms",
-			RandomizationFactor: 0.5,
-			Multiplier:          1.5,
-			MaxInterval:         "20s",
-			MaxElapsedTime:      "1m",
-		}
+		c.Datasources.Ydb.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
+
+	// 2. MySQL
 
 	if c.Datasources.Mysql == nil {
 		c.Datasources.Mysql = &config.TMySQLConfig{ResultChanCapacity: 512}
+	}
+
+	// 3. ClickHouse
+
+	if c.Datasources.Clickhouse == nil {
+		c.Datasources.Clickhouse = &config.TClickHouseConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Clickhouse.ExponentialBackoff == nil {
+		c.Datasources.Clickhouse.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 }
 

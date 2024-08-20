@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -15,6 +16,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
+	cfg *config.TClickHouseConfig
 }
 
 func (c *connectionManager) Make(
@@ -28,9 +30,9 @@ func (c *connectionManager) Make(
 
 	switch dsi.Protocol {
 	case api_common.EProtocol_NATIVE:
-		return makeConnectionNative(ctx, logger, dsi, c.QueryLoggerFactory.Make(logger))
+		return makeConnectionNative(ctx, logger, c.cfg, dsi, c.QueryLoggerFactory.Make(logger))
 	case api_common.EProtocol_HTTP:
-		return makeConnectionHTTP(ctx, logger, dsi, c.QueryLoggerFactory.Make(logger))
+		return makeConnectionHTTP(ctx, logger, c.cfg, dsi, c.QueryLoggerFactory.Make(logger))
 	default:
 		return nil, fmt.Errorf("can not run ClickHouse connection with protocol '%v'", dsi.Protocol)
 	}
@@ -40,6 +42,9 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close clickhouse connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	base rdbms_utils.ConnectionManagerBase,
+	cfg *config.TClickHouseConfig,
+) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }
