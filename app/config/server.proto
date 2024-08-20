@@ -148,6 +148,18 @@ message TYdbConfig {
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
+// TClickHouseConfig contains settings specific for ClickHouse data source
+message TClickHouseConfig {
+    // Timeout for ClickHouse connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for ClickHouse connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
 message TMySQLConfig {
     uint64 result_chan_capacity = 1;
 }
@@ -156,4 +168,5 @@ message TMySQLConfig {
 message TDatasourcesConfig {
     TYdbConfig ydb = 1;
     TMySQLConfig mysql = 2;
+    TClickHouseConfig clickhouse = 3;
 }
