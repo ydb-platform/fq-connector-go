@@ -16,6 +16,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -59,7 +60,7 @@ func TestReadSplit(t *testing.T) {
 		preset := &Preset{
 			ConnectionManager: connectionManager,
 			SQLFormatter:      postgresql.NewSQLFormatter(), // TODO: parametrize
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			RetrierSet:        retry.NewRetrierSetNoop(),
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
@@ -108,7 +109,7 @@ func TestReadSplit(t *testing.T) {
 		preset := &Preset{
 			ConnectionManager: connectionManager,
 			SQLFormatter:      postgresql.NewSQLFormatter(), // TODO: parametrize
-			RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+			RetrierSet:        retry.NewRetrierSetNoop(),
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}

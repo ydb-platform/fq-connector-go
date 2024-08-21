@@ -24,6 +24,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -236,7 +237,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		SQLFormatter:      clickhouse.NewSQLFormatter(),
 		ConnectionManager: connectionManager,
 		TypeMapper:        typeMapper,
-		RetrierSet:        rdbms_utils.NewRetrierSetNoop(),
+		RetrierSet:        retry.NewRetrierSetNoop(),
 	}
 
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})

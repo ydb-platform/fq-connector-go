@@ -11,7 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -20,7 +20,7 @@ type Preset struct {
 	ConnectionManager rdbms_utils.ConnectionManager
 	TypeMapper        datasource.TypeMapper
 	SchemaProvider    rdbms_utils.SchemaProvider
-	RetrierSet        *utils.RetrierSet
+	RetrierSet        *retry.RetrierSet
 }
 
 var _ datasource.DataSource[any] = (*dataSourceImpl)(nil)
@@ -30,7 +30,7 @@ type dataSourceImpl struct {
 	sqlFormatter        rdbms_utils.SQLFormatter
 	connectionManager   rdbms_utils.ConnectionManager
 	schemaProvider      rdbms_utils.SchemaProvider
-	retrierSet          *utils.RetrierSet
+	retrierSet          *retry.RetrierSet
 	converterCollection conversion.Collection
 	logger              *zap.Logger
 }
