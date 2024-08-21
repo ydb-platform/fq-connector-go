@@ -5,11 +5,7 @@ import (
 	grpc_codes "google.golang.org/grpc/codes"
 )
 
-func RetriableErrorCheckerMakeConnection(_ error) bool {
-	return false
-}
-
-func RetriableErrorCheckerQuery(err error) bool {
+func ErrorCheckerQuery(err error) bool {
 	switch {
 	case ydb.IsTransportError(err, grpc_codes.ResourceExhausted):
 		return true

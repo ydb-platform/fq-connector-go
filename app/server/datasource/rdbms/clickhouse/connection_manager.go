@@ -43,8 +43,8 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 }
 
 func NewConnectionManager(
-	base rdbms_utils.ConnectionManagerBase,
 	cfg *config.TClickHouseConfig,
+	base rdbms_utils.ConnectionManagerBase,
 ) rdbms_utils.ConnectionManager {
 	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }

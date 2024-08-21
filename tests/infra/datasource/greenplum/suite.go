@@ -223,8 +223,8 @@ func (s *Suite) TestPositiveStats() {
 
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
-		Kind:     api_common.EDataSourceKind_POSTGRESQL,
-		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 5432},
+		Kind:     api_common.EDataSourceKind_GREENPLUM,
+		Endpoint: &api_common.TEndpoint{Host: "www.google.com", Port: 5432},
 		Database: "it's not important",
 		Credentials: &api_common.TCredentials{
 			Payload: &api_common.TCredentials_Basic{
@@ -236,8 +236,8 @@ func (s *Suite) TestMissingDataSource() {
 		},
 		UseTls:   false,
 		Protocol: api_common.EProtocol_NATIVE,
-		Options: &api_common.TDataSourceInstance_PgOptions{
-			PgOptions: &api_common.TPostgreSQLDataSourceOptions{
+		Options: &api_common.TDataSourceInstance_GpOptions{
+			GpOptions: &api_common.TGreenplumDataSourceOptions{
 				Schema: "public",
 			},
 		},

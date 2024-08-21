@@ -1,4 +1,4 @@
-package utils
+package retry
 
 import (
 	"github.com/cenkalti/backoff/v4"
@@ -10,8 +10,6 @@ import (
 
 type Operation func() error
 
-type RetriableErrorChecker func(err error) bool
-
 type Retrier interface {
 	Run(logger *zap.Logger, op Operation) error
 }
@@ -19,7 +17,7 @@ type Retrier interface {
 type backoffFactory func() *backoff.ExponentialBackOff
 
 type retrierDefault struct {
-	retriableErrorChecker RetriableErrorChecker
+	retriableErrorChecker ErrorChecker
 	backoffFactory        backoffFactory
 }
 
@@ -41,7 +39,7 @@ func (r *retrierDefault) Run(logger *zap.Logger, op Operation) error {
 	}), r.backoffFactory())
 }
 
-func NewRetrierFromConfig(cfg *config.TExponentialBackoffConfig, retriableErrorChecker RetriableErrorChecker) Retrier {
+func NewRetrierFromConfig(cfg *config.TExponentialBackoffConfig, retriableErrorChecker ErrorChecker) Retrier {
 	return &retrierDefault{
 		retriableErrorChecker: retriableErrorChecker,
 		backoffFactory: func() *backoff.ExponentialBackOff {

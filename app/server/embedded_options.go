@@ -66,3 +66,27 @@ func (o *withMetricsServerConfig) apply(cfg *config.TServerConfig) {
 func WithMetricsServerConfig(metricsServerConfig *config.TMetricsServerConfig) EmbeddedOption {
 	return &withMetricsServerConfig{metricsServerConfig: metricsServerConfig}
 }
+
+type withConnectionTimeouts struct {
+	open string
+	ping string
+}
+
+func (o *withConnectionTimeouts) apply(cfg *config.TServerConfig) {
+	cfg.Datasources.Clickhouse.OpenConnectionTimeout = o.open
+	cfg.Datasources.Clickhouse.PingConnectionTimeout = o.ping
+	cfg.Datasources.Greenplum.OpenConnectionTimeout = o.open
+	cfg.Datasources.Mysql.OpenConnectionTimeout = o.open
+	cfg.Datasources.MsSqlServer.PingConnectionTimeout = o.ping
+	cfg.Datasources.Oracle.OpenConnectionTimeout = o.open
+	cfg.Datasources.Oracle.PingConnectionTimeout = o.ping
+	cfg.Datasources.Postgresql.OpenConnectionTimeout = o.open
+	cfg.Datasources.Ydb.OpenConnectionTimeout = o.open
+	cfg.Datasources.Ydb.PingConnectionTimeout = o.ping
+}
+
+func WithConnectionTimeouts(open, ping string) EmbeddedOption {
+	return &withConnectionTimeouts{
+		open: open, ping: ping,
+	}
+}

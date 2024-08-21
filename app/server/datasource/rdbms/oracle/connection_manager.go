@@ -3,13 +3,13 @@ package oracle
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"go.uber.org/zap"
 
 	go_ora "github.com/sijms/go-ora/v2"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -18,7 +18,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
-	// TODO: cache of connections, remove unused connections with TTL
+	cfg *config.TOracleConfig
 }
 
 func (c *connectionManager) Make(
@@ -56,12 +56,15 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("new go-ora connection: %w", err)
 	}
 
-	err = conn.OpenWithContext(ctx)
+	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
+	defer openCtxCancel()
+
+	err = conn.OpenWithContext(openCtx)
 	if err != nil {
 		return nil, fmt.Errorf("open connection: %w", err)
 	}
 
-	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
 	defer pingCtxCancel()
 
 	err = conn.Ping(pingCtx)
@@ -80,7 +83,8 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 }
 
 func NewConnectionManager(
+	cfg *config.TOracleConfig,
 	base rdbms_utils.ConnectionManagerBase,
 ) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: base}
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }
