@@ -190,6 +190,7 @@ func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
 	// TODO: remove this and extract MyError somehow
 	//       for some reason errors.As() does not work with mysql.MyError
 	errorText := err.Error()
+
 	var code uint16
 
 	match := mysqlRegex.FindString(errorText)
@@ -199,6 +200,7 @@ func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
 		if err != nil {
 			panic(err)
 		}
+
 		code = uint16(tmp)
 	}
 
@@ -215,7 +217,6 @@ func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
 		Status:  status,
 		Message: errorText,
 	}
-
 }
 
 func newAPIErrorFromYdbError(err error) *api_service_protos.TError {

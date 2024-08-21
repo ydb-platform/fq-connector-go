@@ -25,7 +25,7 @@ func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
 	}
 }
 
-// nolint: gocyclo
+//nolint: gocyclo
 // TODO: use reflection to generalize datasource setting code
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Paging == nil {
@@ -70,7 +70,6 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Datasources.Greenplum == nil {
 		c.Datasources.Greenplum = &config.TGreenplumConfig{
 			OpenConnectionTimeout: "5s",
-			PingConnectionTimeout: "5s",
 		}
 	}
 
@@ -121,7 +120,6 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Datasources.Postgresql == nil {
 		c.Datasources.Postgresql = &config.TPostgreSQLConfig{
 			OpenConnectionTimeout: "5s",
-			PingConnectionTimeout: "5s",
 		}
 	}
 
