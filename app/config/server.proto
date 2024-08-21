@@ -152,21 +152,15 @@ message TGreenplumConfig {
     // Timeout for Greenplum connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string open_connection_timeout = 1; 
-    // Timeout for Greenplum connection pinging.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 2;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
 // TMsSQLServerConfig contains settings specific for MsSQLServer data source
 message TMsSQLServerConfig {
-    // Timeout for MsSQLServer connection opening.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
     // Timeout for MsSQLServer connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 2;
+    string ping_connection_timeout = 1;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }
@@ -178,9 +172,6 @@ message TMySQLConfig {
     // Timeout for MySQL connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string open_connection_timeout = 2; 
-    // Timeout for MySQL connection pinging.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 3;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }
@@ -202,9 +193,6 @@ message TPostgreSQLConfig {
     // Timeout for PostgreSQL connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string open_connection_timeout = 1; 
-    // Timeout for PostgreSQL connection pinging.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 2;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }

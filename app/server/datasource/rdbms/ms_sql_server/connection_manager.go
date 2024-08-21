@@ -4,12 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -18,7 +18,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
-	// TODO: cache of connections, remove unused connections with TTL
+	cfg *config.TMsSQLServerConfig
 }
 
 func (c *connectionManager) Make(
@@ -45,16 +45,16 @@ func (c *connectionManager) Make(
 
 	db, err := sql.Open("sqlserver", connectString)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open connection: %w", err)
+		return nil, fmt.Errorf("sql open: %w", err)
 	}
 
-	pingCtx, pingCtxCancel := context.WithTimeout(ctx, 5*time.Second)
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
 	defer pingCtxCancel()
 
 	err = db.PingContext(pingCtx)
 	if err != nil {
 		defer db.Close()
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("ping: %w", err)
 	}
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
@@ -66,6 +66,8 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close connection")
 }
 
-func NewConnectionManager(cfg rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
-	return &connectionManager{ConnectionManagerBase: cfg}
+func NewConnectionManager(
+	cfg *config.TMsSQLServerConfig,
+	base rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {
+	return &connectionManager{ConnectionManagerBase: base, cfg: cfg}
 }

@@ -62,7 +62,7 @@ func NewDataSourceFactory(
 	qlf common.QueryLoggerFactory,
 	converterCollection conversion.Collection,
 ) datasource.Factory[any] {
-	connManagerCfg := rdbms_utils.ConnectionManagerBase{
+	connManagerBase := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
 	}
 
@@ -82,7 +82,7 @@ func NewDataSourceFactory(
 	return &dataSourceFactory{
 		clickhouse: Preset{
 			SQLFormatter:      clickhouse.NewSQLFormatter(),
-			ConnectionManager: clickhouse.NewConnectionManager(connManagerCfg, cfg.Clickhouse),
+			ConnectionManager: clickhouse.NewConnectionManager(cfg.Clickhouse, connManagerBase),
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
@@ -91,9 +91,10 @@ func NewDataSourceFactory(
 			},
 		},
 		postgresql: Preset{
-			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetters[api_common.EDataSourceKind_POSTGRESQL]),
-			TypeMapper:        postgresqlTypeMapper,
+			SQLFormatter: postgresql.NewSQLFormatter(),
+			ConnectionManager: postgresql.NewConnectionManager(
+				cfg.Postgresql, connManagerBase, schemaGetters[api_common.EDataSourceKind_POSTGRESQL]),
+			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
 				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
@@ -108,7 +109,7 @@ func NewDataSourceFactory(
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
-			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerCfg),
+			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 			RetrierSet: &retry.RetrierSet{
@@ -118,7 +119,7 @@ func NewDataSourceFactory(
 		},
 		msSQLServer: Preset{
 			SQLFormatter:      ms_sql_server.NewSQLFormatter(),
-			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
+			ConnectionManager: ms_sql_server.NewConnectionManager(cfg.MsSqlServer, connManagerBase),
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
@@ -128,7 +129,7 @@ func NewDataSourceFactory(
 		},
 		mysql: Preset{
 			SQLFormatter:      mysql.NewSQLFormatter(),
-			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerCfg),
+			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerBase),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
@@ -137,9 +138,10 @@ func NewDataSourceFactory(
 			},
 		},
 		greenplum: Preset{
-			SQLFormatter:      postgresql.NewSQLFormatter(),
-			ConnectionManager: postgresql.NewConnectionManager(connManagerCfg, schemaGetters[api_common.EDataSourceKind_GREENPLUM]),
-			TypeMapper:        postgresqlTypeMapper,
+			SQLFormatter: postgresql.NewSQLFormatter(),
+			ConnectionManager: postgresql.NewConnectionManager(
+				cfg.Greenplum, connManagerBase, schemaGetters[api_common.EDataSourceKind_GREENPLUM]),
+			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
 				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
@@ -154,7 +156,7 @@ func NewDataSourceFactory(
 		},
 		oracle: Preset{
 			SQLFormatter:      oracle.NewSQLFormatter(),
-			ConnectionManager: oracle.NewConnectionManager(connManagerCfg),
+			ConnectionManager: oracle.NewConnectionManager(cfg.Oracle, connManagerBase),
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{

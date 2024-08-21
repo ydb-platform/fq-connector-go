@@ -33,7 +33,7 @@ func (c *connectionManager) Make(
 	optionFuncs := make([]func(c *client.Conn), 0)
 
 	if dsi.GetCredentials().GetBasic() == nil {
-		return nil, fmt.Errorf("mysql: currently only basic auth is supported")
+		return nil, fmt.Errorf("currently only basic auth is supported")
 	}
 
 	if dsi.GetUseTls() {
@@ -53,17 +53,18 @@ func (c *connectionManager) Make(
 
 	// TODO: support cert-based auth
 
-	dialer := &net.Dialer{}
+	dialer := &net.Dialer{
+		Timeout: common.MustDurationFromString(c.cfg.OpenConnectionTimeout),
+	}
 	proto := "tcp"
 
 	if strings.Contains(addr, "/") {
-		return nil, errors.New("mysql: unix socket connections are unsupported")
+		return nil, errors.New("unix socket connections are unsupported")
 	}
 
 	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext, optionFuncs...)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
-		return nil, fmt.Errorf("mysql: %w", err)
+		return nil, fmt.Errorf("connect with dialer: %w", err)
 	}
 
 	return &Connection{queryLogger, conn, c.cfg.GetResultChanCapacity()}, nil

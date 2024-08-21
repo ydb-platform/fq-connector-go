@@ -66,7 +66,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
 	schemaGetter func(dsi *api_common.TDataSourceInstance) string
-	// TODO: cache of connections, remove unused connections with TTL
+	cfg          ConnectionManagerConfig
 }
 
 func (c *connectionManager) Make(
@@ -108,7 +108,10 @@ func (c *connectionManager) Make(
 		connCfg.TLSConfig.ServerName = dsi.GetEndpoint().GetHost()
 	}
 
-	conn, err := pgx.ConnectConfig(ctx, connCfg)
+	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.GetOpenConnectionTimeout()))
+	defer openCtxCancel()
+
+	conn, err := pgx.ConnectConfig(openCtx, connCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect config: %w", err)
 	}
@@ -117,7 +120,7 @@ func (c *connectionManager) Make(
 
 	searchPath := fmt.Sprintf("set search_path=%s", c.schemaGetter(dsi))
 
-	if _, err = conn.Exec(ctx, searchPath); err != nil {
+	if _, err = conn.Exec(openCtx, searchPath); err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
@@ -130,12 +133,18 @@ func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connectio
 	common.LogCloserError(logger, conn, "close posgresql connection")
 }
 
+type ConnectionManagerConfig interface {
+	GetOpenConnectionTimeout() string
+}
+
 func NewConnectionManager(
-	cfg rdbms_utils.ConnectionManagerBase,
+	cfg ConnectionManagerConfig,
+	base rdbms_utils.ConnectionManagerBase,
 	schemaGetter func(*api_common.TDataSourceInstance) string,
 ) rdbms_utils.ConnectionManager {
 	return &connectionManager{
-		ConnectionManagerBase: cfg,
+		ConnectionManagerBase: base,
 		schemaGetter:          schemaGetter,
+		cfg:                   cfg,
 	}
 }
