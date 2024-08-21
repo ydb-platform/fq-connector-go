@@ -25,8 +25,8 @@ func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
 	}
 }
 
-//nolint: gocyclo
-// TODO: use reflection to generalize datasource setting code
+//TODO: use reflection to generalize datasource setting code
+//nolint:gocyclo
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Paging == nil {
 		c.Paging = &config.TPagingConfig{
