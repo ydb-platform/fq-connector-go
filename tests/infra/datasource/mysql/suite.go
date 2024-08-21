@@ -52,7 +52,7 @@ func (s *Suite) TestPositiveStats() {
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
 		Kind:     api_common.EDataSourceKind_MYSQL,
-		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 3306},
+		Endpoint: &api_common.TEndpoint{Host: "www.google.com", Port: 3306},
 		Database: "it's not important",
 		Credentials: &api_common.TCredentials{
 			Payload: &api_common.TCredentials_Basic{

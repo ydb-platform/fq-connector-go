@@ -65,6 +65,7 @@ func (b *Base[_, _]) SetupSuite() {
 				},
 			},
 		),
+		server.WithConnectionTimeouts("2s", "1s"),
 	)
 	b.Require().NoError(err)
 	b.Connector.Start()

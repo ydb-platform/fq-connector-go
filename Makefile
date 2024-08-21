@@ -13,7 +13,7 @@ unit_test:
 	go test ./app/... ./common/... ./tests/utils/...
 
 integration_test: integration_test_build
-	./fq-connector-go-tests -projectPath=$(PROJECT_PATH)
+	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.failfast
 
 integration_test_build: 
 	go test -c -o fq-connector-go-tests ./tests
