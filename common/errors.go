@@ -190,32 +190,32 @@ func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
 	// TODO: remove this and extract MyError somehow
 	//       for some reason errors.As() does not work with mysql.MyError
 	errorText := err.Error()
-	if strings.Contains(errorText, "mysql:") {
-		var code uint16
+	var code uint16
 
-		match := mysqlRegex.FindString(errorText)
+	match := mysqlRegex.FindString(errorText)
 
-		if len(match) > 0 {
-			tmp, _ := strconv.ParseUint(match, 10, 16)
-			code = uint16(tmp)
+	if len(match) > 0 {
+		tmp, err := strconv.ParseUint(match, 10, 16)
+		if err != nil {
+			panic(err)
 		}
-
-		switch code {
-		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
-			status = ydb_proto.StatusIds_UNAUTHORIZED
-		case mysql.ER_BAD_DB_ERROR:
-			status = ydb_proto.StatusIds_NOT_FOUND
-		default:
-			status = ydb_proto.StatusIds_INTERNAL_ERROR
-		}
-
-		return &api_service_protos.TError{
-			Status:  status,
-			Message: errorText,
-		}
+		code = uint16(tmp)
 	}
 
-	return nil
+	switch code {
+	case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
+		status = ydb_proto.StatusIds_UNAUTHORIZED
+	case mysql.ER_BAD_DB_ERROR:
+		status = ydb_proto.StatusIds_NOT_FOUND
+	default:
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: errorText,
+	}
+
 }
 
 func newAPIErrorFromYdbError(err error) *api_service_protos.TError {
