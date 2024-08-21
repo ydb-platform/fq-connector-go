@@ -86,10 +86,8 @@ func NewDataSourceFactory(
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(
-					cfg.Clickhouse.ExponentialBackoff, clickhouse.RetriableErrorCheckerMakeConnection),
-				Query: retry.NewRetrierFromConfig(
-					cfg.Clickhouse.ExponentialBackoff, clickhouse.RetriableErrorCheckerQuery),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
 		postgresql: Preset{
