@@ -101,7 +101,10 @@ func NewDataSourceFactory(
 						request,
 						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
-			RetrierSet: retry.NewRetrierSetNoop(),
+			RetrierSet: &retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
 		},
 		ydb: Preset{
 			SQLFormatter:      ydb.NewSQLFormatter(),
@@ -109,8 +112,8 @@ func NewDataSourceFactory(
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.RetriableErrorCheckerMakeConnection),
-				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.RetriableErrorCheckerQuery),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
 			},
 		},
 		msSQLServer: Preset{
@@ -118,14 +121,20 @@ func NewDataSourceFactory(
 			ConnectionManager: ms_sql_server.NewConnectionManager(connManagerCfg),
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
-			RetrierSet:        retry.NewRetrierSetNoop(),
+			RetrierSet: &retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
 		},
 		mysql: Preset{
 			SQLFormatter:      mysql.NewSQLFormatter(),
 			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerCfg),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.TableMetadataQuery),
-			RetrierSet:        retry.NewRetrierSetNoop(),
+			RetrierSet: &retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
 		},
 		greenplum: Preset{
 			SQLFormatter:      postgresql.NewSQLFormatter(),
@@ -138,14 +147,20 @@ func NewDataSourceFactory(
 						request,
 						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
-			RetrierSet: retry.NewRetrierSetNoop(),
+			RetrierSet: &retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
 		},
 		oracle: Preset{
 			SQLFormatter:      oracle.NewSQLFormatter(),
 			ConnectionManager: oracle.NewConnectionManager(connManagerCfg),
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
-			RetrierSet:        retry.NewRetrierSetNoop(),
+			RetrierSet: &retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
 		},
 		converterCollection: converterCollection,
 	}

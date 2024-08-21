@@ -134,6 +134,81 @@ message TExponentialBackoffConfig {
 	string max_elapsed_time = 5;
 }
 
+
+// TClickHouseConfig contains settings specific for ClickHouse data source
+message TClickHouseConfig {
+    // Timeout for ClickHouse connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for ClickHouse connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+// TGreenplumConfig contains settings specific for Greenplum data source
+message TGreenplumConfig {
+    // Timeout for Greenplum connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for Greenplum connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+// TMsSQLServerConfig contains settings specific for MsSQLServer data source
+message TMsSQLServerConfig {
+    // Timeout for MsSQLServer connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for MsSQLServer connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+
+message TMySQLConfig {
+    uint64 result_chan_capacity = 1;
+
+    // Timeout for MySQL connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 2; 
+    // Timeout for MySQL connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 3;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+// TOracleConfig contains settings specific for Oracle data source
+message TOracleConfig {
+    // Timeout for Oracle connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for Oracle connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+// TPostgreSQLConfig contains settings specific for PostgreSQL data source
+message TPostgreSQLConfig {
+    // Timeout for PostgreSQL connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for PostgreSQL connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
 // TYdbConfig contains settings specific for YDB data source
 message TYdbConfig {
     // Timeout for YDB connection opening.
@@ -148,25 +223,13 @@ message TYdbConfig {
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
-// TClickHouseConfig contains settings specific for ClickHouse data source
-message TClickHouseConfig {
-    // Timeout for ClickHouse connection opening.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
-    // Timeout for ClickHouse connection pinging.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 2;
-
-    TExponentialBackoffConfig exponential_backoff = 10;
-}
-
-message TMySQLConfig {
-    uint64 result_chan_capacity = 1;
-}
-
 // TDatasouceConfig is a collection of datasource-specific settings
 message TDatasourcesConfig {
-    TYdbConfig ydb = 1;
-    TMySQLConfig mysql = 2;
     TClickHouseConfig clickhouse = 3;
+    TGreenplumConfig greenplum = 6;
+    TMsSQLServerConfig ms_sql_server = 4;
+    TMySQLConfig mysql = 2;
+    TOracleConfig oracle = 7;
+    TPostgreSQLConfig postgresql = 5;
+    TYdbConfig ydb = 1;
 }
