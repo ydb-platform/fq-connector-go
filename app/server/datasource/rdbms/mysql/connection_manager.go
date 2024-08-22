@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-mysql-org/go-mysql/client"
-
+	pingcap_errors "github.com/pingcap/errors"
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -64,7 +64,7 @@ func (c *connectionManager) Make(
 
 	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext, optionFuncs...)
 	if err != nil {
-		return nil, fmt.Errorf("connect with dialer: %w", err)
+		return nil, fmt.Errorf("connect with dialer: %w", pingcap_errors.Cause(err))
 	}
 
 	return &Connection{queryLogger, conn, c.cfg.GetResultChanCapacity()}, nil
