@@ -30,12 +30,16 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("can not create MS SQL Server connection with protocol '%v'", dsi.Protocol)
 	}
 
-	connectString := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s",
+	openConnectionTimeout := int(common.MustDurationFromString(c.cfg.OpenConnectionTimeout).Seconds())
+
+	connectString := fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s&connection+timeout=%d",
 		dsi.Credentials.GetBasic().GetUsername(),
 		dsi.Credentials.GetBasic().GetPassword(),
 		dsi.GetEndpoint().GetHost(),
 		uint16(dsi.GetEndpoint().GetPort()),
-		dsi.Database)
+		dsi.Database,
+		openConnectionTimeout,
+	)
 
 	if dsi.UseTls {
 		connectString += "&encrypt=true&trustServerCertificate=false"

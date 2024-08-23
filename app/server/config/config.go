@@ -18,9 +18,9 @@ import (
 func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
 	return &config.TExponentialBackoffConfig{
 		InitialInterval:     "500ms",
-		RandomizationFactor: 0.5,
+		RandomizationFactor: 0.25,
 		Multiplier:          1.5,
-		MaxInterval:         "20s",
+		MaxInterval:         "10s",
 		MaxElapsedTime:      "1m",
 	}
 }
@@ -82,6 +82,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.MsSqlServer == nil {
 		c.Datasources.MsSqlServer = &config.TMsSQLServerConfig{
+			OpenConnectionTimeout: "5s",
 			PingConnectionTimeout: "5s",
 		}
 	}
