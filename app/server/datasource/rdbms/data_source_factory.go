@@ -103,7 +103,7 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, postgresql.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -150,7 +150,7 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, postgresql.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
