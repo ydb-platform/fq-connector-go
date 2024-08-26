@@ -1,8 +1,11 @@
 package retry
 
 import (
+	"context"
+
 	"github.com/cenkalti/backoff/v4"
 	"go.uber.org/zap"
+	"google.golang.org/grpc/metadata"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -11,7 +14,7 @@ import (
 type Operation func() error
 
 type Retrier interface {
-	Run(logger *zap.Logger, op Operation) error
+	Run(ctx context.Context, logger *zap.Logger, op Operation) error
 }
 
 type backoffFactory func() *backoff.ExponentialBackOff
@@ -21,13 +24,27 @@ type retrierDefault struct {
 	backoffFactory        backoffFactory
 }
 
-func (r *retrierDefault) Run(logger *zap.Logger, op Operation) error {
+func (r *retrierDefault) Run(ctx context.Context, logger *zap.Logger, op Operation) error {
+	var attempts int
+
 	return backoff.Retry(backoff.Operation(func() error {
+		attempts++
+
 		err := op()
 
 		if err != nil {
+			// It's convinient to disable retries for negative tests
+			if md, ok := metadata.FromIncomingContext(ctx); ok {
+				if _, exists := md[common.ForbidRetries]; exists {
+					logger.Warn("retriable error occurred, but 'ForbidRetries' flag was set", zap.Error(err))
+				}
+
+				return backoff.Permanent(err)
+			}
+
+			// Check if error is retriable
 			if r.retriableErrorChecker(err) {
-				logger.Warn("retriable error occurred", zap.Error(err))
+				logger.Warn("retriable error occurred", zap.Error(err), zap.Int("attempts", attempts))
 
 				return err
 			}

@@ -42,7 +42,7 @@ func (ds *dataSourceImpl) DescribeTable(
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	var conn rdbms_utils.Connection
 
-	err := ds.retrierSet.MakeConnection.Run(logger,
+	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var makeConnErr error
 
@@ -82,7 +82,7 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	var conn rdbms_utils.Connection
 
-	err = ds.retrierSet.MakeConnection.Run(logger,
+	err = ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var makeConnErr error
 
@@ -96,7 +96,7 @@ func (ds *dataSourceImpl) doReadSplit(
 	)
 
 	if err != nil {
-		return fmt.Errorf("retry: %w", err)
+		return fmt.Errorf("make connection: %w", err)
 	}
 
 	defer ds.connectionManager.Release(logger, conn)
@@ -104,6 +104,7 @@ func (ds *dataSourceImpl) doReadSplit(
 	var rows rdbms_utils.Rows
 
 	err = ds.retrierSet.Query.Run(
+		ctx,
 		logger,
 		func() error {
 			var queryErr error
@@ -117,7 +118,7 @@ func (ds *dataSourceImpl) doReadSplit(
 	)
 
 	if err != nil {
-		return fmt.Errorf("retry: %w", err)
+		return fmt.Errorf("query: %w", err)
 	}
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()

@@ -158,6 +158,9 @@ message TGreenplumConfig {
 
 // TMsSQLServerConfig contains settings specific for MsSQLServer data source
 message TMsSQLServerConfig {
+    // Timeout for ClickHouse connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 2; 
     // Timeout for MsSQLServer connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 1;
