@@ -57,7 +57,7 @@ func (c *connectionManager) Make(
 
 	err = db.PingContext(pingCtx)
 	if err != nil {
-		db.Close()
+		common.LogCloserError(logger, db, "close connection")
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 

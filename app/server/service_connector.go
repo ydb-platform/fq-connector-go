@@ -162,6 +162,7 @@ func (s *serviceConnector) ReadSplits(
 
 	var err error
 	logger, err = s.doReadSplits(logger, request, stream)
+
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
