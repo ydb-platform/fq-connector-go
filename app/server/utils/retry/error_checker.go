@@ -5,7 +5,6 @@ import (
 	"net"
 	"os"
 	"syscall"
-	_ "unsafe"
 )
 
 type ErrorChecker func(err error) bool

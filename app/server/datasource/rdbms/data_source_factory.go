@@ -160,7 +160,7 @@ func NewDataSourceFactory(
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, oracle.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
