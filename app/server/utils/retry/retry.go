@@ -22,12 +22,16 @@ type retrierDefault struct {
 }
 
 func (r *retrierDefault) Run(logger *zap.Logger, op Operation) error {
+	var attempts int
+
 	return backoff.Retry(backoff.Operation(func() error {
+		attempts++
+
 		err := op()
 
 		if err != nil {
 			if r.retriableErrorChecker(err) {
-				logger.Warn("retriable error occurred", zap.Error(err))
+				logger.Warn("retriable error occurred", zap.Error(err), zap.Int("attempts", attempts))
 
 				return err
 			}
