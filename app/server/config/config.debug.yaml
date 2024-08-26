@@ -24,13 +24,46 @@ paging:
 conversion:
   use_unsafe_converters: true
 
+exponential_backoff_default:  &exponential_backoff_default_var
+  initial_interval: 500ms
+  randomization_factor: 0.5
+  multiplier: 1.5
+  max_interval: 20s
+  max_elapsed_time: 1m
+
 datasources:
+  greenplum:
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s
+    exponential_backoff:
+      <<: *exponential_backoff_default_var
+
+  ms_sql_server:
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s
+    exponential_backoff:
+      <<: *exponential_backoff_default_var
+
+  mysql:
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s
+    exponential_backoff:
+      <<: *exponential_backoff_default_var
+
+  postgresql:
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s
+    exponential_backoff:
+      <<: *exponential_backoff_default_var
+
+  oracle:
+    open_connection_timeout: 5s
+    ping_connection_timeout: 5s
+    exponential_backoff:
+      <<: *exponential_backoff_default_var
+
   ydb:
     open_connection_timeout: 5s
     ping_connection_timeout: 5s
     exponential_backoff:
-      initial_interval: 500ms
-      randomization_factor: 0.5
-      multiplier: 1.5
-      max_interval: 20s
-      max_elapsed_time: 1m
+      <<: *exponential_backoff_default_var
