@@ -160,7 +160,8 @@ func (s *serviceConnector) ReadSplits(
 	logger := mustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
-	err := s.doReadSplits(logger, request, stream)
+	var err error
+	logger, err = s.doReadSplits(logger, request, stream)
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
@@ -185,9 +186,9 @@ func (s *serviceConnector) doReadSplits(
 	logger *zap.Logger,
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
-) error {
+) (*zap.Logger, error) {
 	if err := ValidateReadSplitsRequest(logger, request); err != nil {
-		return fmt.Errorf("validate read splits request: %w", err)
+		return logger, fmt.Errorf("validate read splits request: %w", err)
 	}
 
 	for i, split := range request.Splits {
@@ -203,11 +204,11 @@ func (s *serviceConnector) doReadSplits(
 		)
 
 		if err != nil {
-			return fmt.Errorf("read split %d: %w", i, err)
+			return splitLogger, fmt.Errorf("read split %d: %w", i, err)
 		}
 	}
 
-	return nil
+	return logger, nil
 }
 
 func (s *serviceConnector) start() error {
