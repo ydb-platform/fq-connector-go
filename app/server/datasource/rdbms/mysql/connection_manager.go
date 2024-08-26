@@ -62,7 +62,18 @@ func (c *connectionManager) Make(
 		return nil, errors.New("unix socket connections are unsupported")
 	}
 
-	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext, optionFuncs...)
+	openConnectionCtx, openConnectionCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
+	defer openConnectionCtxCancel()
+
+	conn, err := client.ConnectWithDialer(
+		openConnectionCtx,
+		proto,
+		addr,
+		user,
+		password,
+		db,
+		dialer.DialContext,
+		optionFuncs...)
 	if err != nil {
 		return nil, fmt.Errorf("connect with dialer: %w", pingcap_errors.Cause(err))
 	}
