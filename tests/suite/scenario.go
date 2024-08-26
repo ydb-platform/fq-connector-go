@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -49,8 +50,12 @@ func TestMissingDataSource[
 	ID test_utils.TableIDTypes,
 	IDBUILDER test_utils.ArrowIDBuilder[ID],
 ](s *Base[ID, IDBUILDER], dsi *api_common.TDataSourceInstance) {
-	// read some table to "heat" metrics
-	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
+	// Do not retry negative tests
+	md := metadata.Pairs(common.ForbidRetries, "")
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	// read some table metadata to "heat" metrics
+	resp, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
 
@@ -58,8 +63,8 @@ func TestMissingDataSource[
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
-	// read some table
-	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
+	// read some table metadata
+	resp, err = s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
 
