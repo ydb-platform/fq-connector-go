@@ -103,7 +103,7 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, postgresql.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -123,7 +123,7 @@ func NewDataSourceFactory(
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, ms_sql_server.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -150,7 +150,7 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, postgresql.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -160,7 +160,7 @@ func NewDataSourceFactory(
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, oracle.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},

@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Create Git tag
+      - name: Create git tag
         run: |
           git tag ${{ github.event.inputs.tag }}
       - name: Setup Go ${{ matrix.go-version }}
@@ -57,13 +57,12 @@ jobs:
         run: |
           # cleanup some cache
           go clean -cache
-          sudo rm -rf /usr/share/dotnet
-          # give datasources some time to initialize
-          sleep 25
+          sudo rm -rf /usr/share/dotnet 
+          # run tests
           go test -c -o fq-connector-go-tests ./tests
           ./fq-connector-go-tests -projectPath=$(pwd)
       # Build and tests are OK - only now we can push the tag
-      - name: Create Git tag
+      - name: Push git tag
         run: |
           git push --tags
       - name: Build binary package

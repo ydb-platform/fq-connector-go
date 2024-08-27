@@ -82,6 +82,7 @@ func newDefaultLoggerConfig() zap.Config {
 	loggerCfg.Encoding = "console"
 	loggerCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	loggerCfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	loggerCfg.DisableStacktrace = true
 
 	return loggerCfg
 }

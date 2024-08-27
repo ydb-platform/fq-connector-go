@@ -40,8 +40,6 @@ jobs:
           # cleanup some cache
           go clean -cache
           sudo rm -rf /usr/share/dotnet
-          # give datasources some time to initialize
-          sleep 25
           docker logs runner-fq-connector-go-tests-ms_sql_server
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 
