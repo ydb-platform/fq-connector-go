@@ -2,14 +2,14 @@ package postgresql
 
 import (
 	"context"
-	"errors"
+	"strings"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 )
 
 func ErrorCheckerMakeConnection(err error) bool {
 	// Happens instead of 'i/o timeout'
-	if errors.Is(err, context.DeadlineExceeded) {
+	if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 		return true
 	}
 
