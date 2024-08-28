@@ -16,7 +16,8 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type md struct {
+// This is not used right now,
+type requestMetadata struct {
 	userID    string
 	sessionID string
 }
@@ -30,6 +31,16 @@ func runClient(cmd *cobra.Command, _ []string) error {
 	tableName, err := cmd.Flags().GetString(tableFlag)
 	if err != nil {
 		return fmt.Errorf("get table flag: %v", err)
+	}
+
+	dateTimeFormatStr, err := cmd.Flags().GetString(dateTimeFormatFlag)
+	if err != nil {
+		return fmt.Errorf("get date-time-format flag: %v", err)
+	}
+
+	dateTimeFormat, exists := api_service_protos.EDateTimeFormat_value[dateTimeFormatStr]
+	if !exists {
+		return fmt.Errorf("unknown date-time-format: %s", dateTimeFormatStr)
 	}
 
 	userID, err := cmd.Flags().GetString(userIDFlag)
@@ -52,19 +63,24 @@ func runClient(cmd *cobra.Command, _ []string) error {
 
 	flag.Parse()
 
-	metainfo := md{
+	md := requestMetadata{
 		userID:    userID,
 		sessionID: sessionID,
 	}
 
-	if err := callServer(logger, &cfg, tableName, metainfo); err != nil {
+	if err := callServer(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 
 	return nil
 }
 
-func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string, metainfo md) error {
+func callServer(
+	logger *zap.Logger,
+	cfg *config.TClientConfig,
+	tableName string,
+	dateTimeFormat api_service_protos.EDateTimeFormat,
+	metainfo requestMetadata) error {
 	cl, err := common.NewClientBufferingFromClientConfig(logger, cfg)
 	if err != nil {
 		return fmt.Errorf("new client buffering from client config: %w", err)
@@ -79,7 +95,7 @@ func callServer(logger *zap.Logger, cfg *config.TClientConfig, tableName string,
 		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
 		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM, api_common.EDataSourceKind_ORACLE:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
-			DateTimeFormat: api_service_protos.EDateTimeFormat_YQL_FORMAT,
+			DateTimeFormat: dateTimeFormat,
 		}
 
 		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName, metainfo)
@@ -105,7 +121,7 @@ func prepareSplits(
 	dsi *api_common.TDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
-	metainfo md,
+	metainfo requestMetadata,
 ) ([]*api_service_protos.TSplit, error) {
 	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
 
@@ -149,7 +165,7 @@ func readSplits(
 	logger *zap.Logger,
 	cl *common.ClientBuffering,
 	splits []*api_service_protos.TSplit,
-	metainfo md,
+	metainfo requestMetadata,
 ) error {
 	logger.Debug("Reading splits")
 

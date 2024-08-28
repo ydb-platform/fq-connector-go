@@ -108,7 +108,8 @@ func addAcceptorAppenderFromSQLTypeNameNullable(
 		switch ydbTypeID {
 		case Ydb.Type_UTF8:
 			appenders = append(appenders,
-				makeAppenderNullable[time.Time, string, *array.StringBuilder](dateTime64ToStringConverter{conv: cc.TimestampToString()}))
+				makeAppenderNullable[time.Time, string, *array.StringBuilder](
+					dateTime64ToStringConverter{conv: cc.TimestampToString(true)}))
 		case Ydb.Type_TIMESTAMP:
 			appenders = append(appenders, makeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 		default:

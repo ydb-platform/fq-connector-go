@@ -78,6 +78,12 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("connect with dialer: %w", pingcap_errors.Cause(err))
 	}
 
+	// YQ-3608: force using UTC for date/time formats were possible
+	_, err = conn.Execute("SET time_zone = 'UTC'")
+	if err != nil {
+		return nil, fmt.Errorf("set time zone: %w", err)
+	}
+
 	return &Connection{queryLogger, conn, c.cfg.GetResultChanCapacity()}, nil
 }
 
