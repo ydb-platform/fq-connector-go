@@ -270,10 +270,14 @@ func addAcceptorAppender(
 			*appenders = append(*appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(**time.Time)
 
+				// YQ-3608: only TIMESTAMP type contain zonal information,
+				// therefore, we can append 'Z' suffix only to TIMESTAMP column (not DATETIME)
+				utc := mySQLType == mysql.MYSQL_TYPE_TIMESTAMP || mySQLType == mysql.MYSQL_TYPE_TIMESTAMP2
+
 				return appendNullableToArrowBuilder[
 					time.Time,
 					string,
-					*array.StringBuilder](cast, builder, cc.TimestampToString())
+					*array.StringBuilder](cast, builder, cc.TimestampToString(utc))
 			})
 		case Ydb.Type_TIMESTAMP:
 			*appenders = append(*appenders, func(acceptor any, builder array.Builder) error {

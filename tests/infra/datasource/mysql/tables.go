@@ -214,9 +214,9 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 						ptr.String("2023-03-21"),
 					},
 					"col_02_datetime": []*string{
-						ptr.String("1950-05-27T01:02:03.111111Z"),
-						ptr.String("1988-11-20T12:55:28.123Z"),
-						ptr.String("2023-03-21T11:21:31Z"),
+						ptr.String("1950-05-27T01:02:03.111111"),
+						ptr.String("1988-11-20T12:55:28.123"),
+						ptr.String("2023-03-21T11:21:31"),
 					},
 					"col_03_timestamp": []*string{
 						nil,

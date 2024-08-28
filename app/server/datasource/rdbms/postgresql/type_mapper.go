@@ -195,7 +195,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 					cast := acceptor.(*pgtype.Timestamp)
 
 					return appendValuePtrToArrowBuilder[time.Time, string, *array.StringBuilder](
-						&cast.Time, builder, cast.Valid, cc.TimestampToString())
+						&cast.Time, builder, cast.Valid, cc.TimestampToString(true))
 				})
 			case Ydb.Type_TIMESTAMP:
 				appenders = append(appenders, func(acceptor any, builder array.Builder) error {

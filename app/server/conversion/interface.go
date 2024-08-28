@@ -31,5 +31,5 @@ type Collection interface {
 	Datetime() ValuePtrConverter[time.Time, uint32]
 	DatetimeToString() ValuePtrConverter[time.Time, string]
 	Timestamp() ValuePtrConverter[time.Time, uint64]
-	TimestampToString() ValuePtrConverter[time.Time, string]
+	TimestampToString(utc bool) ValuePtrConverter[time.Time, string]
 }
