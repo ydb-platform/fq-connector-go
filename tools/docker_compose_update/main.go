@@ -27,7 +27,7 @@ func run(logger *zap.Logger) error {
 	flag.Parse()
 
 	if err := checkFileExistance(*path); err != nil {
-		return fmt.Errorf("check file existence %w", err)
+		return fmt.Errorf("check existence of file %v: %w", *path, err)
 	}
 
 	tag, err := getLatestVersion()

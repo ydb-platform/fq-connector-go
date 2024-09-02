@@ -13,17 +13,17 @@ unit_test:
 	go test ./app/... ./common/... ./tests/utils/...
 
 integration_test: integration_test_build
-	./fq-connector-go-tests -projectPath=$(PROJECT_PATH)
+	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.failfast
 
 integration_test_build: 
 	go test -c -o fq-connector-go-tests ./tests
 
 integration_test_env_clean:
-	docker-compose -f ./tests/infra/datasource/docker-compose.yaml stop
-	docker-compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v
+	docker compose -f ./tests/infra/datasource/docker-compose.yaml stop
+	docker compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v
 
 integration_test_env_run: integration_test_env_clean
-	docker-compose -f ./tests/infra/datasource/docker-compose.yaml up -d --build
+	docker compose -f ./tests/infra/datasource/docker-compose.yaml up -d --build
 
 test_coverage: integration_test_env_run
 	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...

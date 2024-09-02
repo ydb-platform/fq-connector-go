@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.21.3', ]
+        go-version: [ '1.22.0', ]
 
     steps:
       - uses: actions/checkout@v4
@@ -37,8 +37,9 @@ jobs:
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
-          # give datasources some time to initialize
-          sleep 10 
+          # cleanup some cache
+          go clean -cache
+          sudo rm -rf /usr/share/dotnet
           docker logs runner-fq-connector-go-tests-ms_sql_server
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 

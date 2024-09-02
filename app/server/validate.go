@@ -70,37 +70,7 @@ func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error 
 	return nil
 }
 
-func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
-	if dsi == nil {
-		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.GetKind() == api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED {
-		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.Endpoint == nil {
-		return fmt.Errorf("endpoint is empty: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.Endpoint.Host == "" {
-		return fmt.Errorf("endpoint.host is empty: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.Endpoint.Port == 0 {
-		return fmt.Errorf("endpoint.port is empty: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.Database == "" {
-		return fmt.Errorf("database field is empty: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.UseTls {
-		logger.Info("connector will use secure connection to access data source")
-	} else {
-		logger.Warn("connector will use insecure connection to access data source")
-	}
-
+func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 	switch dsi.GetKind() {
 	case api_common.EDataSourceKind_POSTGRESQL:
 		if dsi.GetPgOptions().GetSchema() == "" {
@@ -123,4 +93,39 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 	}
 
 	return nil
+}
+
+func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
+	if dsi == nil {
+		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
+	}
+
+	if dsi.GetKind() == api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED {
+		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
+	}
+
+	if dsi.Endpoint == nil {
+		return fmt.Errorf("endpoint is empty: %w", common.ErrInvalidRequest)
+	}
+
+	if dsi.Endpoint.Host == "" {
+		return fmt.Errorf("endpoint.host is empty: %w", common.ErrInvalidRequest)
+	}
+
+	if dsi.Endpoint.Port == 0 {
+		return fmt.Errorf("endpoint.port is empty: %w", common.ErrInvalidRequest)
+	}
+
+	// For Oracle DATABASE_NAME is optional
+	if dsi.Database == "" && dsi.Kind != api_common.EDataSourceKind_ORACLE {
+		return fmt.Errorf("database field is empty: %w", common.ErrInvalidRequest)
+	}
+
+	if dsi.UseTls {
+		logger.Info("connector will use secure connection to access data source")
+	} else {
+		logger.Warn("connector will use insecure connection to access data source")
+	}
+
+	return validateDataSourceOptions(dsi)
 }

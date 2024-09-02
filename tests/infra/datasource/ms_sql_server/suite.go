@@ -1,12 +1,19 @@
 package ms_sql_server
 
 import (
+	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 type Suite struct {
-	*suite.Base
+	*suite.Base[int32, *array.Int32Builder]
 	dataSource *datasource.DataSource
 }
 
@@ -18,7 +25,6 @@ func (s *Suite) TestSelect() {
 	}
 }
 
-/*
 func (s *Suite) TestDatetimeFormatYQL() {
 	s.ValidateTable(
 		s.dataSource,
@@ -43,8 +49,8 @@ func (s *Suite) TestPositiveStats() {
 
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
-		Kind:     api_common.EDataSourceKind_MYSQL,
-		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 3306},
+		Kind:     api_common.EDataSourceKind_MS_SQL_SERVER,
+		Endpoint: &api_common.TEndpoint{Host: "www.google.com", Port: 1433},
 		Database: "it's not important",
 		Credentials: &api_common.TCredentials{
 			Payload: &api_common.TCredentials_Basic{
@@ -197,7 +203,7 @@ func (s *Suite) TestPushdownConjunction() {
 							),
 						},
 						{
-							Payload: tests_utils.MakePredicateIsNotNullColumn("varchar_column"),
+							Payload: tests_utils.MakePredicateIsNotNullColumn("text_column"),
 						},
 					},
 				},
@@ -223,7 +229,7 @@ func (s *Suite) TestPushdownDisjunction() {
 							),
 						},
 						{
-							Payload: tests_utils.MakePredicateIsNotNullColumn("varchar_column"),
+							Payload: tests_utils.MakePredicateIsNotNullColumn("text_column"),
 						},
 					},
 				},
@@ -251,10 +257,7 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
-// TODO: fix error mapping in `common/errors.go`
 func (s *Suite) TestInvalidLogin() {
-	s.T().Skip()
-
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
@@ -265,10 +268,9 @@ func (s *Suite) TestInvalidPassword() {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
-*/
 
 func NewSuite(
-	baseSuite *suite.Base,
+	baseSuite *suite.Base[int32, *array.Int32Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-mysql-org/go-mysql/client"
-
+	pingcap_errors "github.com/pingcap/errors"
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -33,7 +33,7 @@ func (c *connectionManager) Make(
 	optionFuncs := make([]func(c *client.Conn), 0)
 
 	if dsi.GetCredentials().GetBasic() == nil {
-		return nil, fmt.Errorf("mysql: currently only basic auth is supported")
+		return nil, fmt.Errorf("currently only basic auth is supported")
 	}
 
 	if dsi.GetUseTls() {
@@ -53,17 +53,35 @@ func (c *connectionManager) Make(
 
 	// TODO: support cert-based auth
 
-	dialer := &net.Dialer{}
+	dialer := &net.Dialer{
+		Timeout: common.MustDurationFromString(c.cfg.OpenConnectionTimeout),
+	}
 	proto := "tcp"
 
 	if strings.Contains(addr, "/") {
-		return nil, errors.New("mysql: unix socket connections are unsupported")
+		return nil, errors.New("unix socket connections are unsupported")
 	}
 
-	conn, err := client.ConnectWithDialer(ctx, proto, addr, user, password, db, dialer.DialContext, optionFuncs...)
+	openConnectionCtx, openConnectionCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
+	defer openConnectionCtxCancel()
+
+	conn, err := client.ConnectWithDialer(
+		openConnectionCtx,
+		proto,
+		addr,
+		user,
+		password,
+		db,
+		dialer.DialContext,
+		optionFuncs...)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
-		return nil, fmt.Errorf("mysql: %w", err)
+		return nil, fmt.Errorf("connect with dialer: %w", pingcap_errors.Cause(err))
+	}
+
+	// YQ-3608: force using UTC for date/time formats were possible
+	_, err = conn.Execute("SET time_zone = 'UTC'")
+	if err != nil {
+		return nil, fmt.Errorf("set time zone: %w", err)
 	}
 
 	return &Connection{queryLogger, conn, c.cfg.GetResultChanCapacity()}, nil

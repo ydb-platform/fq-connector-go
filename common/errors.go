@@ -10,6 +10,7 @@ import (
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
+	mssql "github.com/denisenkom/go-mssqldb"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -160,38 +161,62 @@ func newAPIErrorFromOracleError(err error) *api_service_protos.TError {
 	}
 }
 
-func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
-	var status ydb_proto.StatusIds_StatusCode
+func newAPIErrorFromMsSQLServer(err error) *api_service_protos.TError {
+	var (
+		target mssql.Error
+		status ydb_proto.StatusIds_StatusCode
+	)
 
-	// TODO: remove this and extract MyError somehow
-	//       for some reason errors.As() does not work with mysql.MyError
-	errorText := err.Error()
-	if strings.Contains(errorText, "mysql:") {
-		var code uint16
-
-		match := mysqlRegex.FindString(errorText)
-
-		if len(match) > 0 {
-			tmp, _ := strconv.ParseUint(match, 10, 16)
-			code = uint16(tmp)
-		}
-
-		switch code {
-		case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
+	if errors.As(err, &target) {
+		switch {
+		case strings.Contains(target.Message, "Login failed"):
 			status = ydb_proto.StatusIds_UNAUTHORIZED
-		case mysql.ER_BAD_DB_ERROR:
-			status = ydb_proto.StatusIds_NOT_FOUND
 		default:
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
 		}
 
 		return &api_service_protos.TError{
 			Status:  status,
-			Message: errorText,
+			Message: err.Error(),
 		}
 	}
 
 	return nil
+}
+
+func newAPIErrorFromMySQLError(err error) *api_service_protos.TError {
+	var status ydb_proto.StatusIds_StatusCode
+
+	// TODO: remove this and extract MyError somehow
+	//       for some reason errors.As() does not work with mysql.MyError
+	errorText := err.Error()
+
+	var code uint16
+
+	match := mysqlRegex.FindString(errorText)
+
+	if len(match) > 0 {
+		tmp, err := strconv.ParseUint(match, 10, 16)
+		if err != nil {
+			panic(err)
+		}
+
+		code = uint16(tmp)
+	}
+
+	switch code {
+	case mysql.ER_DBACCESS_DENIED_ERROR, mysql.ER_ACCESS_DENIED_ERROR, mysql.ER_PASSWORD_NO_MATCH:
+		status = ydb_proto.StatusIds_UNAUTHORIZED
+	case mysql.ER_BAD_DB_ERROR:
+		status = ydb_proto.StatusIds_NOT_FOUND
+	default:
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: errorText,
+	}
 }
 
 func newAPIErrorFromYdbError(err error) *api_service_protos.TError {
@@ -302,6 +327,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 		apiError = newAPIErrorFromYdbError(err)
 	case api_common.EDataSourceKind_ORACLE:
 		apiError = newAPIErrorFromOracleError(err)
+	case api_common.EDataSourceKind_MS_SQL_SERVER:
+		apiError = newAPIErrorFromMsSQLServer(err)
 	default:
 		panic("DataSource kind not specified for API error")
 	}

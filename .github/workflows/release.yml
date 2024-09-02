@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.21.3', ]
+        go-version: [ '1.22.0', ]
 
     steps:
       - name: Fail if branch is not main
@@ -29,10 +29,9 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Create and push Git tag
+      - name: Create git tag
         run: |
           git tag ${{ github.event.inputs.tag }}
-          git push --tags
       - name: Setup Go ${{ matrix.go-version }}
         uses: actions/setup-go@v4
         with:
@@ -51,15 +50,21 @@ jobs:
       - name: Setup integration tests
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
-          compose-file: "/home/runner/work/fq-connector-go/fq-connector-go/tests/infra/datasource/docker-compose.yaml"
+          compose-file: "tests/infra/datasource/docker-compose.yaml"
           up-flags: "--build"
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
-          # give datasources some time to initialize
-          sleep 10
+          # cleanup some cache
+          go clean -cache
+          sudo rm -rf /usr/share/dotnet 
+          # run tests
           go test -c -o fq-connector-go-tests ./tests
           ./fq-connector-go-tests -projectPath=$(pwd)
+      # Build and tests are OK - only now we can push the tag
+      - name: Push git tag
+        run: |
+          git push --tags
       - name: Build binary package
         run: |
           cp ./app/server/config/config.prod.yaml fq-connector-go.yaml

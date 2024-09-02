@@ -15,6 +15,19 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
+	return &config.TExponentialBackoffConfig{
+		InitialInterval:     "500ms",
+		RandomizationFactor: 0.25,
+		Multiplier:          1.5,
+		MaxInterval:         "10s",
+		MaxElapsedTime:      "1m",
+	}
+}
+
+// TODO: use reflection to generalize datasource setting code
+//
+//nolint:gocyclo
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Paging == nil {
 		c.Paging = &config.TPagingConfig{
@@ -40,6 +53,84 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources = &config.TDatasourcesConfig{}
 	}
 
+	// ClickHouse
+
+	if c.Datasources.Clickhouse == nil {
+		c.Datasources.Clickhouse = &config.TClickHouseConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Clickhouse.ExponentialBackoff == nil {
+		c.Datasources.Clickhouse.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// Greenplum
+
+	if c.Datasources.Greenplum == nil {
+		c.Datasources.Greenplum = &config.TGreenplumConfig{
+			OpenConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Greenplum.ExponentialBackoff == nil {
+		c.Datasources.Greenplum.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// MS SQL Server
+
+	if c.Datasources.MsSqlServer == nil {
+		c.Datasources.MsSqlServer = &config.TMsSQLServerConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.MsSqlServer.ExponentialBackoff == nil {
+		c.Datasources.MsSqlServer.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// MySQL
+
+	if c.Datasources.Mysql == nil {
+		c.Datasources.Mysql = &config.TMySQLConfig{
+			ResultChanCapacity:    512,
+			OpenConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Mysql.ExponentialBackoff == nil {
+		c.Datasources.Mysql.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// Oracle
+
+	if c.Datasources.Oracle == nil {
+		c.Datasources.Oracle = &config.TOracleConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Oracle.ExponentialBackoff == nil {
+		c.Datasources.Oracle.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// Postgresql
+
+	if c.Datasources.Postgresql == nil {
+		c.Datasources.Postgresql = &config.TPostgreSQLConfig{
+			OpenConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Postgresql.ExponentialBackoff == nil {
+		c.Datasources.Postgresql.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// YDB
+
 	if c.Datasources.Ydb == nil {
 		c.Datasources.Ydb = &config.TYdbConfig{
 			OpenConnectionTimeout: "5s",
@@ -48,17 +139,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	}
 
 	if c.Datasources.Ydb.ExponentialBackoff == nil {
-		c.Datasources.Ydb.ExponentialBackoff = &config.TExponentialBackoffConfig{
-			InitialInterval:     "500ms",
-			RandomizationFactor: 0.5,
-			Multiplier:          1.5,
-			MaxInterval:         "20s",
-			MaxElapsedTime:      "1m",
-		}
-	}
-
-	if c.Datasources.Mysql == nil {
-		c.Datasources.Mysql = &config.TMySQLConfig{ResultChanCapacity: 512}
+		c.Datasources.Ydb.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 }
 

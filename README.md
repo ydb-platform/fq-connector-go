@@ -17,6 +17,7 @@ Currently supported data sources:
 * YDB
 * Microsoft SQL Server
 * MySQL / MariaDB
+* Oracle
 
 ### Documentation 
 

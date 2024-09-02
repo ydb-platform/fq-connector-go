@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -12,6 +11,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -75,6 +75,7 @@ func (c *connectionNative) Query(ctx context.Context, query string, args ...any)
 func makeConnectionNative(
 	ctx context.Context,
 	logger *zap.Logger,
+	cfg *config.TClickHouseConfig,
 	dsi *api_common.TDataSourceInstance,
 	queryLogger common.QueryLogger,
 ) (rdbms_utils.Connection, error) {
@@ -85,16 +86,17 @@ func makeConnectionNative(
 			Username: dsi.Credentials.GetBasic().Username,
 			Password: dsi.Credentials.GetBasic().Password,
 		},
+		// TODO: make it configurable via Connector API
+		Compression: &clickhouse.Compression{
+			Method: clickhouse.CompressionLZ4,
+		},
 		// Set this field to true if you want to see ClickHouse driver's debug output
 		Debug: false,
 		Debugf: func(format string, v ...any) {
 			logger.Debug(format, zap.Any("args", v))
 		},
-		// TODO: make it configurable via Connector API
-		Compression: &clickhouse.Compression{
-			Method: clickhouse.CompressionLZ4,
-		},
-		Protocol: clickhouse.Native,
+		DialTimeout: common.MustDurationFromString(cfg.OpenConnectionTimeout),
+		Protocol:    clickhouse.Native,
 	}
 
 	if dsi.UseTls {
@@ -108,8 +110,8 @@ func makeConnectionNative(
 		return nil, fmt.Errorf("clickhouse open: %w", err)
 	}
 
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(cfg.PingConnectionTimeout))
+	defer pingCtxCancel()
 
 	if err := conn.Ping(pingCtx); err != nil {
 		return nil, fmt.Errorf("conn ping: %w", err)

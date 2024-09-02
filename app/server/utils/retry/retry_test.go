@@ -1,4 +1,4 @@
-package utils
+package retry
 
 import (
 	"context"
@@ -31,7 +31,7 @@ func TestRetry(t *testing.T) {
 		logger := common.NewTestLogger(t)
 		retriableErr := errors.New("some retriable error")
 
-		err := retrier.Run(logger, func() error {
+		err := retrier.Run(context.Background(), logger, func() error {
 			return retriableErr
 		})
 
@@ -48,7 +48,7 @@ func TestRetry(t *testing.T) {
 		logger := common.NewTestLogger(t)
 		nonRetriableErr := errors.New("some non-retriable error")
 
-		err := retrier.Run(logger, func() error {
+		err := retrier.Run(context.Background(), logger, func() error {
 			return nonRetriableErr
 		})
 
@@ -67,7 +67,7 @@ func TestRetry(t *testing.T) {
 				return !errors.Is(err, context.DeadlineExceeded)
 			})
 
-		err := retrier.Run(logger, func() error {
+		err := retrier.Run(context.Background(), logger, func() error {
 			select {
 			case <-ctx.Done():
 				return ctx.Err()

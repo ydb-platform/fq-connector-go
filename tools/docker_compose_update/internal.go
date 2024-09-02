@@ -108,7 +108,7 @@ func getChecksum(tag string) (string, error) {
 	}
 
 	if checksum == "" {
-		return "", fmt.Errorf("no checksum found by lattest tag")
+		return "", fmt.Errorf("no checksum found by latest tag")
 	}
 
 	return checksum, nil

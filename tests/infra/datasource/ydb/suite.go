@@ -1,6 +1,7 @@
 package ydb
 
 import (
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -12,7 +13,7 @@ import (
 )
 
 type Suite struct {
-	*suite.Base
+	*suite.Base[int32, *array.Int32Builder]
 	dataSource *datasource.DataSource
 }
 
@@ -258,7 +259,7 @@ func (s *Suite) TestPositiveStats() {
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
 		Kind:     api_common.EDataSourceKind_YDB,
-		Endpoint: &api_common.TEndpoint{Host: "missing_data_source", Port: 2136},
+		Endpoint: &api_common.TEndpoint{Host: "www.google.com", Port: 2136},
 		Database: "it's not important",
 		Credentials: &api_common.TCredentials{
 			Payload: &api_common.TCredentials_Basic{
@@ -288,7 +289,7 @@ func (s *Suite) TestInvalidPassword() {
 }
 
 func NewSuite(
-	baseSuite *suite.Base,
+	baseSuite *suite.Base[int32, *array.Int32Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -12,7 +13,11 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-func TestPositiveStats(s *Base, dataSource *datasource.DataSource, table *test_utils.Table) {
+func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
+	dataSource *datasource.DataSource,
+	table *test_utils.Table[ID, IDBUILDER],
+) {
 	// read some table to "heat" metrics
 	s.ValidateTable(dataSource, table)
 
@@ -41,9 +46,16 @@ func TestPositiveStats(s *Base, dataSource *datasource.DataSource, table *test_u
 	s.Require().Equal(float64(len(dataSource.Instances)), readSplitsStatusOK)
 }
 
-func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
-	// read some table to "heat" metrics
-	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
+func TestMissingDataSource[
+	ID test_utils.TableIDTypes,
+	IDBUILDER test_utils.ArrowIDBuilder[ID],
+](s *Base[ID, IDBUILDER], dsi *api_common.TDataSourceInstance) {
+	// Do not retry negative tests
+	md := metadata.Pairs(common.ForbidRetries, "")
+	ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+	// read some table metadata to "heat" metrics
+	resp, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
 
@@ -51,8 +63,8 @@ func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
-	// read some table
-	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, "it's not important")
+	// read some table metadata
+	resp, err = s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
 
@@ -66,7 +78,11 @@ func TestMissingDataSource(s *Base, dsi *api_common.TDataSourceInstance) {
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidLogin(s *Base, dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table) {
+func TestInvalidLogin[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[ID, IDBUILDER],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Username = "wrong"
@@ -95,7 +111,11 @@ func TestInvalidLogin(s *Base, dsiSrc *api_common.TDataSourceInstance, table *te
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }
 
-func TestInvalidPassword(s *Base, dsiSrc *api_common.TDataSourceInstance, table *test_utils.Table) {
+func TestInvalidPassword[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
+	dsiSrc *api_common.TDataSourceInstance,
+	table *test_utils.Table[ID, IDBUILDER],
+) {
 	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Password = "wrong"
