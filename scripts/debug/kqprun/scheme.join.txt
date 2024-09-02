@@ -1,0 +1,48 @@
+CREATE OBJECT postgresql_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE postgresql_external_datasource WITH (
+    SOURCE_TYPE="PostgreSQL",
+    LOCATION="localhost:5432",
+    AUTH_METHOD="BASIC",
+    SCHEMA="public",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="postgresql_local_password",
+    PROTOCOL="NATIVE"
+);
+
+CREATE OBJECT clickhouse_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE clickhouse_external_datasource WITH (
+    SOURCE_TYPE="ClickHouse",
+    LOCATION="localhost:9000",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="clickhouse_local_password",
+    PROTOCOL="NATIVE"
+);
+
+CREATE OBJECT ydb_local_password (TYPE SECRET) WITH (value = password);
+
+CREATE EXTERNAL DATA SOURCE ydb_external_datasource WITH (
+    SOURCE_TYPE="Ydb",
+    LOCATION="localhost:2136",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="local",
+    PASSWORD_SECRET_NAME="ydb_local_password"
+);
+
+
+CREATE OBJECT greenplum_local_password (TYPE SECRET) WITH (value = "123456");
+
+CREATE EXTERNAL DATA SOURCE greenplum_external_datasource WITH (
+    SOURCE_TYPE="Greenplum",
+    LOCATION="localhost:6432",
+    AUTH_METHOD="BASIC",
+    SCHEMA="public",
+    LOGIN="gpadmin",
+    DATABASE_NAME="template1",
+    PASSWORD_SECRET_NAME="greenplum_local_password"
+);

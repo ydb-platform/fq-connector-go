@@ -30,11 +30,11 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				Columns: map[string]any{
 					"id": []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4), ptr.Int32(5)},
 					"col1": []*string{
-						ptr.String("pg_a"),
-						ptr.String("pg_b"),
-						ptr.String("pg_c"),
-						ptr.String("pg_d"),
-						ptr.String("pg_e"),
+						ptr.String("gp_a"),
+						ptr.String("gp_b"),
+						ptr.String("gp_c"),
+						ptr.String("gp_d"),
+						ptr.String("gp_e"),
 					},
 					"col2": []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30), ptr.Int32(40), ptr.Int32(50)},
 				},
