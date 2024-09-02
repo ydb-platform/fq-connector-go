@@ -24,7 +24,7 @@ func (c *Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	results := make(chan rowData, c.rowBufferCapacity)
@@ -69,7 +69,11 @@ func (c *Connection) Query(_ context.Context, query string, args ...any) (rdbms_
 
 				r.maybeInitializeTransformer(result.Fields)
 
-				r.rowChan <- rowData{newRow, result.Fields}
+				select {
+				case r.rowChan <- rowData{newRow, result.Fields}:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
 
 				return nil
 			},

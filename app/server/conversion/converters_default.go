@@ -45,8 +45,12 @@ func (collectionDefault) DatetimeToString() ValuePtrConverter[time.Time, string]
 func (collectionDefault) Timestamp() ValuePtrConverter[time.Time, uint64] {
 	return timestampConverter{}
 }
-func (collectionDefault) TimestampToString() ValuePtrConverter[time.Time, string] {
-	return timestampToStringConverter{}
+func (collectionDefault) TimestampToString(utc bool) ValuePtrConverter[time.Time, string] {
+	if utc {
+		return timestampToStringConverterUTC{}
+	}
+
+	return timestampToStringConverterNaive{}
 }
 
 type noopConverter[T common.ValueType] struct {
@@ -124,9 +128,9 @@ func (timestampConverter) Convert(in *time.Time) (uint64, error) {
 	return out, nil
 }
 
-type timestampToStringConverter struct{}
+type timestampToStringConverterUTC struct{}
 
-func (timestampToStringConverter) Convert(in *time.Time) (string, error) {
+func (timestampToStringConverterUTC) Convert(in *time.Time) (string, error) {
 	// Using accuracy of 9 decimal places is enough for supported data sources
 	// Max accuracy of date/time formats:
 	// PostgreSQL - 1 microsecond (10^-6 s)
@@ -134,4 +138,10 @@ func (timestampToStringConverter) Convert(in *time.Time) (string, error) {
 	// Oracle -  1 nanosecond  (10^-9 s)
 	// Trailing zeros are omitted
 	return in.UTC().Format("2006-01-02T15:04:05.999999999Z"), nil
+}
+
+type timestampToStringConverterNaive struct{}
+
+func (timestampToStringConverterNaive) Convert(in *time.Time) (string, error) {
+	return in.Format("2006-01-02T15:04:05.999999999"), nil
 }
