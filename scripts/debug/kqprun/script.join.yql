@@ -1,6 +1,8 @@
-SELECT pg.col1 AS data_pg, ch.col1 AS data_ch, ydb.col1 AS data_ydb
+SELECT pg.col1 AS data_pg, ch.col1 AS data_ch, ydb.col1 AS data_ydb, gp.col1 AS data_gp
 FROM postgresql_external_datasource.simple AS pg
 JOIN clickhouse_external_datasource.simple AS ch
 ON pg.id = ch.id
 JOIN ydb_external_datasource.simple AS ydb
-ON pg.id = ydb.id;
+ON pg.id = ydb.id
+JOIN greenplum_external_datasource.simple AS gp
+ON pg.id = gp.id;
