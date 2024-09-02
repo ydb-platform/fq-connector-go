@@ -1,0 +1,22 @@
+CREATE OBJECT mysql_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE mysql_external_datasource WITH (
+    SOURCE_TYPE="MySQL",
+    LOCATION="mysql:3306",
+    AUTH_METHOD="BASIC",
+    LOGIN="root",
+    DATABASE_NAME="fq",
+    PASSWORD_SECRET_NAME="mysql_local_password"
+);
+
+CREATE OBJECT ydb_local_password (TYPE SECRET) WITH (value = password);
+
+CREATE EXTERNAL DATA SOURCE mr_nvme_testing_01_ydb_native WITH (
+    SOURCE_TYPE="Ydb",
+    LOCATION="localhost:2136",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="local",
+    PASSWORD_SECRET_NAME="ydb_local_password",
+    PROTOCOL="NATIVE"
+);
