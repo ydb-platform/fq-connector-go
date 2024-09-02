@@ -1,22 +1,36 @@
-CREATE OBJECT mysql_local_password (TYPE SECRET) WITH (value = "password");
+CREATE OBJECT postgresql_local_password (TYPE SECRET) WITH (value = "password");
 
-CREATE EXTERNAL DATA SOURCE mysql_external_datasource WITH (
-    SOURCE_TYPE="MySQL",
-    LOCATION="mysql:3306",
+CREATE EXTERNAL DATA SOURCE postgresql_external_datasource WITH (
+    SOURCE_TYPE="PostgreSQL",
+    LOCATION="localhost:5432",
     AUTH_METHOD="BASIC",
-    LOGIN="root",
-    DATABASE_NAME="fq",
-    PASSWORD_SECRET_NAME="mysql_local_password"
+    SCHEMA="public",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="postgresql_local_password",
+    PROTOCOL="NATIVE"
+);
+
+
+CREATE OBJECT clickhouse_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE clickhouse_external_datasource WITH (
+    SOURCE_TYPE="ClickHouse",
+    LOCATION="localhost:9000",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="clickhouse_local_password",
+    PROTOCOL="NATIVE"
 );
 
 CREATE OBJECT ydb_local_password (TYPE SECRET) WITH (value = password);
 
-CREATE EXTERNAL DATA SOURCE mr_nvme_testing_01_ydb_native WITH (
+CREATE EXTERNAL DATA SOURCE ydb_external_datasource WITH (
     SOURCE_TYPE="Ydb",
     LOCATION="localhost:2136",
     AUTH_METHOD="BASIC",
     LOGIN="admin",
     DATABASE_NAME="local",
-    PASSWORD_SECRET_NAME="ydb_local_password",
-    PROTOCOL="NATIVE"
+    PASSWORD_SECRET_NAME="ydb_local_password"
 );

@@ -4,11 +4,11 @@ set -e
 psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL
     DROP TABLE IF EXISTS simple;
     CREATE TABLE simple (id int, col1 text, col2 int);
-    INSERT INTO simple VALUES (1, 'pg_a', 10);
-    INSERT INTO simple VALUES (2, 'pg_b', 20);
-    INSERT INTO simple VALUES (3, 'pg_c', 30);
-    INSERT INTO simple VALUES (4, 'pg_d', 40);
-    INSERT INTO simple VALUES (5, 'pg_e', 50);
+    INSERT INTO simple VALUES (1, 'gp_a', 10);
+    INSERT INTO simple VALUES (2, 'gp_b', 20);
+    INSERT INTO simple VALUES (3, 'gp_c', 30);
+    INSERT INTO simple VALUES (4, 'gp_d', 40);
+    INSERT INTO simple VALUES (5, 'gp_e', 50);
 EOSQL
 
 psql -v ON_ERROR_STOP=1 --username gpadmin --dbname template1 <<-EOSQL

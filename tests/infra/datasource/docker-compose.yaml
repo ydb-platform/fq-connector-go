@@ -52,7 +52,7 @@ services:
     container_name: ${USER}-fq-connector-go-tests-greenplum
     hostname: localhost
     ports:
-      - '5432'
+      - '6432:5432'
     volumes:
       - ./greenplum/init/init_db.sh:/init_db.sh
 
