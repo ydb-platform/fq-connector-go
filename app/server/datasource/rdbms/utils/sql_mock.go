@@ -44,7 +44,7 @@ func (m *ConnectionManagerMock) Make(
 	return args.Get(0).(Connection), args.Error(1)
 }
 
-func (m *ConnectionManagerMock) Release(_ *zap.Logger, conn Connection) {
+func (m *ConnectionManagerMock) Release(_ context.Context, _ *zap.Logger, conn Connection) {
 	m.Called(conn)
 }
 

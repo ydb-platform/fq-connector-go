@@ -59,7 +59,7 @@ func (ds *dataSourceImpl) DescribeTable(
 		return nil, fmt.Errorf("retry: %w", err)
 	}
 
-	defer ds.connectionManager.Release(logger, conn)
+	defer ds.connectionManager.Release(ctx, logger, conn)
 
 	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
 	if err != nil {
@@ -99,7 +99,7 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("make connection: %w", err)
 	}
 
-	defer ds.connectionManager.Release(logger, conn)
+	defer ds.connectionManager.Release(ctx, logger, conn)
 
 	var rows rdbms_utils.Rows
 
