@@ -56,6 +56,8 @@ func (c Connection) Close() error {
 func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
+	defer c.Conn.DeallocateAll(ctx)
+
 	out, err := c.Conn.Query(ctx, query, args...)
 
 	return rows{Rows: out}, err
