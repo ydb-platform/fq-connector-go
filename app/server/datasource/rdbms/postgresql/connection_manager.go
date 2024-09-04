@@ -56,11 +56,16 @@ func (c Connection) Close() error {
 func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
-	defer c.Conn.DeallocateAll(ctx)
-
 	out, err := c.Conn.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w", err)
+	}
 
-	return rows{Rows: out}, err
+	if err := c.Conn.DeallocateAll(ctx); err != nil {
+		return nil, fmt.Errorf("deallocate all error: %w", err)
+	}
+
+	return rows{Rows: out}, nil
 }
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
