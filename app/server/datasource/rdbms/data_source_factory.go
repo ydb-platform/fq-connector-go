@@ -86,7 +86,7 @@ func NewDataSourceFactory(
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, clickhouse.ErrorCheckerMakeConnection),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -103,7 +103,7 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, postgresql.ErrorCheckerMakeConnection),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -113,7 +113,7 @@ func NewDataSourceFactory(
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerMakeConnection),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
 			},
 		},
@@ -123,7 +123,7 @@ func NewDataSourceFactory(
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, ms_sql_server.ErrorCheckerMakeConnection),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
@@ -150,7 +150,7 @@ func NewDataSourceFactory(
 						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, postgresql.ErrorCheckerMakeConnection),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},
