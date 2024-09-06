@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"context"
 	"errors"
 	"net"
 	"strings"
@@ -16,11 +15,6 @@ func ErrorCheckerMakeConnection(err error) bool {
 		if strings.Contains(opError.Err.Error(), "use of closed network connection") {
 			return true
 		}
-	}
-
-	// Also happens on CI
-	if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
-		return true
 	}
 
 	return retry.ErrorCheckerMakeConnectionCommon(err)
