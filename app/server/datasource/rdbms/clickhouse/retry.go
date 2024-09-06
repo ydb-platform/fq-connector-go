@@ -14,7 +14,12 @@ func ErrorCheckerMakeConnection(err error) bool {
 		return true
 	}
 
-	// For a some reason os.ErrDeadlineExceeded is not enough
+	// But for some reason context.DeadlineExceeded is not enough
+	if strings.Contains(err.Error(), "context deadline exceeded") {
+		return true
+	}
+
+	// For a some reason os.ErrDeadlineExceeded is not enough too
 	if strings.Contains(err.Error(), "i/o timeout") {
 		return true
 	}

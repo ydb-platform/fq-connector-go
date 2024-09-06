@@ -133,7 +133,7 @@ func NewDataSourceFactory(
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.TableMetadataQuery),
 			RetrierSet: &retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				MakeConnection: retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, mysql.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 		},

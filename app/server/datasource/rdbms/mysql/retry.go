@@ -1,4 +1,4 @@
-package ms_sql_server
+package mysql
 
 import (
 	"strings"
@@ -7,12 +7,8 @@ import (
 )
 
 func ErrorCheckerMakeConnection(err error) bool {
-	// For a some reason we get a string instead of wrapped syscall.ECONNREFUSED
+	// For a some reason sys.ECONNREFUSED is not enough
 	if strings.Contains(err.Error(), "connection refused") {
-		return true
-	}
-
-	if strings.Contains(err.Error(), "i/o timeout") {
 		return true
 	}
 
