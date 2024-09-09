@@ -57,8 +57,11 @@ func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms
 	c.logger.Dump(query, args...)
 
 	out, err := c.Conn.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w", err)
+	}
 
-	return rows{Rows: out}, err
+	return rows{Rows: out}, nil
 }
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
@@ -129,8 +132,12 @@ func (c *connectionManager) Make(
 	return &Connection{conn, queryLogger}, nil
 }
 
-func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close posgresql connection")
+func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
+	if err := conn.(*Connection).Conn.DeallocateAll(ctx); err != nil {
+		logger.Error("deallocate prepared statements", zap.Error(err))
+	}
+
+	common.LogCloserError(logger, conn, "close connection")
 }
 
 type ConnectionManagerConfig interface {

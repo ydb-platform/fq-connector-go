@@ -78,7 +78,7 @@ func (c *connectionManager) Make(
 	return &Connection{conn, queryLogger}, nil
 }
 
-func (*connectionManager) Release(logger *zap.Logger, conn rdbms_utils.Connection) {
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
 	common.LogCloserError(logger, conn, "close Oracle connection")
 }
 

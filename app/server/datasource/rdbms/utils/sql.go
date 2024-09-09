@@ -29,7 +29,7 @@ type Rows interface {
 
 type ConnectionManager interface {
 	Make(ctx context.Context, logger *zap.Logger, dataSourceInstance *api_common.TDataSourceInstance) (Connection, error)
-	Release(logger *zap.Logger, connection Connection)
+	Release(ctx context.Context, logger *zap.Logger, connection Connection)
 }
 
 type ConnectionManagerBase struct {
