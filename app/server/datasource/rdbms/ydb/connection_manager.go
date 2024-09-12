@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -122,11 +123,28 @@ func (c *connectionManager) Make(
 	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
 	defer openCtxCancel()
 
+	grpcOptions := []grpc.DialOption{
+		grpc.WithDisableServiceConfig(),
+	}
+
+	// When tests are running on Github CI, a DNS server provided by Docker are often responding slowly.
+	// This hack helps to completely avoid DNS calls.
+	if ydbEndpointOverrideRule := os.Getenv("YDB_ENDPOINT_OVERRIDE_RULE"); ydbEndpointOverrideRule != "" {
+		logger.Info("YDB endpoint override rule is enabled", zap.String("rule", ydbEndpointOverrideRule))
+
+		resolver, err := newStaticResolverBuilder(logger, "dns", ydbEndpointOverrideRule)
+		if err != nil {
+			return nil, fmt.Errorf("new static resolver builder: %w", err)
+		}
+
+		grpcOptions = append(grpcOptions, grpc.WithResolvers(resolver))
+	}
+
 	ydbOptions := []ydb_sdk.Option{
 		cred,
 		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
 		ydb_sdk.WithBalancer(balancers.SingleConn()), // see YQ-3089
-		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpcOptions...)),
 	}
 
 	// `u-` prefix is an implicit indicator of a dedicated YDB database.
