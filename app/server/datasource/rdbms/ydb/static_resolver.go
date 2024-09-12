@@ -25,7 +25,8 @@ func (c *clientConn) UpdateState(state resolver.State) error {
 	for _, ep := range state.Endpoints {
 		for _, addr := range ep.Addresses {
 			if addr.Addr == c.hostname {
-				c.logger.Warn("client conn update state: endpoint override", zap.String("before", addr.Addr), zap.String("after", c.endpoint))
+				c.logger.Warn(
+					"client conn update state: endpoint override", zap.String("before", addr.Addr), zap.String("after", c.endpoint))
 				addr.Addr = c.endpoint
 			}
 		}
