@@ -22,7 +22,6 @@ func (c *clientConn) Endpoint() string {
 }
 
 func (c *clientConn) UpdateState(state resolver.State) error {
-	fmt.Println("UPDATE", state)
 	for _, ep := range state.Endpoints {
 		for _, addr := range ep.Addresses {
 			if addr.Addr == c.hostname {
@@ -45,13 +44,12 @@ type staticResolverBuilder struct {
 
 func (b *staticResolverBuilder) Build(
 	target resolver.Target, cc resolver.ClientConn, opts resolver.BuildOptions) (resolver.Resolver, error) {
-	fmt.Println("BUILD", target)
 	if target.Endpoint() == b.hostname {
 		b.logger.Warn("static resolver build: endpoint override", zap.String("before", target.Endpoint()), zap.String("after", b.endpoint))
 
 		err := cc.UpdateState(resolver.State{
-			Addresses: []resolver.Address{
-				{Addr: b.endpoint},
+			Endpoints: []resolver.Endpoint{
+				{Addresses: []resolver.Address{{Addr: b.endpoint}}},
 			},
 		})
 
