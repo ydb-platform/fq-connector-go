@@ -127,12 +127,17 @@ func (c *connectionManager) Make(
 		grpc.WithDisableServiceConfig(),
 	}
 
-	if ydbEndpointOverride := os.Getenv("YDB_ENDPOINT_OVERRIDE"); ydbEndpointOverride != "" {
-		logger.Warn("All YDB endpoints will be ovverriden", zap.String("endpoint", ydbEndpointOverride))
+	// When tests are running on Github CI, a DNS server provided by Docker are often responding slowly.
+	// This hack helps to completely avoid DNS calls.
+	if ydbEndpointOverrideRule := os.Getenv("YDB_ENDPOINT_OVERRIDE_RULE"); ydbEndpointOverrideRule != "" {
+		logger.Info("YDB endpoint override rule is enabled", zap.String("rule", ydbEndpointOverrideRule))
 
-		grpcOptions = append(
-			grpcOptions,
-			grpc.WithResolvers(newStaticResolverBuilder(ydbEndpointOverride)))
+		resolver, err := newStaticResolverBuilder(logger, "dns", ydbEndpointOverrideRule)
+		if err != nil {
+			return nil, fmt.Errorf("new static resolver builder: %w", err)
+		}
+
+		grpcOptions = append(grpcOptions, grpc.WithResolvers(resolver))
 	}
 
 	ydbOptions := []ydb_sdk.Option{
