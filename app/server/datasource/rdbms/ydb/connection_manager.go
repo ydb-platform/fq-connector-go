@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -122,11 +123,23 @@ func (c *connectionManager) Make(
 	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
 	defer openCtxCancel()
 
+	grpcOptions := []grpc.DialOption{
+		grpc.WithDisableServiceConfig(),
+	}
+
+	if ydbEndpointOverride := os.Getenv("YDB_ENDPOINT_OVERRIDE"); ydbEndpointOverride != "" {
+		logger.Warn("All YDB endpoints will be ovverriden", zap.String("endpoint", ydbEndpointOverride))
+
+		grpcOptions = append(
+			grpcOptions,
+			grpc.WithResolvers(newStaticResolverBuilder(ydbEndpointOverride)))
+	}
+
 	ydbOptions := []ydb_sdk.Option{
 		cred,
 		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
 		ydb_sdk.WithBalancer(balancers.SingleConn()), // see YQ-3089
-		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpcOptions...)),
 	}
 
 	// `u-` prefix is an implicit indicator of a dedicated YDB database.
