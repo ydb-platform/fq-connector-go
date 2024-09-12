@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -15,7 +16,7 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type release struct {
@@ -166,23 +167,27 @@ func changeDockerCompose(logger *zap.Logger, path string, newImage string) error
 		return fmt.Errorf("decode file: %w", err)
 	}
 
-	if services, ok := data["services"].(map[any]any); ok {
-		if _, ok := services["fq-connector-go"].(map[any]any); !ok {
+	if services, ok := data["services"].(map[string]any); ok {
+		if _, ok := services["fq-connector-go"].(map[string]any); !ok {
 			return fmt.Errorf("error finding fq-connector-go in services")
 		}
 
-		fqConnectorGo := services["fq-connector-go"].(map[any]any)
+		fqConnectorGo := services["fq-connector-go"].(map[string]any)
 		fqConnectorGo["image"] = newImage
 	} else {
-		return fmt.Errorf("error finding services in file")
+		return fmt.Errorf("error finding services in file: %s", path)
 	}
 
-	updatedYaml, err := yaml.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("yaml marshal %w", err)
+	var buf bytes.Buffer
+
+	encoder := yaml.NewEncoder(&buf)
+	encoder.SetIndent(2)
+
+	if err = encoder.Encode(data); err != nil {
+		return fmt.Errorf("encode: %w", err)
 	}
 
-	err = os.WriteFile(path, updatedYaml, 0644)
+	err = os.WriteFile(path, buf.Bytes(), 0644)
 	if err != nil {
 		return fmt.Errorf("os write file: %w", err)
 	}
