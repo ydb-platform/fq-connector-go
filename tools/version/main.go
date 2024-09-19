@@ -189,7 +189,7 @@ func getArcVersion() (versionData, error) {
 	}
 
 	commitHash = strings.TrimSpace(commitHash)
-	commitMessage = strings.TrimSpace(commitMessage)
+	commitMessage = strings.Trim(commitMessage, " `")
 	username = strings.TrimSpace(username)
 	buildLocation = strings.TrimSpace(buildLocation)
 	hostname = strings.TrimSpace(hostname)
