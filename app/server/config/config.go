@@ -29,6 +29,10 @@ func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
 //
 //nolint:gocyclo
 func fillServerConfigDefaults(c *config.TServerConfig) {
+	if c.ConnectorServer.MaxRecvMessageSize == 0 {
+		c.ConnectorServer.MaxRecvMessageSize = math.MaxInt32
+	}
+
 	if c.Paging == nil {
 		c.Paging = &config.TPagingConfig{
 			BytesPerPage:          4 * 1024 * 1024,
