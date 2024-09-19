@@ -234,6 +234,10 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
+	// YQ-3686: tune message size limit, default 4 MBs are not enough
+	fmt.Println("CRAB", cfg.ConnectorServer.MaxRecvMessageSize)
+	opts = append(opts, grpc.MaxRecvMsgSize(int(cfg.ConnectorServer.MaxRecvMessageSize)))
+
 	// TODO: drop deprecated fields after YQ-2057
 	switch {
 	case cfg.GetConnectorServer().GetTls() != nil:

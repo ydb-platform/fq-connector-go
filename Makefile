@@ -38,7 +38,7 @@ build_image_base:
 	docker build -t ghcr.io/ydb-platform/fq-connector-go:base -f ./Dockerfile.base .
 
 build_image_release: 
-	docker build -t ghcr.io/ydb-platform/fq-connector-go:latest -f ./Dockerfile.release .
+	docker build --network=host -t ghcr.io/ydb-platform/fq-connector-go:latest -f ./Dockerfile.release .
 
 cloc:
 	cloc ./app ./common ./tests --git 
