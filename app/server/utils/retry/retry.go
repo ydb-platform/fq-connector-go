@@ -33,13 +33,15 @@ func (r *retrierDefault) Run(ctx context.Context, logger *zap.Logger, op Operati
 		err := op()
 
 		if err != nil {
-			// It's convinient to disable retries for negative tests
-			if md, ok := metadata.FromIncomingContext(ctx); ok {
-				if _, exists := md[common.ForbidRetries]; exists {
+			// It's convinient to disable retries for negative tests.
+			// These tests are marked with 'ForbidRetries' flag in GRPC Metadata.
+			md, mdExists := metadata.FromIncomingContext(ctx)
+			if mdExists {
+				if _, flagSet := md[common.ForbidRetries]; flagSet {
 					logger.Warn("retriable error occurred, but 'ForbidRetries' flag was set", zap.Error(err))
-				}
 
-				return backoff.Permanent(err)
+					return backoff.Permanent(err)
+				}
 			}
 
 			// Check if error is retriable

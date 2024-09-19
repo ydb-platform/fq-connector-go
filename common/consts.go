@@ -1,5 +1,5 @@
 package common
 
 const (
-	ForbidRetries = "FORBID_RETRIES"
+	ForbidRetries = "forbid_retries"
 )

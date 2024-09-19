@@ -51,7 +51,7 @@ func TestMissingDataSource[
 	IDBUILDER test_utils.ArrowIDBuilder[ID],
 ](s *Base[ID, IDBUILDER], dsi *api_common.TDataSourceInstance) {
 	// Do not retry negative tests
-	md := metadata.Pairs(common.ForbidRetries, "")
+	md := metadata.Pairs(common.ForbidRetries, "1")
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// read some table metadata to "heat" metrics
