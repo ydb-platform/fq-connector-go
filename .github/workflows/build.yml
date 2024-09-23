@@ -42,7 +42,7 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           docker logs runner-fq-connector-go-tests-ms_sql_server
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
-          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out 
+          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out -test.failfast
       - name: Union coverage
         run: |
           cat coverage_unit_tests.out > coverage.out
