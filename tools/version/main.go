@@ -44,7 +44,7 @@ func init() {
 	commitHash = "{{ .CommitHash }}"
 	branch = "{{ .Branch }}"
 	commitDate = "{{ .CommitDate }}"
-	commitMessage = ` + "`{{ .CommitMessage }}`" + `
+	commitMessage = ` + "{{ .CommitMessage }}" + `
 	username = "{{ .Username }}"
 	buildLocation = "{{ .BuildLocation }}"
 	hostname = "{{ .Hostname }}"
@@ -286,7 +286,7 @@ func getGitVersion() (versionData, error) {
 	tag = strings.TrimSpace(tag)
 	author = strings.TrimSpace(author)
 	commitDate = strings.TrimSpace(commitDate)
-	commitMessage = strings.TrimSpace(commitMessage)
+	commitMessage = strings.Trim(commitMessage, " `")
 	username = strings.TrimSpace(username)
 	buildLocation = strings.TrimSpace(buildLocation)
 	hostname = strings.TrimSpace(hostname)
