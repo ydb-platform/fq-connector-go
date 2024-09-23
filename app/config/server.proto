@@ -38,6 +38,8 @@ message TConnectorServerConfig {
     // TLS settings.
     // Leave it empty for insecure connections.
     TServerTLSConfig tls = 2;
+    // Defines maximum GRPC request size
+    uint64 max_recv_message_size = 3;
 }
 
 message TServerTLSConfig {
