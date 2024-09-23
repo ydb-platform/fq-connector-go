@@ -32,7 +32,7 @@ services:
       - ./postgresql/init:/docker-entrypoint-initdb.d
 
   ydb:
-    image: ghcr.io/ydb-platform/local-ydb:nightly
+    image: ghcr.io/ydb-platform/local-ydb:24.2.8
     container_name: ${USER}-fq-connector-go-tests-ydb
     hostname: localhost
     ports:
