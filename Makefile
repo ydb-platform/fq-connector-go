@@ -23,7 +23,7 @@ integration_test_env_clean:
 	docker compose -f ./tests/infra/datasource/docker-compose.yaml rm -f -v
 
 integration_test_env_run: integration_test_env_clean
-	docker compose -f ./tests/infra/datasource/docker-compose.yaml up -d --build
+	docker compose -f ./tests/infra/datasource/docker-compose.yaml up -d --build --pull=always
 
 test_coverage: integration_test_env_run
 	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
