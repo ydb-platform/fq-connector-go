@@ -3,9 +3,9 @@
 `INT8`,`INT8`,`int8`, :white_check_mark: `Int8`,-,:white_check_mark: `tinyint` ,:white_check_mark:  `tinyint`,-
 `UINT8`,`UINT8`,`uint8`, :white_check_mark: `UInt8`,-,:white_check_mark: `tinyint unsigned`,-,-
 `INT16`,`INT16`,`int16`, :white_check_mark: `Int16`,":white_check_mark: `smallint`, `int2`, `smallserial`, `serial2`",:white_check_mark: `smallint`,:white_check_mark:  `smallint`,-
-`UINT16`,`UINT16`,`uint16`, :white_check_mark: `UInt16`,:white_check_mark: `smallint unsigned`,:white_check_mark: `smallint unsigned`,-,-
+`UINT16`,`UINT16`,`uint16`, :white_check_mark: `UInt16`,-,:white_check_mark: `smallint unsigned`,-,-
 `INT32`,`INT32`,`int32`, :white_check_mark: `Int32`,":white_check_mark: `integer`, `int`, `int4`, `serial`, `serial4`",":white_check_mark: `mediumint`, `int`",:white_check_mark:  `int`,-
-`UINT32`,`UINT32`,`uint32`, :white_check_mark: `UInt32`,:white_check_mark: `mediumint unsigned`,":white_check_mark: `mediumint unsigned`, `int unsigned`",-,-
+`UINT32`,`UINT32`,`uint32`, :white_check_mark: `UInt32`,-,":white_check_mark: `mediumint unsigned`, `int unsigned`",-,-
 `INT64`,`INT64`,`int64`, :white_check_mark: `Int64`,":white_check_mark: `bigint`, `int8`, `bigserial`, `serial8`",:white_check_mark: `bigint`,:white_check_mark:  `bigint`,:white_check_mark:  `NUMBER`
 `UINT64`,`UINT64`,`uint64`, :white_check_mark: `UInt64`,-,:white_check_mark: `bigint unsigned`,-`,-
 `FLOAT`,`FLOAT`,`float32`,:white_check_mark: `Float32`,":white_check_mark: `real`, `float4`",":white_check_mark: `float`, `real`",:white_check_mark: `real`,:x: `BINARY_FLOAT`
