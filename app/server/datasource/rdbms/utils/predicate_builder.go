@@ -26,6 +26,10 @@ func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (str
 		return formatter.GetPlaceholder(len(args)), append(args, v.FloatValue), nil
 	case *Ydb.Value_DoubleValue:
 		return formatter.GetPlaceholder(len(args)), append(args, v.DoubleValue), nil
+	case *Ydb.Value_BytesValue:
+		return formatter.GetPlaceholder(len(args)), append(args, v.BytesValue), nil
+	case *Ydb.Value_TextValue:
+		return formatter.GetPlaceholder(len(args)), append(args, v.TextValue), nil
 	default:
 		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedTypedValue, v)
 	}

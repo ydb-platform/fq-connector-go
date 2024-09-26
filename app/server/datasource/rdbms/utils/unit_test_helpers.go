@@ -90,6 +90,25 @@ func NewTextValueExpression(val string) *api_service_protos.TExpression {
 	}
 }
 
+func NewNestedValueExpression(val string) *api_service_protos.TExpression {
+	return &api_service_protos.TExpression{
+		Payload: &api_service_protos.TExpression_TypedValue{
+			TypedValue: &Ydb.TypedValue{
+				Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+				Value: &Ydb.Value{
+					Value: &Ydb.Value_NestedValue{
+						NestedValue: &Ydb.Value{
+							Value: &Ydb.Value_TextValue{
+								TextValue: val,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func MakeTestSplit() *api_service_protos.TSplit {
 	return &api_service_protos.TSplit{
 		Select: &api_service_protos.TSelect{
