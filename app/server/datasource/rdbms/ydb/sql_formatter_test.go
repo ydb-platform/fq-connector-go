@@ -1,4 +1,4 @@
-package clickhouse
+package ydb
 
 import (
 	"errors"
@@ -12,7 +12,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func TestMakeSQLFormatterQuery(t *testing.T) {
+func TestMakeReadSplitsQuery(t *testing.T) {
 	type testCase struct {
 		testName         string
 		selectReq        *api_service_protos.TSelect
@@ -47,7 +47,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery:      `SELECT 0 FROM "tab"`,
+			outputQuery:      "SELECT 0 FROM `tab`",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewEmptyColumnWhat(),
 			err:              nil,
@@ -71,7 +71,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col" FROM "tab"`,
+			outputQuery: "SELECT `col` FROM `tab`",
 			outputArgs:  []any{},
 			outputSelectWhat: &api_service_protos.TSelect_TWhat{
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
@@ -104,7 +104,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col1" IS NULL)`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE (`col1` IS NULL)",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -126,7 +126,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col2" IS NOT NULL)`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE (`col2` IS NOT NULL)",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -148,7 +148,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE "col2"`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE `col2`",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -210,7 +210,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= ?)) OR (("col1" <> ?) AND ("col3" IS NULL)))`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE ((NOT (`col2` <= ?)) OR ((`col1` <> ?) AND (`col3` IS NULL)))",
 			outputArgs:       []any{int32(42), uint64(0)},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -234,7 +234,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab`",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -250,15 +250,16 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					FilterTyped: &api_service_protos.TPredicate{
 						Payload: &api_service_protos.TPredicate_Comparison{
 							Comparison: &api_service_protos.TPredicate_TComparison{
-								Operation:  api_service_protos.TPredicate_TComparison_EQ,
-								LeftValue:  rdbms_utils.NewColumnExpression("col2"),
-								RightValue: rdbms_utils.NewTextValueExpression("text"),
+								Operation: api_service_protos.TPredicate_TComparison_EQ,
+								LeftValue: rdbms_utils.NewColumnExpression("col2"),
+								// I don't know what is this, but it's unsupported
+								RightValue: rdbms_utils.NewNestedValueExpression("text"),
 							},
 						},
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab`",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -288,9 +289,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 										// Not supported
 										Payload: &api_service_protos.TPredicate_Comparison{
 											Comparison: &api_service_protos.TPredicate_TComparison{
-												Operation:  api_service_protos.TPredicate_TComparison_EQ,
-												LeftValue:  rdbms_utils.NewColumnExpression("col2"),
-												RightValue: rdbms_utils.NewTextValueExpression("text"),
+												Operation: api_service_protos.TPredicate_TComparison_EQ,
+												LeftValue: rdbms_utils.NewColumnExpression("col2"),
+												// I don't know what is this, but it's unsupported
+												RightValue: rdbms_utils.NewNestedValueExpression("value"),
 											},
 										},
 									},
@@ -300,7 +302,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col1" = ?)`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE (`col1` = ?)",
 			outputArgs:       []any{int32(32)},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -330,9 +332,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 										// Not supported
 										Payload: &api_service_protos.TPredicate_Comparison{
 											Comparison: &api_service_protos.TPredicate_TComparison{
-												Operation:  api_service_protos.TPredicate_TComparison_EQ,
-												LeftValue:  rdbms_utils.NewColumnExpression("col2"),
-												RightValue: rdbms_utils.NewTextValueExpression("text"),
+												Operation: api_service_protos.TPredicate_TComparison_EQ,
+												LeftValue: rdbms_utils.NewColumnExpression("col2"),
+												// I don't know what is this, but it's unsupported
+												RightValue: rdbms_utils.NewNestedValueExpression("text"),
 											},
 										},
 									},
@@ -356,7 +359,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE (("col1" = ?) AND ("col3" IS NULL) AND ("col4" IS NOT NULL))`,
+			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE ((`col1` = ?) AND (`col3` IS NULL) AND (`col4` IS NOT NULL))",
 			outputArgs:       []any{int32(32)},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
@@ -369,7 +372,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery:      `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
+			outputQuery:      "SELECT 0 FROM `information_schema.columns; DROP TABLE information_schema.columns`",
 			outputArgs:       []any{},
 			outputSelectWhat: rdbms_utils.NewEmptyColumnWhat(),
 			err:              nil,
@@ -393,7 +396,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "0; DROP TABLE information_schema.columns" FROM "tab"`,
+			outputQuery: "SELECT `0; DROP TABLE information_schema.columns` FROM `tab`",
 			outputArgs:  []any{},
 			outputSelectWhat: &api_service_protos.TSelect_TWhat{
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
@@ -420,7 +423,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 						{
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 								Column: &ydb.Column{
-									Name: `0"; DROP TABLE information_schema.columns;`,
+									Name: "0`; DROP TABLE information_schema.columns;",
 									Type: common.MakePrimitiveType(ydb.Type_INT32),
 								},
 							},
@@ -428,14 +431,14 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "0""; DROP TABLE information_schema.columns;" FROM "tab"`,
+			outputQuery: "SELECT `0`; DROP TABLE information_schema.columns;` FROM `tab`",
 			outputArgs:  []any{},
 			outputSelectWhat: &api_service_protos.TSelect_TWhat{
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
 					{
 						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 							Column: &ydb.Column{
-								Name: `0"; DROP TABLE information_schema.columns;`,
+								Name: "0`; DROP TABLE information_schema.columns;",
 								Type: common.MakePrimitiveType(ydb.Type_INT32),
 							},
 						},
@@ -450,8 +453,8 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
-			outputQuery, outputArgs, outputSelectWhat, err := rdbms_utils.MakeReadSplitsQuery(logger, formatter, tc.selectReq)
-			require.Equal(t, tc.outputQuery, outputQuery)
+			output, outputArgs, outputSelectWhat, err := rdbms_utils.MakeReadSplitsQuery(logger, formatter, tc.selectReq)
+			require.Equal(t, tc.outputQuery, output)
 			require.Equal(t, tc.outputArgs, outputArgs)
 			require.Equal(t, tc.outputSelectWhat, outputSelectWhat)
 

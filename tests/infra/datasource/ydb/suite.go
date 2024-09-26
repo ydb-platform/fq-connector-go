@@ -231,6 +231,34 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
+func (s *Suite) TestPushdownStringsUtf8() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_strings_utf8"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_utf8",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "a"),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringsString() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_strings_string"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_03_string",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), "b"),
+			),
+		}),
+	)
+}
+
 func (s *Suite) TestLargeTable() {
 	// For tables larger than 1000 rows, scan queries must be used,
 	// otherwise output will be truncated.
