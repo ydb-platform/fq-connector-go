@@ -408,7 +408,36 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
-
+	"pushdown_strings_utf8": {
+		Name:                  "pushdown_strings",
+		Schema:                pushdownStringsSchemaYdb(),
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{1},
+					"col_01_int":    []*int32{ptr.Int32(10)},
+					"col_02_utf8":   []*string{ptr.String("a")},
+					"col_03_string": []*[]byte{ptr.T([]byte("a"))},
+				},
+			},
+		},
+	},
+	"pushdown_strings_string": {
+		Name:                  "pushdown_strings",
+		Schema:                pushdownStringsSchemaYdb(),
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{2},
+					"col_01_int":    []*int32{ptr.Int32(20)},
+					"col_02_utf8":   []*string{ptr.String("b")},
+					"col_03_string": []*[]byte{ptr.T([]byte("b"))},
+				},
+			},
+		},
+	},
 	"large": {
 		Name:                  "large",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
@@ -452,6 +481,17 @@ func pushdownSchemaYdb() *test_utils.TableSchema {
 			"id":          common.MakePrimitiveType(Ydb.Type_INT32),
 			"col_01_int":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 			"col_02_text": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+		},
+	}
+}
+
+func pushdownStringsSchemaYdb() *test_utils.TableSchema {
+	return &test_utils.TableSchema{
+		Columns: map[string]*Ydb.Type{
+			"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+			"col_01_int":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+			"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			"col_03_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		},
 	}
 }

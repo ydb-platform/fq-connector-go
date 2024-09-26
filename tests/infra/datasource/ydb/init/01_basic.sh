@@ -94,7 +94,6 @@
     VALUES (1, Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123456Z"));
     COMMIT;
 
-
     CREATE TABLE pushdown (
         id Int32 NOT NULL,
         col_01_int Int32,
@@ -107,6 +106,22 @@
         (2, 20, "b"),
         (3, 30, "c"),
         (4, NULL, NULL);
+    COMMIT;
+
+    -- YQ-3681
+    CREATE TABLE pushdown_strings (
+        id Int32 NOT NULL,
+        col_01_int Int32,
+        col_02_utf8 UTF8,
+        col_03_string STRING,
+        PRIMARY KEY (id) 
+    );
+    COMMIT;
+    INSERT INTO pushdown_strings (id, col_01_int, col_02_utf8, col_03_string) VALUES
+        (1, 10, "a", "a"),
+        (2, 20, "b", "b"),
+        (3, 30, "c", "c"),
+        (4, NULL, NULL, NULL);
     COMMIT;
 
     CREATE TABLE `parent/child` (
