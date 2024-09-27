@@ -6,7 +6,7 @@
 
 ### Objectives
 
-Service `fq-connector-go` is a part of YDB Federated Query system.
+Service `fq-connector-go` is a part of YDB Federated Query.
 It's an extension point making YDB capable of interaction with various external data sources.
 You can deploy `fq-connector-go` alongside with YDB in order to query and handle
 data extracted from the external sources.
