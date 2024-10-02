@@ -31,6 +31,7 @@ func (c *Connection) Query(ctx context.Context, query string, args ...any) (rdbm
 	result := &mysql.Result{}
 
 	r := &rows{
+		ctx:                     ctx,
 		rowChan:                 results,
 		lastRow:                 nil,
 		transformerInitChan:     make(chan []uint8, 1),
