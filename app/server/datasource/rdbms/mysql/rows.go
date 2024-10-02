@@ -1,6 +1,7 @@
 package mysql
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"sync/atomic"
@@ -25,6 +26,7 @@ type rowData struct {
 }
 
 type rows struct {
+	ctx           context.Context
 	rowChan       chan rowData
 	lastRow       *rowData
 	inputFinished bool
@@ -66,7 +68,10 @@ func (r *rows) maybeInitializeTransformer(fields []*mysql.Field) {
 			mySQLTypes = append(mySQLTypes, t)
 		}
 
-		r.transformerInitChan <- mySQLTypes
+		select {
+		case r.transformerInitChan <- mySQLTypes:
+		case <-r.ctx.Done():
+		}
 		close(r.transformerInitChan)
 	}
 }
@@ -263,9 +268,18 @@ func (r *rows) Scan(dest ...any) error {
 }
 
 func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	mySQLTypes, ok := <-r.transformerInitChan
-	if !ok {
-		return nil, fmt.Errorf("mysql types are not ready")
+	var (
+		mySQLTypes []uint8
+		ok         bool
+	)
+
+	select {
+	case mySQLTypes, ok = <-r.transformerInitChan:
+		if !ok {
+			return nil, fmt.Errorf("mysql types are not ready")
+		}
+	case <-r.ctx.Done():
+		return nil, r.ctx.Err()
 	}
 
 	return transformerFromSQLTypes(mySQLTypes, ydbTypes, cc)
