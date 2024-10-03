@@ -93,5 +93,6 @@ INSERT INTO pushdown VALUES
 
 DROP TABLE IF EXISTS empty_table;
 CREATE TABLE empty_table (
-    id INTEGER UNSIGNED
+    id INT NOT NULL,
+    col1 VARCHAR(7)
 );

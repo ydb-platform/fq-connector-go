@@ -259,6 +259,13 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
+func (s *Suite) TestEmptyTable() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["empty_table"],
+	)
+}
+
 // TODO: fix error mapping in `common/errors.go`
 func (s *Suite) TestInvalidLogin() {
 	s.T().Skip()

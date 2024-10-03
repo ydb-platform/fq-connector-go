@@ -289,7 +289,6 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 			return nil, fmt.Errorf("mysql types are not ready")
 		}
 	case <-time.After(dataAwaitTimeout):
-		fmt.Println("Got no data after timeout, table seems to be empty")
 		r.logger.Warn("Got no data after timeout, table seems to be empty", zap.Duration("timeout", dataAwaitTimeout))
 
 		return transformerFromSQLTypes(nil, ydbTypes, cc)
