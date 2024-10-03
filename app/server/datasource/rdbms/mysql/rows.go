@@ -31,6 +31,7 @@ type rows struct {
 	ctx    context.Context
 	logger *zap.Logger
 
+	errChan       chan error
 	rowChan       chan rowData
 	lastRow       *rowData
 	inputFinished bool
@@ -278,20 +279,19 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 		ok         bool
 	)
 
-	dataAwaitTimeout, err := common.DurationFromString(r.cfg.DataAwaitTimeout)
-	if err != nil {
-		return nil, fmt.Errorf("convert DataAwaitTimeout to string: %w", err)
-	}
-
 	select {
 	case mySQLTypes, ok = <-r.transformerInitChan:
 		if !ok {
 			return nil, fmt.Errorf("mysql types are not ready")
 		}
-	case <-time.After(dataAwaitTimeout):
-		r.logger.Warn("Got no data after timeout, table seems to be empty", zap.Duration("timeout", dataAwaitTimeout))
+	case err := <-r.errChan:
+		if err != nil {
+			return nil, fmt.Errorf("error occured during async reading: %w", err)
+		}
 
-		return transformerFromSQLTypes(nil, ydbTypes, cc)
+		// nil error means that asynchronous reading was successfuly finished
+		// before the first line was received - the case of empty table
+		r.logger.Warn("table seems to be empty")
 	case <-r.ctx.Done():
 		return nil, r.ctx.Err()
 	}

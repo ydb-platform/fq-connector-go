@@ -178,10 +178,6 @@ message TMySQLConfig {
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string open_connection_timeout = 2; 
 
-    // Timeout for the waiting the first row to come from MySQL connection.
-    // This helps to distinguish empty tables (YQ-3723).
-    string data_await_timeout = 3;
-
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 

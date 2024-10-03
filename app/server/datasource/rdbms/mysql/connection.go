@@ -37,6 +37,7 @@ func (c *Connection) Query(ctx context.Context, logger *zap.Logger, query string
 		cfg:                     c.cfg,
 		logger:                  logger,
 		rowChan:                 results,
+		errChan:                 make(chan error, 1),
 		lastRow:                 nil,
 		transformerInitChan:     make(chan []uint8, 1),
 		transformerInitFinished: atomic.Uint32{},
@@ -50,8 +51,9 @@ func (c *Connection) Query(ctx context.Context, logger *zap.Logger, query string
 
 	go func() {
 		defer close(r.rowChan)
+		defer close(r.errChan)
 
-		err = stmt.ExecuteSelectStreaming(
+		r.errChan <- stmt.ExecuteSelectStreaming(
 			result,
 			// In per-row handler copy entire row. The driver re-uses memory allocated for single row,
 			// so we need either to lock the row until the reader is done its reading and processing
