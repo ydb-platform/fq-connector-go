@@ -1,6 +1,9 @@
 package mysql
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -72,7 +75,7 @@ func (sqlFormatter) GetPlaceholder(_ int) string {
 }
 
 func (sqlFormatter) SanitiseIdentifier(ident string) string {
-	return ident
+	return fmt.Sprintf("`%s`", strings.Replace(ident, "`", "``", -1))
 }
 
 func (f sqlFormatter) FormatFrom(tableName string) string {
