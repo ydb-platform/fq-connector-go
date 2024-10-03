@@ -286,10 +286,10 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 		}
 	case err := <-r.errChan:
 		if err != nil {
-			return nil, fmt.Errorf("error occured during async reading: %w", err)
+			return nil, fmt.Errorf("error occurred during async reading: %w", err)
 		}
 
-		// nil error means that asynchronous reading was successfuly finished
+		// nil error means that asynchronous reading was successfully finished
 		// before the first line was received - the case of empty table
 		r.logger.Warn("table seems to be empty")
 	case <-r.ctx.Done():
