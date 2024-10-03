@@ -90,3 +90,44 @@ INSERT INTO pushdown VALUES
                      (2, 20, 'b'),
                      (3, 30, 'c'),
                      (4, NULL, NULL);
+
+DROP TABLE IF EXISTS yq_3718;
+CREATE TABLE yq_3718 (
+    d decimal(20, 2),
+    id INTEGER UNSIGNED
+);
+
+INSERT INTO yq_3718 VALUES (10.10, 1),
+                           (20.20, 2),
+                           (30.30, 3);
+
+DROP TABLE IF EXISTS yq_3719;
+CREATE TABLE yq_3719(
+    id INT NOT NULL,
+    abbreviation_for_ddu TEXT,
+    about_project_description TEXT,
+    about_project_title TEXT,
+    alias TEXT,
+    apartments_are_sold TEXT,
+    class TEXT,
+    color TEXT,
+    coordinates TEXT,
+    created_at TEXT,
+    created_by_id TEXT,
+    is_completed TEXT,
+    location_address TEXT,
+    location_district TEXT,
+    location_metro TEXT,
+    location_metro_walk TEXT,
+    orders TEXT,
+    show_in_completed_projects TEXT,
+    slogan TEXT,
+    title TEXT,
+    title_row_1 TEXT,
+    title_row_2 TEXT,
+    updated_at TEXT,
+    updated_by_id TEXT,
+    video TEXT,
+    virtual_tour TEXT
+);
+
