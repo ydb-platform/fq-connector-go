@@ -98,10 +98,19 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	// MySQL
 
 	if c.Datasources.Mysql == nil {
-		c.Datasources.Mysql = &config.TMySQLConfig{
-			ResultChanCapacity:    512,
-			OpenConnectionTimeout: "5s",
-		}
+		c.Datasources.Mysql = &config.TMySQLConfig{}
+	}
+
+	if c.Datasources.Mysql.ResultChanCapacity == 0 {
+		c.Datasources.Mysql.ResultChanCapacity = 512
+	}
+
+	if c.Datasources.Mysql.OpenConnectionTimeout == "" {
+		c.Datasources.Mysql.OpenConnectionTimeout = "5s"
+	}
+
+	if c.Datasources.Mysql.DataAwaitTimeout == "" {
+		c.Datasources.Mysql.DataAwaitTimeout = "1s"
 	}
 
 	if c.Datasources.Mysql.ExponentialBackoff == nil {

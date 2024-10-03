@@ -7,7 +7,9 @@ import (
 
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
+	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -15,23 +17,25 @@ import (
 var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
-	logger            common.QueryLogger
-	conn              *client.Conn
-	rowBufferCapacity uint64
+	logger common.QueryLogger
+	conn   *client.Conn
+	cfg    *config.TMySQLConfig
 }
 
 func (c *Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *Connection) Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
-	results := make(chan rowData, c.rowBufferCapacity)
+	results := make(chan rowData, c.cfg.ResultChanCapacity)
 	result := &mysql.Result{}
 
 	r := &rows{
 		ctx:                     ctx,
+		cfg:                     c.cfg,
+		logger:                  logger,
 		rowChan:                 results,
 		lastRow:                 nil,
 		transformerInitChan:     make(chan []uint8, 1),

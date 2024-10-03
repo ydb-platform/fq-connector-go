@@ -9,7 +9,9 @@ import (
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -26,7 +28,9 @@ type rowData struct {
 }
 
 type rows struct {
-	ctx           context.Context
+	ctx    context.Context
+	logger *zap.Logger
+
 	rowChan       chan rowData
 	lastRow       *rowData
 	inputFinished bool
@@ -35,6 +39,7 @@ type rows struct {
 	// it's used to initialize transformer with column types (which are encoded with uint8 values)
 	transformerInitChan     chan []uint8
 	transformerInitFinished atomic.Uint32
+	cfg                     *config.TMySQLConfig
 }
 
 func (*rows) Close() error { return nil }
@@ -273,11 +278,21 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 		ok         bool
 	)
 
+	dataAwaitTimeout, err := common.DurationFromString(r.cfg.DataAwaitTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("convert DataAwaitTimeout to string: %w", err)
+	}
+
 	select {
 	case mySQLTypes, ok = <-r.transformerInitChan:
 		if !ok {
 			return nil, fmt.Errorf("mysql types are not ready")
 		}
+	case <-time.After(dataAwaitTimeout):
+		fmt.Println("Got no data after timeout, table seems to be empty")
+		r.logger.Warn("Got no data after timeout, table seems to be empty", zap.Duration("timeout", dataAwaitTimeout))
+
+		return transformerFromSQLTypes(nil, ydbTypes, cc)
 	case <-r.ctx.Done():
 		return nil, r.ctx.Err()
 	}

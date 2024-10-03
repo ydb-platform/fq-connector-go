@@ -90,3 +90,8 @@ INSERT INTO pushdown VALUES
                      (2, 20, 'b'),
                      (3, 30, 'c'),
                      (4, NULL, NULL);
+
+DROP TABLE IF EXISTS empty_table;
+CREATE TABLE empty_table (
+    id INTEGER UNSIGNED
+);
