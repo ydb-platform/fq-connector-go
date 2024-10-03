@@ -49,7 +49,7 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 	return transformer, nil
 }
 
-func (c *connectionHTTP) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *connectionHTTP) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.DB.QueryContext(ctx, query, args...)

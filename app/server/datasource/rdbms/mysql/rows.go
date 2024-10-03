@@ -9,7 +9,9 @@ import (
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -26,7 +28,10 @@ type rowData struct {
 }
 
 type rows struct {
-	ctx           context.Context
+	ctx    context.Context
+	logger *zap.Logger
+
+	errChan       chan error
 	rowChan       chan rowData
 	lastRow       *rowData
 	inputFinished bool
@@ -35,6 +40,7 @@ type rows struct {
 	// it's used to initialize transformer with column types (which are encoded with uint8 values)
 	transformerInitChan     chan []uint8
 	transformerInitFinished atomic.Uint32
+	cfg                     *config.TMySQLConfig
 }
 
 func (*rows) Close() error { return nil }
@@ -278,6 +284,14 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 		if !ok {
 			return nil, fmt.Errorf("mysql types are not ready")
 		}
+	case err := <-r.errChan:
+		if err != nil {
+			return nil, fmt.Errorf("error occurred during async reading: %w", err)
+		}
+
+		// nil error means that asynchronous reading was successfully finished
+		// before the first line was received - the case of empty table
+		r.logger.Warn("table seems to be empty")
 	case <-r.ctx.Done():
 		return nil, r.ctx.Err()
 	}

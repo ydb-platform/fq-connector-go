@@ -19,7 +19,7 @@ type ConnectionMock struct {
 	mock.Mock
 }
 
-func (m *ConnectionMock) Query(_ context.Context, query string, params ...any) (Rows, error) {
+func (m *ConnectionMock) Query(_ context.Context, _ *zap.Logger, query string, params ...any) (Rows, error) {
 	called := []any{query}
 	called = append(called, params...)
 	args := m.Called(called...)

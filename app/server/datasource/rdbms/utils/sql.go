@@ -14,7 +14,7 @@ import (
 )
 
 type Connection interface {
-	Query(ctx context.Context, query string, args ...any) (Rows, error)
+	Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (Rows, error)
 	Close() error
 }
 
