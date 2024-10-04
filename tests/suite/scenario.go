@@ -19,9 +19,6 @@ func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDB
 	dataSource *datasource.DataSource,
 	table *test_utils.Table[ID, IDBUILDER],
 ) {
-	// read some table to "heat" metrics
-	s.ValidateTable(dataSource, table)
-
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
@@ -55,17 +52,12 @@ func TestMissingDataSource[
 	md := metadata.Pairs(common.ForbidRetries, "1")
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
-	// read some table metadata to "heat" metrics
-	resp, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
-	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
-
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
 	// read some table metadata
-	resp, err = s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
+	resp, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, "it's not important")
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_INTERNAL_ERROR, resp.Error.Status)
 
@@ -88,17 +80,12 @@ func TestInvalidLogin[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBu
 
 	dsi.Credentials.GetBasic().Username = "wrong"
 
-	// read some table to "heat" metrics
-	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
-	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status, resp.Error.String())
-
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
 	// read some table
-	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
+	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status)
 
@@ -121,17 +108,12 @@ func TestInvalidPassword[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowI
 
 	dsi.Credentials.GetBasic().Password = "wrong"
 
-	// read some table to "heat" metrics
-	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
-	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status, resp.Error.String())
-
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
 	// read some table
-	resp, err = s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
+	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status)
 
@@ -157,7 +139,7 @@ func TestUnsupportedPushdownFilteringMandatory[ID test_utils.TableIDTypes, IDBUI
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
-	// read some table
+	// describe table
 	describeTableResponse, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, table.Name)
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
