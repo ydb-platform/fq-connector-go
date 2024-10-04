@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
@@ -140,6 +141,67 @@ func TestInvalidPassword[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowI
 
 	// errors count incremented by one
 	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "UNAUTHORIZED")
+	s.Require().NoError(err)
+	s.Require().Equal(float64(1), describeTableStatusErr)
+}
+
+func TestUnsupportedPushdownFilteringMandatory[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
+	s *Base[ID, IDBUILDER],
+	dsi *api_common.TDataSourceInstance,
+	table *test_utils.Table[ID, IDBUILDER],
+	predicate *api_service_protos.TPredicate,
+) {
+	ctx := context.Background()
+
+	// read some table to "heat" metrics
+	describeTableResponse, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, table.Name)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
+
+	// get stats snapshot before table reading
+	snapshot1, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// read some table
+	describeTableResponse, err = s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, table.Name)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
+
+	// verify schema
+	schema := describeTableResponse.Schema
+	table.MatchSchema(s.T(), schema)
+
+	// list splits
+	slct := &api_service_protos.TSelect{
+		DataSourceInstance: dsi,
+		What:               common.SchemaToSelectWhatItems(schema, nil),
+		From: &api_service_protos.TSelect_TFrom{
+			Table: table.Name,
+		},
+	}
+
+	listSplitsResponses, err := s.Connector.ClientBuffering().ListSplits(ctx, slct)
+	s.Require().NoError(err)
+	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
+	s.Require().Len(listSplitsResponses, 1)
+
+	// read splits fails due to unsupported pushdown
+	splits := common.ListSplitsResponsesToSplits(listSplitsResponses)
+	readSplitsResponses, err := s.Connector.ClientBuffering().ReadSplits(
+		ctx,
+		splits,
+		common.WithFiltering(api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY),
+	)
+	s.Require().NoError(err)
+	s.Require().Empty(readSplitsResponses)
+	s.Require().Equal(Ydb.StatusIds_UNSUPPORTED, describeTableResponse.Error.Status)
+
+	// get stats snapshot after table reading
+	snapshot2, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// errors count incremented by one
+	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "UNSUPPORTED")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }

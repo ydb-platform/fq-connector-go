@@ -433,6 +433,26 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"pushdown_unsupported_filtering_optional": {
+		Name:                  "pushdown",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
+					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30), nil},
+					"col_02_text": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c"), nil},
+				},
+			},
+		},
+	},
+	"pushdown_unsupported_filtering_mandatory": {
+		Name:                  "pushdown",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownSchemaYdb(),
+		Records:               []*test_utils.Record[int32, *array.Int32Builder]{},
+	},
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

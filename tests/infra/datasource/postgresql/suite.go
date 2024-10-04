@@ -231,6 +231,44 @@ func (s *Suite) TestPushdownNegation() {
 	)
 }
 
+// YQ-3702. In this couple of tests we check the case when the client
+// required a pushdown that cannot be rendered by the server.
+// Dependening on a value of filtering mode, server returns either an error
+// or a full table.
+
+func (s *Suite) TestPushdownUnsupportedFilteringOptional() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_unsupported_filtering_optional"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"id",
+				api_service_protos.TPredicate_TComparison_EQ,
+				// PostgreSQL does not support unsigned numbers
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UINT32), int32(1)),
+			),
+		}),
+		suite.WithFiltering(api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL),
+	)
+}
+
+func (s *Suite) TestPushdownUnsupportedFilteringMandatory() {
+	for _, dsi := range s.dataSource.Instances {
+		suite.TestUnsupportedPushdownFilteringMandatory(
+			s.Base,
+			dsi,
+			tables["pushdown_unsupported_filtering_optional"],
+			&api_service_protos.TPredicate{
+				Payload: tests_utils.MakePredicateComparisonColumn(
+					"id",
+					api_service_protos.TPredicate_TComparison_EQ,
+					// PostgreSQL does not support unsigned numbers
+					common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UINT32), int32(1)),
+				),
+			})
+	}
+}
+
 // Set of tests validating stats
 
 func (s *Suite) TestPositiveStats() {
