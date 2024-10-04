@@ -33,7 +33,12 @@ func (*dataSource) DescribeTable(
 	return nil, fmt.Errorf("table description is not implemented for schemaless data sources: %w", common.ErrMethodNotSupported)
 }
 
-func (ds *dataSource) ReadSplit(ctx context.Context, logger *zap.Logger, _ *api_service_protos.TReadSplitsRequest, split *api_service_protos.TSplit, sink paging.Sink[string]) {
+func (ds *dataSource) ReadSplit(
+	ctx context.Context,
+	logger *zap.Logger,
+	_ *api_service_protos.TReadSplitsRequest,
+	split *api_service_protos.TSplit,
+	sink paging.Sink[string]) {
 	if err := ds.doReadSplit(ctx, logger, split, sink); err != nil {
 		sink.AddError(err)
 	}

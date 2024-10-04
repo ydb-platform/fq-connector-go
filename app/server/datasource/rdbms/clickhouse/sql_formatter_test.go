@@ -450,7 +450,8 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
-			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(logger, formatter, tc.selectReq, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
+			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+				logger, formatter, tc.selectReq, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
 				return
