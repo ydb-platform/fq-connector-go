@@ -153,17 +153,12 @@ func TestUnsupportedPushdownFilteringMandatory[ID test_utils.TableIDTypes, IDBUI
 ) {
 	ctx := context.Background()
 
-	// read some table to "heat" metrics
-	describeTableResponse, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, table.Name)
-	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
-
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
 	// read some table
-	describeTableResponse, err = s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, table.Name)
+	describeTableResponse, err := s.Connector.ClientBuffering().DescribeTable(ctx, dsi, nil, table.Name)
 	s.Require().NoError(err)
 	s.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status)
 
@@ -177,6 +172,9 @@ func TestUnsupportedPushdownFilteringMandatory[ID test_utils.TableIDTypes, IDBUI
 		What:               common.SchemaToSelectWhatItems(schema, nil),
 		From: &api_service_protos.TSelect_TFrom{
 			Table: table.Name,
+		},
+		Where: &api_service_protos.TSelect_TWhere{
+			FilterTyped: predicate,
 		},
 	}
 
@@ -192,16 +190,16 @@ func TestUnsupportedPushdownFilteringMandatory[ID test_utils.TableIDTypes, IDBUI
 		splits,
 		common.WithFiltering(api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY),
 	)
-	s.Require().NoError(err)
-	s.Require().Empty(readSplitsResponses)
-	s.Require().Equal(Ydb.StatusIds_UNSUPPORTED, describeTableResponse.Error.Status)
+	s.Require().NoError(err)                // no transport error
+	s.Require().Len(readSplitsResponses, 1) // but there is a logical error in the first stream message
+	s.Require().Equal(Ydb.StatusIds_UNSUPPORTED, readSplitsResponses[0].Error.Status)
 
 	// get stats snapshot after table reading
 	snapshot2, err := s.Connector.MetricsSnapshot()
 	s.Require().NoError(err)
 
 	// errors count incremented by one
-	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "UNSUPPORTED")
+	unsupportedErrors, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ReadSplits", "stream_status_total", "UNSUPPORTED")
 	s.Require().NoError(err)
-	s.Require().Equal(float64(1), describeTableStatusErr)
+	s.Require().Equal(float64(1), unsupportedErrors)
 }

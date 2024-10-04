@@ -54,6 +54,9 @@ func (c *ClientBuffering) ReadSplits(
 	return dumpStream[*api_service_protos.TReadSplitsResponse](rcvStream)
 }
 
+// dumpStream dumps the stream into a slice;
+// it also returns transport error as the second argument,
+// but you need to check logical errors on your own.
 func dumpStream[T StreamResponse](rcvStream stream[T]) ([]T, error) {
 	var responses []T
 
@@ -65,10 +68,6 @@ func dumpStream[T StreamResponse](rcvStream stream[T]) ([]T, error) {
 
 		if err != nil {
 			return nil, fmt.Errorf("stream recv: %w", err)
-		}
-
-		if !IsSuccess(msg.GetError()) {
-			return nil, NewSTDErrorFromAPIError(msg.GetError())
 		}
 
 		responses = append(responses, msg)
