@@ -51,7 +51,7 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 	return transformer, nil
 }
 
-func (c *connectionNative) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *connectionNative) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.Conn.Query(ctx, query, args...)

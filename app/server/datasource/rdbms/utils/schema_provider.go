@@ -26,7 +26,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 ) (*api_service_protos.TSchema, error) {
 	query, args := f.getArgsAndQuery(request)
 
-	rows, err := conn.Query(ctx, query, args...)
+	rows, err := conn.Query(ctx, logger, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}

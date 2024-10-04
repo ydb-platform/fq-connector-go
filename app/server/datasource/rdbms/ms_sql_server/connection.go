@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	_ "github.com/denisenkom/go-mssqldb"
+	"go.uber.org/zap"
 
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -21,7 +22,7 @@ func (c Connection) Close() error {
 	return c.db.Close()
 }
 
-func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c Connection) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.db.QueryContext(ctx, query, args...)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	go_ora "github.com/sijms/go-ora/v2"
+	"go.uber.org/zap"
 
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -22,7 +23,7 @@ func (c Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c Connection) Query(ctx context.Context, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c Connection) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	valueArgs := make([]driver.NamedValue, len(args))

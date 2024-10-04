@@ -176,9 +176,9 @@ func (s *serviceConnector) ReadSplits(
 		if err := stream.Send(response); err != nil {
 			return fmt.Errorf("stream send: %w", err)
 		}
+	} else {
+		logger.Info("request handling finished")
 	}
-
-	logger.Info("request handling finished")
 
 	return nil
 }

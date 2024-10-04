@@ -381,6 +381,19 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"empty_table": {
+		Name:                  "empty_table",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col1": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			// no items
+		},
+	},
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

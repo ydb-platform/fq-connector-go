@@ -177,7 +177,8 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	splits := common.ListSplitsResponsesToSplits(listSplitsResponses)
 	readSplitsResponses, err := b.Connector.ClientBuffering().ReadSplits(ctx, splits)
 	b.Require().NoError(err)
-	b.Require().Len(readSplitsResponses, 1)
+	// either no blocks (empty table), either single block (tables are small)
+	b.Require().Contains([]int{0, 1}, len(readSplitsResponses))
 
 	records, err := common.ReadResponsesToArrowRecords(readSplitsResponses)
 	b.Require().NoError(err)
