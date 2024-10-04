@@ -72,10 +72,11 @@ func (ds *dataSourceImpl) DescribeTable(
 func (ds *dataSourceImpl) doReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) error {
-	query, args, selectWhat, err := rdbms_utils.MakeReadSplitsQuery(logger, ds.sqlFormatter, split.Select)
+	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(logger, ds.sqlFormatter, split.Select, request.Filtering)
 	if err != nil {
 		return fmt.Errorf("make read split query: %w", err)
 	}
@@ -109,8 +110,8 @@ func (ds *dataSourceImpl) doReadSplit(
 		func() error {
 			var queryErr error
 
-			if rows, queryErr = conn.Query(ctx, logger, query, args...); queryErr != nil {
-				return fmt.Errorf("query '%s' error: %w", query, queryErr)
+			if rows, queryErr = conn.Query(ctx, logger, readSplitsQuery.Query, readSplitsQuery.Args...); queryErr != nil {
+				return fmt.Errorf("query '%s' error: %w", readSplitsQuery.Query, queryErr)
 			}
 
 			return nil
@@ -123,7 +124,7 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(selectWhat)
+	ydbTypes, err := common.SelectWhatToYDBTypes(readSplitsQuery.What)
 	if err != nil {
 		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
@@ -155,10 +156,11 @@ func (ds *dataSourceImpl) doReadSplit(
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) {
-	err := ds.doReadSplit(ctx, logger, split, sink)
+	err := ds.doReadSplit(ctx, logger, request, split, sink)
 	if err != nil {
 		sink.AddError(err)
 	}

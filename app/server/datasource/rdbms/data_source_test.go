@@ -22,6 +22,9 @@ import (
 
 func TestReadSplit(t *testing.T) {
 	ctx := context.Background()
+	readSplitsRequest := &api_service_protos.TReadSplitsRequest{
+		Filtering: api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
+	}
 	split := &api_service_protos.TSplit{
 		Select: &api_service_protos.TSelect{
 			DataSourceInstance: &api_common.TDataSourceInstance{},
@@ -97,7 +100,7 @@ func TestReadSplit(t *testing.T) {
 		sink.On("Finish").Return().Once()
 
 		dataSource := NewDataSource(logger, preset, converterCollection)
-		dataSource.ReadSplit(ctx, logger, split, sink)
+		dataSource.ReadSplit(ctx, logger, readSplitsRequest, split, sink)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink)
 	})
@@ -152,7 +155,8 @@ func TestReadSplit(t *testing.T) {
 		sink.On("Finish").Return().Once()
 
 		datasource := NewDataSource(logger, preset, converterCollection)
-		datasource.ReadSplit(ctx, logger, split, sink)
+
+		datasource.ReadSplit(ctx, logger, readSplitsRequest, split, sink)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink)
 	})

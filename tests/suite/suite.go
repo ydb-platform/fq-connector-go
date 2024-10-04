@@ -80,6 +80,7 @@ func (b *Base[_, _]) TearDownSuite() {
 type validateTableOptions struct {
 	typeMappingSettings *api_service_protos.TTypeMappingSettings
 	predicate           *api_service_protos.TPredicate
+	filtering           api_service_protos.TReadSplitsRequest_EFiltering
 }
 
 func newDefaultValidateTableOptions() *validateTableOptions {
@@ -104,6 +105,18 @@ func (o withDateTimeFormatOption) apply(options *validateTableOptions) {
 
 func WithDateTimeFormat(val api_service_protos.EDateTimeFormat) ValidateTableOption {
 	return withDateTimeFormatOption{val: val}
+}
+
+type withFilteringOption struct {
+	val api_service_protos.TReadSplitsRequest_EFiltering
+}
+
+func (o withFilteringOption) apply(options *validateTableOptions) {
+	options.filtering = o.val
+}
+
+func WithFiltering(val api_service_protos.TReadSplitsRequest_EFiltering) ValidateTableOption {
+	return withFilteringOption{val: val}
 }
 
 type withPredicateOption struct {

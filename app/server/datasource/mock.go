@@ -28,6 +28,7 @@ func (*DataSourceMock[T]) DescribeTable(
 func (m *DataSourceMock[T]) ReadSplit(
 	_ context.Context,
 	_ *zap.Logger,
+	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	pagingWriter paging.Sink[T],
 ) {

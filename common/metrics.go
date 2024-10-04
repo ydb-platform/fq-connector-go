@@ -95,15 +95,22 @@ func NewMetricsSnapshot(endpoint *api_common.TEndpoint, useTLS bool) (*MetricsSn
 }
 
 func DiffStatusSensors(oldSnapshot, newSnapshot *MetricsSnapshot, typ, method, name, status string) (float64, error) {
+	var oldValue float64
+
 	oldSensors := oldSnapshot.FindStatusSensors(typ, method, name, status)
-	if len(oldSensors) != 1 {
+	switch len(oldSensors) {
+	case 0:
+		oldValue = 0 // happens if service hasn't handled request since start
+	case 1:
+		oldValue = oldSensors[0].Value
+	default:
 		return 0, fmt.Errorf("unexpected number of sensors in old snapshot: %d", len(oldSensors))
 	}
 
 	newSensors := newSnapshot.FindStatusSensors(typ, method, name, status)
 	if len(newSensors) != 1 {
-		return 0, fmt.Errorf("unexpected number of sensors in old snapshot: %d", len(newSensors))
+		return 0, fmt.Errorf("unexpected number of sensors in new snapshot: %d", len(newSensors))
 	}
 
-	return newSensors[0].Value - oldSensors[0].Value, nil
+	return newSensors[0].Value - oldValue, nil
 }
