@@ -264,7 +264,8 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	streamer := NewStreamer(logger, stream, split, sink, dataSource)
+	request := &api_service_protos.TReadSplitsRequest{}
+	streamer := NewStreamer(logger, stream, request, split, sink, dataSource)
 
 	err = streamer.Run()
 

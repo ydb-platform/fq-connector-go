@@ -450,16 +450,16 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
-			outputQuery, outputArgs, outputSelectWhat, err := rdbms_utils.MakeReadSplitsQuery(logger, formatter, tc.selectReq)
-			require.Equal(t, tc.outputQuery, outputQuery)
-			require.Equal(t, tc.outputArgs, outputArgs)
-			require.Equal(t, tc.outputSelectWhat, outputSelectWhat)
-
+			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(logger, formatter, tc.selectReq, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
-			} else {
-				require.NoError(t, err)
+				return
 			}
+
+			require.NoError(t, err)
+			require.Equal(t, tc.outputQuery, readSplitsQuery.Query)
+			require.Equal(t, tc.outputArgs, readSplitsQuery.Args)
+			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)
 		})
 	}
 }

@@ -68,11 +68,11 @@ func (dsc *DataSourceCollection) DoReadSplit(
 			return err
 		}
 
-		return readSplit[any](logger, stream, request.GetFormat(), split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
-		return readSplit[string](logger, stream, request.GetFormat(), split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -81,7 +81,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 func readSplit[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
-	format api_service_protos.TReadSplitsRequest_EFormat,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	dataSource datasource.DataSource[T],
 	memoryAllocator memory.Allocator,
@@ -93,7 +93,7 @@ func readSplit[T paging.Acceptor](
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](
 		logger,
 		memoryAllocator,
-		format,
+		request.Format,
 		split.Select.What)
 	if err != nil {
 		return fmt.Errorf("new columnar buffer factory: %w", err)
@@ -116,6 +116,7 @@ func readSplit[T paging.Acceptor](
 	streamer := streaming.NewStreamer(
 		logger,
 		stream,
+		request,
 		split,
 		sink,
 		dataSource,
