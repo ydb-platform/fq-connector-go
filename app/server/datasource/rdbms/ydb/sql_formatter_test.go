@@ -189,7 +189,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 															Comparison: &api_service_protos.TPredicate_TComparison{
 																Operation:  api_service_protos.TPredicate_TComparison_NE,
 																LeftValue:  rdbms_utils.NewColumnExpression("col1"),
-																RightValue: rdbms_utils.NewUint64ValueExpression(0),
+																RightValue: rdbms_utils.NewInt64ValueExpression(0),
 															},
 														},
 													},
@@ -211,7 +211,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				},
 			},
 			outputQuery:      "SELECT `col0`, `col1` FROM `tab` WHERE ((NOT (`col2` <= ?)) OR ((`col1` <> ?) AND (`col3` IS NULL)))",
-			outputArgs:       []any{int32(42), uint64(0)},
+			outputArgs:       []any{int32(42), int64(0)},
 			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
 			err:              nil,
 		},
