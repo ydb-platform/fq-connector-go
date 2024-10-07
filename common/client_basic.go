@@ -32,6 +32,22 @@ func (c *clientBasic) DescribeTable(
 	return c.client.DescribeTable(ctx, request)
 }
 
+type ReadSplitsOption interface {
+	apply(request *api_service_protos.TReadSplitsRequest)
+}
+
+type readSplitsFilteringOption struct {
+	filtering api_service_protos.TReadSplitsRequest_EFiltering
+}
+
+func (o readSplitsFilteringOption) apply(request *api_service_protos.TReadSplitsRequest) {
+	request.Filtering = o.filtering
+}
+
+func WithFiltering(filtering api_service_protos.TReadSplitsRequest_EFiltering) ReadSplitsOption {
+	return readSplitsFilteringOption{filtering: filtering}
+}
+
 func (c *clientBasic) Close() {
 	LogCloserError(c.logger, c.conn, "client GRPC connection")
 }

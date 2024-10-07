@@ -17,6 +17,7 @@ import (
 type Streamer[T paging.Acceptor] struct {
 	stream     api_service.Connector_ReadSplitsServer
 	dataSource datasource.DataSource[T]
+	request    *api_service_protos.TReadSplitsRequest
 	split      *api_service_protos.TSplit
 	sink       paging.Sink[T]
 	logger     *zap.Logger
@@ -106,7 +107,7 @@ func (s *Streamer[T]) Run() error {
 	go func() {
 		defer wg.Done()
 
-		s.dataSource.ReadSplit(s.ctx, s.logger, s.split, s.sink)
+		s.dataSource.ReadSplit(s.ctx, s.logger, s.request, s.split, s.sink)
 	}()
 
 	// pass received blocks into the GRPC channel
@@ -120,6 +121,7 @@ func (s *Streamer[T]) Run() error {
 func NewStreamer[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[T],
 	dataSource datasource.DataSource[T],
@@ -128,6 +130,7 @@ func NewStreamer[T paging.Acceptor](
 
 	return &Streamer[T]{
 		logger:     logger,
+		request:    request,
 		stream:     stream,
 		split:      split,
 		dataSource: dataSource,

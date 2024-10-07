@@ -23,19 +23,19 @@ func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	case Ydb.Type_INT8:
 		return true
 	case Ydb.Type_UINT8:
-		return true
+		return false
 	case Ydb.Type_INT16:
 		return true
 	case Ydb.Type_UINT16:
-		return true
+		return false
 	case Ydb.Type_INT32:
 		return true
 	case Ydb.Type_UINT32:
-		return true
+		return false
 	case Ydb.Type_INT64:
 		return true
 	case Ydb.Type_UINT64:
-		return true
+		return false
 	case Ydb.Type_FLOAT:
 		return true
 	case Ydb.Type_DOUBLE:

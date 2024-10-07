@@ -297,6 +297,8 @@ func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 		status = ydb_proto.StatusIds_BAD_REQUEST
 	case errors.Is(err, ErrPageSizeExceeded):
 		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	case errors.Is(err, ErrUnsupportedExpression):
+		status = ydb_proto.StatusIds_UNSUPPORTED
 	default:
 		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	}

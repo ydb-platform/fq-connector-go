@@ -60,6 +60,21 @@ func NewInt32ValueExpression(val int32) *api_service_protos.TExpression {
 	}
 }
 
+func NewInt64ValueExpression(val int64) *api_service_protos.TExpression {
+	return &api_service_protos.TExpression{
+		Payload: &api_service_protos.TExpression_TypedValue{
+			TypedValue: &Ydb.TypedValue{
+				Type: common.MakePrimitiveType(Ydb.Type_INT64),
+				Value: &Ydb.Value{
+					Value: &Ydb.Value_Int64Value{
+						Int64Value: val,
+					},
+				},
+			},
+		},
+	}
+}
+
 func NewUint64ValueExpression(val uint64) *api_service_protos.TExpression {
 	return &api_service_protos.TExpression{
 		Payload: &api_service_protos.TExpression_TypedValue{
