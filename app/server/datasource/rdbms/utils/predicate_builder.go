@@ -31,36 +31,49 @@ func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (str
 	case *Ydb.Value_TextValue:
 		return formatter.GetPlaceholder(len(args)), append(args, v.TextValue), nil
 	case *Ydb.Value_NullFlagValue:
-		optType, ok := value.Type.GetType().(*Ydb.Type_OptionalType)
-		if !ok {
-			return "", args, fmt.Errorf(
-				"null flag values must be optionally typed, got type '%T' instead: %w",
-				value.Type.GetType(), common.ErrUnimplementedTypedValue)
+		placeholder, newArgs, err := formatNullFlagValue(formatter, args, value)
+		if err != nil {
+			return "", args, fmt.Errorf("format null flag value: %w", err)
 		}
 
-		switch primitiveType := optType.OptionalType.GetItem().GetType().(type) {
-		case *Ydb.Type_TypeId:
-			switch primitiveType.TypeId {
-			case Ydb.Type_BOOL:
-				return formatter.GetPlaceholder(len(args)), append(args, (*bool)(nil)), nil
-			case Ydb.Type_INT32:
-				return formatter.GetPlaceholder(len(args)), append(args, (*int32)(nil)), nil
-			case Ydb.Type_UINT32:
-				return formatter.GetPlaceholder(len(args)), append(args, (*uint32)(nil)), nil
-			case Ydb.Type_INT64:
-				return formatter.GetPlaceholder(len(args)), append(args, (*int64)(nil)), nil
-			case Ydb.Type_UINT64:
-				return formatter.GetPlaceholder(len(args)), append(args, (*uint64)(nil)), nil
-			default:
-				return "", args, fmt.Errorf(
-					"unsupported primitive type '%T' instead: %w",
-					primitiveType, common.ErrUnimplementedTypedValue)
-			}
-		}
-
-		return formatter.GetPlaceholder(len(args)), append(args, nil), nil
+		return placeholder, newArgs, nil
 	default:
 		return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
+	}
+}
+
+func formatNullFlagValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (string, []any, error) {
+	optType, ok := value.Type.GetType().(*Ydb.Type_OptionalType)
+	if !ok {
+		return "", args, fmt.Errorf(
+			"null flag values must be optionally typed, got type '%T' instead: %w",
+			value.Type.GetType(), common.ErrUnimplementedTypedValue)
+	}
+
+	switch innerType := optType.OptionalType.GetItem().GetType().(type) {
+	case *Ydb.Type_TypeId:
+		switch innerType.TypeId {
+		case Ydb.Type_INT8:
+			return formatter.GetPlaceholder(len(args)), append(args, (*int8)(nil)), nil
+		case Ydb.Type_UINT8:
+			return formatter.GetPlaceholder(len(args)), append(args, (*uint8)(nil)), nil
+		case Ydb.Type_INT16:
+			return formatter.GetPlaceholder(len(args)), append(args, (*int16)(nil)), nil
+		case Ydb.Type_UINT16:
+			return formatter.GetPlaceholder(len(args)), append(args, (*uint16)(nil)), nil
+		case Ydb.Type_INT32:
+			return formatter.GetPlaceholder(len(args)), append(args, (*int32)(nil)), nil
+		case Ydb.Type_UINT32:
+			return formatter.GetPlaceholder(len(args)), append(args, (*uint32)(nil)), nil
+		case Ydb.Type_INT64:
+			return formatter.GetPlaceholder(len(args)), append(args, (*int64)(nil)), nil
+		case Ydb.Type_UINT64:
+			return formatter.GetPlaceholder(len(args)), append(args, (*uint64)(nil)), nil
+		default:
+			return "", args, fmt.Errorf("unsupported primitive type '%T' instead: %w", innerType, common.ErrUnimplementedTypedValue)
+		}
+	default:
+		return "", args, fmt.Errorf("unsupported type '%T' instead: %w", innerType, common.ErrUnimplementedTypedValue)
 	}
 }
 

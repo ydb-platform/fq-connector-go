@@ -4,10 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"github.com/ydb-platform/fq-connector-go/common"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type wrappedStream struct {

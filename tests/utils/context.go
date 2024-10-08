@@ -5,13 +5,16 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/ydb-platform/fq-connector-go/common"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 func getCallStackFunctionNames() []string {
 	var functionNames []string
+
 	pc := make([]uintptr, 20)
+
 	n := runtime.Callers(2, pc)
 	if n == 0 {
 		return functionNames
@@ -22,7 +25,9 @@ func getCallStackFunctionNames() []string {
 
 	for {
 		frame, more := frames.Next()
+
 		functionNames = append(functionNames, frame.Function)
+
 		if !more {
 			break
 		}
