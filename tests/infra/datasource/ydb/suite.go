@@ -91,7 +91,7 @@ func (s *Suite) TestPushdownComparisonEQNull() {
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_01_int",
 				api_service_protos.TPredicate_TComparison_EQ,
-				common.MakeTypedValue(&Ydb.Type{Type: &Ydb.Type_NullType{}}, nil),
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), nil),
 			),
 		}),
 	)

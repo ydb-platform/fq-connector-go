@@ -31,9 +31,36 @@ func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (str
 	case *Ydb.Value_TextValue:
 		return formatter.GetPlaceholder(len(args)), append(args, v.TextValue), nil
 	case *Ydb.Value_NullFlagValue:
+		optType, ok := value.Type.GetType().(*Ydb.Type_OptionalType)
+		if !ok {
+			return "", args, fmt.Errorf(
+				"null flag values must be optionally typed, got type '%T' instead: %w",
+				value.Type.GetType(), common.ErrUnimplementedTypedValue)
+		}
+
+		switch primitiveType := optType.OptionalType.GetItem().GetType().(type) {
+		case *Ydb.Type_TypeId:
+			switch primitiveType.TypeId {
+			case Ydb.Type_BOOL:
+				return formatter.GetPlaceholder(len(args)), append(args, (*bool)(nil)), nil
+			case Ydb.Type_INT32:
+				return formatter.GetPlaceholder(len(args)), append(args, (*int32)(nil)), nil
+			case Ydb.Type_UINT32:
+				return formatter.GetPlaceholder(len(args)), append(args, (*uint32)(nil)), nil
+			case Ydb.Type_INT64:
+				return formatter.GetPlaceholder(len(args)), append(args, (*int64)(nil)), nil
+			case Ydb.Type_UINT64:
+				return formatter.GetPlaceholder(len(args)), append(args, (*uint64)(nil)), nil
+			default:
+				return "", args, fmt.Errorf(
+					"unsupported primitive type '%T' instead: %w",
+					primitiveType, common.ErrUnimplementedTypedValue)
+			}
+		}
+
 		return formatter.GetPlaceholder(len(args)), append(args, nil), nil
 	default:
-		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedTypedValue, v)
+		return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
 	}
 }
 
@@ -84,7 +111,6 @@ func formatArithmeticalExpression(
 
 func formatExpression(formatter SQLFormatter, args []any, expression *api_service_protos.TExpression) (string, []any, error) {
 	if !formatter.SupportsPushdownExpression(expression) {
-		fmt.Println("CRAB", expression)
 		return "", args, common.ErrUnsupportedExpression
 	}
 
