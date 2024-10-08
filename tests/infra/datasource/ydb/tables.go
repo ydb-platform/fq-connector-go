@@ -296,6 +296,14 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	// YQ-3711:
+	// SELECT * FROM table WHERE x = NULL never returns rows.
+	"pushdown_comparison_EQ_NULL": {
+		Name:                  "pushdown",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownSchemaYdb(),
+		Records:               []*test_utils.Record[int32, *array.Int32Builder]{},
+	},
 	"pushdown_comparison_GE": {
 		Name:                  "pushdown",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
@@ -454,7 +462,6 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
-
 	"parent/child": {
 		Name:                  "parent/child",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),

@@ -30,6 +30,8 @@ func formatValue(formatter SQLFormatter, args []any, value *Ydb.TypedValue) (str
 		return formatter.GetPlaceholder(len(args)), append(args, v.BytesValue), nil
 	case *Ydb.Value_TextValue:
 		return formatter.GetPlaceholder(len(args)), append(args, v.TextValue), nil
+	case *Ydb.Value_NullFlagValue:
+		return formatter.GetPlaceholder(len(args)), append(args, nil), nil
 	default:
 		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedTypedValue, v)
 	}
@@ -82,6 +84,7 @@ func formatArithmeticalExpression(
 
 func formatExpression(formatter SQLFormatter, args []any, expression *api_service_protos.TExpression) (string, []any, error) {
 	if !formatter.SupportsPushdownExpression(expression) {
+		fmt.Println("CRAB", expression)
 		return "", args, common.ErrUnsupportedExpression
 	}
 

@@ -155,7 +155,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 
 	b.Require().NotEmpty(table.Name)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(test_utils.NewContextWithTestName(), 10*time.Second)
 	defer cancel()
 
 	// describe table

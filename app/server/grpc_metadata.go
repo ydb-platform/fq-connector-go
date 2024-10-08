@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/ydb-platform/fq-connector-go/common"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -14,9 +15,10 @@ type wrappedStream struct {
 	ctx context.Context
 }
 
-type md struct {
-	userID    string
-	sessionID string
+// metainfo is a container for a useful parameters and tags for a user request
+// which must be used for log annotation
+type metainfo struct {
+	testName string // used only in integration tests (Go)
 }
 
 type loggerKey int
@@ -25,25 +27,20 @@ const (
 	loggerKeyRequest loggerKey = iota
 )
 
-func extractMetadata(ctx context.Context) md {
-	var metainfo md
+func extractMetadata(ctx context.Context) metainfo {
+	var m metainfo
 
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return metainfo
+		return m
 	}
 
-	userIDs := md["user_id"]
-	if len(userIDs) != 0 {
-		metainfo.userID = userIDs[0]
+	testNames := md[common.TestName]
+	if len(testNames) != 0 {
+		m.testName = testNames[0]
 	}
 
-	sessionIDs := md["session_id"]
-	if len(sessionIDs) != 0 {
-		metainfo.sessionID = sessionIDs[0]
-	}
-
-	return metainfo
+	return m
 }
 
 func UnaryServerMetadata(logger *zap.Logger) grpc.UnaryServerInterceptor {
@@ -79,9 +76,8 @@ func insertMetadataToContext(serverContext context.Context, logger *zap.Logger, 
 	method := trimMethod(fullMethod)
 
 	newLogger := logger.With(
-		zap.String("user_id", metainfo.userID),
-		zap.String("session_id", metainfo.sessionID),
 		zap.String("method", method),
+		zap.String("test_name", metainfo.testName),
 	)
 
 	ctx := context.WithValue(serverContext, loggerKeyRequest, newLogger)

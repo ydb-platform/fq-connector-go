@@ -32,6 +32,8 @@ func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
 		out.Value.Value = &Ydb.Value_TextValue{TextValue: v}
 	case []byte:
 		out.Value.Value = &Ydb.Value_BytesValue{BytesValue: v}
+	case nil:
+		out.Value.Value = &Ydb.Value_NullFlagValue{}
 	default:
 		panic(fmt.Sprintf("unexpected type %T", value))
 	}
