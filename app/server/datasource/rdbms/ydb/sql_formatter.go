@@ -57,12 +57,13 @@ func (f *sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 		return f.supportsType(v.TypeId)
 	case *Ydb.Type_OptionalType:
 		return f.supportsConstantValueExpression(v.OptionalType.Item)
+	case *Ydb.Type_NullType:
+		return true
 	default:
 		return false
 	}
 }
 
-// TODO: pushdown support
 func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:

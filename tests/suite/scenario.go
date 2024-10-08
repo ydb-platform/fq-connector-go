@@ -50,7 +50,7 @@ func TestMissingDataSource[
 ](s *Base[ID, IDBUILDER], dsi *api_common.TDataSourceInstance) {
 	// Do not retry negative tests
 	md := metadata.Pairs(common.ForbidRetries, "1")
-	ctx := metadata.NewOutgoingContext(context.Background(), md)
+	ctx := metadata.NewOutgoingContext(test_utils.NewContextWithTestName(), md)
 
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()

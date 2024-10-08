@@ -83,6 +83,20 @@ func (s *Suite) TestPushdownComparisonEQ() {
 	)
 }
 
+func (s *Suite) TestPushdownComparisonEQNull() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_comparison_EQ_NULL"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_01_int",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), nil),
+			),
+		}),
+	)
+}
+
 func (s *Suite) TestPushdownComparisonGE() {
 	s.ValidateTable(
 		s.dataSource,
