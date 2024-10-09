@@ -27,7 +27,7 @@ func (f *schemaProvider) GetSchema(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
-	ydbConn := conn.(*Connection)
+	ydbConn := conn.(*connectionDatabaseSql)
 
 	db, err := ydb.Unwrap(ydbConn.DB)
 	if err != nil {

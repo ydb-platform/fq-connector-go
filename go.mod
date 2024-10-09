@@ -31,14 +31,14 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	github.com/wI2L/jsondiff v0.4.0
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240316140903-4a47abca1cca
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.67.2
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240920120314-0fed943b0136
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.84.1
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/time v0.5.0
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
-	google.golang.org/grpc v1.62.0
+	google.golang.org/grpc v1.62.1
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.3.0
