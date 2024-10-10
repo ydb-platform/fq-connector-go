@@ -2,7 +2,6 @@ package ydb
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 
@@ -74,33 +73,14 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
 
-	ydbConn, err := ydb_sdk.Connector(
-		ydbDriver,
-		ydb_sdk.WithAutoDeclare(),
-		ydb_sdk.WithPositionalArgs(),
-		ydb_sdk.WithTablePathPrefix(dsi.Database),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("connector error: %w", err)
+	switch c.cfg.Mode {
+	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
+		panic("Not implemented yet")
+	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
+		return newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
+	default:
+		return nil, fmt.Errorf("unknown mode: %v", c.cfg.Mode)
 	}
-
-	conn := sql.OpenDB(ydbConn)
-
-	logger.Debug("Pinging database")
-
-	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.PingConnectionTimeout))
-	defer pingCtxCancel()
-
-	if err := conn.PingContext(pingCtx); err != nil {
-		common.LogCloserError(logger, conn, "close YDB connection")
-		return nil, fmt.Errorf("conn ping: %w", err)
-	}
-
-	logger.Debug("Connection is ready")
-
-	queryLogger := c.QueryLoggerFactory.Make(logger)
-
-	return &connectionDatabaseSql{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
 }
 
 func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {

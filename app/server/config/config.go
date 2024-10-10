@@ -121,7 +121,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Oracle.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
-	// Postgresql
+	// PostgreSQL
 
 	if c.Datasources.Postgresql == nil {
 		c.Datasources.Postgresql = &config.TPostgreSQLConfig{
@@ -136,10 +136,19 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	// YDB
 
 	if c.Datasources.Ydb == nil {
-		c.Datasources.Ydb = &config.TYdbConfig{
-			OpenConnectionTimeout: "5s",
-			PingConnectionTimeout: "5s",
-		}
+		c.Datasources.Ydb = &config.TYdbConfig{}
+	}
+
+	if c.Datasources.Ydb.OpenConnectionTimeout == "" {
+		c.Datasources.Ydb.OpenConnectionTimeout = "5s"
+	}
+
+	if c.Datasources.Ydb.PingConnectionTimeout == "" {
+		c.Datasources.Ydb.PingConnectionTimeout = "5s"
+	}
+
+	if c.Datasources.Ydb.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
+		c.Datasources.Ydb.Mode = config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES
 	}
 
 	if c.Datasources.Ydb.ExponentialBackoff == nil {
@@ -305,6 +314,10 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
 		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if c.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
+		return fmt.Errorf("invalid `mode` value: %v", c.Mode)
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
