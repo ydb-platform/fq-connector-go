@@ -53,6 +53,8 @@ func formatNullFlagValue(formatter SQLFormatter, args []any, value *Ydb.TypedVal
 	switch innerType := optType.OptionalType.GetItem().GetType().(type) {
 	case *Ydb.Type_TypeId:
 		switch innerType.TypeId {
+		case Ydb.Type_BOOL:
+			return formatter.GetPlaceholder(len(args)), append(args, (*bool)(nil)), nil
 		case Ydb.Type_INT8:
 			return formatter.GetPlaceholder(len(args)), append(args, (*int8)(nil)), nil
 		case Ydb.Type_UINT8:
@@ -69,8 +71,12 @@ func formatNullFlagValue(formatter SQLFormatter, args []any, value *Ydb.TypedVal
 			return formatter.GetPlaceholder(len(args)), append(args, (*int64)(nil)), nil
 		case Ydb.Type_UINT64:
 			return formatter.GetPlaceholder(len(args)), append(args, (*uint64)(nil)), nil
+		case Ydb.Type_STRING:
+			return formatter.GetPlaceholder(len(args)), append(args, (*[]byte)(nil)), nil
+		case Ydb.Type_UTF8:
+			return formatter.GetPlaceholder(len(args)), append(args, (*string)(nil)), nil
 		default:
-			return "", args, fmt.Errorf("unsupported primitive type '%T' instead: %w", innerType, common.ErrUnimplementedTypedValue)
+			return "", args, fmt.Errorf("unsupported primitive type '%v' instead: %w", innerType, common.ErrUnimplementedTypedValue)
 		}
 	default:
 		return "", args, fmt.Errorf("unsupported type '%T' instead: %w", innerType, common.ErrUnimplementedTypedValue)
