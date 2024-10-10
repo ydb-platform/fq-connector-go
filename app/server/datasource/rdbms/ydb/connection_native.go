@@ -119,9 +119,17 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 				return fmt.Errorf("session query: %w", err)
 			}
 
+			// obtain first result set because it's necessary
+			// to create type transformers
+			resultSet, err := streamResult.NextResultSet(ctx)
+			if err != nil {
+				return fmt.Errorf("next result set: %w", err)
+			}
+
 			rows := &rowsNative{
-				ctx:          ctx,
-				streamResult: streamResult,
+				ctx:           c.ctx,
+				streamResult:  streamResult,
+				lastResultSet: resultSet,
 			}
 
 			select {
@@ -141,10 +149,21 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 	}
 }
 
+func (c *connectionNative) getDriver() *ydb_sdk.Driver {
+	return c.driver
+}
+
 func (c *connectionNative) Close() error {
 	if err := c.driver.Close(c.ctx); err != nil {
 		return fmt.Errorf("driver close: %w", err)
 	}
 
 	return nil
+}
+
+func newConnectionNative(ctx context.Context, driver *ydb_sdk.Driver) (ydbConnection, error) {
+	return &connectionNative{
+		ctx:    ctx,
+		driver: driver,
+	}, nil
 }

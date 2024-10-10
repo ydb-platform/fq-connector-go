@@ -129,12 +129,12 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
 
-	for cont := true; cont; cont = rows.NextResultSet() {
-		transformer, err := rows.MakeTransformer(ydbTypes, ds.converterCollection)
-		if err != nil {
-			return fmt.Errorf("make transformer: %w", err)
-		}
+	transformer, err := rows.MakeTransformer(ydbTypes, ds.converterCollection)
+	if err != nil {
+		return fmt.Errorf("make transformer: %w", err)
+	}
 
+	for cont := true; cont; cont = rows.NextResultSet() {
 		for rows.Next() {
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
 				return fmt.Errorf("rows scan: %w", err)
