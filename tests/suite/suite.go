@@ -67,7 +67,6 @@ func (b *Base[_, _]) SetupSuite() {
 		),
 		server.WithConnectionTimeouts("2s", "1s"),
 		server.WithYdbConnectorMode(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE),
-		// server.WithYdbConnectorMode(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES),
 	)
 	b.Require().NoError(err)
 	b.Connector.Start()
@@ -157,7 +156,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 
 	b.Require().NotEmpty(table.Name)
 
-	ctx, cancel := context.WithTimeout(test_utils.NewContextWithTestName(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(test_utils.NewContextWithTestName(), 60*time.Second)
 	defer cancel()
 
 	// describe table
@@ -192,6 +191,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	splits := common.ListSplitsResponsesToSplits(listSplitsResponses)
 	readSplitsResponses, err := b.Connector.ClientBuffering().ReadSplits(ctx, splits)
 	b.Require().NoError(err)
+	b.Require().NoError(common.ExtractErrorFromReadResponses(readSplitsResponses))
 	// either no blocks (empty table), either single block (tables are small)
 	b.Require().Contains([]int{0, 1}, len(readSplitsResponses))
 

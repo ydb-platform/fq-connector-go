@@ -116,7 +116,7 @@ type connectionNative struct {
 func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	rowsChan := make(chan rdbms_utils.Rows, 1)
 
-	c.driver.Query().Do(
+	finalErr := c.driver.Query().Do(
 		ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
 			var buf bytes.Buffer
@@ -160,6 +160,10 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 		},
 		ydb_sdk_query.WithIdempotent(),
 	)
+
+	if finalErr != nil {
+		return nil, fmt.Errorf("query do: %w", finalErr)
+	}
 
 	select {
 	case rows := <-rowsChan:

@@ -78,14 +78,24 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
 
+	var ydbConn ydbConnection
+
 	switch c.cfg.Mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
-		return newConnectionNative(ctx, dsi, ydbDriver)
+		ydbConn, err = newConnectionNative(ctx, dsi, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
-		return newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
+		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
 	default:
 		return nil, fmt.Errorf("unknown mode: %v", c.cfg.Mode)
 	}
+
+	if err != nil {
+		return nil, fmt.Errorf("new connection: %w", err)
+	}
+
+	logger.Debug("Connection is ready")
+
+	return ydbConn, nil
 }
 
 func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
