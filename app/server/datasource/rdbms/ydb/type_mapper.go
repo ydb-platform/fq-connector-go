@@ -203,38 +203,37 @@ func makeAcceptorAndAppender(
 	case typeBool:
 		return makeAcceptorAndAppenderCheckOptional[bool, uint8, *array.Uint8Builder](optional, cc.Bool())
 	case typeInt8:
-		return new(*int8), appendToBuilderDoublePtr[int8, int8, *array.Int8Builder](cc.Int8()), nil
+		return makeAcceptorAndAppenderCheckOptional[int8, int8, *array.Int8Builder](optional, cc.Int8())
 	case typeInt16:
-		return new(*int16), appendToBuilderDoublePtr[int16, int16, *array.Int16Builder](cc.Int16()), nil
+		return makeAcceptorAndAppenderCheckOptional[int16, int16, *array.Int16Builder](optional, cc.Int16())
 	case typeInt32:
 		return makeAcceptorAndAppenderCheckOptional[int32, int32, *array.Int32Builder](optional, cc.Int32())
 	case typeInt64:
-		return new(*int64), appendToBuilderDoublePtr[int64, int64, *array.Int64Builder](cc.Int64()), nil
+		return makeAcceptorAndAppenderCheckOptional[int64, int64, *array.Int64Builder](optional, cc.Int64())
 	case typeUint8:
-		return new(*uint8), appendToBuilderDoublePtr[uint8, uint8, *array.Uint8Builder](cc.Uint8()), nil
+		return makeAcceptorAndAppenderCheckOptional[uint8, uint8, *array.Uint8Builder](optional, cc.Uint8())
 	case typeUint16:
-		return new(*uint16), appendToBuilderDoublePtr[uint16, uint16, *array.Uint16Builder](cc.Uint16()), nil
+		return makeAcceptorAndAppenderCheckOptional[uint16, uint16, *array.Uint16Builder](optional, cc.Uint16())
 	case typeUint32:
-		return new(*uint32), appendToBuilderDoublePtr[uint32, uint32, *array.Uint32Builder](cc.Uint32()), nil
+		return makeAcceptorAndAppenderCheckOptional[uint32, uint32, *array.Uint32Builder](optional, cc.Uint32())
 	case typeUint64:
-		return new(*uint64), appendToBuilderDoublePtr[uint64, uint64, *array.Uint64Builder](cc.Uint64()), nil
+		return makeAcceptorAndAppenderCheckOptional[uint64, uint64, *array.Uint64Builder](optional, cc.Uint64())
 	case typeFloat:
-		return new(*float32), appendToBuilderDoublePtr[float32, float32, *array.Float32Builder](cc.Float32()), nil
+		return makeAcceptorAndAppenderCheckOptional[float32, float32, *array.Float32Builder](optional, cc.Float32())
 	case typeDouble:
-		return new(*float64), appendToBuilderDoublePtr[float64, float64, *array.Float64Builder](cc.Float64()), nil
+		return makeAcceptorAndAppenderCheckOptional[float64, float64, *array.Float64Builder](optional, cc.Float64())
 	case typeString:
 		return makeAcceptorAndAppenderCheckOptional[[]byte, []byte, *array.BinaryBuilder](optional, cc.Bytes())
 	case typeUtf8:
 		return makeAcceptorAndAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())
 	case typeJSON:
-		// Copy of UTF8
-		return new(*string), appendToBuilderDoublePtr[string, string, *array.StringBuilder](cc.String()), nil
+		return makeAcceptorAndAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())
 	case typeDate:
 		switch ydbTypeID {
 		case Ydb.Type_DATE:
-			return new(*time.Time), appendToBuilderDoublePtr[time.Time, uint16, *array.Uint16Builder](cc.Date()), nil
+			return makeAcceptorAndAppenderCheckOptional[time.Time, uint16, *array.Uint16Builder](optional, cc.Date())
 		case Ydb.Type_UTF8:
-			return new(*time.Time), appendToBuilderDoublePtr[time.Time, string, *array.StringBuilder](cc.DateToString()), nil
+			return makeAcceptorAndAppenderCheckOptional[time.Time, string, *array.StringBuilder](optional, cc.DateToString())
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -242,7 +241,7 @@ func makeAcceptorAndAppender(
 	case typeDatetime:
 		switch ydbTypeID {
 		case Ydb.Type_DATETIME:
-			return new(*time.Time), appendToBuilderDoublePtr[time.Time, uint32, *array.Uint32Builder](cc.Datetime()), nil
+			return makeAcceptorAndAppenderCheckOptional[time.Time, uint32, *array.Uint32Builder](optional, cc.Datetime())
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
@@ -250,7 +249,7 @@ func makeAcceptorAndAppender(
 	case typeTimestamp:
 		switch ydbTypeID {
 		case Ydb.Type_TIMESTAMP:
-			return new(*time.Time), appendToBuilderDoublePtr[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()), nil
+			return makeAcceptorAndAppenderCheckOptional[time.Time, uint64, *array.Uint64Builder](optional, cc.Timestamp())
 		default:
 			return nil, nil,
 				fmt.Errorf("unexpected ydb type id %v with sql type %s: %w", ydbTypeID, typeName, common.ErrDataTypeNotSupported)
