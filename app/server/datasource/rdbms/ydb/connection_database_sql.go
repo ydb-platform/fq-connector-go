@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -80,4 +82,39 @@ func (c *connectionDatabaseSql) Close() error {
 	}
 
 	return nil
+}
+
+func newConnectionDatabaseSQL(
+	ctx context.Context,
+	logger *zap.Logger,
+	queryLogger common.QueryLogger,
+	cfg *config.TYdbConfig,
+	dsi *api_common.TDataSourceInstance,
+	ydbDriver *ydb_sdk.Driver,
+) (rdbms_utils.Connection, error) {
+	ydbConn, err := ydb_sdk.Connector(
+		ydbDriver,
+		ydb_sdk.WithAutoDeclare(),
+		ydb_sdk.WithPositionalArgs(),
+		ydb_sdk.WithTablePathPrefix(dsi.Database),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("connector error: %w", err)
+	}
+	conn := sql.OpenDB(ydbConn)
+
+	logger.Debug("Pinging database")
+
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(cfg.PingConnectionTimeout))
+	defer pingCtxCancel()
+
+	if err := conn.PingContext(pingCtx); err != nil {
+		common.LogCloserError(logger, conn, "close YDB connection")
+		return nil, fmt.Errorf("conn ping: %w", err)
+	}
+
+	logger.Debug("Connection is ready")
+
+	return &connectionDatabaseSql{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
 }

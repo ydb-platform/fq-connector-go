@@ -215,17 +215,17 @@ message TYdbConfig {
 
     enum Mode {
         MODE_UNSPECIFIED = 0;
-        // In MODE_TABLE_SERVICE_STD_SCAN_QUERIES the YDB connector uses YDB's Table Service
+        // In MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES the YDB connector uses YDB's Table Service
         // via Go's standard library database/sql interface.
         // All the requests are marked as scan queries.
-        MODE_TABLE_SERVICE_STD_SCAN_QUERIES = 1;
+        MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES = 1;
         // In MODE_QUERY_SERVICE_NATIVE the YDB connector uses YDB's Query Service
         // via native YDB interface.
         MODE_QUERY_SERVICE_NATIVE = 2;
     } 
 
     // Mode parametrizes the way YDB connector interacts with YDB servers.
-    // MODE_TABLE_SERVICE_STD_SCAN_QUERIES is the default mode.
+    // MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES is the default mode.
     Mode mode = 4;
 
     TExponentialBackoffConfig exponential_backoff = 10;
