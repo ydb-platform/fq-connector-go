@@ -80,7 +80,7 @@ func (c *connectionManager) Make(
 
 	switch c.cfg.Mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
-		return newConnectionNative(ctx, ydbDriver)
+		return newConnectionNative(ctx, dsi, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		return newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
 	default:

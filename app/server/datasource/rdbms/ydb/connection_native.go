@@ -1,14 +1,17 @@
 package ydb
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
@@ -104,8 +107,10 @@ func (r *rowsNative) Close() error {
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
-	ctx    context.Context
-	driver *ydb_sdk.Driver
+	dsi         *api_common.TDataSourceInstance
+	queryLogger common.QueryLogger
+	ctx         context.Context
+	driver      *ydb_sdk.Driver
 }
 
 func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
@@ -114,7 +119,14 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 	c.driver.Query().Do(
 		ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
-			streamResult, err := session.Query(ctx, query)
+			var buf bytes.Buffer
+
+			buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database))
+			buf.WriteString(query)
+
+			c.queryLogger.Dump(query, args...)
+
+			streamResult, err := session.Query(ctx, buf.String())
 			if err != nil {
 				return fmt.Errorf("session query: %w", err)
 			}
@@ -123,6 +135,10 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 			// to create type transformers
 			resultSet, err := streamResult.NextResultSet(ctx)
 			if err != nil {
+				if closeErr := streamResult.Close(ctx); closeErr != nil {
+					logger.Error("close stream result", zap.Error(closeErr))
+				}
+
 				return fmt.Errorf("next result set: %w", err)
 			}
 
@@ -136,9 +152,13 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 			case rowsChan <- rows:
 				return nil
 			case <-ctx.Done():
+				if closeErr := streamResult.Close(ctx); closeErr != nil {
+					logger.Error("close stream result", zap.Error(closeErr))
+				}
 				return ctx.Err()
 			}
 		},
+		ydb_sdk_query.WithIdempotent(),
 	)
 
 	select {
@@ -161,9 +181,14 @@ func (c *connectionNative) Close() error {
 	return nil
 }
 
-func newConnectionNative(ctx context.Context, driver *ydb_sdk.Driver) (ydbConnection, error) {
+func newConnectionNative(
+	ctx context.Context,
+	dsi *api_common.TDataSourceInstance,
+	driver *ydb_sdk.Driver,
+) (ydbConnection, error) {
 	return &connectionNative{
 		ctx:    ctx,
 		driver: driver,
+		dsi:    dsi,
 	}, nil
 }
