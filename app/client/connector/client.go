@@ -177,7 +177,7 @@ func readSplits(
 		return fmt.Errorf("read splits: %w", err)
 	}
 
-	if err := common.ExtractErrorFromReadResponses(readSplitsResponses); err != nil {
+	if err = common.ExtractErrorFromReadResponses(readSplitsResponses); err != nil {
 		return fmt.Errorf("extract error from read responses: %w", err)
 	}
 

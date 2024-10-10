@@ -237,7 +237,11 @@ func formatConjunction(
 	return sb.String(), args, nil
 }
 
-func formatDisjunction(formatter SQLFormatter, args []any, disjunction *api_service_protos.TPredicate_TDisjunction) (string, []any, error) {
+func formatDisjunction(
+	formatter SQLFormatter,
+	args []any,
+	disjunction *api_service_protos.TPredicate_TDisjunction,
+) (string, []any, error) {
 	var (
 		sb        strings.Builder
 		cnt       int32

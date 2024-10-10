@@ -6,22 +6,23 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
-	"go.uber.org/zap"
 )
 
-type rowsDatabaseSql struct {
+type rowsDatabaseSQL struct {
 	*sql.Rows
 }
 
-func (r rowsDatabaseSql) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r rowsDatabaseSQL) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	columns, err := r.ColumnTypes()
 	if err != nil {
 		return nil, fmt.Errorf("column types: %w", err)
@@ -40,15 +41,15 @@ func (r rowsDatabaseSql) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Col
 	return transformer, nil
 }
 
-var _ rdbms_utils.Connection = (*connectionDatabaseSql)(nil)
+var _ rdbms_utils.Connection = (*connectionDatabaseSQL)(nil)
 
-type connectionDatabaseSql struct {
+type connectionDatabaseSQL struct {
 	*sql.DB
 	driver *ydb_sdk.Driver
 	logger common.QueryLogger
 }
 
-func (c *connectionDatabaseSql) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
+func (c *connectionDatabaseSQL) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
 	c.logger.Dump(query, args...)
 
 	out, err := c.DB.QueryContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.ScanQueryMode), query, args...)
@@ -66,14 +67,14 @@ func (c *connectionDatabaseSql) Query(ctx context.Context, _ *zap.Logger, query 
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 
-	return rowsDatabaseSql{Rows: out}, nil
+	return rowsDatabaseSQL{Rows: out}, nil
 }
 
-func (c *connectionDatabaseSql) getDriver() *ydb_sdk.Driver {
+func (c *connectionDatabaseSQL) getDriver() *ydb_sdk.Driver {
 	return c.driver
 }
 
-func (c *connectionDatabaseSql) Close() error {
+func (c *connectionDatabaseSQL) Close() error {
 	err1 := c.DB.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
@@ -106,6 +107,7 @@ func newConnectionDatabaseSQL(
 	if err != nil {
 		return nil, fmt.Errorf("connector error: %w", err)
 	}
+
 	conn := sql.OpenDB(ydbConn)
 
 	logger.Debug("Pinging database")
@@ -118,5 +120,5 @@ func newConnectionDatabaseSQL(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionDatabaseSql{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
+	return &connectionDatabaseSQL{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
 }
