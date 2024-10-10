@@ -18,6 +18,11 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+type ydbConnection interface {
+	rdbms_utils.Connection
+	getDriver() *ydb_sdk.Driver
+}
+
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
@@ -75,7 +80,7 @@ func (c *connectionManager) Make(
 
 	switch c.cfg.Mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
-		panic("Not implemented yet")
+		return newConnectionNative(ctx, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		return newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
 	default:
@@ -83,7 +88,7 @@ func (c *connectionManager) Make(
 	}
 }
 
-func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
+func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
 	common.LogCloserError(logger, conn, "close YDB connection")
 }
 

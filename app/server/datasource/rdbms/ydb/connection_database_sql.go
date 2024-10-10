@@ -69,6 +69,10 @@ func (c *connectionDatabaseSql) Query(ctx context.Context, _ *zap.Logger, query 
 	return rowsDatabaseSql{Rows: out}, nil
 }
 
+func (c *connectionDatabaseSql) getDriver() *ydb_sdk.Driver {
+	return c.driver
+}
+
 func (c *connectionDatabaseSql) Close() error {
 	err1 := c.DB.Close()
 
