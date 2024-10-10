@@ -66,7 +66,8 @@ func TestMissingDataSource[
 	s.Require().NoError(err)
 
 	// errors count incremented by one
-	describeTableStatusErr, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "INTERNAL_ERROR")
+	describeTableStatusErr, err := common.DiffStatusSensors(
+		snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "INTERNAL_ERROR")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(1), describeTableStatusErr)
 }

@@ -7,15 +7,16 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
+	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
-	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
-	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.Rows = (*rowsNative)(nil)
@@ -121,8 +122,8 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
 			var buf bytes.Buffer
 
-			buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database))
-			buf.WriteString(query)
+			buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
+			buf.WriteString(query)                                                          //nolint:revive
 
 			c.queryLogger.Dump(query, args...)
 
@@ -187,12 +188,14 @@ func (c *connectionNative) Close() error {
 
 func newConnectionNative(
 	ctx context.Context,
+	queryLogger common.QueryLogger,
 	dsi *api_common.TDataSourceInstance,
 	driver *ydb_sdk.Driver,
-) (ydbConnection, error) {
+) ydbConnection {
 	return &connectionNative{
-		ctx:    ctx,
-		driver: driver,
-		dsi:    dsi,
-	}, nil
+		ctx:         ctx,
+		driver:      driver,
+		queryLogger: queryLogger,
+		dsi:         dsi,
+	}
 }

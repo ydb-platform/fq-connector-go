@@ -82,7 +82,7 @@ func (c *connectionManager) Make(
 
 	switch c.cfg.Mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
-		ydbConn, err = newConnectionNative(ctx, dsi, ydbDriver)
+		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
 	default:
@@ -98,7 +98,7 @@ func (c *connectionManager) Make(
 	return ydbConn, nil
 }
 
-func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
 	common.LogCloserError(logger, conn, "close YDB connection")
 }
 
