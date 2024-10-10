@@ -30,11 +30,10 @@ func (f *schemaProvider) GetSchema(
 
 	desc := options.Description{}
 	prefix := path.Join(db.Name(), request.Table)
-	tableClient := db.Table()
 
 	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
 
-	err := tableClient.Do(
+	err := db.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
@@ -45,6 +44,7 @@ func (f *schemaProvider) GetSchema(
 
 			return nil
 		},
+		table.WithIdempotent(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get table description: %w", err)

@@ -66,6 +66,8 @@ func (b *Base[_, _]) SetupSuite() {
 			},
 		),
 		server.WithConnectionTimeouts("2s", "1s"),
+		server.WithYdbConnectorMode(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE),
+		// server.WithYdbConnectorMode(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES),
 	)
 	b.Require().NoError(err)
 	b.Connector.Start()

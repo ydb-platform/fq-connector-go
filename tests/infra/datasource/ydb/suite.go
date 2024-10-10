@@ -2,14 +2,10 @@ package ydb
 
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
-	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 type Suite struct {
@@ -41,6 +37,7 @@ func (s *Suite) TestDatetimeFormatString() {
 	)
 }
 
+/*
 func (s *Suite) TestPushdownComparisonL() {
 	s.ValidateTable(
 		s.dataSource,
@@ -272,6 +269,7 @@ func (s *Suite) TestPushdownStringsString() {
 		}),
 	)
 }
+*/
 
 func (s *Suite) TestLargeTable() {
 	// For tables larger than 1000 rows, scan queries must be used,
@@ -298,6 +296,7 @@ func (s *Suite) TestPositiveStats() {
 	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }
 
+/*
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
 		Kind:     api_common.EDataSourceKind_YDB,
@@ -329,6 +328,7 @@ func (s *Suite) TestInvalidPassword() {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
+*/
 
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],

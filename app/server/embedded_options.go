@@ -90,3 +90,15 @@ func WithConnectionTimeouts(open, ping string) EmbeddedOption {
 		open: open, ping: ping,
 	}
 }
+
+type withYdbConnectorMode struct {
+	mode config.TYdbConfig_Mode
+}
+
+func (o *withYdbConnectorMode) apply(cfg *config.TServerConfig) {
+	cfg.Datasources.Ydb.Mode = o.mode
+}
+
+func WithYdbConnectorMode(mode config.TYdbConfig_Mode) EmbeddedOption {
+	return &withYdbConnectorMode{mode: mode}
+}
