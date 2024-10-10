@@ -4,8 +4,11 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type Suite struct {
@@ -37,7 +40,6 @@ func (s *Suite) TestDatetimeFormatString() {
 	)
 }
 
-/*
 func (s *Suite) TestPushdownComparisonL() {
 	s.ValidateTable(
 		s.dataSource,
@@ -51,6 +53,8 @@ func (s *Suite) TestPushdownComparisonL() {
 		}),
 	)
 }
+
+/*
 
 func (s *Suite) TestPushdownComparisonLE() {
 	s.ValidateTable(

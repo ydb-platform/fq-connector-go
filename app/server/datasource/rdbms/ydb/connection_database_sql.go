@@ -95,7 +95,7 @@ func newConnectionDatabaseSQL(
 	cfg *config.TYdbConfig,
 	dsi *api_common.TDataSourceInstance,
 	ydbDriver *ydb_sdk.Driver,
-) (rdbms_utils.Connection, error) {
+) (ydbConnection, error) {
 	ydbConn, err := ydb_sdk.Connector(
 		ydbDriver,
 		ydb_sdk.WithAutoDeclare(),
@@ -117,8 +117,6 @@ func newConnectionDatabaseSQL(
 		common.LogCloserError(logger, conn, "close YDB connection")
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
-
-	logger.Debug("Connection is ready")
 
 	return &connectionDatabaseSql{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
 }
