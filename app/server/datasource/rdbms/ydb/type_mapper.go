@@ -168,8 +168,11 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
 
 	for i, typeName := range typeNames {
+		var optional bool
+
 		if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
 			typeName = matches[1]
+			optional = true
 		}
 
 		ydbTypeID, err := common.YdbTypeToYdbPrimitiveTypeID(ydbTypes[i])
@@ -177,7 +180,7 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 			return nil, fmt.Errorf("ydb type to ydb primitive type id: %w", err)
 		}
 
-		acceptor, appender, err := makeAcceptorAndAppenderFromSQLType(typeName, ydbTypeID, cc)
+		acceptor, appender, err := makeAcceptorAndAppender(typeName, ydbTypeID, optional, cc)
 		if err != nil {
 			return nil, fmt.Errorf("make transformer: %w", err)
 		}
@@ -190,20 +193,21 @@ func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conver
 }
 
 //nolint:gocyclo
-func makeAcceptorAndAppenderFromSQLType(
+func makeAcceptorAndAppender(
 	typeName string,
 	ydbTypeID Ydb.Type_PrimitiveTypeId,
+	optional bool,
 	cc conversion.Collection,
 ) (any, func(acceptor any, builder array.Builder) error, error) {
 	switch typeName {
 	case typeBool:
-		return new(*bool), appendToBuilderDoublePtr[bool, uint8, *array.Uint8Builder](cc.Bool()), nil
+		return makeAcceptorAndAppenderCheckOptional[bool, uint8, *array.Uint8Builder](optional, cc.Bool())
 	case typeInt8:
 		return new(*int8), appendToBuilderDoublePtr[int8, int8, *array.Int8Builder](cc.Int8()), nil
 	case typeInt16:
 		return new(*int16), appendToBuilderDoublePtr[int16, int16, *array.Int16Builder](cc.Int16()), nil
 	case typeInt32:
-		return new(*int32), appendToBuilderDoublePtr[int32, int32, *array.Int32Builder](cc.Int32()), nil
+		return makeAcceptorAndAppenderCheckOptional[int32, int32, *array.Int32Builder](optional, cc.Int32())
 	case typeInt64:
 		return new(*int64), appendToBuilderDoublePtr[int64, int64, *array.Int64Builder](cc.Int64()), nil
 	case typeUint8:
@@ -219,9 +223,9 @@ func makeAcceptorAndAppenderFromSQLType(
 	case typeDouble:
 		return new(*float64), appendToBuilderDoublePtr[float64, float64, *array.Float64Builder](cc.Float64()), nil
 	case typeString:
-		return new(*[]byte), appendToBuilderDoublePtr[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()), nil
+		return makeAcceptorAndAppenderCheckOptional[[]byte, []byte, *array.BinaryBuilder](optional, cc.Bytes())
 	case typeUtf8:
-		return new(*string), appendToBuilderDoublePtr[string, string, *array.StringBuilder](cc.String()), nil
+		return makeAcceptorAndAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())
 	case typeJSON:
 		// Copy of UTF8
 		return new(*string), appendToBuilderDoublePtr[string, string, *array.StringBuilder](cc.String()), nil
@@ -254,6 +258,18 @@ func makeAcceptorAndAppenderFromSQLType(
 	default:
 		return nil, nil, fmt.Errorf("unknown type '%v'", typeName)
 	}
+}
+
+func makeAcceptorAndAppenderCheckOptional[
+	IN common.ValueType,
+	OUT common.ValueType,
+	AB common.ArrowBuilder[OUT],
+](optional bool, conv conversion.ValuePtrConverter[IN, OUT]) (any, func(acceptor any, builder array.Builder) error, error) {
+	if optional {
+		return new(*IN), appendToBuilderDoublePtr[IN, OUT, AB](conv), nil
+	}
+
+	return new(IN), appendToBuilderSinglePtr[IN, OUT, AB](conv), nil
 }
 
 func NewTypeMapper() datasource.TypeMapper {

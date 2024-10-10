@@ -57,4 +57,3 @@ datasources:
   ydb:
     <<: *data_source_default_var
     use_underlay_network_for_dedicated_databases: false
-    mode: MODE_QUERY_SERVICE_NATIVE
