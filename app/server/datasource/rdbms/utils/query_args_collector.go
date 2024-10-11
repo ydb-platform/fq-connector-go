@@ -7,21 +7,21 @@ type QueryArgument struct {
 	Value   any
 }
 
-type QueryArgsCollection struct {
+type QueryArgs struct {
 	args []*QueryArgument
 }
 
-func (q *QueryArgsCollection) Add(ydbType *Ydb.Type, arg any) *QueryArgsCollection {
+func (q *QueryArgs) AddTyped(ydbType *Ydb.Type, arg any) *QueryArgs {
 	q.args = append(q.args, &QueryArgument{ydbType, arg})
 
 	return q
 }
 
-func (q *QueryArgsCollection) Count() int {
-	return len(q.args)
-}
+func (q *QueryArgs) AddUntyped(arg any) *QueryArgs { return q.AddTyped(nil, arg) }
 
-func (q *QueryArgsCollection) Args() []any {
+func (q *QueryArgs) Count() int { return len(q.args) }
+
+func (q *QueryArgs) Values() []any {
 	args := make([]any, len(q.args))
 	for i, arg := range q.args {
 		args[i] = arg.Value
@@ -29,6 +29,6 @@ func (q *QueryArgsCollection) Args() []any {
 	return args
 }
 
-func (q *QueryArgsCollection) Get(i int) *QueryArgument {
+func (q *QueryArgs) Get(i int) *QueryArgument {
 	return q.args[i]
 }

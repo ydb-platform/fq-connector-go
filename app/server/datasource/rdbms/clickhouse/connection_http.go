@@ -50,9 +50,9 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 }
 
 func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.Text, params.ArgsCollection.Args()...)
+	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
-	out, err := c.DB.QueryContext(params.Ctx, params.Text, params.ArgsCollection.Args()...)
+	out, err := c.DB.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

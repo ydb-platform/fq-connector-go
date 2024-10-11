@@ -22,11 +22,11 @@ func (c Connection) Close() error {
 }
 
 func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(queryParams.Text, queryParams.ArgsCollection.Args()...)
+	c.logger.Dump(queryParams.QueryText, queryParams.QueryArgs.Values()...)
 
-	valueArgs := make([]driver.NamedValue, queryParams.ArgsCollection.Count())
-	for i := 0; i < len(queryParams.ArgsCollection.Args()); i++ {
-		valueArgs[i].Value = queryParams.ArgsCollection.Get(i).Value
+	valueArgs := make([]driver.NamedValue, queryParams.QueryArgs.Count())
+	for i := 0; i < len(queryParams.QueryArgs.Values()); i++ {
+		valueArgs[i].Value = queryParams.QueryArgs.Get(i).Value
 		// TODO YQ-3455: research
 		// 	for some reason query works with all Ordinal = 0
 		// 	Golang docs states: Ordinal position of the parameter starting from one and is always set.
@@ -35,7 +35,7 @@ func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Row
 		valueArgs[i].Ordinal = i + 1
 	}
 
-	out, err := c.conn.QueryContext(queryParams.Ctx, queryParams.Text, valueArgs)
+	out, err := c.conn.QueryContext(queryParams.Ctx, queryParams.QueryText, valueArgs)
 	if err != nil {
 		return nil, fmt.Errorf("query with context: %w", err)
 	}

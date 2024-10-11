@@ -21,9 +21,9 @@ func (c Connection) Close() error {
 }
 
 func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.Text, params.ArgsCollection.Args()...)
+	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
-	out, err := c.db.QueryContext(params.Ctx, params.Text, params.ArgsCollection.Args()...)
+	out, err := c.db.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
 
 	return rows{out}, err
 }

@@ -14,10 +14,10 @@ import (
 )
 
 type QueryParams struct {
-	Ctx            context.Context
-	Logger         *zap.Logger
-	Text           string
-	ArgsCollection *QueryArgsCollection
+	Ctx       context.Context
+	Logger    *zap.Logger
+	QueryText string
+	QueryArgs *QueryArgs
 }
 
 type Connection interface {

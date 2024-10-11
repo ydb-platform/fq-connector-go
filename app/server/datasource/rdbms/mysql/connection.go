@@ -25,7 +25,7 @@ func (c *Connection) Close() error {
 }
 
 func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.Text, params.ArgsCollection.Args()...)
+	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	results := make(chan rowData, c.cfg.ResultChanCapacity)
 	result := &mysql.Result{}
@@ -42,7 +42,7 @@ func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 		inputFinished:           false,
 	}
 
-	stmt, err := c.conn.Prepare(params.Text)
+	stmt, err := c.conn.Prepare(params.QueryText)
 	if err != nil {
 		return r, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
@@ -83,7 +83,7 @@ func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 				return nil
 			},
 			nil,
-			params.ArgsCollection.Args()...,
+			params.QueryArgs.Values()...,
 		)
 	}()
 

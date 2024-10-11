@@ -29,7 +29,7 @@ func MakeReadSplitsQuery(
 
 	var (
 		sb             strings.Builder
-		argsCollection *QueryArgsCollection
+		argsCollection *QueryArgs
 	)
 
 	sb.WriteString(selectPart)
@@ -61,10 +61,10 @@ func MakeReadSplitsQuery(
 
 	return &ReadSplitsQuery{
 		QueryParams: QueryParams{
-			Ctx:            ctx,
-			Logger:         logger,
-			Text:           query,
-			ArgsCollection: argsCollection,
+			Ctx:       ctx,
+			Logger:    logger,
+			QueryText: query,
+			QueryArgs: argsCollection,
 		},
 		What: newSelectWhat,
 	}, nil
