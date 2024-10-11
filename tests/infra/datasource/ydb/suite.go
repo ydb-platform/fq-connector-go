@@ -55,8 +55,6 @@ func (s *Suite) TestPushdownComparisonL() {
 	)
 }
 
-/*
-
 func (s *Suite) TestPushdownComparisonLE() {
 	s.ValidateTable(
 		s.dataSource,
@@ -274,7 +272,6 @@ func (s *Suite) TestPushdownStringsString() {
 		}),
 	)
 }
-*/
 
 func (s *Suite) TestLargeTable() {
 	// For tables larger than 1000 rows, scan queries must be used,
