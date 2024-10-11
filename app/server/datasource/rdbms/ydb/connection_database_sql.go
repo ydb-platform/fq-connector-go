@@ -50,12 +50,12 @@ type connectionDatabaseSQL struct {
 }
 
 func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs...)
+	c.logger.Dump(params.Text, params.ArgsCollection...)
 
 	out, err := c.DB.QueryContext(
 		ydb_sdk.WithQueryMode(params.Ctx, ydb_sdk.ScanQueryMode),
-		params.QueryText,
-		params.QueryArgs...)
+		params.Text,
+		params.ArgsCollection...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

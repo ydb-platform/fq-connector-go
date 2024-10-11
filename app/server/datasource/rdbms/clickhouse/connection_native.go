@@ -52,9 +52,9 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 }
 
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs...)
+	c.logger.Dump(params.Text, params.ArgsCollection.Args()...)
 
-	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs...)
+	out, err := c.Conn.Query(params.Ctx, params.Text, params.ArgsCollection.Args()...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

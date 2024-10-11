@@ -27,10 +27,10 @@ func (f *DefaultSchemaProvider) GetSchema(
 	query, args := f.getArgsAndQuery(request)
 
 	queryParams := &QueryParams{
-		Ctx:       ctx,
-		Logger:    logger,
-		QueryText: query,
-		QueryArgs: args,
+		Ctx:            ctx,
+		Logger:         logger,
+		Text:           query,
+		ArgsCollection: args,
 	}
 
 	rows, err := conn.Query(queryParams)

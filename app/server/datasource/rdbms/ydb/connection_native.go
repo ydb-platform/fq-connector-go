@@ -123,7 +123,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
 			// modify query with args
-			queryRewritten, err := c.rewriteQuery(params.QueryText, params.QueryArgs...)
+			queryRewritten, err := c.rewriteQuery(params.Text, params.ArgsCollection...)
 			if err != nil {
 				return fmt.Errorf("rewrite query: %w", err)
 			}
@@ -131,7 +131,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			// prepare parameter list
 			formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE)
 			paramsBuilder := ydb_sdk.ParamsBuilder()
-			for i, arg := range params.QueryArgs {
+			for i, arg := range params.ArgsCollection {
 				switch t := arg.(type) {
 				case int8:
 					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int8(t)
@@ -162,7 +162,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				}
 			}
 
-			c.queryLogger.Dump(queryRewritten, params.QueryArgs...)
+			c.queryLogger.Dump(queryRewritten, params.ArgsCollection...)
 
 			// execute query
 			streamResult, err := session.Query(

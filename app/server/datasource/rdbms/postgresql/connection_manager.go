@@ -54,9 +54,9 @@ func (c Connection) Close() error {
 }
 
 func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs...)
+	c.logger.Dump(params.Text, params.ArgsCollection...)
 
-	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs...)
+	out, err := c.Conn.Query(params.Ctx, params.Text, params.ArgsCollection...)
 	if err != nil {
 		return nil, fmt.Errorf("query error: %w", err)
 	}

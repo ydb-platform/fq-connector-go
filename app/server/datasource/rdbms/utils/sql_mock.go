@@ -20,8 +20,8 @@ type ConnectionMock struct {
 }
 
 func (m *ConnectionMock) Query(params *QueryParams) (Rows, error) {
-	called := []any{params.QueryText}
-	called = append(called, params.QueryArgs...)
+	called := []any{params.Text}
+	called = append(called, params.ArgsCollection...)
 	args := m.Called(called...)
 
 	return args.Get(0).(Rows), args.Error(1)

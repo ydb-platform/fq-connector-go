@@ -22,22 +22,22 @@ func MakeReadSplitsQuery(
 	slct *api_service_protos.TSelect,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
 ) (*ReadSplitsQuery, error) {
-	var (
-		sb   strings.Builder
-		args []any
-	)
-
 	selectPart, newSelectWhat, err := formatSelectHead(formatter, slct.GetWhat(), slct.GetFrom().GetTable(), true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format select statement: %w", err)
 	}
+
+	var (
+		sb             strings.Builder
+		argsCollection *QueryArgsCollection
+	)
 
 	sb.WriteString(selectPart)
 
 	if slct.Where != nil {
 		var clause string
 
-		clause, args, err = formatWhereClause(formatter, slct.Where)
+		clause, argsCollection, err = formatWhereClause(formatter, slct.Where)
 		if err != nil {
 			switch filtering {
 			case api_service_protos.TReadSplitsRequest_FILTERING_UNSPECIFIED, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
@@ -59,16 +59,12 @@ func MakeReadSplitsQuery(
 
 	query := sb.String()
 
-	if args == nil {
-		args = []any{}
-	}
-
 	return &ReadSplitsQuery{
 		QueryParams: QueryParams{
-			Ctx:       ctx,
-			Logger:    logger,
-			QueryText: query,
-			QueryArgs: args,
+			Ctx:            ctx,
+			Logger:         logger,
+			Text:           query,
+			ArgsCollection: argsCollection,
 		},
 		What: newSelectWhat,
 	}, nil
