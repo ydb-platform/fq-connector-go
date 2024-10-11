@@ -115,15 +115,15 @@ type connectionNative struct {
 	driver      *ydb_sdk.Driver
 }
 
-//nolint: gocyclo
-func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
+// nolint: gocyclo
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	rowsChan := make(chan rdbms_utils.Rows, 1)
 
 	finalErr := c.driver.Query().Do(
-		ctx,
+		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
 			// modify query with args
-			queryRewritten, err := c.rewriteQuery(query, args...)
+			queryRewritten, err := c.rewriteQuery(params.QueryText, params.QueryArgs...)
 			if err != nil {
 				return fmt.Errorf("rewrite query: %w", err)
 			}
@@ -131,7 +131,7 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 			// prepare parameter list
 			formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE)
 			paramsBuilder := ydb_sdk.ParamsBuilder()
-			for i, arg := range args {
+			for i, arg := range params.QueryArgs {
 				switch t := arg.(type) {
 				case int8:
 					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int8(t)
@@ -162,7 +162,7 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 				}
 			}
 
-			c.queryLogger.Dump(queryRewritten, args)
+			c.queryLogger.Dump(queryRewritten, params.QueryArgs...)
 
 			// execute query
 			streamResult, err := session.Query(
@@ -178,7 +178,7 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 			resultSet, err := streamResult.NextResultSet(ctx)
 			if err != nil {
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
-					logger.Error("close stream result", zap.Error(closeErr))
+					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
 
 				return fmt.Errorf("next result set: %w", err)
@@ -195,7 +195,7 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 				return nil
 			case <-ctx.Done():
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
-					logger.Error("close stream result", zap.Error(closeErr))
+					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
 				return ctx.Err()
 			}
@@ -210,8 +210,8 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 	select {
 	case rows := <-rowsChan:
 		return rows, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	case <-params.Ctx.Done():
+		return nil, params.Ctx.Err()
 	}
 }
 

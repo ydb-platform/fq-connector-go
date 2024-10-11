@@ -49,10 +49,13 @@ type connectionDatabaseSQL struct {
 	logger common.QueryLogger
 }
 
-func (c *connectionDatabaseSQL) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
-	c.logger.Dump(query, args...)
+func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+	c.logger.Dump(params.QueryText, params.QueryArgs...)
 
-	out, err := c.DB.QueryContext(ydb_sdk.WithQueryMode(ctx, ydb_sdk.ScanQueryMode), query, args...)
+	out, err := c.DB.QueryContext(
+		ydb_sdk.WithQueryMode(params.Ctx, ydb_sdk.ScanQueryMode),
+		params.QueryText,
+		params.QueryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

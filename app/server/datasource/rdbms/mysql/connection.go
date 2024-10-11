@@ -1,13 +1,11 @@
 package mysql
 
 import (
-	"context"
 	"fmt"
 	"sync/atomic"
 
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
-	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
@@ -26,16 +24,16 @@ func (c *Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Connection) Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
-	c.logger.Dump(query, args...)
+func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+	c.logger.Dump(params.QueryText, params.QueryArgs...)
 
 	results := make(chan rowData, c.cfg.ResultChanCapacity)
 	result := &mysql.Result{}
 
 	r := &rows{
-		ctx:                     ctx,
+		ctx:                     params.Ctx,
 		cfg:                     c.cfg,
-		logger:                  logger,
+		logger:                  params.Logger,
 		rowChan:                 results,
 		errChan:                 make(chan error, 1),
 		lastRow:                 nil,
@@ -44,7 +42,7 @@ func (c *Connection) Query(ctx context.Context, logger *zap.Logger, query string
 		inputFinished:           false,
 	}
 
-	stmt, err := c.conn.Prepare(query)
+	stmt, err := c.conn.Prepare(params.QueryText)
 	if err != nil {
 		return r, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
@@ -78,14 +76,14 @@ func (c *Connection) Query(ctx context.Context, logger *zap.Logger, query string
 
 				select {
 				case r.rowChan <- rowData{newRow, result.Fields}:
-				case <-ctx.Done():
-					return ctx.Err()
+				case <-params.Ctx.Done():
+					return params.Ctx.Err()
 				}
 
 				return nil
 			},
 			nil,
-			args...,
+			params.QueryArgs...,
 		)
 	}()
 

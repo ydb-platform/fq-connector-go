@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -10,12 +11,12 @@ import (
 )
 
 type ReadSplitsQuery struct {
-	Query string
-	Args  []any
-	What  *api_service_protos.TSelect_TWhat
+	QueryParams
+	What *api_service_protos.TSelect_TWhat
 }
 
 func MakeReadSplitsQuery(
+	ctx context.Context,
 	logger *zap.Logger,
 	formatter SQLFormatter,
 	slct *api_service_protos.TSelect,
@@ -63,8 +64,12 @@ func MakeReadSplitsQuery(
 	}
 
 	return &ReadSplitsQuery{
-		Query: query,
-		Args:  args,
-		What:  newSelectWhat,
+		QueryParams: QueryParams{
+			Ctx:       ctx,
+			Logger:    logger,
+			QueryText: query,
+			QueryArgs: args,
+		},
+		What: newSelectWhat,
 	}, nil
 }

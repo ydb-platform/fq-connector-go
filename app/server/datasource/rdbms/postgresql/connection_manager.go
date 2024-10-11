@@ -53,10 +53,10 @@ func (c Connection) Close() error {
 	return c.Conn.Close(context.TODO())
 }
 
-func (c Connection) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
-	c.logger.Dump(query, args...)
+func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+	c.logger.Dump(params.QueryText, params.QueryArgs...)
 
-	out, err := c.Conn.Query(ctx, query, args...)
+	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("query error: %w", err)
 	}

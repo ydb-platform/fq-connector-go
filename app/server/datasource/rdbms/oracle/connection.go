@@ -1,12 +1,10 @@
 package oracle
 
 import (
-	"context"
 	"database/sql/driver"
 	"fmt"
 
 	go_ora "github.com/sijms/go-ora/v2"
-	"go.uber.org/zap"
 
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -23,12 +21,12 @@ func (c Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c Connection) Query(ctx context.Context, _ *zap.Logger, query string, args ...any) (rdbms_utils.Rows, error) {
-	c.logger.Dump(query, args...)
+func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+	c.logger.Dump(queryParams.QueryText, queryParams.QueryArgs...)
 
-	valueArgs := make([]driver.NamedValue, len(args))
-	for i := 0; i < len(args); i++ {
-		valueArgs[i].Value = args[i]
+	valueArgs := make([]driver.NamedValue, len(queryParams.QueryArgs))
+	for i := 0; i < len(queryParams.QueryArgs); i++ {
+		valueArgs[i].Value = queryParams.QueryArgs[i]
 		// TODO YQ-3455: research
 		// 	for some reason query works with all Ordinal = 0
 		// 	Golang docs states: Ordinal position of the parameter starting from one and is always set.
@@ -37,7 +35,7 @@ func (c Connection) Query(ctx context.Context, _ *zap.Logger, query string, args
 		valueArgs[i].Ordinal = i + 1
 	}
 
-	out, err := c.conn.QueryContext(ctx, query, valueArgs)
+	out, err := c.conn.QueryContext(queryParams.Ctx, queryParams.QueryText, valueArgs)
 	if err != nil {
 		return nil, fmt.Errorf("query with context: %w", err)
 	}
