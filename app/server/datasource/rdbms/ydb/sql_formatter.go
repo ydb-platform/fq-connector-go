@@ -7,12 +7,14 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 )
 
 var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 
 type sqlFormatter struct {
+	mode config.TYdbConfig_Mode
 }
 
 func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
@@ -79,8 +81,15 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (sqlFormatter) GetPlaceholder(_ int) string {
-	return "?"
+func (f sqlFormatter) GetPlaceholder(id int) string {
+	switch f.mode {
+	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
+		return fmt.Sprintf("$p%d", id)
+	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
+		return "?"
+	default:
+		panic("unknown mode")
+	}
 }
 
 // TODO: add identifiers processing
@@ -96,6 +105,8 @@ func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 
-func NewSQLFormatter() rdbms_utils.SQLFormatter {
-	return sqlFormatter{}
+func NewSQLFormatter(mode config.TYdbConfig_Mode) rdbms_utils.SQLFormatter {
+	return sqlFormatter{
+		mode: mode,
+	}
 }

@@ -44,6 +44,39 @@ const (
 	typeTimestamp = "Timestamp"
 )
 
+func getYQLTypeNameFromValue(val any) (string, error) {
+	switch val.(type) {
+	case bool:
+		return typeBool, nil
+	case int8:
+		return typeInt8, nil
+	case uint8:
+		return typeUint8, nil
+	case int16:
+		return typeInt16, nil
+	case uint16:
+		return typeUint16, nil
+	case int32:
+		return typeInt32, nil
+	case uint32:
+		return typeUint32, nil
+	case int64:
+		return typeInt64, nil
+	case uint64:
+		return typeUint64, nil
+	case float32:
+		return typeFloat, nil
+	case float64:
+		return typeDouble, nil
+	case string:
+		return typeUtf8, nil
+	case []byte:
+		return typeString, nil
+	default:
+		return "", errors.New("there is no unambiguous mapping")
+	}
+}
+
 func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type

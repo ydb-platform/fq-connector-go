@@ -32,7 +32,6 @@ var (
 	ErrReadLimitExceeded                   = fmt.Errorf("read limit exceeded")
 	ErrInvalidRequest                      = fmt.Errorf("invalid request")
 	ErrValueOutOfTypeBounds                = fmt.Errorf("value is out of possible range of values for the type")
-	ErrUnimplemented                       = fmt.Errorf("unimplemented")
 	ErrUnimplementedTypedValue             = fmt.Errorf("unimplemented typed value")
 	ErrUnimplementedExpression             = fmt.Errorf("unimplemented expression")
 	ErrUnsupportedExpression               = fmt.Errorf("expression is not supported")
@@ -288,8 +287,6 @@ func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	case errors.Is(err, ErrUnimplementedOperation):
 		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedPredicateType):
-		status = ydb_proto.StatusIds_UNSUPPORTED
-	case errors.Is(err, ErrUnimplemented):
 		status = ydb_proto.StatusIds_UNSUPPORTED
 	case errors.Is(err, ErrUnimplementedArithmeticalExpression):
 		status = ydb_proto.StatusIds_UNSUPPORTED

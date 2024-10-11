@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -120,14 +121,53 @@ func (c *connectionNative) Query(ctx context.Context, logger *zap.Logger, query 
 	finalErr := c.driver.Query().Do(
 		ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
-			var buf bytes.Buffer
+			// modify query with args
+			queryRewritten, err := c.rewriteQuery(query, args...)
+			if err != nil {
+				return fmt.Errorf("rewrite query: %w", err)
+			}
 
-			buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
-			buf.WriteString(query)                                                          //nolint:revive
+			// prepare parameter list
+			formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE)
+			paramsBuilder := ydb_sdk.ParamsBuilder()
+			for i, arg := range args {
+				switch arg.(type) {
+				case int8:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int8(arg.(int8))
+				case int16:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int16(arg.(int16))
+				case int32:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int32(arg.(int32))
+				case int64:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int64(arg.(int64))
+				case uint8:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint8(arg.(uint8))
+				case uint16:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint16(arg.(uint16))
+				case uint32:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint32(arg.(uint32))
+				case uint64:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint64(arg.(uint64))
+				case float32:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Float(arg.(float32))
+				case float64:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Double(arg.(float64))
+				case string:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Text(arg.(string))
+				case []byte:
+					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Bytes(arg.([]byte))
+				default:
+					return fmt.Errorf("unsupported type: %T", common.ErrUnimplementedPredicateType)
+				}
+			}
 
-			c.queryLogger.Dump(query, args...)
+			c.queryLogger.Dump(queryRewritten, args)
 
-			streamResult, err := session.Query(ctx, buf.String())
+			// execute query
+			streamResult, err := session.Query(
+				ctx,
+				queryRewritten,
+				ydb_sdk_query.WithParameters(paramsBuilder.Build()))
 			if err != nil {
 				return fmt.Errorf("session query: %w", err)
 			}
@@ -198,4 +238,23 @@ func newConnectionNative(
 		queryLogger: queryLogger,
 		dsi:         dsi,
 	}
+}
+
+func (c *connectionNative) rewriteQuery(query string, args ...any) (string, error) {
+	var buf bytes.Buffer
+
+	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
+
+	for i, arg := range args {
+		typeName, err := getYQLTypeNameFromValue(arg)
+		if err != nil {
+			return "", fmt.Errorf("get YQL type name from value %v: %w", arg, err)
+		}
+
+		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;", i, typeName)) //nolint:revive
+	}
+
+	buf.WriteString(query) //nolint:revive
+
+	return buf.String(), nil
 }

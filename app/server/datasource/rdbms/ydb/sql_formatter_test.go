@@ -8,6 +8,7 @@ import (
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -23,7 +24,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 	}
 
 	logger := common.NewTestLogger(t)
-	formatter := NewSQLFormatter()
+	formatter := NewSQLFormatter(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES)
 
 	tcs := []testCase{
 		{

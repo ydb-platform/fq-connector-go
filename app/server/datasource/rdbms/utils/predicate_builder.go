@@ -331,7 +331,7 @@ func formatPredicate(formatter SQLFormatter, args []any, predicate *api_service_
 
 func formatWhereClause(formatter SQLFormatter, where *api_service_protos.TSelect_TWhere) (string, []any, error) {
 	if where.FilterTyped == nil {
-		return "", nil, common.ErrUnimplemented
+		return "", nil, fmt.Errorf("unexpected nil filter: %w", common.ErrInvalidRequest)
 	}
 
 	args := make([]any, 0)
