@@ -78,9 +78,9 @@ func formatNullFlagValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.Typ
 		case Ydb.Type_UINT64:
 			return addTypedNull[uint64](formatter, args, Ydb.Type_UINT64)
 		case Ydb.Type_STRING:
-			return addTypedNull[string](formatter, args, Ydb.Type_STRING)
+			return addTypedNull[[]byte](formatter, args, Ydb.Type_STRING)
 		case Ydb.Type_UTF8:
-			return addTypedNull[[]byte](formatter, args, Ydb.Type_UTF8)
+			return addTypedNull[string](formatter, args, Ydb.Type_UTF8)
 		default:
 			return "", args, fmt.Errorf("unsupported primitive type '%v' instead: %w", innerType, common.ErrUnimplementedTypedValue)
 		}

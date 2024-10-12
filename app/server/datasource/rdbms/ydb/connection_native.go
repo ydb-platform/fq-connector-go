@@ -123,7 +123,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
 			// modify query with args
-			queryRewritten, err := c.rewriteQuery(params.QueryText, params.QueryArgs.Values()...)
+			queryRewritten, err := c.rewriteQuery(params)
 			if err != nil {
 				return fmt.Errorf("rewrite query: %w", err)
 			}
@@ -158,10 +158,9 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				case []byte:
 					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Bytes(t)
 				default:
-					return fmt.Errorf("unsupported type: %T", common.ErrUnimplementedPredicateType)
+					return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
 				}
 			}
-
 			c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
 
 			// execute query
@@ -241,13 +240,13 @@ func newConnectionNative(
 	}
 }
 
-func (c *connectionNative) rewriteQuery(query string, args ...any) (string, error) {
+func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string, error) {
 	var buf bytes.Buffer
 
 	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
 
-	for i, arg := range args {
-		typeName, err := getYQLTypeNameFromValue(arg)
+	for i, arg := range params.QueryArgs.GetAll() {
+		typeName, err := primitiveYqlTypeName(arg.YdbType.GetTypeId())
 		if err != nil {
 			return "", fmt.Errorf("get YQL type name from value %v: %w", arg, err)
 		}
@@ -255,7 +254,7 @@ func (c *connectionNative) rewriteQuery(query string, args ...any) (string, erro
 		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;", i, typeName)) //nolint:revive
 	}
 
-	buf.WriteString(query) //nolint:revive
+	buf.WriteString(params.QueryText) //nolint:revive
 
 	return buf.String(), nil
 }

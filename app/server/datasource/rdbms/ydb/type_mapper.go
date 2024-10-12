@@ -44,36 +44,36 @@ const (
 	typeTimestamp = "Timestamp"
 )
 
-func getYQLTypeNameFromValue(val any) (string, error) {
-	switch val.(type) {
-	case bool:
+func primitiveYqlTypeName(typeId Ydb.Type_PrimitiveTypeId) (string, error) {
+	switch typeId {
+	case Ydb.Type_BOOL:
 		return typeBool, nil
-	case int8:
+	case Ydb.Type_INT8:
 		return typeInt8, nil
-	case uint8:
+	case Ydb.Type_UINT8:
 		return typeUint8, nil
-	case int16:
+	case Ydb.Type_INT16:
 		return typeInt16, nil
-	case uint16:
+	case Ydb.Type_UINT16:
 		return typeUint16, nil
-	case int32:
+	case Ydb.Type_INT32:
 		return typeInt32, nil
-	case uint32:
+	case Ydb.Type_UINT32:
 		return typeUint32, nil
-	case int64:
+	case Ydb.Type_INT64:
 		return typeInt64, nil
-	case uint64:
+	case Ydb.Type_UINT64:
 		return typeUint64, nil
-	case float32:
+	case Ydb.Type_FLOAT:
 		return typeFloat, nil
-	case float64:
+	case Ydb.Type_DOUBLE:
 		return typeDouble, nil
-	case string:
-		return typeUtf8, nil
-	case []byte:
+	case Ydb.Type_STRING:
 		return typeString, nil
+	case Ydb.Type_UTF8:
+		return typeUtf8, nil
 	default:
-		return "", errors.New("there is no unambiguous mapping")
+		return "", fmt.Errorf("unexpected primitive type id: %v", typeId)
 	}
 }
 

@@ -28,8 +28,8 @@ func MakeReadSplitsQuery(
 	}
 
 	var (
-		sb             strings.Builder
-		argsCollection *QueryArgs
+		sb        strings.Builder
+		queryArgs *QueryArgs
 	)
 
 	sb.WriteString(selectPart)
@@ -37,7 +37,7 @@ func MakeReadSplitsQuery(
 	if slct.Where != nil {
 		var clause string
 
-		clause, argsCollection, err = formatWhereClause(formatter, slct.Where)
+		clause, queryArgs, err = formatWhereClause(formatter, slct.Where)
 		if err != nil {
 			switch filtering {
 			case api_service_protos.TReadSplitsRequest_FILTERING_UNSPECIFIED, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
@@ -57,14 +57,14 @@ func MakeReadSplitsQuery(
 		}
 	}
 
-	query := sb.String()
+	queryText := sb.String()
 
 	return &ReadSplitsQuery{
 		QueryParams: QueryParams{
 			Ctx:       ctx,
 			Logger:    logger,
-			QueryText: query,
-			QueryArgs: argsCollection,
+			QueryText: queryText,
+			QueryArgs: queryArgs,
 		},
 		What: newSelectWhat,
 	}, nil
