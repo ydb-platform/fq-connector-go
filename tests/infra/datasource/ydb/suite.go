@@ -5,6 +5,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
@@ -83,19 +84,19 @@ func (s *Suite) TestPushdownComparisonEQ() {
 	)
 }
 
-// func (s *Suite) TestPushdownComparisonEQNull() {
-// 	s.ValidateTable(
-// 		s.dataSource,
-// 		tables["pushdown_comparison_EQ_NULL"],
-// 		suite.WithPredicate(&api_service_protos.TPredicate{
-// 			Payload: tests_utils.MakePredicateComparisonColumn(
-// 				"col_01_int",
-// 				api_service_protos.TPredicate_TComparison_EQ,
-// 				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), nil),
-// 			),
-// 		}),
-// 	)
-// }
+func (s *Suite) TestPushdownComparisonEQNull() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_comparison_EQ_NULL"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_01_int",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), nil),
+			),
+		}),
+	)
+}
 
 func (s *Suite) TestPushdownComparisonGE() {
 	s.ValidateTable(
@@ -298,7 +299,6 @@ func (s *Suite) TestPositiveStats() {
 	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
 }
 
-/*
 func (s *Suite) TestMissingDataSource() {
 	dsi := &api_common.TDataSourceInstance{
 		Kind:     api_common.EDataSourceKind_YDB,
@@ -330,7 +330,6 @@ func (s *Suite) TestInvalidPassword() {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
-*/
 
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],

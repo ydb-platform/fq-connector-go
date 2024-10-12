@@ -13,6 +13,7 @@ func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (stri
 		WHERE table_name = ? AND table_schema = ?`
 
 	var args rdbms_utils.QueryArgs
+
 	args.AddUntyped(request.Table)
 	args.AddUntyped(request.GetDataSourceInstance().Database)
 

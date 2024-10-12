@@ -19,7 +19,13 @@ func (q *QueryArgs) AddTyped(ydbType *Ydb.Type, arg any) *QueryArgs {
 
 func (q *QueryArgs) AddUntyped(arg any) *QueryArgs { return q.AddTyped(nil, arg) }
 
-func (q *QueryArgs) Count() int { return len(q.args) }
+func (q *QueryArgs) Count() int {
+	if q == nil {
+		return 0
+	}
+
+	return len(q.args)
+}
 
 func (q *QueryArgs) Values() []any {
 	if q == nil {
@@ -30,6 +36,7 @@ func (q *QueryArgs) Values() []any {
 	for i, arg := range q.args {
 		args[i] = arg.Value
 	}
+
 	return args
 }
 

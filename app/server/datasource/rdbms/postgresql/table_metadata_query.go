@@ -12,6 +12,7 @@ func TableMetadataQuery(
 	query := "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2"
 
 	var args rdbms_utils.QueryArgs
+
 	args.AddUntyped(request.Table)
 	args.AddUntyped(schema)
 

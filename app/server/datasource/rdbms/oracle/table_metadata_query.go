@@ -11,6 +11,7 @@ func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (stri
 	query := "SELECT column_name, data_type FROM user_tab_columns WHERE table_name = :1"
 
 	var args rdbms_utils.QueryArgs
+
 	args.AddUntyped(request.Table)
 
 	return query, &args

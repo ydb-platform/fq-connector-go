@@ -42,7 +42,11 @@ func formatValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue)
 	}
 }
 
-func addTypedNull[ACCEPTOR_TYPE any](formatter SQLFormatter, args *QueryArgs, typeId Ydb.Type_PrimitiveTypeId) (string, *QueryArgs, error) {
+func addTypedNull[ACCEPTOR_TYPE any](
+	formatter SQLFormatter,
+	args *QueryArgs,
+	typeId Ydb.Type_PrimitiveTypeId,
+) (string, *QueryArgs, error) {
 	return formatter.GetPlaceholder(args.Count()),
 		args.AddTyped(&Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: typeId}}, (*ACCEPTOR_TYPE)(nil)),
 		nil
@@ -153,7 +157,11 @@ func formatExpression(formatter SQLFormatter, args *QueryArgs, expression *api_s
 	}
 }
 
-func formatComparison(formatter SQLFormatter, args *QueryArgs, comparison *api_service_protos.TPredicate_TComparison) (string, *QueryArgs, error) {
+func formatComparison(
+	formatter SQLFormatter,
+	args *QueryArgs,
+	comparison *api_service_protos.TPredicate_TComparison,
+) (string, *QueryArgs, error) {
 	var operation string
 
 	switch op := comparison.Operation; op {
@@ -186,7 +194,10 @@ func formatComparison(formatter SQLFormatter, args *QueryArgs, comparison *api_s
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), args, nil
 }
 
-func formatNegation(formatter SQLFormatter, args *QueryArgs, negation *api_service_protos.TPredicate_TNegation) (string, *QueryArgs, error) {
+func formatNegation(
+	formatter SQLFormatter,
+	args *QueryArgs,
+	negation *api_service_protos.TPredicate_TNegation) (string, *QueryArgs, error) {
 	pred, args, err := formatPredicate(formatter, args, negation.Operand, false)
 	if err != nil {
 		return "", args, fmt.Errorf("failed to format NOT statement: %w", err)
@@ -296,7 +307,11 @@ func formatDisjunction(
 	return sb.String(), args, nil
 }
 
-func formatIsNull(formatter SQLFormatter, args *QueryArgs, isNull *api_service_protos.TPredicate_TIsNull) (string, *QueryArgs, error) {
+func formatIsNull(
+	formatter SQLFormatter,
+	args *QueryArgs,
+	isNull *api_service_protos.TPredicate_TIsNull,
+) (string, *QueryArgs, error) {
 	statement, args, err := formatExpression(formatter, args, isNull.Value)
 	if err != nil {
 		return "", args, fmt.Errorf("failed to format IS NULL statement: %w", err)
@@ -305,7 +320,11 @@ func formatIsNull(formatter SQLFormatter, args *QueryArgs, isNull *api_service_p
 	return fmt.Sprintf("(%s IS NULL)", statement), args, nil
 }
 
-func formatIsNotNull(formatter SQLFormatter, args *QueryArgs, isNotNull *api_service_protos.TPredicate_TIsNotNull) (string, *QueryArgs, error) {
+func formatIsNotNull(
+	formatter SQLFormatter,
+	args *QueryArgs,
+	isNotNull *api_service_protos.TPredicate_TIsNotNull,
+) (string, *QueryArgs, error) {
 	statement, args, err := formatExpression(formatter, args, isNotNull.Value)
 	if err != nil {
 		return "", args, fmt.Errorf("failed to format IS NOT NULL statement: %w", err)
@@ -314,7 +333,12 @@ func formatIsNotNull(formatter SQLFormatter, args *QueryArgs, isNotNull *api_ser
 	return fmt.Sprintf("(%s IS NOT NULL)", statement), args, nil
 }
 
-func formatPredicate(formatter SQLFormatter, args *QueryArgs, predicate *api_service_protos.TPredicate, topLevel bool) (string, *QueryArgs, error) {
+func formatPredicate(
+	formatter SQLFormatter,
+	args *QueryArgs,
+	predicate *api_service_protos.TPredicate,
+	topLevel bool,
+) (string, *QueryArgs, error) {
 	switch p := predicate.Payload.(type) {
 	case *api_service_protos.TPredicate_Negation:
 		return formatNegation(formatter, args, p.Negation)
