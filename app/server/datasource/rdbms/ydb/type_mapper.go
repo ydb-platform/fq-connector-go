@@ -257,9 +257,7 @@ func makeAcceptorAppender(
 		return makeAcceptorAppenderCheckOptional[float64, float64, *array.Float64Builder](optional, cc.Float64())
 	case typeString:
 		return makeAcceptorAppenderCheckOptional[[]byte, []byte, *array.BinaryBuilder](optional, cc.Bytes())
-	case typeUtf8:
-		return makeAcceptorAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())
-	case typeJSON:
+	case typeUtf8, typeJSON:
 		return makeAcceptorAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())
 	case typeDate:
 		switch ydbTypeID {

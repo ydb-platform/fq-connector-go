@@ -61,7 +61,7 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
   lll:
-    line-length: 139
+    line-length: 140
   misspell:
     locale: US
   nolintlint:
@@ -296,7 +296,7 @@ linters-settings:
       - name: line-length-limit
         severity: warning
         disabled: false
-        arguments: [139]
+        arguments: [140]
       # https://github.com/mgechev/revive/blob/master/RULES_DESCRIPTIONS.md#max-public-structs
       - name: max-public-structs
         severity: warning

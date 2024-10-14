@@ -132,31 +132,33 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE)
 			paramsBuilder := ydb_sdk.ParamsBuilder()
 			for i, arg := range params.QueryArgs.Values() {
+				placeholder := formatter.GetPlaceholder(i)
+
 				switch t := arg.(type) {
 				case int8:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int8(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
 				case int16:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int16(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Int16(t)
 				case int32:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int32(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Int32(t)
 				case int64:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Int64(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Int64(t)
 				case uint8:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint8(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Uint8(t)
 				case uint16:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint16(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Uint16(t)
 				case uint32:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint32(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Uint32(t)
 				case uint64:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Uint64(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Uint64(t)
 				case float32:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Float(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Float(t)
 				case float64:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Double(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Double(t)
 				case string:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Text(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Text(t)
 				case []byte:
-					paramsBuilder = paramsBuilder.Param(formatter.GetPlaceholder(i)).Bytes(t)
+					paramsBuilder = paramsBuilder.Param(placeholder).Bytes(t)
 				default:
 					return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
 				}

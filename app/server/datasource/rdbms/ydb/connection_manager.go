@@ -81,6 +81,8 @@ func (c *connectionManager) Make(
 	var ydbConn ydbConnection
 
 	switch c.cfg.Mode {
+	case config.TYdbConfig_MODE_UNSPECIFIED:
+		fallthrough
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
 		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
