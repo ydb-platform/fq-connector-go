@@ -37,8 +37,8 @@ func obtainTableDesciption(endpoint, login, password string) {
 	}
 
 	defer func() {
-		if err := ydbDriver.Close(context.Background()); err != nil {
-			log.Fatal(err)
+		if closeErr := ydbDriver.Close(context.Background()); closeErr != nil {
+			log.Fatal(closeErr)
 		}
 	}()
 
@@ -70,15 +70,15 @@ func makeDriver(endpoint, login, password string) (*ydb.Driver, error) {
 
 func getTableDescription(ydbDriver *ydb.Driver) (*options.Description, error) {
 	desc := options.Description{}
-	path := path.Join(dbName, tableName)
+	filePath := path.Join(dbName, tableName)
 
-	log.Println("Getting table description for table", path)
+	log.Println("Getting table description for table", filePath)
 
 	err := ydbDriver.Table().Do(
 		context.Background(),
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
-			desc, errInner = s.DescribeTable(ctx, path)
+			desc, errInner = s.DescribeTable(ctx, filePath)
 			if errInner != nil {
 				return fmt.Errorf("describe table: %w", errInner)
 			}
