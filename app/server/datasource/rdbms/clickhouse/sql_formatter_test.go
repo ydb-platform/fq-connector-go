@@ -463,7 +463,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
-			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs)
+			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
 			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)
 		})
 	}

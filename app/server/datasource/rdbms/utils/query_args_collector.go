@@ -29,7 +29,7 @@ func (q *QueryArgs) Count() int {
 
 func (q *QueryArgs) Values() []any {
 	if q == nil {
-		return nil
+		return []any{}
 	}
 
 	args := make([]any, len(q.args))
