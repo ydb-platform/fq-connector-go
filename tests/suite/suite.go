@@ -212,7 +212,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	table.MatchRecords(b.T(), records, schema)
 }
 
-type SuiteOption interface {
+type BaseOption interface {
 	apply(cfg *baseConfig)
 }
 
@@ -224,7 +224,7 @@ func (o *embeddedOption) apply(cfg *baseConfig) {
 	cfg.embeddedOptions = append(cfg.embeddedOptions, o.options...)
 }
 
-func WithEmbeddedOptions(options ...server.EmbeddedOption) SuiteOption {
+func WithEmbeddedOptions(options ...server.EmbeddedOption) BaseOption {
 	return &embeddedOption{
 		options: options,
 	}
@@ -233,7 +233,7 @@ func WithEmbeddedOptions(options ...server.EmbeddedOption) SuiteOption {
 func NewBase[
 	ID test_utils.TableIDTypes,
 	IDBUILDER test_utils.ArrowIDBuilder[ID],
-](t *testing.T, state *State, name string, suiteOptions ...SuiteOption) *Base[ID, IDBUILDER] {
+](t *testing.T, state *State, name string, suiteOptions ...BaseOption) *Base[ID, IDBUILDER] {
 	cfg := &baseConfig{
 		name: name,
 	}

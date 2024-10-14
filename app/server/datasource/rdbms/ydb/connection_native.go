@@ -228,6 +228,33 @@ func (c *connectionNative) Close() error {
 	return nil
 }
 
+func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string, error) {
+	var buf bytes.Buffer
+
+	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
+
+	for i, arg := range params.QueryArgs.GetAll() {
+		var primitiveTypeID Ydb.Type_PrimitiveTypeId
+
+		if arg.YdbType.GetOptionalType() != nil {
+			primitiveTypeID = arg.YdbType.GetOptionalType().Item.GetTypeId()
+		} else {
+			primitiveTypeID = arg.YdbType.GetTypeId()
+		}
+
+		typeName, err := primitiveYqlTypeName(primitiveTypeID)
+		if err != nil {
+			return "", fmt.Errorf("get YQL type name from value %v: %w", arg, err)
+		}
+
+		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;", i, typeName)) //nolint:revive
+	}
+
+	buf.WriteString(params.QueryText) //nolint:revive
+
+	return buf.String(), nil
+}
+
 func newConnectionNative(
 	ctx context.Context,
 	queryLogger common.QueryLogger,
@@ -240,23 +267,4 @@ func newConnectionNative(
 		queryLogger: queryLogger,
 		dsi:         dsi,
 	}
-}
-
-func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string, error) {
-	var buf bytes.Buffer
-
-	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
-
-	for i, arg := range params.QueryArgs.GetAll() {
-		typeName, err := primitiveYqlTypeName(arg.YdbType.GetTypeId())
-		if err != nil {
-			return "", fmt.Errorf("get YQL type name from value %v: %w", arg, err)
-		}
-
-		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;", i, typeName)) //nolint:revive
-	}
-
-	buf.WriteString(params.QueryText) //nolint:revive
-
-	return buf.String(), nil
 }

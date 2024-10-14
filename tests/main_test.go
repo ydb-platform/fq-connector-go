@@ -44,8 +44,8 @@ func TestPostgreSQL(t *testing.T) {
 
 func TestYDB(t *testing.T) {
 	modes := []config.TYdbConfig_Mode{
-		config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE,
 		config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES,
+		config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE,
 	}
 
 	for _, mode := range modes {

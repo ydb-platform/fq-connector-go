@@ -266,6 +266,20 @@ func (s *Suite) TestPushdownStringsUtf8() {
 	)
 }
 
+func (s *Suite) TestPushdownStringsUtf8Optional() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_strings_utf8"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_utf8",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "a"),
+			),
+		}),
+	)
+}
+
 func (s *Suite) TestPushdownStringsString() {
 	s.ValidateTable(
 		s.dataSource,
@@ -275,6 +289,20 @@ func (s *Suite) TestPushdownStringsString() {
 				"col_03_string",
 				api_service_protos.TPredicate_TComparison_EQ,
 				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("b")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringsStringOptional() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_strings_string"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_03_string",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), []byte("b")),
 			),
 		}),
 	)
@@ -333,6 +361,7 @@ func (s *Suite) TestInvalidLogin() {
 	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
 		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
 	}
+
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
@@ -342,6 +371,7 @@ func (s *Suite) TestInvalidPassword() {
 	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
 		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
 	}
+
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
