@@ -237,7 +237,14 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 		var primitiveTypeID Ydb.Type_PrimitiveTypeId
 
 		if arg.YdbType.GetOptionalType() != nil {
-			primitiveTypeID = arg.YdbType.GetOptionalType().Item.GetTypeId()
+			internalType := arg.YdbType.GetOptionalType().GetItem()
+
+			switch t := internalType.GetType().(type) {
+			case *Ydb.Type_TypeId:
+				primitiveTypeID = t.TypeId
+			default:
+				return "", fmt.Errorf("optional type contains no primitive type: %v", arg.YdbType)
+			}
 		} else {
 			primitiveTypeID = arg.YdbType.GetTypeId()
 		}
