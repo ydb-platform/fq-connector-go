@@ -17,21 +17,30 @@ import (
 )
 
 const (
-	dbName    = "/local"
-	tableName = "simple"
-	endpoint  = "grpc://localhost:2136"
+	dbEndpoint = "localhost:2136"
+	dbName     = "/local"
+	tableName  = "simple"
 )
 
 func main() {
 	log.Println("Correct credentials")
-	obtainTableDesciption("admin", "password")
+	obtainTableDesciption(dbEndpoint, "admin", "password")
+
+	log.Println("Invalid credentials")
+	obtainTableDesciption(dbEndpoint, "admin2", "password")
 }
 
-func obtainTableDesciption(login, password string) {
-	ydbDriver, err := makeDriver(login, password)
+func obtainTableDesciption(endpoint, login, password string) {
+	ydbDriver, err := makeDriver(endpoint, login, password)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer func() {
+		if err := ydbDriver.Close(context.Background()); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	desc, err := getTableDescription(ydbDriver)
 	if err != nil {
@@ -41,7 +50,7 @@ func obtainTableDesciption(login, password string) {
 	log.Printf("Table description: %+v", desc)
 }
 
-func makeDriver(login, password string) (*ydb.Driver, error) {
+func makeDriver(endpoint, login, password string) (*ydb.Driver, error) {
 	ydbOptions := []ydb.Option{
 		ydb.WithStaticCredentials(login, password),
 		ydb.WithDialTimeout(5 * time.Second),
@@ -49,7 +58,7 @@ func makeDriver(login, password string) (*ydb.Driver, error) {
 		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
-	dsn := sugar.DSN("localhost:2136", dbName, false)
+	dsn := sugar.DSN(endpoint, dbName, false)
 
 	ydbDriver, err := ydb.Open(context.Background(), dsn, ydbOptions...)
 	if err != nil {
