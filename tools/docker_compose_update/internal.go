@@ -39,7 +39,7 @@ func getLatestVersion() (string, error) {
 
 	link := "https://api.github.com/repos/ydb-platform/fq-connector-go/tags"
 
-	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", link, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("http new request: %w", err)
 	}
@@ -81,7 +81,7 @@ func getChecksum(tag string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "GET", link, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", link, http.NoBody)
 	if err != nil {
 		return "", fmt.Errorf("http new request: %w", err)
 	}
