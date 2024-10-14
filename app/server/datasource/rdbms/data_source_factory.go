@@ -97,7 +97,7 @@ func NewDataSourceFactory(
 			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
-				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+				func(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 					return postgresql.TableMetadataQuery(
 						request,
 						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
@@ -108,7 +108,7 @@ func NewDataSourceFactory(
 			},
 		},
 		ydb: Preset{
-			SQLFormatter:      ydb.NewSQLFormatter(),
+			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
@@ -144,7 +144,7 @@ func NewDataSourceFactory(
 			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
-				func(request *api_service_protos.TDescribeTableRequest) (string, []any) {
+				func(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 					return postgresql.TableMetadataQuery(
 						request,
 						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))

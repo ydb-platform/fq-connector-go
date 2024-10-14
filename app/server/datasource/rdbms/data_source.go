@@ -76,14 +76,16 @@ func (ds *dataSourceImpl) doReadSplit(
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) error {
-	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(logger, ds.sqlFormatter, split.Select, request.Filtering)
+	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(ctx, logger, ds.sqlFormatter, split.Select, request.Filtering)
 	if err != nil {
 		return fmt.Errorf("make read split query: %w", err)
 	}
 
 	var conn rdbms_utils.Connection
 
-	err = ds.retrierSet.MakeConnection.Run(ctx, logger,
+	err = ds.retrierSet.MakeConnection.Run(
+		ctx,
+		logger,
 		func() error {
 			var makeConnErr error
 
@@ -110,8 +112,8 @@ func (ds *dataSourceImpl) doReadSplit(
 		func() error {
 			var queryErr error
 
-			if rows, queryErr = conn.Query(ctx, logger, readSplitsQuery.Query, readSplitsQuery.Args...); queryErr != nil {
-				return fmt.Errorf("query '%s' error: %w", readSplitsQuery.Query, queryErr)
+			if rows, queryErr = conn.Query(&readSplitsQuery.QueryParams); queryErr != nil {
+				return fmt.Errorf("query '%s' error: %w", readSplitsQuery.QueryText, queryErr)
 			}
 
 			return nil

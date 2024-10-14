@@ -213,6 +213,21 @@ message TYdbConfig {
     // Flag forcing the usage of underlay networks for dedicated YDB databases
     bool use_underlay_network_for_dedicated_databases = 3;
 
+    enum Mode {
+        MODE_UNSPECIFIED = 0;
+        // In MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES the YDB connector uses YDB's Table Service
+        // via Go's standard library database/sql interface.
+        // All the requests are marked as scan queries.
+        MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES = 1;
+        // In MODE_QUERY_SERVICE_NATIVE the YDB connector uses YDB's Query Service
+        // via native YDB interface.
+        MODE_QUERY_SERVICE_NATIVE = 2;
+    } 
+
+    // Mode parametrizes the way YDB connector interacts with YDB servers.
+    // MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES is the default mode.
+    Mode mode = 4;
+
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 

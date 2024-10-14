@@ -1,6 +1,7 @@
 package ydb
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -23,7 +25,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 	}
 
 	logger := common.NewTestLogger(t)
-	formatter := NewSQLFormatter()
+	formatter := NewSQLFormatter(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES)
 
 	tcs := []testCase{
 		{
@@ -454,15 +456,20 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 
 		t.Run(tc.testName, func(t *testing.T) {
 			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
-				logger, formatter, tc.selectReq, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
+				context.Background(),
+				logger,
+				formatter,
+				tc.selectReq,
+				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
+			)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
 				return
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, tc.outputQuery, readSplitsQuery.Query)
-			require.Equal(t, tc.outputArgs, readSplitsQuery.Args)
+			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
+			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
 			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)
 		})
 	}

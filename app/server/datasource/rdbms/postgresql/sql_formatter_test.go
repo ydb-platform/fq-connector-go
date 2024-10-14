@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -451,14 +452,18 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 
 		t.Run(tc.testName, func(t *testing.T) {
 			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
-				logger, formatter, tc.selectReq, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
+				context.Background(),
+				logger,
+				formatter,
+				tc.selectReq,
+				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
 				return
 			}
 
-			require.Equal(t, tc.outputQuery, readSplitsQuery.Query)
-			require.Equal(t, tc.outputArgs, readSplitsQuery.Args)
+			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
+			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
 			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)
 		})
 	}

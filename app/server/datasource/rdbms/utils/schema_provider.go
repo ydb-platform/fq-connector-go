@@ -13,7 +13,7 @@ import (
 
 type DefaultSchemaProvider struct {
 	typeMapper      datasource.TypeMapper
-	getArgsAndQuery func(request *api_service_protos.TDescribeTableRequest) (string, []any)
+	getArgsAndQuery func(request *api_service_protos.TDescribeTableRequest) (string, *QueryArgs)
 }
 
 var _ SchemaProvider = (*DefaultSchemaProvider)(nil)
@@ -26,7 +26,14 @@ func (f *DefaultSchemaProvider) GetSchema(
 ) (*api_service_protos.TSchema, error) {
 	query, args := f.getArgsAndQuery(request)
 
-	rows, err := conn.Query(ctx, logger, query, args...)
+	queryParams := &QueryParams{
+		Ctx:       ctx,
+		Logger:    logger,
+		QueryText: query,
+		QueryArgs: args,
+	}
+
+	rows, err := conn.Query(queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}
@@ -64,7 +71,7 @@ func (f *DefaultSchemaProvider) GetSchema(
 
 func NewDefaultSchemaProvider(
 	typeMapper datasource.TypeMapper,
-	getArgsAndQueryFunc func(request *api_service_protos.TDescribeTableRequest) (string, []any),
+	getArgsAndQueryFunc func(request *api_service_protos.TDescribeTableRequest) (string, *QueryArgs),
 ) SchemaProvider {
 	return &DefaultSchemaProvider{
 		typeMapper:      typeMapper,

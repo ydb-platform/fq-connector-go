@@ -2,6 +2,7 @@ package ydb
 
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -267,7 +268,7 @@ func (s *Suite) TestPushdownStringsString() {
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_03_string",
 				api_service_protos.TPredicate_TComparison_EQ,
-				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), "b"),
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("b")),
 			),
 		}),
 	)

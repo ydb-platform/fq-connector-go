@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"go.uber.org/zap"
@@ -27,29 +26,25 @@ func (f *schemaProvider) GetSchema(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
-	ydbConn := conn.(*Connection)
-
-	db, err := ydb.Unwrap(ydbConn.DB)
-	if err != nil {
-		return nil, fmt.Errorf("unwrap connection: %w", err)
-	}
+	db := conn.(ydbConnection).getDriver()
 
 	desc := options.Description{}
 	prefix := path.Join(db.Name(), request.Table)
-	tableClient := db.Table()
 
 	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
 
-	err = tableClient.Do(
+	err := db.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
-			desc, err = s.DescribeTable(ctx, prefix)
-			if err != nil {
-				return fmt.Errorf("describe table: %w", err)
+			var errInner error
+			desc, errInner = s.DescribeTable(ctx, prefix)
+			if errInner != nil {
+				return fmt.Errorf("describe table: %w", errInner)
 			}
 
 			return nil
 		},
+		table.WithIdempotent(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get table description: %w", err)

@@ -72,3 +72,13 @@ func ReadResponsesToArrowRecords(responses []*api_service_protos.TReadSplitsResp
 
 	return out, nil
 }
+
+func ExtractErrorFromReadResponses(responses []*api_service_protos.TReadSplitsResponse) error {
+	for _, resp := range responses {
+		if !IsSuccess(resp.Error) {
+			return NewSTDErrorFromAPIError(resp.Error)
+		}
+	}
+
+	return nil
+}

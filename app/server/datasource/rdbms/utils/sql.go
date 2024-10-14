@@ -13,8 +13,15 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+type QueryParams struct {
+	Ctx       context.Context
+	Logger    *zap.Logger
+	QueryText string
+	QueryArgs *QueryArgs
+}
+
 type Connection interface {
-	Query(ctx context.Context, logger *zap.Logger, query string, args ...any) (Rows, error)
+	Query(params *QueryParams) (Rows, error)
 	Close() error
 }
 

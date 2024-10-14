@@ -477,9 +477,9 @@ linters:
     - misspell
     - nakedret
     - noctx
-    - nolintlint
+    # - nolintlint
     - revive
-  #  - staticcheck
+    # - staticcheck
     - stylecheck
     - typecheck
     - unconvert

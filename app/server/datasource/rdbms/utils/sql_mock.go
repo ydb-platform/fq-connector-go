@@ -19,9 +19,9 @@ type ConnectionMock struct {
 	mock.Mock
 }
 
-func (m *ConnectionMock) Query(_ context.Context, _ *zap.Logger, query string, params ...any) (Rows, error) {
-	called := []any{query}
-	called = append(called, params...)
+func (m *ConnectionMock) Query(params *QueryParams) (Rows, error) {
+	called := []any{params.QueryText}
+	called = append(called, params.QueryArgs.Values()...)
 	args := m.Called(called...)
 
 	return args.Get(0).(Rows), args.Error(1)

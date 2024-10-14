@@ -66,7 +66,10 @@ func (s *serviceConnector) DescribeTable(
 	return out, nil
 }
 
-func (s *serviceConnector) ListSplits(request *api_service_protos.TListSplitsRequest, stream api_service.Connector_ListSplitsServer) error {
+func (s *serviceConnector) ListSplits(
+	request *api_service_protos.TListSplitsRequest,
+	stream api_service.Connector_ListSplitsServer,
+) error {
 	logger := mustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
