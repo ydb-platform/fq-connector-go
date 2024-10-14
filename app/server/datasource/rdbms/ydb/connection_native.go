@@ -115,7 +115,7 @@ type connectionNative struct {
 	driver      *ydb_sdk.Driver
 }
 
-//nolint: gocyclo
+// nolint: gocyclo
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	rowsChan := make(chan rdbms_utils.Rows, 1)
 
