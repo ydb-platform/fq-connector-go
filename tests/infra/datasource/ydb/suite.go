@@ -7,6 +7,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
@@ -15,7 +16,8 @@ import (
 
 type Suite struct {
 	*suite.Base[int32, *array.Int32Builder]
-	dataSource *datasource.DataSource
+	dataSource    *datasource.DataSource
+	connectorMode config.TYdbConfig_Mode
 }
 
 func (s *Suite) TestSelect() {
@@ -85,6 +87,10 @@ func (s *Suite) TestPushdownComparisonEQ() {
 }
 
 func (s *Suite) TestPushdownComparisonEQNull() {
+	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
+		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
+	}
+
 	s.ValidateTable(
 		s.dataSource,
 		tables["pushdown_comparison_EQ_NULL"],
@@ -300,6 +306,10 @@ func (s *Suite) TestPositiveStats() {
 }
 
 func (s *Suite) TestMissingDataSource() {
+	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
+		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
+	}
+
 	dsi := &api_common.TDataSourceInstance{
 		Kind:     api_common.EDataSourceKind_YDB,
 		Endpoint: &api_common.TEndpoint{Host: "www.google.com", Port: 2136},
@@ -320,12 +330,18 @@ func (s *Suite) TestMissingDataSource() {
 }
 
 func (s *Suite) TestInvalidLogin() {
+	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
+		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
+	}
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
 }
 
 func (s *Suite) TestInvalidPassword() {
+	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
+		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
+	}
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
@@ -333,13 +349,15 @@ func (s *Suite) TestInvalidPassword() {
 
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
+	connectorMode config.TYdbConfig_Mode,
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)
 
 	result := &Suite{
-		Base:       baseSuite,
-		dataSource: ds,
+		Base:          baseSuite,
+		dataSource:    ds,
+		connectorMode: connectorMode,
 	}
 
 	return result

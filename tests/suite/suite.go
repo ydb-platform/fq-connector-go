@@ -23,11 +23,16 @@ type Base[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]] s
 	testify_suite.Suite
 	*State
 	Connector common.TestingServer
-	name      string
+	cfg       *baseConfig
+}
+
+type baseConfig struct {
+	name            string                  // suite name
+	embeddedOptions []server.EmbeddedOption // additional launching options for Connector service
 }
 
 func (b *Base[_, _]) BeforeTest(_, testName string) {
-	fmt.Printf("\n>>>>>>>>>> TEST STARTED: %s/%s <<<<<<<<<<\n\n", b.name, testName)
+	fmt.Printf("\n>>>>>>>>>> TEST STARTED: %s/%s <<<<<<<<<<\n\n", b.cfg.name, testName)
 }
 
 func (b *Base[_, _]) TearDownTest() {
@@ -38,14 +43,14 @@ func (b *Base[_, _]) TearDownTest() {
 }
 
 func (b *Base[_, _]) BeforeSuite(_ string) {
-	fmt.Printf("\n>>>>>>>>>> SUITE STARTED: %s <<<<<<<<<<\n", b.name)
+	fmt.Printf("\n>>>>>>>>>> SUITE STARTED: %s <<<<<<<<<<\n", b.cfg.name)
 }
 
 func (b *Base[_, _]) SetupSuite() {
 	// We want to run a distinct instance of Connector for every suite
 	var err error
 
-	b.Connector, err = server.NewEmbedded(
+	options := []server.EmbeddedOption{
 		server.WithLoggerConfig(
 			&config.TLoggerConfig{
 				LogLevel:              config.ELogLevel_DEBUG,
@@ -66,7 +71,12 @@ func (b *Base[_, _]) SetupSuite() {
 			},
 		),
 		server.WithConnectionTimeouts("2s", "1s"),
-		server.WithYdbConnectorMode(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES),
+	}
+
+	options = append(options, b.cfg.embeddedOptions...)
+
+	b.Connector, err = server.NewEmbedded(
+		options...,
 	)
 	b.Require().NoError(err)
 	b.Connector.Start()
@@ -75,7 +85,7 @@ func (b *Base[_, _]) SetupSuite() {
 func (b *Base[_, _]) TearDownSuite() {
 	b.Connector.Stop()
 
-	fmt.Printf("\n>>>>>>>>>> Suite stopped: %s <<<<<<<<<<\n", b.name)
+	fmt.Printf("\n>>>>>>>>>> Suite stopped: %s <<<<<<<<<<\n", b.cfg.name)
 }
 
 type validateTableOptions struct {
@@ -202,13 +212,39 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	table.MatchRecords(b.T(), records, schema)
 }
 
+type SuiteOption interface {
+	apply(cfg *baseConfig)
+}
+
+type embeddedOption struct {
+	options []server.EmbeddedOption
+}
+
+func (o *embeddedOption) apply(cfg *baseConfig) {
+	cfg.embeddedOptions = append(cfg.embeddedOptions, o.options...)
+}
+
+func WithEmbeddedOptions(options ...server.EmbeddedOption) SuiteOption {
+	return &embeddedOption{
+		options: options,
+	}
+}
+
 func NewBase[
 	ID test_utils.TableIDTypes,
 	IDBUILDER test_utils.ArrowIDBuilder[ID],
-](t *testing.T, state *State, name string) *Base[ID, IDBUILDER] {
+](t *testing.T, state *State, name string, suiteOptions ...SuiteOption) *Base[ID, IDBUILDER] {
+	cfg := &baseConfig{
+		name: name,
+	}
+
+	for _, option := range suiteOptions {
+		option.apply(cfg)
+	}
+
 	b := &Base[ID, IDBUILDER]{
 		State: state,
-		name:  name,
+		cfg:   cfg,
 	}
 
 	b.SetT(t)
