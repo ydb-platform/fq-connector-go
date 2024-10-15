@@ -10,6 +10,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	"github.com/ydb-platform/ydb-go-sdk/v3/config"
+	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
@@ -23,14 +24,10 @@ const (
 )
 
 func main() {
-	log.Println("Correct credentials")
-	obtainTableDesciption(dbEndpoint, "admin", "password")
-
-	log.Println("Invalid credentials")
-	obtainTableDesciption(dbEndpoint, "admin2", "password")
+	run(dbEndpoint, "admin", "password")
 }
 
-func obtainTableDesciption(endpoint, login, password string) {
+func run(endpoint, login, password string) {
 	ydbDriver, err := makeDriver(endpoint, login, password)
 	if err != nil {
 		log.Fatal(err)
@@ -48,6 +45,11 @@ func obtainTableDesciption(endpoint, login, password string) {
 	}
 
 	log.Printf("Table description: %+v", desc)
+
+	err = getData(ydbDriver)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func makeDriver(endpoint, login, password string) (*ydb.Driver, error) {
@@ -93,4 +95,30 @@ func getTableDescription(ydbDriver *ydb.Driver) (*options.Description, error) {
 	}
 
 	return &desc, nil
+}
+
+func getData(ydbDriver *ydb.Driver) error {
+	finalErr := ydbDriver.Query().Do(context.Background(), func(ctx context.Context, s query.Session) error {
+		queryText := `
+		DECLARE $p0 AS Optional<Int32>;
+		SELECT * FROM %s WHERE col2 = $p0;
+		`
+
+		paramsBuilder := ydb.ParamsBuilder()
+		paramsBuilder = paramsBuilder.Param("$p0").BeginOptional().Int32(nil).EndOptional()
+
+		result, err := s.Query(ctx, fmt.Sprintf(queryText, tableName), query.WithParameters(paramsBuilder.Build()))
+		if err != nil {
+			return fmt.Errorf("query error: %w", err)
+		}
+
+		fmt.Println(result)
+		return nil
+	})
+
+	if finalErr != nil {
+		return fmt.Errorf("get data: %w", finalErr)
+	}
+
+	return nil
 }
