@@ -32,19 +32,13 @@ test_coverage: integration_test_env_run
 	./fq-connector-go-tests -projectPath=$(PROJECT_PATH) -test.coverprofile=coverage_integration_tests.out 
 	cat coverage_unit_tests.out | grep -v 'pb.go\|mock.go\|library' > coverage.out
 	cat coverage_integration_tests.out | grep -v 'atomic\|pb.go\|mock.go\|library' >> coverage.out
-	go tool cover -func=coverage.out
-	
-build_image_base: 
-	docker build -t ghcr.io/ydb-platform/fq-connector-go:base -f ./Dockerfile.base .
-
-build_image_release: 
-	docker build --network=host -t ghcr.io/ydb-platform/fq-connector-go:latest -f ./Dockerfile.release .
-
-cloc:
-	cloc ./app ./common ./tests --git 
+	go tool cover -func=sudo apt install cloc 
 
 docker_compose_update:
 	go run ./tools/docker_compose_update -path="$(path)"
 
 generate_docs:
 	python3 ./docs/generate.py ./docs
+
+count_lines:
+	cloc --vcs=git . --exclude-dir=library,api --exclude-ext=pb.go

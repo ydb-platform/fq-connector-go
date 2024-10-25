@@ -137,28 +137,52 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				switch t := arg.(type) {
 				case int8:
 					paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
+				case *int8:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int8(t).EndOptional()
 				case int16:
 					paramsBuilder = paramsBuilder.Param(placeholder).Int16(t)
+				case *int16:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int16(t).EndOptional()
 				case int32:
 					paramsBuilder = paramsBuilder.Param(placeholder).Int32(t)
+				case *int32:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int32(t).EndOptional()
 				case int64:
 					paramsBuilder = paramsBuilder.Param(placeholder).Int64(t)
+				case *int64:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int64(t).EndOptional()
 				case uint8:
 					paramsBuilder = paramsBuilder.Param(placeholder).Uint8(t)
+				case *uint8:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint8(t).EndOptional()
 				case uint16:
 					paramsBuilder = paramsBuilder.Param(placeholder).Uint16(t)
+				case *uint16:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint16(t).EndOptional()
 				case uint32:
 					paramsBuilder = paramsBuilder.Param(placeholder).Uint32(t)
+				case *uint32:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint32(t).EndOptional()
 				case uint64:
 					paramsBuilder = paramsBuilder.Param(placeholder).Uint64(t)
+				case *uint64:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint64(t).EndOptional()
 				case float32:
 					paramsBuilder = paramsBuilder.Param(placeholder).Float(t)
+				case *float32:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Float(t).EndOptional()
 				case float64:
 					paramsBuilder = paramsBuilder.Param(placeholder).Double(t)
+				case *float64:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Double(t).EndOptional()
 				case string:
 					paramsBuilder = paramsBuilder.Param(placeholder).Text(t)
+				case *string:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Text(t).EndOptional()
 				case []byte:
 					paramsBuilder = paramsBuilder.Param(placeholder).Bytes(t)
+				case *[]byte:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bytes(t).EndOptional()
 				default:
 					return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
 				}
@@ -231,7 +255,7 @@ func (c *connectionNative) Close() error {
 func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string, error) {
 	var buf bytes.Buffer
 
-	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");", c.dsi.Database)) //nolint:revive
+	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");\n", c.dsi.Database)) //nolint:revive
 
 	for i, arg := range params.QueryArgs.GetAll() {
 		var primitiveTypeID Ydb.Type_PrimitiveTypeId
@@ -254,7 +278,11 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 			return "", fmt.Errorf("get YQL type name from value %v: %w", arg, err)
 		}
 
-		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;", i, typeName)) //nolint:revive
+		if arg.YdbType.GetOptionalType() != nil {
+			typeName = fmt.Sprintf("Optional<%s>", typeName)
+		}
+
+		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;\n", i, typeName)) //nolint:revive
 	}
 
 	buf.WriteString(params.QueryText) //nolint:revive
