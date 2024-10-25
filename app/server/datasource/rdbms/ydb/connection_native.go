@@ -258,7 +258,6 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 	buf.WriteString(fmt.Sprintf("PRAGMA TablePathPrefix(\"%s\");\n", c.dsi.Database)) //nolint:revive
 
 	for i, arg := range params.QueryArgs.GetAll() {
-		fmt.Println(i, arg.YdbType, arg.Value)
 		var primitiveTypeID Ydb.Type_PrimitiveTypeId
 
 		if arg.YdbType.GetOptionalType() != nil {
@@ -270,7 +269,6 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 			default:
 				return "", fmt.Errorf("optional type contains no primitive type: %v", arg.YdbType)
 			}
-
 		} else {
 			primitiveTypeID = arg.YdbType.GetTypeId()
 		}
