@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"path"
 	"time"
@@ -113,6 +115,21 @@ func getData(ydbDriver *ydb.Driver) error {
 		}
 
 		fmt.Println(result)
+		rs, err := result.NextResultSet(ctx)
+		if err != nil {
+			return fmt.Errorf("next result set: %w", err)
+		}
+
+		row, err := rs.NextRow(ctx)
+		fmt.Println(row, err)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				fmt.Println("EOF")
+				return nil
+			}
+			return fmt.Errorf("next row: %w", err)
+		}
+
 		return nil
 	})
 

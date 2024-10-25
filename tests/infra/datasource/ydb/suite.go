@@ -87,10 +87,6 @@ func (s *Suite) TestPushdownComparisonEQ() {
 }
 
 func (s *Suite) TestPushdownComparisonEQNull() {
-	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
-		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
-	}
-
 	s.ValidateTable(
 		s.dataSource,
 		tables["pushdown_comparison_EQ_NULL"],

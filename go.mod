@@ -31,8 +31,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	github.com/wI2L/jsondiff v0.4.0
-	github.com/ydb-platform/ydb-go-genproto v0.0.0-20240920120314-0fed943b0136
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.84.1
+	github.com/ydb-platform/ydb-go-genproto v0.0.0-20241022174402-dd276c7f197b
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.89.0
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.26.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225

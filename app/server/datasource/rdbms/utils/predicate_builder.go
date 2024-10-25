@@ -11,6 +11,14 @@ import (
 )
 
 func formatValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
+	if value.Type.GetOptionalType() != nil {
+		return formatOptionalValue(formatter, args, value)
+	}
+
+	return formatPrimitiveValue(formatter, args, value)
+}
+
+func formatPrimitiveValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
 		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.BoolValue), nil
@@ -42,14 +50,44 @@ func formatValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue)
 	}
 }
 
+func formatOptionalValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
+	switch v := value.Value.Value.(type) {
+	case *Ydb.Value_BoolValue:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.BoolValue), nil
+	case *Ydb.Value_Int32Value:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Int32Value), nil
+	case *Ydb.Value_Uint32Value:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Uint32Value), nil
+	case *Ydb.Value_Int64Value:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Int64Value), nil
+	case *Ydb.Value_Uint64Value:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Uint64Value), nil
+	case *Ydb.Value_FloatValue:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.FloatValue), nil
+	case *Ydb.Value_DoubleValue:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.DoubleValue), nil
+	case *Ydb.Value_BytesValue:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.BytesValue), nil
+	case *Ydb.Value_TextValue:
+		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.TextValue), nil
+	case *Ydb.Value_NullFlagValue:
+		placeholder, newArgs, err := formatNullFlagValue(formatter, args, value)
+		if err != nil {
+			return "", args, fmt.Errorf("format null flag value: %w", err)
+		}
+
+		return placeholder, newArgs, nil
+	default:
+		return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
+	}
+}
+
 func addTypedNull[ACCEPTOR_TYPE any](
 	formatter SQLFormatter,
 	args *QueryArgs,
-	typeId Ydb.Type_PrimitiveTypeId,
+	ydbType *Ydb.Type,
 ) (string, *QueryArgs, error) {
-	return formatter.GetPlaceholder(args.Count()),
-		args.AddTyped(&Ydb.Type{Type: &Ydb.Type_TypeId{TypeId: typeId}}, (*ACCEPTOR_TYPE)(nil)),
-		nil
+	return formatter.GetPlaceholder(args.Count()), args.AddTyped(ydbType, (*ACCEPTOR_TYPE)(nil)), nil
 }
 
 func formatNullFlagValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
@@ -64,27 +102,27 @@ func formatNullFlagValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.Typ
 	case *Ydb.Type_TypeId:
 		switch innerType.TypeId {
 		case Ydb.Type_BOOL:
-			return addTypedNull[bool](formatter, args, Ydb.Type_BOOL)
+			return addTypedNull[bool](formatter, args, value.Type)
 		case Ydb.Type_INT8:
-			return addTypedNull[int8](formatter, args, Ydb.Type_INT8)
+			return addTypedNull[int8](formatter, args, value.Type)
 		case Ydb.Type_UINT8:
-			return addTypedNull[uint8](formatter, args, Ydb.Type_UINT8)
+			return addTypedNull[uint8](formatter, args, value.Type)
 		case Ydb.Type_INT16:
-			return addTypedNull[int16](formatter, args, Ydb.Type_INT16)
+			return addTypedNull[int16](formatter, args, value.Type)
 		case Ydb.Type_UINT16:
-			return addTypedNull[uint16](formatter, args, Ydb.Type_UINT16)
+			return addTypedNull[uint16](formatter, args, value.Type)
 		case Ydb.Type_INT32:
-			return addTypedNull[int32](formatter, args, Ydb.Type_INT32)
+			return addTypedNull[int32](formatter, args, value.Type)
 		case Ydb.Type_UINT32:
-			return addTypedNull[uint32](formatter, args, Ydb.Type_UINT32)
+			return addTypedNull[uint32](formatter, args, value.Type)
 		case Ydb.Type_INT64:
-			return addTypedNull[int64](formatter, args, Ydb.Type_INT64)
+			return addTypedNull[int64](formatter, args, value.Type)
 		case Ydb.Type_UINT64:
-			return addTypedNull[uint64](formatter, args, Ydb.Type_UINT64)
+			return addTypedNull[uint64](formatter, args, value.Type)
 		case Ydb.Type_STRING:
-			return addTypedNull[[]byte](formatter, args, Ydb.Type_STRING)
+			return addTypedNull[[]byte](formatter, args, value.Type)
 		case Ydb.Type_UTF8:
-			return addTypedNull[string](formatter, args, Ydb.Type_UTF8)
+			return addTypedNull[string](formatter, args, value.Type)
 		default:
 			return "", args, fmt.Errorf("unsupported primitive type '%v' instead: %w", innerType, common.ErrUnimplementedTypedValue)
 		}
