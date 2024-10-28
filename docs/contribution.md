@@ -78,6 +78,8 @@
 
 ### Первые шаги
 
+Если использование нового внешнего источника данных поддержано в аналогичной федеративной базе данных Trino, вы можете изучить его работу, запустив Trino и источник [локально](./dockerized_trino_setup.md).
+
 Работу по добавлению нового источника можно начать с создания в папке [rdbms](https://github.com/ydb-platform/fq-connector-go/tree/main/app/server/datasource/rdbms) подпапки для нового источника данных. Нейминг должен соответствовать [enum](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L29-L37) из YDB API. В этой папке можно реализовать перечисленные выше интерфейсы в самом примитивном виде (на заглушках), и заполнить ими структуру `Preset`.
 
 Сразу после этого новый источник данных надо подключить [в фабрике](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/data_source_factory.go#L27-L40) источников. После этого вы сможете делать обращения к коннектору через тестовый клиент `fq-connector-go client`.
