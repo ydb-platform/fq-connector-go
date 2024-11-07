@@ -8,7 +8,9 @@
 
 По умолчанию обе системы угадывают тип полей в коллекции по первому документу в ней (при этом в MongoDB не определен порядок документов в коллекции по умолчанию, если не включать сортировку в запросе), и записывают полученную схему в коллекцию `_schema` (название коллекции можно менять через опциональный параметр `mongodb.schema-collection`). Eсли в последующих документах какого-то типа нет, то при чтении в соответсвующей документу строке такое поле ставят равным NULL, новые поля просто пропускаются.
 
-Насколько я понимаю, схема читается из базы данных в каждый релевантный запрос (`show columns` в CLI, `SELECT *` и тд) для того, чтобы ее можно было править вручную в случае некорректного выведения типов и переиспользовать между запросами. Схема записывается один раз в случае, если ее не существует, поэтому ее можно указать вручную и она не будет обновлена. Trino поддерживает операции записи во внешний источник: `INSERT`, `CREATE TABLE` и `ALTER SCHEMA`. Операция изменения схемы в контексте MongoDB на практике может означать только то, что ее нужно каким-то персистентным образом зафиксировать для того чтобы ей смогли воспользоваться извне, например, при повторном подключении из Trino (самой MongoDB она ни к чему без включения [валидации](https://www.mongodb.com/docs/manual/core/schema-validation/), что здесь не используется).
+Насколько я понимаю, схема читается из базы данных в каждый релевантный запрос (`show columns` в CLI, `SELECT *` и тд) для того, чтобы ее можно было править вручную в случае некорректного выведения типов и переиспользовать между запросами. Схема записывается один раз в случае, если ее не существует, поэтому ее можно указать вручную и она не будет обновлена.
+
+Trino поддерживает операции записи во внешний источник: `INSERT`, `CREATE TABLE` и `ALTER SCHEMA`. Операция изменения схемы в контексте MongoDB на практике может означать только то, что ее нужно каким-то персистентным образом зафиксировать для того чтобы ей смогли воспользоваться извне, например, при повторном подключении из Trino (самой MongoDB она ни к чему без включения [валидации](https://www.mongodb.com/docs/manual/core/schema-validation/), что здесь не используется).
 
 - Реализация в коде Trino
 	- [getTableMetadata](https://github.com/trinodb/trino/blob/ae96ba108799ed3a16340f26da4775bf50bcc641/plugin/trino-mongodb/src/main/java/io/trino/plugin/mongodb/MongoSession.java#L782)
@@ -99,7 +101,7 @@
 	- [DROP SCHEMA](https://trino.io/docs/current/sql/drop-schema.html)
 	- [COMMENT](https://trino.io/docs/current/sql/comment.html)
 
-- Вычленение даты создания документа, которая зашифрована в поле `_id` типа ObjectId - [документация](https://trino.io/docs/current/connector/mongodb.html#objectid) + [код](https://github.com/trinodb/trino/blob/d28b52f21632ad36bb08e36a753b522383013727/plugin/trino-mongodb/src/main/java/io/trino/plugin/mongodb/ObjectIdFunctions.java#L38) - и вспомогательные функции для него:
+- Вычленение даты создания документа, которая зашифрована в поле `_id` типа ObjectId ([документация](https://trino.io/docs/current/connector/mongodb.html#objectid) + [код](https://github.com/trinodb/trino/blob/d28b52f21632ad36bb08e36a753b522383013727/plugin/trino-mongodb/src/main/java/io/trino/plugin/mongodb/ObjectIdFunctions.java#L38)) и вспомогательные функции для него:
     - objectid_timestamp(ObjectId) - вычисляет timestamp с таймзоной
     - timestamp_objectid(timestamp) - строит ObjectId по timestamp с таймзоной
 
@@ -158,17 +160,17 @@ mongosh > db.collection.find()
 trino > show columns from mongo.test.types;
 
 
-| Column  |              Type              | Extra | Comment
-|---|---|---|---|
-| int32   | bigint                         |       |
-| int64   | double                         |       |
-| str     | varchar                        |       |
-| array   | array(bigint)                  |       |
-| double  | double                         |       |
-| date    | timestamp(3)                   |       |
-| boolean | boolean                        |       |
-| decimal | decimal(8,4)                   |       |
-| object  | row(int32 bigint, str varchar) |       |
+| Column  |              Type              |
+|---|---|
+| int32   | bigint                         |
+| int64   | double                         |
+| str     | varchar                        |
+| array   | array(bigint)                  |
+| double  | double                         |
+| date    | timestamp(3)                   |
+| boolean | boolean                        |
+| decimal | decimal(8,4)                   |
+| object  | row(int32 bigint, str varchar) |
 
 
 Нетрудно заметить, что здесь только типы из первого документа =)
@@ -182,7 +184,7 @@ trino > select * from mongo.test.types;
 |    42 | 2.14748365E9 | outer   | [1, 2, 3] |   1.23 | 2020-05-18 14:10:30.000 | true    | 9823.1297 | {int32=13, str=inner}
 |    67 |         NULL | outer_2 | NULL      |    1.0 | 2024-05-18 14:10:30.000 | false   |  103.1200 | {int32=14, str=inner_2}
 |  NULL |         NULL | NULL    | NULL      |   NULL | NULL                    | NULL    |      NULL | NULL
-|
+
 
 ##### Работа с вложенными типами
 
@@ -216,9 +218,9 @@ trino > select * from mongo.test.types;
 
 trino> show columns from mongo.test.types;
 
-| Column |             Type             | Extra | Comment
-|---|---|---|---|
-| nested | row(inner row(field bigint)) |       |
+| Column |             Type             |
+|---|---|
+| nested | row(inner row(field bigint)) |
 
 trino> select * from mongo.test.types;
 
@@ -282,16 +284,16 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 ## Реализация коннектора в YDB
 
 Минимум: 
+- Извлечение схемы + type inference с помощью маленького скана коллекции
 - `SELECT * FROM ... ` без предикатов в коллекции с гомогенными документами
-
 - Column projection с фильтрацией колонок на уровне коннектора
 - Поддержка простых типов: Int32, Long (64-bit integer), Double, String, Object, Array, BSON Date (на стороне YDB они все будут обернуты в Optional)
-- Чтение схемы из специальной коллекции в бд MongoDB, которую создал пользователь, или дополнительного конфигурационного файла
-- Извлечение схемы + type inference с помощью маленького скана коллекции с возможностью редактирования
 - Пушдаун фильтров: операторов сравнения, логических операторов, `LIMIT`, `OFFSET`, column projection на уровне MongoDB
 
 Продвинутая реализация
 - Пушдаун сложных предикатов, матчинг паттернов с `LIKE`, аггрегатных функций, `ORDER BY`
+- Возможность редактирования полученной в коннекторе схемы
+- Чтение схемы из специальной коллекции в бд MongoDB, которую создал пользователь, или дополнительного конфигурационного файла
 - Поддержка чтения схемы из систем вроде Apache Hive Metastore
 
 
