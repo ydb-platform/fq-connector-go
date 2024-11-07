@@ -284,10 +284,8 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 Минимум: 
 - `SELECT * FROM ... ` без предикатов в коллекции с гомогенными документами
 
-#TODO пример документа + запроса к нему из YDB
-
 - Column projection с фильтрацией колонок на уровне коннектора
-- Поддержка простых типов: Int32, Long (64-bit integer), Double, String, Object, Array, BSON Date
+- Поддержка простых типов: Int32, Long (64-bit integer), Double, String, Object, Array, BSON Date (на стороне YDB они все будут обернуты в Optional)
 - Чтение схемы из специальной коллекции в бд MongoDB, которую создал пользователь, или дополнительного конфигурационного файла
 - Извлечение схемы + type inference с помощью маленького скана коллекции с возможностью редактирования
 - Пушдаун фильтров: операторов сравнения, логических операторов, `LIMIT`, `OFFSET`, column projection на уровне MongoDB
@@ -296,3 +294,19 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 - Пушдаун сложных предикатов, матчинг паттернов с `LIKE`, аггрегатных функций, `ORDER BY`
 - Поддержка чтения схемы из систем вроде Apache Hive Metastore
 
+
+#### MongoDB to YDB + Apache Arrow type mapping
+
+|MongoDB|YDB/YQL|Arrow|
+|---|---|---|
+|Boolean|BOOL|UINT8|
+|Int32|INT32|INT32|
+|Int64|INT64|INT64|
+|Double|DOUBLE|DOUBLE|
+|Binary|STRING|BINARY|
+|String|UTF8|STRING|
+|Object|JSON|?STRING?|
+|Array|?JSON/List\<T\>?|?|
+|Decimal128 |?Decimal?|DECIMAL128|
+|ObjectId (12 bytes)|?Int16/STRING?|?INT16/BINARY?|
+|Date (int64, milliseconds since epoch)|?Interval?|DATE64|
