@@ -1,4 +1,4 @@
-PROJECT_PATH = $(shell pwd)
+projectPath = $(shell pwd)
 
 build:
 	go build -o fq-connector-go ./app
