@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"testing"
@@ -21,9 +22,13 @@ import (
 )
 
 // TODO: find the way of passing this object into suites as a parameter instead of global var
-var state *suite.State
+var (
+	state *suite.State
+)
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+
 	var err error
 
 	state, err = suite.NewState()
@@ -35,14 +40,18 @@ func TestMain(m *testing.M) {
 }
 
 func TestClickHouse(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, clickhouse.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "ClickHouse")))
 }
 
 func TestPostgreSQL(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, postgresql.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "PostgreSQL")))
 }
 
 func TestYDB(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
+
 	modes := []config.TYdbConfig_Mode{
 		config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES,
 		config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE,
@@ -60,17 +69,21 @@ func TestYDB(t *testing.T) {
 }
 
 func TestGreenplum(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, greenplum.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "Greenplum")))
 }
 
 func TestMySQL(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, mysql.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MySQL")))
 }
 
 func TestOracle(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, oracle.NewSuite(suite.NewBase[int64, *array.Int64Builder](t, state, "Oracle")))
 }
 
 func TestMsSqlServer(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, ms_sql_server.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MS SQL Server")))
 }

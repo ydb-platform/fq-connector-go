@@ -170,6 +170,8 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 		builder = array.NewUint32Builder(arrowAllocator)
 	case Ydb.Type_TIMESTAMP:
 		builder = array.NewUint64Builder(arrowAllocator)
+	case Ydb.Type_JSON_DOCUMENT:
+		builder = array.NewBinaryBuilder(arrowAllocator, arrow.BinaryTypes.Binary)
 	default:
 		return nil, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
 	}
@@ -223,6 +225,8 @@ func ydbTypeToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (a
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Uint32}
 	case Ydb.Type_TIMESTAMP:
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Uint64}
+	case Ydb.Type_JSON_DOCUMENT:
+		field = arrow.Field{Name: column.Name, Type: arrow.BinaryTypes.Binary}
 	default:
 		return arrow.Field{}, fmt.Errorf("register type '%v': %w", typeID, ErrDataTypeNotSupported)
 	}
