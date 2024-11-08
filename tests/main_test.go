@@ -1,8 +1,10 @@
 package tests
 
 import (
+	"flag"
 	"fmt"
 	"log"
+	"strings"
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server"
+	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/greenplum"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ms_sql_server"
@@ -21,9 +24,14 @@ import (
 )
 
 // TODO: find the way of passing this object into suites as a parameter instead of global var
-var state *suite.State
+var (
+	state     *suite.State
+	flagSuite string // specifies the test suite one wants to run
+)
 
 func TestMain(m *testing.M) {
+	flag.Parse()
+
 	var err error
 
 	state, err = suite.NewState()
@@ -31,18 +39,46 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
+	flag.StringVar(&flagSuite, "suite", "", "specifies the test suite one wants to run")
+
 	m.Run()
 }
 
+func checkIfEnabled(t *testing.T) {
+	if flagSuite == "" {
+		return
+	}
+
+	functionNames := common.GetCallStackFunctionNames()
+	if len(functionNames) == 0 {
+		t.FailNow()
+		return
+	}
+
+	for _, functionName := range functionNames {
+		if strings.Contains(functionName, "Test") {
+			suiteName := strings.TrimLeft(functionName, "Test")
+			if suiteName == flagSuite {
+				return
+			}
+
+			log.Printf("Test is skipped as it doesn't match flag value '%s'\n", flagSuite)
+		}
+	}
+}
+
 func TestClickHouse(t *testing.T) {
+	checkIfEnabled(t)
 	testify_suite.Run(t, clickhouse.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "ClickHouse")))
 }
 
 func TestPostgreSQL(t *testing.T) {
+	checkIfEnabled(t)
 	testify_suite.Run(t, postgresql.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "PostgreSQL")))
 }
 
 func TestYDB(t *testing.T) {
+	checkIfEnabled(t)
 	modes := []config.TYdbConfig_Mode{
 		config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES,
 		config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE,
@@ -60,17 +96,21 @@ func TestYDB(t *testing.T) {
 }
 
 func TestGreenplum(t *testing.T) {
+	checkIfEnabled(t)
 	testify_suite.Run(t, greenplum.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "Greenplum")))
 }
 
 func TestMySQL(t *testing.T) {
+	checkIfEnabled(t)
 	testify_suite.Run(t, mysql.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MySQL")))
 }
 
 func TestOracle(t *testing.T) {
+	checkIfEnabled(t)
 	testify_suite.Run(t, oracle.NewSuite(suite.NewBase[int64, *array.Int64Builder](t, state, "Oracle")))
 }
 
 func TestMsSqlServer(t *testing.T) {
+	checkIfEnabled(t)
 	testify_suite.Run(t, ms_sql_server.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MS SQL Server")))
 }
