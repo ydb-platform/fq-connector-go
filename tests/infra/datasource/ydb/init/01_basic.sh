@@ -1,7 +1,8 @@
 #!/bin/bash
 
-/ydb -p tests-ydb-client yql -s '
+set -x 
 
+/ydb -p tests-ydb-client yql -s '
     CREATE TABLE simple (id Int32 NOT NULL, col1 String NOT NULL, col2 Int32 NOT NULL, PRIMARY KEY (id));
     COMMIT;
     INSERT INTO simple (id, col1, col2) VALUES
@@ -11,7 +12,6 @@
       (4, "ydb_d", 40),
       (5, "ydb_e", 50);
     COMMIT;
-
 
     CREATE TABLE primitives (
         id Int32 NOT NULL,
@@ -138,4 +138,17 @@
       (5, "e");
     COMMIT;
   '
-  
+
+# YQ-3494
+/ydb -p tests-ydb-client yql -s "
+    CREATE TABLE json_document (
+        id INT32 NOT NULL,
+        data JsonDocument NOT NULL,
+        PRIMARY KEY (id)
+    );
+    COMMIT;
+    INSERT INTO json_document (id, data) VALUES
+      (1, JsonDocument('{\"key1\": \"value1\"}')),
+      (2, JsonDocument('{\"key2\": \"value2\"}'));
+    COMMIT;
+" 

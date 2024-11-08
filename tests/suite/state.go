@@ -46,6 +46,7 @@ func (s *State) SkipSuiteIfNotEnabled(t *testing.T) {
 
 			log.Printf("Suite '%s' skipped as it doesn't match flag value '%s'\n", actualSuiteName, s.suiteName)
 			t.SkipNow()
+
 			return
 		}
 	}

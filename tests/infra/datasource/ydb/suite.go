@@ -304,10 +304,20 @@ func (s *Suite) TestPushdownStringsStringOptional() {
 	)
 }
 
+// YQ-3949
+func (s *Suite) TestJSONDocument() {
+	s.ValidateTable(s.dataSource, tables["json_document"])
+}
+
 func (s *Suite) TestLargeTable() {
 	// For tables larger than 1000 rows, scan queries must be used,
 	// otherwise output will be truncated.
 	// https://ydb.tech/docs/en/concepts/scan_query
+	// This test makes sense only for Table Service.
+	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
+		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
+	}
+
 	s.ValidateTable(
 		s.dataSource,
 		tables["large"],

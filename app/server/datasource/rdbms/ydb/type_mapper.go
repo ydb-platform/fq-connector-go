@@ -25,23 +25,24 @@ type typeMapper struct {
 var isOptional = regexp.MustCompile(`Optional<(\w+)>$`)
 
 const (
-	typeBool      = "Bool"
-	typeInt8      = "Int8"
-	typeUint8     = "Uint8"
-	typeInt16     = "Int16"
-	typeUint16    = "Uint16"
-	typeInt32     = "Int32"
-	typeUint32    = "Uint32"
-	typeInt64     = "Int64"
-	typeUint64    = "Uint64"
-	typeFloat     = "Float"
-	typeDouble    = "Double"
-	typeString    = "String"
-	typeUtf8      = "Utf8"
-	typeJSON      = "Json"
-	typeDate      = "Date"
-	typeDatetime  = "Datetime"
-	typeTimestamp = "Timestamp"
+	typeBool         = "Bool"
+	typeInt8         = "Int8"
+	typeUint8        = "Uint8"
+	typeInt16        = "Int16"
+	typeUint16       = "Uint16"
+	typeInt32        = "Int32"
+	typeUint32       = "Uint32"
+	typeInt64        = "Int64"
+	typeUint64       = "Uint64"
+	typeFloat        = "Float"
+	typeDouble       = "Double"
+	typeString       = "String"
+	typeUtf8         = "Utf8"
+	typeJSON         = "Json"
+	typeDate         = "Date"
+	typeDatetime     = "Datetime"
+	typeTimestamp    = "Timestamp"
+	typeJSONDocument = "JsonDocument"
 )
 
 func primitiveYqlTypeName(typeId Ydb.Type_PrimitiveTypeId) (string, error) {
@@ -141,6 +142,8 @@ func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 		return common.MakePrimitiveType(Ydb.Type_DATETIME), nil
 	case typeTimestamp:
 		return common.MakePrimitiveType(Ydb.Type_TIMESTAMP), nil
+	case typeJSONDocument:
+		return common.MakePrimitiveType(Ydb.Type_JSON_DOCUMENT), nil
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -255,7 +258,7 @@ func makeAcceptorAppender(
 		return makeAcceptorAppenderCheckOptional[float32, float32, *array.Float32Builder](optional, cc.Float32())
 	case typeDouble:
 		return makeAcceptorAppenderCheckOptional[float64, float64, *array.Float64Builder](optional, cc.Float64())
-	case typeString:
+	case typeString, typeJSONDocument:
 		return makeAcceptorAppenderCheckOptional[[]byte, []byte, *array.BinaryBuilder](optional, cc.Bytes())
 	case typeUtf8, typeJSON:
 		return makeAcceptorAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())

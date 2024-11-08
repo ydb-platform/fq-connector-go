@@ -480,6 +480,28 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	// YQ-3949
+	"json_document": {
+		Name:                  "json_document",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":   common.MakePrimitiveType(Ydb.Type_INT32),
+				"data": common.MakePrimitiveType(Ydb.Type_JSON_DOCUMENT),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id": []int32{1, 2},
+					"data": [][]byte{
+						[]byte("{\"key1\":\"value1\"}"),
+						[]byte("{\"key2\":\"value2\"}"),
+					},
+				},
+			},
+		},
+	},
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

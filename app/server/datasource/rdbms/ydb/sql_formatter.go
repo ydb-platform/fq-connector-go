@@ -17,7 +17,7 @@ type sqlFormatter struct {
 	mode config.TYdbConfig_Mode
 }
 
-func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -52,11 +52,10 @@ func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	}
 }
 
-// TODO: pushdown support
 func (f *sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	switch v := t.Type.(type) {
 	case *Ydb.Type_TypeId:
-		return f.supportsType(v.TypeId)
+		return f.supportsTypeForPushdown(v.TypeId)
 	case *Ydb.Type_OptionalType:
 		return f.supportsConstantValueExpression(v.OptionalType.Item)
 	case *Ydb.Type_NullType:
