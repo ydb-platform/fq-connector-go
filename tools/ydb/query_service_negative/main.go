@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"path"
 	"time"
 
@@ -26,35 +28,54 @@ const (
 )
 
 func main() {
-	run(dbEndpoint, "admin", "password")
+	// Define flags for login and password
+	var login string
+	var password string
+
+	flag.StringVar(&login, "login", "", "Username for login")
+	flag.StringVar(&password, "password", "", "Password for login")
+
+	// Parse the command-line flags
+	flag.Parse()
+
+	// Check if mandatory flags are provided
+	if login == "" || password == "" {
+		fmt.Println("Usage: app -login=<login> -password=<password>")
+		os.Exit(1)
+	}
+
+	run(dbEndpoint, login, password)
 }
 
 func run(endpoint, login, password string) {
-	ydbDriver, err := makeDriver(endpoint, login, password)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	ydbDriver, err := makeDriver(ctx, endpoint, login, password)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer func() {
-		if closeErr := ydbDriver.Close(context.Background()); closeErr != nil {
+		if closeErr := ydbDriver.Close(ctx); closeErr != nil {
 			log.Fatal(closeErr)
 		}
 	}()
 
-	desc, err := getTableDescription(ydbDriver)
+	desc, err := getTableDescription(ctx, ydbDriver)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Printf("Table description: %+v", desc)
 
-	err = getData(ydbDriver)
+	err = getData(ctx, ydbDriver)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func makeDriver(endpoint, login, password string) (*ydb.Driver, error) {
+func makeDriver(ctx context.Context, endpoint, login, password string) (*ydb.Driver, error) {
 	ydbOptions := []ydb.Option{
 		ydb.WithStaticCredentials(login, password),
 		ydb.WithDialTimeout(5 * time.Second),
@@ -64,7 +85,7 @@ func makeDriver(endpoint, login, password string) (*ydb.Driver, error) {
 
 	dsn := sugar.DSN(endpoint, dbName, false)
 
-	ydbDriver, err := ydb.Open(context.Background(), dsn, ydbOptions...)
+	ydbDriver, err := ydb.Open(ctx, dsn, ydbOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
@@ -72,14 +93,14 @@ func makeDriver(endpoint, login, password string) (*ydb.Driver, error) {
 	return ydbDriver, nil
 }
 
-func getTableDescription(ydbDriver *ydb.Driver) (*options.Description, error) {
+func getTableDescription(ctx context.Context, ydbDriver *ydb.Driver) (*options.Description, error) {
 	desc := options.Description{}
 	filePath := path.Join(dbName, tableName)
 
 	log.Println("Getting table description for table", filePath)
 
 	err := ydbDriver.Table().Do(
-		context.Background(),
+		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
 			desc, errInner = s.DescribeTable(ctx, filePath)
@@ -99,8 +120,8 @@ func getTableDescription(ydbDriver *ydb.Driver) (*options.Description, error) {
 	return &desc, nil
 }
 
-func getData(ydbDriver *ydb.Driver) error {
-	finalErr := ydbDriver.Query().Do(context.Background(), func(ctx context.Context, s query.Session) error {
+func getData(ctx context.Context, ydbDriver *ydb.Driver) error {
+	finalErr := ydbDriver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
 		queryText := `
 		DECLARE $p0 AS Optional<Int32>;
 		SELECT * FROM %s WHERE col2 = $p0;
@@ -120,8 +141,7 @@ func getData(ydbDriver *ydb.Driver) error {
 			return fmt.Errorf("next result set: %w", err)
 		}
 
-		row, err := rs.NextRow(ctx)
-		fmt.Println(row, err)
+		_, err = rs.NextRow(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("EOF")
