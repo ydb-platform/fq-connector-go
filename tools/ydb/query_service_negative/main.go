@@ -29,8 +29,10 @@ const (
 
 func main() {
 	// Define flags for login and password
-	var login string
-	var password string
+	var (
+		login    string
+		password string
+	)
 
 	flag.StringVar(&login, "login", "", "Username for login")
 	flag.StringVar(&password, "password", "", "Password for login")

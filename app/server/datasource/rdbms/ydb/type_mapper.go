@@ -143,7 +143,8 @@ func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 	case typeTimestamp:
 		return common.MakePrimitiveType(Ydb.Type_TIMESTAMP), nil
 	case typeJSONDocument:
-		return common.MakePrimitiveType(Ydb.Type_JSON_DOCUMENT), nil
+		// This inconsistency is due to KIKIMR-22201
+		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}
@@ -258,9 +259,9 @@ func makeAcceptorAppender(
 		return makeAcceptorAppenderCheckOptional[float32, float32, *array.Float32Builder](optional, cc.Float32())
 	case typeDouble:
 		return makeAcceptorAppenderCheckOptional[float64, float64, *array.Float64Builder](optional, cc.Float64())
-	case typeString, typeJSONDocument:
+	case typeString:
 		return makeAcceptorAppenderCheckOptional[[]byte, []byte, *array.BinaryBuilder](optional, cc.Bytes())
-	case typeUtf8, typeJSON:
+	case typeUtf8, typeJSON, typeJSONDocument:
 		return makeAcceptorAppenderCheckOptional[string, string, *array.StringBuilder](optional, cc.String())
 	case typeDate:
 		switch ydbTypeID {

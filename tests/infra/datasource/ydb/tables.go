@@ -487,16 +487,16 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"id":   common.MakePrimitiveType(Ydb.Type_INT32),
-				"data": common.MakePrimitiveType(Ydb.Type_JSON_DOCUMENT),
+				"data": common.MakePrimitiveType(Ydb.Type_JSON),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
 				Columns: map[string]any{
 					"id": []int32{1, 2},
-					"data": [][]byte{
-						[]byte("{\"key1\":\"value1\"}"),
-						[]byte("{\"key2\":\"value2\"}"),
+					"data": []string{
+						"{\"key1\":\"value1\"}",
+						"{\"key2\":\"value2\"}",
 					},
 				},
 			},
