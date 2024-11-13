@@ -26,7 +26,7 @@ func makeRandomString(n int, start int) string {
 }
 
 func makeConnection(ctx context.Context, endpoint string, database string, useTLS bool, token string) (*sql.DB, error) {
-	dsn := sugar.DSN(endpoint, database, useTLS)
+	dsn := sugar.DSN(endpoint, database, sugar.WithSecure(useTLS))
 
 	log.Println("connecting to database", dsn)
 
