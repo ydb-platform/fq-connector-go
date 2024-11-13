@@ -85,7 +85,7 @@ func makeDriver(ctx context.Context, endpoint, login, password string) (*ydb.Dri
 		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
-	dsn := sugar.DSN(endpoint, dbName, false)
+	dsn := sugar.DSN(endpoint, dbName)
 
 	ydbDriver, err := ydb.Open(ctx, dsn, ydbOptions...)
 	if err != nil {

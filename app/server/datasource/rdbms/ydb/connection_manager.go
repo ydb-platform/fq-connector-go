@@ -38,7 +38,7 @@ func (c *connectionManager) Make(
 ) (rdbms_utils.Connection, error) {
 	// TODO: add credentials (iam and basic) support
 	endpoint := common.EndpointToString(dsi.Endpoint)
-	dsn := sugar.DSN(endpoint, dsi.Database, dsi.UseTls)
+	dsn := sugar.DSN(endpoint, dsi.Database, sugar.WithSecure(dsi.UseTls))
 
 	var cred ydb_sdk.Option
 
