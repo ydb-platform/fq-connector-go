@@ -69,7 +69,7 @@ func run(endpoint, login, password string) {
 		log.Fatal(err)
 	}
 
-	log.Printf("Table description: %+v", desc)
+	log.Printf("Table description: %+v\n", desc)
 
 	err = getData(ctx, ydbDriver)
 	if err != nil {

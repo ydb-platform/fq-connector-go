@@ -364,20 +364,12 @@ func (s *Suite) TestMissingDataSource() {
 }
 
 func (s *Suite) TestInvalidLogin() {
-	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
-		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
-	}
-
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
 	}
 }
 
 func (s *Suite) TestInvalidPassword() {
-	if s.connectorMode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE {
-		s.T().Skip("Skipping test in QUERY_SERVICE_NATIVE mode")
-	}
-
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
