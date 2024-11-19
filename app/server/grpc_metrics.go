@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"time"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -73,7 +75,7 @@ func maybeRegisterStatusCode(statusCount metrics.CounterVec, opName string, stre
 	}).Inc()
 }
 
-func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
+func UnaryServerMetrics(logger *zap.Logger, registry metrics.Registry) grpc.UnaryServerInterceptor {
 	requestCount := registry.CounterVec("requests_total", []string{"protocol", "endpoint"})
 	requestDuration := registry.DurationHistogramVec(
 		"request_duration_seconds",
@@ -109,7 +111,10 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 					"protocol": "grpc",
 					"endpoint": opName,
 				}).Inc()
-				panic(p)
+
+				stacktrace := make([]byte, 1024)
+				runtime.Stack(stacktrace, false)
+				logger.Error("panic occured", zap.Any("error", p), zap.String("stacktrace", fmt.Sprint(string(stacktrace))))
 			}
 		}
 
@@ -146,7 +151,7 @@ func UnaryServerMetrics(registry metrics.Registry) grpc.UnaryServerInterceptor {
 	}
 }
 
-func StreamServerMetrics(registry metrics.Registry) grpc.StreamServerInterceptor {
+func StreamServerMetrics(logger *zap.Logger, registry metrics.Registry) grpc.StreamServerInterceptor {
 	streamCount := registry.CounterVec("streams_total", []string{"protocol", "endpoint"})
 	streamDuration := registry.DurationHistogramVec(
 		"stream_duration_seconds",
@@ -187,7 +192,10 @@ func StreamServerMetrics(registry metrics.Registry) grpc.StreamServerInterceptor
 					"protocol": "grpc",
 					"endpoint": opName,
 				}).Inc()
-				panic(p)
+
+				stacktrace := make([]byte, 1024)
+				runtime.Stack(stacktrace, false)
+				logger.Error("panic occured", zap.Any("error", p), zap.String("stacktrace", fmt.Sprint(string(stacktrace))))
 			}
 		}
 

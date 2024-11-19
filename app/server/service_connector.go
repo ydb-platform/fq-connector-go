@@ -231,9 +231,9 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 		tlsConfig *config.TServerTLSConfig
 	)
 
-	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(registry), UnaryServerMetadata(logger)}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(logger, registry), UnaryServerMetadata(logger)}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(registry), StreamServerMetadata(logger)}
+	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(logger, registry), StreamServerMetadata(logger)}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
