@@ -331,7 +331,7 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 	case api_common.EDataSourceKind_LOGGING:
 		apiError = newAPIErrorFromYdbError(err)
 	default:
-		panic(api_common.EDataSourceKind_name[int32(kind)])
+		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EDataSourceKind_name[int32(kind)]))
 	}
 
 	if apiError != nil {
