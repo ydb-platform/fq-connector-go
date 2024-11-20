@@ -46,9 +46,11 @@ func (s *serviceConnector) DescribeTable(
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
-		return &api_service_protos.TDescribeTableResponse{
+		response := &api_service_protos.TDescribeTableResponse{
 			Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind),
-		}, nil
+		}
+
+		return response, nil
 	}
 
 	out, err := s.dataSourceCollection.DescribeTable(ctx, logger, request)
