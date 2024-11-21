@@ -1,0 +1,15 @@
+services:
+  ydb:
+    image: ghcr.io/ydb-platform/local-ydb:24.2.8
+    container_name: ${USER}-fq-connector-go-tests-ydb
+    hostname: localhost
+    ports:
+      - '2136:2136'
+      - '8765:8765'
+    environment:
+      YDB_DEFAULT_LOG_LEVEL: ERROR
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./init/init_ydb:/init_ydb
+      - ./init/01_basic.sh:/01_basic.sh
