@@ -328,8 +328,10 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 		apiError = newAPIErrorFromOracleError(err)
 	case api_common.EDataSourceKind_MS_SQL_SERVER:
 		apiError = newAPIErrorFromMsSQLServer(err)
+	case api_common.EDataSourceKind_LOGGING:
+		apiError = newAPIErrorFromYdbError(err)
 	default:
-		panic("DataSource kind not specified for API error")
+		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EDataSourceKind_name[int32(kind)]))
 	}
 
 	if apiError != nil {

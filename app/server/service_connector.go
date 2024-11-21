@@ -46,9 +46,11 @@ func (s *serviceConnector) DescribeTable(
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
-		return &api_service_protos.TDescribeTableResponse{
+		response := &api_service_protos.TDescribeTableResponse{
 			Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind),
-		}, nil
+		}
+
+		return response, nil
 	}
 
 	out, err := s.dataSourceCollection.DescribeTable(ctx, logger, request)
@@ -231,9 +233,9 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 		tlsConfig *config.TServerTLSConfig
 	)
 
-	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(registry), UnaryServerMetadata(logger)}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(logger, registry), UnaryServerMetadata(logger)}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(registry), StreamServerMetadata(logger)}
+	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(logger, registry), StreamServerMetadata(logger)}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
