@@ -40,7 +40,14 @@ func (dsc *DataSourceCollection) DescribeTable(
 		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM, api_common.EDataSourceKind_ORACLE:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("make data source: %w", err)
+		}
+
+		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EDataSourceKind_LOGGING:
+		ds, err := dsc.rdbms.Make(logger, api_common.EDataSourceKind_YDB)
+		if err != nil {
+			return nil, fmt.Errorf("make data source: %w", err)
 		}
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -65,7 +72,14 @@ func (dsc *DataSourceCollection) DoReadSplit(
 		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM, api_common.EDataSourceKind_ORACLE:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
-			return err
+			return fmt.Errorf("make data source: %w", err)
+		}
+
+		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+	case api_common.EDataSourceKind_LOGGING:
+		ds, err := dsc.rdbms.Make(logger, api_common.EDataSourceKind_YDB)
+		if err != nil {
+			return fmt.Errorf("make data source: %w", err)
 		}
 
 		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)

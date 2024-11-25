@@ -87,9 +87,9 @@ func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 	case api_common.EDataSourceKind_GREENPLUM:
 		return nil
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB,
-		api_common.EDataSourceKind_MYSQL:
+		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_LOGGING:
 	default:
-		return fmt.Errorf("unsupported data source: %w", common.ErrInvalidRequest)
+		return fmt.Errorf("unsupported data source %s: %w", dsi.GetKind().String(), common.ErrInvalidRequest)
 	}
 
 	return nil

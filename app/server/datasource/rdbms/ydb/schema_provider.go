@@ -31,7 +31,7 @@ func (f *schemaProvider) GetSchema(
 	desc := options.Description{}
 	prefix := path.Join(db.Name(), request.Table)
 
-	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
+	logger.Debug("Obtaining table metadata", zap.String("prefix", prefix))
 
 	err := db.Table().Do(
 		ctx,
