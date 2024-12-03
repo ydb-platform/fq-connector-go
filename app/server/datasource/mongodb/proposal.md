@@ -284,15 +284,16 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 ## Реализация коннектора в YDB
 
 Минимум: 
-- Извлечение схемы + type inference с помощью маленького скана коллекции
+- Извлечение схемы + type inference с помощью маленького скана коллекции. При несоответствии типов некоторого поля в различных документов одной коллекции, используются сериализованные значения типа YQL Utf8.
 - `SELECT * FROM ... ` без предикатов в коллекции с гомогенными документами
 - Column projection с фильтрацией колонок на уровне коннектора
-- Поддержка простых типов: Int32, Long (64-bit integer), Double, String, Object, Array, BSON Date (на стороне YDB они все будут обернуты в Optional)
+- Поддержка простых типов: Int32, Int64, Double, String, Object, Array, Binary, BSON Date (на стороне YDB они все будут обернуты в Optional)
 - Пушдаун фильтров: операторов сравнения, логических операторов, `LIMIT`, `OFFSET`, column projection на уровне MongoDB
 
 Продвинутая реализация
 - Пушдаун сложных предикатов, матчинг паттернов с `LIKE`, аггрегатных функций, `ORDER BY`
 - Возможность редактирования полученной в коннекторе схемы
+- Поддержка сложных типов-контейнеров: структур (bson.D / YQL Struct) и словарей (bson.M / YQL Dict)
 - Чтение схемы из специальной коллекции в бд MongoDB, которую создал пользователь, или дополнительного конфигурационного файла
 - Поддержка чтения схемы из систем вроде Apache Hive Metastore
 
@@ -302,13 +303,13 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 |MongoDB|YDB/YQL|Arrow|
 |---|---|---|
 |Boolean|BOOL|UINT8|
-|Int32|INT32|INT32|
-|Int64|INT64|INT64|
-|Double|DOUBLE|DOUBLE|
-|Binary|STRING|BINARY|
-|String|UTF8|STRING|
-|Object|JSON|?STRING?|
-|Array|?JSON/List\<T\>?|?|
-|Decimal128 |?Decimal?|DECIMAL128|
-|ObjectId (12 bytes)|?Int16/STRING?|?INT16/BINARY?|
-|Date (int64, milliseconds since epoch)|?Interval?|DATE64|
+|Int32|Int32|INT32|
+|Int64|Int64|INT64|
+|Double|Double|DOUBLE|
+|Binary|String|BINARY|
+|String|Utf8|STRING|
+|Object|Json / Struct|STRUCT|
+|Array|List\<T\>|LIST|
+|Decimal128 |Decimal|DECIMAL128|
+|ObjectId (12 bytes)|String|BINARY|
+|Date (int64, milliseconds since epoch)|Interval|DATE64|
