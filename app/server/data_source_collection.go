@@ -37,15 +37,9 @@ func (dsc *DataSourceCollection) DescribeTable(
 	switch kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
 		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM, api_common.EDataSourceKind_ORACLE:
+		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM,
+		api_common.EDataSourceKind_ORACLE, api_common.EDataSourceKind_LOGGING:
 		ds, err := dsc.rdbms.Make(logger, kind)
-		if err != nil {
-			return nil, fmt.Errorf("make data source: %w", err)
-		}
-
-		return ds.DescribeTable(ctx, logger, request)
-	case api_common.EDataSourceKind_LOGGING:
-		ds, err := dsc.rdbms.Make(logger, api_common.EDataSourceKind_YDB)
 		if err != nil {
 			return nil, fmt.Errorf("make data source: %w", err)
 		}
@@ -69,15 +63,9 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
 		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM, api_common.EDataSourceKind_ORACLE:
+		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM,
+		api_common.EDataSourceKind_ORACLE, api_common.EDataSourceKind_LOGGING:
 		ds, err := dsc.rdbms.Make(logger, kind)
-		if err != nil {
-			return fmt.Errorf("make data source: %w", err)
-		}
-
-		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
-	case api_common.EDataSourceKind_LOGGING:
-		ds, err := dsc.rdbms.Make(logger, api_common.EDataSourceKind_YDB)
 		if err != nil {
 			return fmt.Errorf("make data source: %w", err)
 		}
@@ -157,11 +145,16 @@ func NewDataSourceCollection(
 	readLimiterFactory *paging.ReadLimiterFactory,
 	converterCollection conversion.Collection,
 	cfg *config.TServerConfig,
-) *DataSourceCollection {
+) (*DataSourceCollection, error) {
+	rdbmsFactory, err := rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection)
+	if err != nil {
+		return nil, fmt.Errorf("new rdbms data source factory: %w", err)
+	}
+
 	return &DataSourceCollection{
-		rdbms:              rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection),
+		rdbms:              rdbmsFactory,
 		memoryAllocator:    memoryAllocator,
 		readLimiterFactory: readLimiterFactory,
 		cfg:                cfg,
-	}
+	}, nil
 }

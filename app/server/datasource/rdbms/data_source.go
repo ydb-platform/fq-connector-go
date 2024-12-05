@@ -46,7 +46,14 @@ func (ds *dataSourceImpl) DescribeTable(
 		func() error {
 			var makeConnErr error
 
-			conn, makeConnErr = ds.connectionManager.Make(ctx, logger, request.DataSourceInstance)
+			params := &rdbms_utils.ConnectionParams{
+				Ctx:                ctx,
+				Logger:             logger,
+				DataSourceInstance: request.DataSourceInstance,
+				TableName:          request.Table,
+			}
+
+			conn, makeConnErr = ds.connectionManager.Make(params)
 			if makeConnErr != nil {
 				return fmt.Errorf("make connection: %w", makeConnErr)
 			}
@@ -89,7 +96,13 @@ func (ds *dataSourceImpl) doReadSplit(
 		func() error {
 			var makeConnErr error
 
-			conn, makeConnErr = ds.connectionManager.Make(ctx, logger, split.Select.DataSourceInstance)
+			params := &rdbms_utils.ConnectionParams{
+				Ctx:                ctx,
+				Logger:             logger,
+				DataSourceInstance: split.Select.DataSourceInstance,
+			}
+
+			conn, makeConnErr = ds.connectionManager.Make(params)
 			if makeConnErr != nil {
 				return fmt.Errorf("make connection: %w", makeConnErr)
 			}

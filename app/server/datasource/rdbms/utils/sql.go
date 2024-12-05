@@ -34,8 +34,15 @@ type Rows interface {
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
+type ConnectionParams struct {
+	Ctx                context.Context                 // mandatory
+	Logger             *zap.Logger                     // mandatory
+	DataSourceInstance *api_common.TDataSourceInstance // mandatory
+	TableName          string                          // optional
+}
+
 type ConnectionManager interface {
-	Make(ctx context.Context, logger *zap.Logger, dataSourceInstance *api_common.TDataSourceInstance) (Connection, error)
+	Make(params *ConnectionParams) (Connection, error)
 	Release(ctx context.Context, logger *zap.Logger, connection Connection)
 }
 

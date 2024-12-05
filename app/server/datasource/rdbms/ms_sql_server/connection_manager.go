@@ -22,10 +22,10 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	ctx context.Context,
-	logger *zap.Logger,
-	dsi *api_common.TDataSourceInstance,
+	params *rdbms_utils.ConnectionParams,
 ) (rdbms_utils.Connection, error) {
+	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
+
 	if dsi.Protocol != api_common.EProtocol_NATIVE {
 		return nil, fmt.Errorf("can not create MS SQL Server connection with protocol '%v'", dsi.Protocol)
 	}

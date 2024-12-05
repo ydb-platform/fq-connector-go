@@ -308,17 +308,23 @@ func newServiceConnector(
 	grpcServer := grpc.NewServer(options...)
 	reflection.Register(grpcServer)
 
+	dataSourceCollection, err := NewDataSourceCollection(
+		queryLoggerFactory,
+		memory.DefaultAllocator,
+		paging.NewReadLimiterFactory(cfg.ReadLimit),
+		conversion.NewCollection(cfg.Conversion),
+		cfg,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("new data source collection: %w", err)
+	}
+
 	s := &serviceConnector{
-		dataSourceCollection: NewDataSourceCollection(
-			queryLoggerFactory,
-			memory.DefaultAllocator,
-			paging.NewReadLimiterFactory(cfg.ReadLimit),
-			conversion.NewCollection(cfg.Conversion),
-			cfg),
-		logger:     logger,
-		grpcServer: grpcServer,
-		listener:   listener,
-		cfg:        cfg,
+		dataSourceCollection: dataSourceCollection,
+		logger:               logger,
+		grpcServer:           grpcServer,
+		listener:             listener,
+		cfg:                  cfg,
 	}
 
 	api_service.RegisterConnectorServer(grpcServer, s)

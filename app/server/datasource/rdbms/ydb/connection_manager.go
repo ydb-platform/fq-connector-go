@@ -12,7 +12,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -32,11 +31,9 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	ctx context.Context,
-	logger *zap.Logger,
-	dsi *api_common.TDataSourceInstance,
+	params *rdbms_utils.ConnectionParams,
 ) (rdbms_utils.Connection, error) {
-	// TODO: add credentials (iam and basic) support
+	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	endpoint := common.EndpointToString(dsi.Endpoint)
 	dsn := sugar.DSN(endpoint, dsi.Database, sugar.WithSecure(dsi.UseTls))
 

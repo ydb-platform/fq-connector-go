@@ -86,8 +86,14 @@ func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 
 	case api_common.EDataSourceKind_GREENPLUM:
 		return nil
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_LOGGING:
+	case api_common.EDataSourceKind_LOGGING:
+		if dsi.GetLoggingOptions().GetFolderId() == "" {
+			return fmt.Errorf("folder_id field is empty: %w", common.ErrInvalidRequest)
+		}
+	case api_common.EDataSourceKind_CLICKHOUSE,
+		api_common.EDataSourceKind_S3,
+		api_common.EDataSourceKind_YDB,
+		api_common.EDataSourceKind_MYSQL:
 	default:
 		return fmt.Errorf("unsupported data source %s: %w", dsi.GetKind().String(), common.ErrInvalidRequest)
 	}

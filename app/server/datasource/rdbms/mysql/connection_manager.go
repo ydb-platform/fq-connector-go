@@ -11,7 +11,6 @@ import (
 	pingcap_errors "github.com/pingcap/errors"
 	"go.uber.org/zap"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -26,10 +25,9 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	ctx context.Context,
-	logger *zap.Logger,
-	dsi *api_common.TDataSourceInstance,
+	params *rdbms_utils.ConnectionParams,
 ) (rdbms_utils.Connection, error) {
+	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	optionFuncs := make([]func(c *client.Conn), 0)
 
 	if dsi.GetCredentials().GetBasic() == nil {

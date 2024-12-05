@@ -231,12 +231,47 @@ message TYdbConfig {
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
+// TLoggingConfig containes settings specific for Logging external datasource
+message TLoggingConfig {
+    // Under the hood the Logging connector goes to YDB, 
+    // so all YDB settings can be applied to this connector as well.
+    TYdbConfig ydb = 1;
+
+    // Logging connector can resolve the underlying YDB endpoints 
+    // via calls to Cloud Logging API
+    message TDynamicResolving {
+        // TODO: add API endpoint and other params
+    }
+
+    // But for the tests it is useful to set all the YDB endpoints manually.
+    message TStaticResolving {
+        message TDatabase {
+            // network address
+            NYql.NConnector.NApi.TEndpoint endpoint = 1;
+            // database name
+            string name = 2; 
+        }
+
+        // The connector will iterate through this list while making the connections.
+        repeated TDatabase databases = 1;
+
+        // The mapping log_group_name -> log_group_id will be used to construct YDB table names.
+        map<string, string> log_groups = 2;
+    }
+
+    oneof resolving {
+        TDynamicResolving dynamic = 2;
+        TStaticResolving static = 3;
+    };
+}
+
 // TDatasouceConfig is a collection of datasource-specific settings
 message TDatasourcesConfig {
     TClickHouseConfig clickhouse = 3;
     TGreenplumConfig greenplum = 6;
     TMsSQLServerConfig ms_sql_server = 4;
     TMySQLConfig mysql = 2;
+    TLoggingConfig logging = 8;
     TOracleConfig oracle = 7;
     TPostgreSQLConfig postgresql = 5;
     TYdbConfig ydb = 1;
