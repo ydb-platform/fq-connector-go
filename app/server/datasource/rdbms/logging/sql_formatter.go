@@ -1,8 +1,6 @@
 package logging
 
 import (
-	"strings"
-
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
@@ -16,11 +14,8 @@ type sqlFormatter struct {
 }
 
 func (f *sqlFormatter) FormatFrom(tableName string) string {
-	// Trim leading slash, otherwise TablePathPrefix won't work.
-	// See https://ydb.tech/docs/ru/yql/reference/syntax/pragma#table-path-prefix
-	tableName = strings.TrimPrefix(tableName, "/")
-
-	return f.SanitiseIdentifier(tableName)
+	request := &resolveParams{}
+	f.resolver.resolve()
 }
 
 func NewSQLFormatter(resolver resolver, mode config.TYdbConfig_Mode) rdbms_utils.SQLFormatter {

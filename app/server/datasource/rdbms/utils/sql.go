@@ -60,8 +60,10 @@ type SQLFormatter interface {
 	// Support for high level expression (without subexpressions, they are checked separately)
 	SupportsPushdownExpression(expression *api_service_protos.TExpression) bool
 
-	// FormatFrom builds identifier called after FROM (`SELECT ... FROM <this>`)
-	FormatFrom(tableName string) string
+	// FormatFrom builds a substring containing the literals
+	// that must be placed after FROM (`SELECT ... FROM <this>`).
+	// For some datasources this call may involve some I/O.
+	FormatFrom(ctx context.Context, logger *zap.Logger, tableName string) (string, error)
 }
 
 type SchemaProvider interface {

@@ -1,10 +1,12 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -41,6 +43,8 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 }
 
 func formatSelectHead(
+	ctx context.Context,
+	logger *zap.Logger,
 	formatter SQLFormatter,
 	selectWhat *api_service_protos.TSelect_TWhat,
 	tableName string,
@@ -87,7 +91,13 @@ func formatSelectHead(
 	}
 
 	sb.WriteString(" FROM ")
-	sb.WriteString(formatter.FormatFrom(tableName))
+
+	from, err := formatter.FormatFrom(ctx, logger, tableName)
+	if err != nil {
+		return "", nil, fmt.Errorf("format FROM: %w", err)
+	}
+
+	sb.WriteString(from)
 
 	return sb.String(), newSelectWhat, nil
 }
