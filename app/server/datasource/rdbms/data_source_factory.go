@@ -172,14 +172,14 @@ func NewDataSourceFactory(
 		converterCollection: converterCollection,
 	}
 
-	loggingConnectionManager, err := logging.NewConnectionManager(cfg.Logging, connManagerBase)
+	loggingResolver, err := logging.NewResolver(cfg.Logging)
 	if err != nil {
-		return nil, fmt.Errorf("logging connection manager: %w", err)
+		return nil, fmt.Errorf("logging resolver: %w", err)
 	}
 
 	dsf.logging = Preset{
-		SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
-		ConnectionManager: loggingConnectionManager,
+		SQLFormatter:      logging.NewSQLFormatter(loggingResolver, cfg.Ydb.Mode),
+		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, loggingResolver),
 		TypeMapper:        ydbTypeMapper,
 		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 		RetrierSet: &retry.RetrierSet{

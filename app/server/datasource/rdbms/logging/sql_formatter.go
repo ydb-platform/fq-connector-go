@@ -12,11 +12,10 @@ var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 
 type sqlFormatter struct {
 	rdbms_utils.SQLFormatter
-	resolver resolver
+	resolver Resolver
 }
 
 func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParams) (string, error) {
-
 	request := &resolveParams{
 		ctx:          params.Ctx,
 		logger:       params.Logger,
@@ -25,13 +24,13 @@ func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParam
 
 	response, err := f.resolver.resolve(request)
 	if err != nil {
-		return "", fmt.Errorf("resolve log group name: %w", err)
+		return "", fmt.Errorf("resolve YDB table: %w", err)
 	}
 
 	return response.tableName, nil
 }
 
-func NewSQLFormatter(resolver resolver, mode config.TYdbConfig_Mode) rdbms_utils.SQLFormatter {
+func NewSQLFormatter(resolver Resolver, mode config.TYdbConfig_Mode) rdbms_utils.SQLFormatter {
 	ydbFormatter := ydb.NewSQLFormatter(mode)
 
 	formatter := &sqlFormatter{

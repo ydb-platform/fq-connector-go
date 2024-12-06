@@ -14,7 +14,7 @@ import (
 
 type connectionManager struct {
 	rdbms_utils.Connection
-	resolver             resolver
+	resolver             Resolver
 	ydbConnectionManager rdbms_utils.ConnectionManager
 }
 
@@ -63,14 +63,10 @@ func (cm *connectionManager) Release(ctx context.Context, logger *zap.Logger, co
 func NewConnectionManager(
 	cfg *config.TLoggingConfig,
 	base rdbms_utils.ConnectionManagerBase,
-) (rdbms_utils.ConnectionManager, error) {
-	r, err := newResolver(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("new resolver: %w", err)
-	}
-
+	resolver Resolver,
+) rdbms_utils.ConnectionManager {
 	return &connectionManager{
 		ydbConnectionManager: ydb.NewConnectionManager(cfg.Ydb, base),
-		resolver:             r,
-	}, nil
+		resolver:             resolver,
+	}
 }

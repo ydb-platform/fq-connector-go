@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"go.uber.org/zap"
 )
 
 type resolveParams struct {
@@ -23,7 +24,7 @@ type resolveResponse struct {
 	tableName    string
 }
 
-type resolver interface {
+type Resolver interface {
 	resolve(request *resolveParams) (*resolveResponse, error)
 }
 
@@ -54,13 +55,13 @@ func (r *staticResolver) resolve(
 	}, nil
 }
 
-func newStaticResolver(cfg *config.TLoggingConfig_TStaticResolving) resolver {
+func newStaticResolver(cfg *config.TLoggingConfig_TStaticResolving) Resolver {
 	return &staticResolver{
 		cfg: cfg,
 	}
 }
 
-func newResolver(cfg *config.TLoggingConfig) (resolver, error) {
+func NewResolver(cfg *config.TLoggingConfig) (Resolver, error) {
 	if cfg.GetStatic() != nil {
 		return newStaticResolver(cfg.GetStatic()), nil
 	}
