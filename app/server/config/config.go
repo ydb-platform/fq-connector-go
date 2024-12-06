@@ -145,6 +145,9 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Datasources.Logging == nil {
 		c.Datasources.Logging = &config.TLoggingConfig{
 			Ydb: &config.TYdbConfig{},
+			Resolving: &config.TLoggingConfig_Static{
+				Static: &config.TLoggingConfig_TStaticResolving{},
+			},
 		}
 	}
 
@@ -366,11 +369,33 @@ func validateLoggingConfig(c *config.TLoggingConfig) error {
 
 func validateLoggingResolvingStaticConfig(c *config.TLoggingConfig_TStaticResolving) error {
 	if len(c.Databases) == 0 {
-		return fmt.Errorf("`databases` is empty")
+		// it's kind of OK to have empty list of databases
+		return nil
 	}
 
 	if len(c.Folders) == 0 {
-		return fmt.Errorf("`folders` is empty")
+		// it's kind of OK to have empty list of folders
+		return nil
+	}
+
+	for i, database := range c.Databases {
+		if database.Name == "" {
+			return fmt.Errorf("missing `name` for database #%d", i)
+		}
+
+		if database.Endpoint.Host == "" {
+			return fmt.Errorf("missing `endpoint.host` for database #%d", i)
+		}
+
+		if database.Endpoint.Port == 0 {
+			return fmt.Errorf("missing `endpoint.port` for database #%d", i)
+		}
+	}
+
+	for folderId, folder := range c.Folders {
+		if len(folder.LogGroups) == 0 {
+			return fmt.Errorf("missing `log_groups` for folder %s", folderId)
+		}
 	}
 
 	return nil
