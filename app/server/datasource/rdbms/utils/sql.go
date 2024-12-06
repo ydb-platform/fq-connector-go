@@ -78,6 +78,8 @@ type SchemaProvider interface {
 		ctx context.Context,
 		logger *zap.Logger,
 		conn Connection,
-		request *api_service_protos.TDescribeTableRequest,
+		dsi *api_common.TDataSourceInstance,
+		tableName string,
+		typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	) (*api_service_protos.TSchema, error)
 }

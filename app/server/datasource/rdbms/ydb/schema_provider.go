@@ -9,6 +9,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
@@ -24,12 +25,14 @@ func (f *schemaProvider) GetSchema(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
-	request *api_service_protos.TDescribeTableRequest,
+	dsi *api_common.TDataSourceInstance,
+	tableName string,
+	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 ) (*api_service_protos.TSchema, error) {
 	db := conn.(ydbConnection).getDriver()
 
 	desc := options.Description{}
-	prefix := path.Join(db.Name(), request.Table)
+	prefix := path.Join(db.Name(), tableName)
 
 	logger.Debug("Obtaining table metadata", zap.String("prefix", prefix))
 
@@ -50,7 +53,7 @@ func (f *schemaProvider) GetSchema(
 		return nil, fmt.Errorf("get table description: %w", err)
 	}
 
-	sb := rdbms_utils.NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
+	sb := rdbms_utils.NewSchemaBuilder(f.typeMapper, typeMappingSettings)
 	for _, column := range desc.Columns {
 		if err = sb.AddColumn(column.Name, column.Type.String()); err != nil {
 			return nil, fmt.Errorf("add column to schema builder: %w", err)

@@ -6,7 +6,6 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
@@ -102,10 +101,10 @@ func NewDataSourceFactory(
 			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
-				func(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
+				func(dsi *api_common.TDataSourceInstance, tableName string) (string, *rdbms_utils.QueryArgs) {
 					return postgresql.TableMetadataQuery(
-						request,
-						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
+						tableName,
+						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](dsi))
 				}),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
@@ -149,10 +148,10 @@ func NewDataSourceFactory(
 			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
-				func(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
+				func(dsi *api_common.TDataSourceInstance, tableName string) (string, *rdbms_utils.QueryArgs) {
 					return postgresql.TableMetadataQuery(
-						request,
-						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
+						tableName,
+						schemaGetters[api_common.EDataSourceKind_GREENPLUM](dsi))
 				}),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
