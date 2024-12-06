@@ -1,6 +1,8 @@
 package logging
 
 import (
+	"fmt"
+
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
@@ -13,9 +15,20 @@ type sqlFormatter struct {
 	resolver resolver
 }
 
-func (f *sqlFormatter) FormatFrom(tableName string) string {
-	request := &resolveParams{}
-	f.resolver.resolve()
+func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParams) (string, error) {
+
+	request := &resolveParams{
+		ctx:          params.Ctx,
+		logger:       params.Logger,
+		logGroupName: params.TableName,
+	}
+
+	response, err := f.resolver.resolve(request)
+	if err != nil {
+		return "", fmt.Errorf("resolve log group name: %w", err)
+	}
+
+	return response.tableName, nil
 }
 
 func NewSQLFormatter(resolver resolver, mode config.TYdbConfig_Mode) rdbms_utils.SQLFormatter {

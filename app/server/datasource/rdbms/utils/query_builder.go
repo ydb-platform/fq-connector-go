@@ -28,6 +28,7 @@ func MakeReadSplitsQuery(
 		formatter,
 		slct.GetWhat(),
 		slct.GetFrom().GetTable(),
+		slct.DataSourceInstance,
 		true,
 	)
 

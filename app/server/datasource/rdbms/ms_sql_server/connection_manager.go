@@ -22,7 +22,7 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	params *rdbms_utils.ConnectionParams,
+	params *rdbms_utils.ConnectionParamsMakeParams,
 ) (rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 

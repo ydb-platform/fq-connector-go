@@ -8,7 +8,6 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 )
@@ -36,10 +35,9 @@ type ConnectionManagerMock struct {
 }
 
 func (m *ConnectionManagerMock) Make(
-	_ context.Context,
-	_ *zap.Logger,
-	dataSourceInstance *api_common.TDataSourceInstance) (Connection, error) {
-	args := m.Called(dataSourceInstance)
+	params *ConnectionParamsMakeParams,
+) (Connection, error) {
+	args := m.Called(params.DataSourceInstance)
 
 	return args.Get(0).(Connection), args.Error(1)
 }

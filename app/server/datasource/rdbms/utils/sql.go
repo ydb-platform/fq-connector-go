@@ -34,7 +34,7 @@ type Rows interface {
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
-type ConnectionParams struct {
+type ConnectionParamsMakeParams struct {
 	Ctx                context.Context                 // mandatory
 	Logger             *zap.Logger                     // mandatory
 	DataSourceInstance *api_common.TDataSourceInstance // mandatory
@@ -42,12 +42,19 @@ type ConnectionParams struct {
 }
 
 type ConnectionManager interface {
-	Make(params *ConnectionParams) (Connection, error)
+	Make(params *ConnectionParamsMakeParams) (Connection, error)
 	Release(ctx context.Context, logger *zap.Logger, connection Connection)
 }
 
 type ConnectionManagerBase struct {
 	QueryLoggerFactory common.QueryLoggerFactory
+}
+
+type SQLFormatterFormatFromParams struct {
+	Ctx                context.Context
+	Logger             *zap.Logger
+	TableName          string
+	DataSourceInstance *api_common.TDataSourceInstance
 }
 
 type SQLFormatter interface {
@@ -62,8 +69,8 @@ type SQLFormatter interface {
 
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
-	// For some datasources this call may involve some I/O.
-	FormatFrom(ctx context.Context, logger *zap.Logger, tableName string) (string, error)
+	// For some datasources this call may involve queries to external APIs.
+	FormatFrom(params *SQLFormatterFormatFromParams) (string, error)
 }
 
 type SchemaProvider interface {

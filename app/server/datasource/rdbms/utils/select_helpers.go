@@ -8,6 +8,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -48,6 +49,7 @@ func formatSelectHead(
 	formatter SQLFormatter,
 	selectWhat *api_service_protos.TSelect_TWhat,
 	tableName string,
+	dsi *api_common.TDataSourceInstance,
 	fakeZeroOnEmptyColumnsSet bool,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
 	// SELECT $columns FROM $from
@@ -92,7 +94,14 @@ func formatSelectHead(
 
 	sb.WriteString(" FROM ")
 
-	from, err := formatter.FormatFrom(ctx, logger, tableName)
+	params := &SQLFormatterFormatFromParams{
+		Ctx:                ctx,
+		Logger:             logger,
+		TableName:          tableName,
+		DataSourceInstance: dsi,
+	}
+
+	from, err := formatter.FormatFrom(params)
 	if err != nil {
 		return "", nil, fmt.Errorf("format FROM: %w", err)
 	}
