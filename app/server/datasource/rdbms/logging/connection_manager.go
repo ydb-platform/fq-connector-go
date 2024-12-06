@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ydb-platform/fq-connector-go/api/common"
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
+	"github.com/ydb-platform/fq-connector-go/common"
 
 	"go.uber.org/zap"
 )
@@ -32,18 +33,23 @@ func (cm *connectionManager) Make(
 		return nil, fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
+	params.Logger.Debug("Resolved log group into YDB endpoint", response.ToZapFields()...)
+
 	// prepare new data source instance describing the underlying YDB database
-	ydbDataSourceInstance := &common.TDataSourceInstance{
-		Kind:        common.EDataSourceKind_YDB,
+	ydbDataSourceInstance := &api_common.TDataSourceInstance{
+		Kind:        api_common.EDataSourceKind_YDB,
 		Endpoint:    response.endpoint,
 		Database:    response.databaseName,
 		Credentials: params.DataSourceInstance.GetCredentials(),
 		UseTls:      true,
 	}
 
+	// reannotate logger with new data source instance
+	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, ydbDataSourceInstance)
+
 	ydbParams := &rdbms_utils.ConnectionParamsMakeParams{
 		Ctx:                params.Ctx,
-		Logger:             params.Logger,
+		Logger:             ydbLogger,
 		DataSourceInstance: ydbDataSourceInstance,
 	}
 

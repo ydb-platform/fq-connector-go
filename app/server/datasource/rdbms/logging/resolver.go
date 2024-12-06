@@ -24,6 +24,15 @@ type resolveResponse struct {
 	tableName    string
 }
 
+func (r *resolveResponse) ToZapFields() []zap.Field {
+	return []zap.Field{
+		zap.String("host", r.endpoint.Host),
+		zap.Uint32("port", r.endpoint.Port),
+		zap.String("database_name", r.databaseName),
+		zap.String("table_name", r.tableName),
+	}
+}
+
 type Resolver interface {
 	resolve(request *resolveParams) (*resolveResponse, error)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
@@ -39,12 +40,12 @@ func (s *serviceConnector) DescribeTable(
 	ctx context.Context,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	logger := mustFromContext(ctx)
+	logger := utils.LoggerMustFromContext(ctx)
 	logger = common.AnnotateLoggerForUnaryCall(logger, "DescribeTable", request.DataSourceInstance)
-	logger.Info("request handling started", zap.String("table", request.GetTable()))
+	logger.Info("Request handling started", zap.String("table", request.GetTable()))
 
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
-		logger.Error("request handling failed", zap.Error(err))
+		logger.Error("Request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TDescribeTableResponse{
 			Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind),
@@ -55,7 +56,7 @@ func (s *serviceConnector) DescribeTable(
 
 	out, err := s.dataSourceCollection.DescribeTable(ctx, logger, request)
 	if err != nil {
-		logger.Error("request handling failed", zap.Error(err))
+		logger.Error("Request handling failed", zap.Error(err))
 
 		out = &api_service_protos.TDescribeTableResponse{Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind)}
 
@@ -63,7 +64,7 @@ func (s *serviceConnector) DescribeTable(
 	}
 
 	out.Error = common.NewSuccess()
-	logger.Info("request handling finished", zap.String("response", out.String()))
+	logger.Info("Request handling finished", zap.String("response", out.String()))
 
 	return out, nil
 }
@@ -72,8 +73,8 @@ func (s *serviceConnector) ListSplits(
 	request *api_service_protos.TListSplitsRequest,
 	stream api_service.Connector_ListSplitsServer,
 ) error {
-	logger := mustFromContext(stream.Context())
-	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
+	logger := utils.LoggerMustFromContext(stream.Context())
+	logger.Info("Request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
@@ -91,13 +92,13 @@ func (s *serviceConnector) ListSplits(
 
 	for _, slct := range request.Selects {
 		if err := s.doListSplitsHandleSelect(logger, stream, slct, &totalSplits); err != nil {
-			logger.Error("request handling failed", zap.Error(err))
+			logger.Error("Request handling failed", zap.Error(err))
 
 			return err
 		}
 	}
 
-	logger.Info("request handling finished", zap.Int("total_splits", totalSplits))
+	logger.Info("Request handling finished", zap.Int("total_splits", totalSplits))
 
 	return nil
 }
@@ -146,7 +147,7 @@ func (*serviceConnector) doListSplitsResponse(
 	response *api_service_protos.TListSplitsResponse,
 ) error {
 	if !common.IsSuccess(response.Error) {
-		logger.Error("request handling failed", common.APIErrorToLogFields(response.Error)...)
+		logger.Error("Request handling failed", common.APIErrorToLogFields(response.Error)...)
 	}
 
 	if err := stream.Send(response); err != nil {
@@ -162,14 +163,14 @@ func (s *serviceConnector) ReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
-	logger := mustFromContext(stream.Context())
-	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
+	logger := utils.LoggerMustFromContext(stream.Context())
+	logger.Info("Request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	var err error
 	logger, err = s.doReadSplits(logger, request, stream)
 
 	if err != nil {
-		logger.Error("request handling failed", zap.Error(err))
+		logger.Error("Request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TReadSplitsResponse{
 			Error: common.NewAPIErrorFromStdError(
@@ -182,7 +183,7 @@ func (s *serviceConnector) ReadSplits(
 			return fmt.Errorf("stream send: %w", err)
 		}
 	} else {
-		logger.Info("request handling finished")
+		logger.Info("Request handling finished")
 	}
 
 	return nil
@@ -233,9 +234,9 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 		tlsConfig *config.TServerTLSConfig
 	)
 
-	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(logger, registry), UnaryServerMetadata(logger)}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(logger, registry), utils.UnaryServerMetadata(logger)}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(logger, registry), StreamServerMetadata(logger)}
+	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(logger, registry), utils.StreamServerMetadata(logger)}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
