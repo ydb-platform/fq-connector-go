@@ -68,6 +68,9 @@ func runClient(cmd *cobra.Command, _ []string) error {
 		sessionID: sessionID,
 	}
 
+	// override credentials if IAM-token provided
+	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
+
 	if err := callServer(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
