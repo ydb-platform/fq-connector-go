@@ -40,10 +40,16 @@ func (r *staticResolver) resolve(
 	endpoint := r.cfg.Databases[ix].Endpoint
 	databaseName := r.cfg.Databases[ix].Name
 
-	// get log_group_id from provided map
-	logGroupId, exists := r.cfg.LogGroups[request.logGroupName]
+	// pick a preconfigured folder
+	folder, exists := r.cfg.Folders[request.folderId]
 	if !exists {
-		return nil, fmt.Errorf("log group %s not found", request.logGroupName)
+		return nil, fmt.Errorf("folder_id %s is missing", request.folderId)
+	}
+
+	// resolve log group name into log group id
+	logGroupId, exists := folder.LogGroups[request.logGroupName]
+	if !exists {
+		return nil, fmt.Errorf("log group %s is missing", request.logGroupName)
 	}
 
 	tableName := fmt.Sprintf("logs/origin/yc.logs.cloud/%s/%s", request.folderId, logGroupId)

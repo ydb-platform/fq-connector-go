@@ -139,20 +139,33 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Ydb = &config.TYdbConfig{}
 	}
 
-	if c.Datasources.Ydb.OpenConnectionTimeout == "" {
-		c.Datasources.Ydb.OpenConnectionTimeout = "5s"
+	fillYdbConfigDefaults(c.Datasources.Ydb)
+
+	// Logging
+	if c.Datasources.Logging == nil {
+		c.Datasources.Logging = &config.TLoggingConfig{
+			Ydb: &config.TYdbConfig{},
+		}
 	}
 
-	if c.Datasources.Ydb.PingConnectionTimeout == "" {
-		c.Datasources.Ydb.PingConnectionTimeout = "5s"
+	fillYdbConfigDefaults(c.Datasources.Logging.Ydb)
+}
+
+func fillYdbConfigDefaults(c *config.TYdbConfig) {
+	if c.OpenConnectionTimeout == "" {
+		c.OpenConnectionTimeout = "5s"
 	}
 
-	if c.Datasources.Ydb.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
-		c.Datasources.Ydb.Mode = config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES
+	if c.PingConnectionTimeout == "" {
+		c.PingConnectionTimeout = "5s"
 	}
 
-	if c.Datasources.Ydb.ExponentialBackoff == nil {
-		c.Datasources.Ydb.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	if c.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
+		c.Mode = config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES
+	}
+
+	if c.ExponentialBackoff == nil {
+		c.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 }
 
@@ -300,6 +313,10 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("validate `ydb`: %w", err)
 	}
 
+	if err := validateLoggingConfig(c.Logging); err != nil {
+		return fmt.Errorf("validate `logging`: %w", err)
+	}
+
 	return nil
 }
 
@@ -322,6 +339,38 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
 		return fmt.Errorf("validate `exponential_backoff`: %v", err)
+	}
+
+	return nil
+}
+
+func validateLoggingConfig(c *config.TLoggingConfig) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if err := validateYdbConfig(c.Ydb); err != nil {
+		return fmt.Errorf("validate `ydb`: %w", err)
+	}
+
+	if staticConfig := c.GetStatic(); staticConfig != nil {
+		if err := validateLoggingResolvingStaticConfig(staticConfig); err != nil {
+			return fmt.Errorf("validate `static`: %w", err)
+		}
+	} else {
+		return fmt.Errorf("missing `static` section")
+	}
+
+	return nil
+}
+
+func validateLoggingResolvingStaticConfig(c *config.TLoggingConfig_TStaticResolving) error {
+	if len(c.Databases) == 0 {
+		return fmt.Errorf("`databases` is empty")
+	}
+
+	if len(c.Folders) == 0 {
+		return fmt.Errorf("`folders` is empty")
 	}
 
 	return nil

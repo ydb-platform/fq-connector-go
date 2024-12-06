@@ -255,8 +255,15 @@ message TLoggingConfig {
         // The connector will iterate through this list while making the connections.
         repeated TDatabase databases = 1;
 
-        // The mapping log_group_name -> log_group_id will be used to construct YDB table names.
-        map<string, string> log_groups = 2;
+        message TFolder {
+            // log_group_name -> log_group_id mapping is
+            // used for YDB table names construction.
+            map<string, string> log_groups = 1;
+        }
+
+        // folder_id -> log_group_name -> log_group_id mapping is
+        // used for YDB table names construction.
+        map<string, TFolder> folders = 2;
     }
 
     oneof resolving {
