@@ -19,6 +19,7 @@ func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParam
 	request := &resolveParams{
 		ctx:          params.Ctx,
 		logger:       params.Logger,
+		folderId:     params.DataSourceInstance.GetLoggingOptions().FolderId,
 		logGroupName: params.TableName,
 	}
 
@@ -27,7 +28,7 @@ func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParam
 		return "", fmt.Errorf("resolve YDB table: %w", err)
 	}
 
-	return response.tableName, nil
+	return f.SanitiseIdentifier(response.tableName), nil
 }
 
 func NewSQLFormatter(resolver Resolver, mode config.TYdbConfig_Mode) rdbms_utils.SQLFormatter {

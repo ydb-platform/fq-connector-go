@@ -100,6 +100,7 @@ func (ds *dataSourceImpl) doReadSplit(
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: split.Select.DataSourceInstance,
+				TableName:          split.Select.From.Table,
 			}
 
 			conn, makeConnErr = ds.connectionManager.Make(params)

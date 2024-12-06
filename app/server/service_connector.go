@@ -42,10 +42,10 @@ func (s *serviceConnector) DescribeTable(
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	logger := utils.LoggerMustFromContext(ctx)
 	logger = common.AnnotateLoggerForUnaryCall(logger, "DescribeTable", request.DataSourceInstance)
-	logger.Info("Request handling started", zap.String("table", request.GetTable()))
+	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {
-		logger.Error("Request handling failed", zap.Error(err))
+		logger.Error("request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TDescribeTableResponse{
 			Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind),
@@ -56,7 +56,7 @@ func (s *serviceConnector) DescribeTable(
 
 	out, err := s.dataSourceCollection.DescribeTable(ctx, logger, request)
 	if err != nil {
-		logger.Error("Request handling failed", zap.Error(err))
+		logger.Error("request handling failed", zap.Error(err))
 
 		out = &api_service_protos.TDescribeTableResponse{Error: common.NewAPIErrorFromStdError(err, request.DataSourceInstance.Kind)}
 
@@ -64,7 +64,7 @@ func (s *serviceConnector) DescribeTable(
 	}
 
 	out.Error = common.NewSuccess()
-	logger.Info("Request handling finished", zap.String("response", out.String()))
+	logger.Info("request handling finished", zap.String("response", out.String()))
 
 	return out, nil
 }
@@ -74,7 +74,7 @@ func (s *serviceConnector) ListSplits(
 	stream api_service.Connector_ListSplitsServer,
 ) error {
 	logger := utils.LoggerMustFromContext(stream.Context())
-	logger.Info("Request handling started", zap.Int("total selects", len(request.Selects)))
+	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
@@ -92,13 +92,13 @@ func (s *serviceConnector) ListSplits(
 
 	for _, slct := range request.Selects {
 		if err := s.doListSplitsHandleSelect(logger, stream, slct, &totalSplits); err != nil {
-			logger.Error("Request handling failed", zap.Error(err))
+			logger.Error("request handling failed", zap.Error(err))
 
 			return err
 		}
 	}
 
-	logger.Info("Request handling finished", zap.Int("total_splits", totalSplits))
+	logger.Info("request handling finished", zap.Int("total_splits", totalSplits))
 
 	return nil
 }
@@ -147,7 +147,7 @@ func (*serviceConnector) doListSplitsResponse(
 	response *api_service_protos.TListSplitsResponse,
 ) error {
 	if !common.IsSuccess(response.Error) {
-		logger.Error("Request handling failed", common.APIErrorToLogFields(response.Error)...)
+		logger.Error("request handling failed", common.APIErrorToLogFields(response.Error)...)
 	}
 
 	if err := stream.Send(response); err != nil {
@@ -164,13 +164,13 @@ func (s *serviceConnector) ReadSplits(
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
 	logger := utils.LoggerMustFromContext(stream.Context())
-	logger.Info("Request handling started", zap.Int("total_splits", len(request.Splits)))
+	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	var err error
 	logger, err = s.doReadSplits(logger, request, stream)
 
 	if err != nil {
-		logger.Error("Request handling failed", zap.Error(err))
+		logger.Error("request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TReadSplitsResponse{
 			Error: common.NewAPIErrorFromStdError(
@@ -183,7 +183,7 @@ func (s *serviceConnector) ReadSplits(
 			return fmt.Errorf("stream send: %w", err)
 		}
 	} else {
-		logger.Info("Request handling finished")
+		logger.Info("request handling finished")
 	}
 
 	return nil
