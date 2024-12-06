@@ -83,11 +83,10 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
 		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
 	case api_common.EDataSourceKind_LOGGING:
-		break
 	case api_common.EDataSourceKind_ORACLE:
-		validators = append(validators, validateEndpoint, validateUseTls(logger))
+		validators = append(validators, validateEndpoint, validateUseTLS(logger))
 	default:
-		validators = append(validators, validateEndpoint, validateDatabase, validateUseTls(logger))
+		validators = append(validators, validateEndpoint, validateDatabase, validateUseTLS(logger))
 	}
 
 	validators = append(validators, validateDataSourceOptions)
@@ -158,7 +157,7 @@ func validateDatabase(dsi *api_common.TDataSourceInstance) error {
 	return nil
 }
 
-func validateUseTls(logger *zap.Logger) dataSourceInstancesValidator {
+func validateUseTLS(logger *zap.Logger) dataSourceInstancesValidator {
 	return func(dsi *api_common.TDataSourceInstance) error {
 		if dsi.UseTls {
 			logger.Info("connector will use secure connection to access data source")
