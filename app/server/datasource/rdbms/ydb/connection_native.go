@@ -279,7 +279,7 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 		}
 
 		if arg.YdbType.GetOptionalType() != nil {
-			typeName = fmt.Sprintf("Optional<%s>", typeName)
+			typeName = fmt.Sprintf("%s?", typeName)
 		}
 
 		buf.WriteString(fmt.Sprintf("DECLARE $p%d AS %s;\n", i, typeName)) //nolint:revive
