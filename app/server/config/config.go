@@ -142,6 +142,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	fillYdbConfigDefaults(c.Datasources.Ydb)
 
 	// Logging
+
 	if c.Datasources.Logging == nil {
 		c.Datasources.Logging = &config.TLoggingConfig{
 			Ydb: &config.TYdbConfig{},
