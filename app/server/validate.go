@@ -70,6 +70,36 @@ func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error 
 	return nil
 }
 
+type dataSourceInstancesValidator func(dsi *api_common.TDataSourceInstance) error
+
+func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
+	if dsi == nil {
+		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
+	}
+
+	var validators []dataSourceInstancesValidator
+
+	switch dsi.Kind {
+	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
+		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
+	case api_common.EDataSourceKind_LOGGING:
+	case api_common.EDataSourceKind_ORACLE:
+		validators = append(validators, validateEndpoint, validateUseTLS(logger))
+	default:
+		validators = append(validators, validateEndpoint, validateDatabase, validateUseTLS(logger))
+	}
+
+	validators = append(validators, validateDataSourceOptions)
+
+	for _, v := range validators {
+		if err := v(dsi); err != nil {
+			return fmt.Errorf("validate data source instance: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 	switch dsi.GetKind() {
 	case api_common.EDataSourceKind_POSTGRESQL:
@@ -86,8 +116,14 @@ func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 
 	case api_common.EDataSourceKind_GREENPLUM:
 		return nil
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_S3, api_common.EDataSourceKind_YDB,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_LOGGING:
+	case api_common.EDataSourceKind_LOGGING:
+		if dsi.GetLoggingOptions().GetFolderId() == "" {
+			return fmt.Errorf("folder_id field is empty: %w", common.ErrInvalidRequest)
+		}
+	case api_common.EDataSourceKind_CLICKHOUSE,
+		api_common.EDataSourceKind_S3,
+		api_common.EDataSourceKind_YDB,
+		api_common.EDataSourceKind_MYSQL:
 	default:
 		return fmt.Errorf("unsupported data source %s: %w", dsi.GetKind().String(), common.ErrInvalidRequest)
 	}
@@ -95,37 +131,40 @@ func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 	return nil
 }
 
-func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
-	if dsi == nil {
-		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
-	}
+func validateEndpoint(dsi *api_common.TDataSourceInstance) error {
+	endpoint := dsi.GetEndpoint()
 
-	if dsi.GetKind() == api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED {
-		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
-	}
-
-	if dsi.Endpoint == nil {
+	if endpoint == nil {
 		return fmt.Errorf("endpoint is empty: %w", common.ErrInvalidRequest)
 	}
 
-	if dsi.Endpoint.Host == "" {
+	if endpoint.Host == "" {
 		return fmt.Errorf("endpoint.host is empty: %w", common.ErrInvalidRequest)
 	}
 
-	if dsi.Endpoint.Port == 0 {
+	if endpoint.Port == 0 {
 		return fmt.Errorf("endpoint.port is empty: %w", common.ErrInvalidRequest)
 	}
 
-	// For Oracle DATABASE_NAME is optional
-	if dsi.Database == "" && dsi.Kind != api_common.EDataSourceKind_ORACLE {
-		return fmt.Errorf("database field is empty: %w", common.ErrInvalidRequest)
+	return nil
+}
+
+func validateDatabase(dsi *api_common.TDataSourceInstance) error {
+	if dsi.Database == "" {
+		return fmt.Errorf("database is empty: %w", common.ErrInvalidRequest)
 	}
 
-	if dsi.UseTls {
-		logger.Info("connector will use secure connection to access data source")
-	} else {
-		logger.Warn("connector will use insecure connection to access data source")
-	}
+	return nil
+}
 
-	return validateDataSourceOptions(dsi)
+func validateUseTLS(logger *zap.Logger) dataSourceInstancesValidator {
+	return func(dsi *api_common.TDataSourceInstance) error {
+		if dsi.UseTls {
+			logger.Info("connector will use secure connection to access data source")
+		} else {
+			logger.Warn("connector will use insecure connection to access data source")
+		}
+
+		return nil
+	}
 }

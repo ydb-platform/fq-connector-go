@@ -1,4 +1,4 @@
-package server
+package utils
 
 import (
 	"context"
@@ -76,17 +76,22 @@ func insertMetadataToContext(serverContext context.Context, logger *zap.Logger, 
 
 	method := trimMethod(fullMethod)
 
-	newLogger := logger.With(
+	fields := []zap.Field{
 		zap.String("method", method),
-		zap.String("test_name", metainfo.testName),
-	)
+	}
+
+	if metainfo.testName != "" {
+		fields = append(fields, zap.String("test_name", metainfo.testName))
+	}
+
+	newLogger := logger.With(fields...)
 
 	ctx := context.WithValue(serverContext, loggerKeyRequest, newLogger)
 
 	return ctx
 }
 
-func mustFromContext(ctx context.Context) *zap.Logger {
+func LoggerMustFromContext(ctx context.Context) *zap.Logger {
 	logger := ctx.Value(loggerKeyRequest).(*zap.Logger)
 	return logger
 }

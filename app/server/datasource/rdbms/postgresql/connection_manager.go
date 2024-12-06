@@ -73,10 +73,9 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	ctx context.Context,
-	logger *zap.Logger,
-	dsi *api_common.TDataSourceInstance,
+	params *rdbms_utils.ConnectionParamsMakeParams,
 ) (rdbms_utils.Connection, error) {
+	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	if dsi.GetCredentials().GetBasic() == nil {
 		return nil, fmt.Errorf("currently only basic auth is supported")
 	}

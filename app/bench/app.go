@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -37,17 +36,7 @@ func validateConfig(logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
 		}
 	}
 
-	// securely override credentials
-	if token := os.Getenv("IAM_TOKEN"); token != "" {
-		cfg.DataSourceInstance.Credentials = &api_common.TCredentials{
-			Payload: &api_common.TCredentials_Token{
-				Token: &api_common.TCredentials_TToken{
-					Type:  "IAM",
-					Value: token,
-				},
-			},
-		}
-	}
+	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
 
 	return nil
 }

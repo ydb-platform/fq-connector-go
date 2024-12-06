@@ -11,6 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ms_sql_server"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/mysql"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/oracle"
@@ -31,6 +32,7 @@ type dataSourceFactory struct {
 	mysql               Preset
 	greenplum           Preset
 	oracle              Preset
+	logging             Preset
 	converterCollection conversion.Collection
 }
 
@@ -53,15 +55,18 @@ func (dsf *dataSourceFactory) Make(
 		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
 	case api_common.EDataSourceKind_ORACLE:
 		return NewDataSource(logger, &dsf.oracle, dsf.converterCollection), nil
+	case api_common.EDataSourceKind_LOGGING:
+		return NewDataSource(logger, &dsf.logging, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
 }
+
 func NewDataSourceFactory(
 	cfg *config.TDatasourcesConfig,
 	qlf common.QueryLoggerFactory,
 	converterCollection conversion.Collection,
-) datasource.Factory[any] {
+) (datasource.Factory[any], error) {
 	connManagerBase := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
 	}
@@ -79,7 +84,7 @@ func NewDataSourceFactory(
 		api_common.EDataSourceKind_GREENPLUM:  func(dsi *api_common.TDataSourceInstance) string { return dsi.GetGpOptions().Schema },
 	}
 
-	return &dataSourceFactory{
+	dsf := &dataSourceFactory{
 		clickhouse: Preset{
 			SQLFormatter:      clickhouse.NewSQLFormatter(),
 			ConnectionManager: clickhouse.NewConnectionManager(cfg.Clickhouse, connManagerBase),
@@ -111,7 +116,7 @@ func NewDataSourceFactory(
 			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
-			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
+			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper, ydb.NewPrefixGetter()),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
@@ -166,4 +171,22 @@ func NewDataSourceFactory(
 		},
 		converterCollection: converterCollection,
 	}
+
+	loggingResolver, err := logging.NewResolver(cfg.Logging)
+	if err != nil {
+		return nil, fmt.Errorf("logging resolver: %w", err)
+	}
+
+	dsf.logging = Preset{
+		SQLFormatter:      logging.NewSQLFormatter(loggingResolver, cfg.Ydb.Mode),
+		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, loggingResolver),
+		TypeMapper:        ydbTypeMapper,
+		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper, logging.NewPrefixGetter(loggingResolver)),
+		RetrierSet: &retry.RetrierSet{
+			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
+		},
+	}
+
+	return dsf, nil
 }

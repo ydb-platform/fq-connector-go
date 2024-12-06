@@ -1370,6 +1370,7 @@ type TExpression struct {
 	//	*TExpression_Null
 	//	*TExpression_Coalesce
 	//	*TExpression_If
+	//	*TExpression_Cast
 	Payload isTExpression_Payload `protobuf_oneof:"payload"`
 }
 
@@ -1454,6 +1455,13 @@ func (x *TExpression) GetIf() *TExpression_TIf {
 	return nil
 }
 
+func (x *TExpression) GetCast() *TExpression_TCast {
+	if x, ok := x.GetPayload().(*TExpression_Cast); ok {
+		return x.Cast
+	}
+	return nil
+}
+
 type isTExpression_Payload interface {
 	isTExpression_Payload()
 }
@@ -1484,6 +1492,10 @@ type TExpression_If struct {
 	If *TExpression_TIf `protobuf:"bytes,6,opt,name=if,proto3,oneof"`
 }
 
+type TExpression_Cast struct {
+	Cast *TExpression_TCast `protobuf:"bytes,7,opt,name=cast,proto3,oneof"`
+}
+
 func (*TExpression_TypedValue) isTExpression_Payload() {}
 
 func (*TExpression_Column) isTExpression_Payload() {}
@@ -1495,6 +1507,8 @@ func (*TExpression_Null) isTExpression_Payload() {}
 func (*TExpression_Coalesce) isTExpression_Payload() {}
 
 func (*TExpression_If) isTExpression_Payload() {}
+
+func (*TExpression_Cast) isTExpression_Payload() {}
 
 // Predicate (use this types only for bool expressions)
 type TPredicate struct {
@@ -2504,6 +2518,62 @@ func (x *TExpression_TIf) GetElseExpression() *TExpression {
 	return nil
 }
 
+// CAST($value AS $type)
+type TExpression_TCast struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Value *TExpression `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Type  *Ydb.Type    `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+}
+
+func (x *TExpression_TCast) Reset() {
+	*x = TExpression_TCast{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[28]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TExpression_TCast) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TExpression_TCast) ProtoMessage() {}
+
+func (x *TExpression_TCast) ProtoReflect() protoreflect.Message {
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[28]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TExpression_TCast.ProtoReflect.Descriptor instead.
+func (*TExpression_TCast) Descriptor() ([]byte, []int) {
+	return file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_rawDescGZIP(), []int{13, 3}
+}
+
+func (x *TExpression_TCast) GetValue() *TExpression {
+	if x != nil {
+		return x.Value
+	}
+	return nil
+}
+
+func (x *TExpression_TCast) GetType() *Ydb.Type {
+	if x != nil {
+		return x.Type
+	}
+	return nil
+}
+
 type TExpression_TNull struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2513,7 +2583,7 @@ type TExpression_TNull struct {
 func (x *TExpression_TNull) Reset() {
 	*x = TExpression_TNull{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[28]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[29]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2526,7 +2596,7 @@ func (x *TExpression_TNull) String() string {
 func (*TExpression_TNull) ProtoMessage() {}
 
 func (x *TExpression_TNull) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[28]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[29]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2539,7 +2609,7 @@ func (x *TExpression_TNull) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TExpression_TNull.ProtoReflect.Descriptor instead.
 func (*TExpression_TNull) Descriptor() ([]byte, []int) {
-	return file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_rawDescGZIP(), []int{13, 3}
+	return file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_rawDescGZIP(), []int{13, 4}
 }
 
 // NOT
@@ -2554,7 +2624,7 @@ type TPredicate_TNegation struct {
 func (x *TPredicate_TNegation) Reset() {
 	*x = TPredicate_TNegation{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[29]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[30]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2567,7 +2637,7 @@ func (x *TPredicate_TNegation) String() string {
 func (*TPredicate_TNegation) ProtoMessage() {}
 
 func (x *TPredicate_TNegation) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[29]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[30]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2602,7 +2672,7 @@ type TPredicate_TConjunction struct {
 func (x *TPredicate_TConjunction) Reset() {
 	*x = TPredicate_TConjunction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[30]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2615,7 +2685,7 @@ func (x *TPredicate_TConjunction) String() string {
 func (*TPredicate_TConjunction) ProtoMessage() {}
 
 func (x *TPredicate_TConjunction) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[30]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2650,7 +2720,7 @@ type TPredicate_TDisjunction struct {
 func (x *TPredicate_TDisjunction) Reset() {
 	*x = TPredicate_TDisjunction{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[31]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2663,7 +2733,7 @@ func (x *TPredicate_TDisjunction) String() string {
 func (*TPredicate_TDisjunction) ProtoMessage() {}
 
 func (x *TPredicate_TDisjunction) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[31]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2698,7 +2768,7 @@ type TPredicate_TCoalesce struct {
 func (x *TPredicate_TCoalesce) Reset() {
 	*x = TPredicate_TCoalesce{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[32]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[33]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2711,7 +2781,7 @@ func (x *TPredicate_TCoalesce) String() string {
 func (*TPredicate_TCoalesce) ProtoMessage() {}
 
 func (x *TPredicate_TCoalesce) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[32]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[33]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2750,7 +2820,7 @@ type TPredicate_TIf struct {
 func (x *TPredicate_TIf) Reset() {
 	*x = TPredicate_TIf{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[33]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[34]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2763,7 +2833,7 @@ func (x *TPredicate_TIf) String() string {
 func (*TPredicate_TIf) ProtoMessage() {}
 
 func (x *TPredicate_TIf) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[33]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[34]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2814,7 +2884,7 @@ type TPredicate_TBetween struct {
 func (x *TPredicate_TBetween) Reset() {
 	*x = TPredicate_TBetween{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[34]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[35]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2827,7 +2897,7 @@ func (x *TPredicate_TBetween) String() string {
 func (*TPredicate_TBetween) ProtoMessage() {}
 
 func (x *TPredicate_TBetween) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[34]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[35]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2877,7 +2947,7 @@ type TPredicate_TIn struct {
 func (x *TPredicate_TIn) Reset() {
 	*x = TPredicate_TIn{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[35]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[36]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2890,7 +2960,7 @@ func (x *TPredicate_TIn) String() string {
 func (*TPredicate_TIn) ProtoMessage() {}
 
 func (x *TPredicate_TIn) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[35]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[36]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2932,7 +3002,7 @@ type TPredicate_TIsNull struct {
 func (x *TPredicate_TIsNull) Reset() {
 	*x = TPredicate_TIsNull{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[36]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[37]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2945,7 +3015,7 @@ func (x *TPredicate_TIsNull) String() string {
 func (*TPredicate_TIsNull) ProtoMessage() {}
 
 func (x *TPredicate_TIsNull) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[36]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[37]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2981,7 +3051,7 @@ type TPredicate_TIsNotNull struct {
 func (x *TPredicate_TIsNotNull) Reset() {
 	*x = TPredicate_TIsNotNull{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[37]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[38]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2994,7 +3064,7 @@ func (x *TPredicate_TIsNotNull) String() string {
 func (*TPredicate_TIsNotNull) ProtoMessage() {}
 
 func (x *TPredicate_TIsNotNull) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[37]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[38]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3030,7 +3100,7 @@ type TPredicate_TBoolExpression struct {
 func (x *TPredicate_TBoolExpression) Reset() {
 	*x = TPredicate_TBoolExpression{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[38]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[39]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3043,7 +3113,7 @@ func (x *TPredicate_TBoolExpression) String() string {
 func (*TPredicate_TBoolExpression) ProtoMessage() {}
 
 func (x *TPredicate_TBoolExpression) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[38]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[39]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3080,7 +3150,7 @@ type TPredicate_TComparison struct {
 func (x *TPredicate_TComparison) Reset() {
 	*x = TPredicate_TComparison{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[39]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[40]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3093,7 +3163,7 @@ func (x *TPredicate_TComparison) String() string {
 func (*TPredicate_TComparison) ProtoMessage() {}
 
 func (x *TPredicate_TComparison) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[39]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[40]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3143,7 +3213,7 @@ type TPredicate_TRegexp struct {
 func (x *TPredicate_TRegexp) Reset() {
 	*x = TPredicate_TRegexp{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[40]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[41]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3156,7 +3226,7 @@ func (x *TPredicate_TRegexp) String() string {
 func (*TPredicate_TRegexp) ProtoMessage() {}
 
 func (x *TPredicate_TRegexp) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[40]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[41]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3197,7 +3267,7 @@ type TAst_TList struct {
 func (x *TAst_TList) Reset() {
 	*x = TAst_TList{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[41]
+		mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[42]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3210,7 +3280,7 @@ func (x *TAst_TList) String() string {
 func (*TAst_TList) ProtoMessage() {}
 
 func (x *TAst_TList) ProtoReflect() protoreflect.Message {
-	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[41]
+	mi := &file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[42]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3469,7 +3539,7 @@ var file_ydb_library_yql_providers_generic_connector_api_service_protos_connecto
 	0x6e, 0x74, 0x69, 0x6e, 0x75, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x22, 0x0a, 0x0b, 0x64, 0x65,
 	0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x48,
 	0x00, 0x52, 0x0b, 0x64, 0x65, 0x73, 0x63, 0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x42, 0x09,
-	0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0xe2, 0x08, 0x0a, 0x0b, 0x54, 0x45,
+	0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x82, 0x0a, 0x0a, 0x0b, 0x54, 0x45,
 	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x32, 0x0a, 0x0b, 0x74, 0x79, 0x70,
 	0x65, 0x64, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0f,
 	0x2e, 0x59, 0x64, 0x62, 0x2e, 0x54, 0x79, 0x70, 0x65, 0x64, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x48,
@@ -3495,50 +3565,60 @@ var file_ydb_library_yql_providers_generic_connector_api_service_protos_connecto
 	0x01, 0x28, 0x0b, 0x32, 0x25, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e,
 	0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72,
 	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x54, 0x49, 0x66, 0x48, 0x00, 0x52, 0x02, 0x69, 0x66,
-	0x1a, 0x8b, 0x03, 0x0a, 0x17, 0x54, 0x41, 0x72, 0x69, 0x74, 0x68, 0x6d, 0x65, 0x74, 0x69, 0x63,
-	0x61, 0x6c, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x62, 0x0a, 0x09,
-	0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32,
-	0x44, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f,
-	0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69,
-	0x6f, 0x6e, 0x2e, 0x54, 0x41, 0x72, 0x69, 0x74, 0x68, 0x6d, 0x65, 0x74, 0x69, 0x63, 0x61, 0x6c,
-	0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x45, 0x4f, 0x70, 0x65, 0x72,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e,
-	0x12, 0x40, 0x0a, 0x0a, 0x6c, 0x65, 0x66, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e,
-	0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70,
-	0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6c, 0x65, 0x66, 0x74, 0x56, 0x61, 0x6c,
-	0x75, 0x65, 0x12, 0x42, 0x0a, 0x0b, 0x72, 0x69, 0x67, 0x68, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e,
-	0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54,
-	0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0a, 0x72, 0x69, 0x67, 0x68,
-	0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x85, 0x01, 0x0a, 0x0a, 0x45, 0x4f, 0x70, 0x65, 0x72,
-	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x24, 0x0a, 0x20, 0x45, 0x58, 0x50, 0x52, 0x45, 0x53, 0x53,
-	0x49, 0x4f, 0x4e, 0x5f, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e,
-	0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x07, 0x0a, 0x03, 0x4d,
-	0x55, 0x4c, 0x10, 0x01, 0x12, 0x07, 0x0a, 0x03, 0x41, 0x44, 0x44, 0x10, 0x02, 0x12, 0x07, 0x0a,
-	0x03, 0x53, 0x55, 0x42, 0x10, 0x03, 0x12, 0x07, 0x0a, 0x03, 0x44, 0x49, 0x56, 0x10, 0x07, 0x12,
-	0x07, 0x0a, 0x03, 0x4d, 0x4f, 0x44, 0x10, 0x08, 0x12, 0x0b, 0x0a, 0x07, 0x42, 0x49, 0x54, 0x5f,
-	0x41, 0x4e, 0x44, 0x10, 0x04, 0x12, 0x0a, 0x0a, 0x06, 0x42, 0x49, 0x54, 0x5f, 0x4f, 0x52, 0x10,
-	0x05, 0x12, 0x0b, 0x0a, 0x07, 0x42, 0x49, 0x54, 0x5f, 0x58, 0x4f, 0x52, 0x10, 0x06, 0x1a, 0x4a,
-	0x0a, 0x09, 0x54, 0x43, 0x6f, 0x61, 0x6c, 0x65, 0x73, 0x63, 0x65, 0x12, 0x3d, 0x0a, 0x08, 0x6f,
-	0x70, 0x65, 0x72, 0x61, 0x6e, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x21, 0x2e,
-	0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e,
-	0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e,
-	0x52, 0x08, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x6e, 0x64, 0x73, 0x1a, 0xdd, 0x01, 0x0a, 0x03, 0x54,
-	0x49, 0x66, 0x12, 0x3e, 0x0a, 0x09, 0x70, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f,
-	0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x50, 0x72,
-	0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x52, 0x09, 0x70, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61,
-	0x74, 0x65, 0x12, 0x4a, 0x0a, 0x0f, 0x74, 0x68, 0x65, 0x6e, 0x5f, 0x65, 0x78, 0x70, 0x72, 0x65,
-	0x73, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59,
-	0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41,
-	0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0e,
-	0x74, 0x68, 0x65, 0x6e, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x4a,
-	0x0a, 0x0f, 0x65, 0x6c, 0x73, 0x65, 0x5f, 0x65, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f,
-	0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e,
-	0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54,
-	0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0e, 0x65, 0x6c, 0x73, 0x65,
-	0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x1a, 0x07, 0x0a, 0x05, 0x54, 0x4e,
+	0x12, 0x3d, 0x0a, 0x04, 0x63, 0x61, 0x73, 0x74, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x27,
+	0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72,
+	0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f,
+	0x6e, 0x2e, 0x54, 0x43, 0x61, 0x73, 0x74, 0x48, 0x00, 0x52, 0x04, 0x63, 0x61, 0x73, 0x74, 0x1a,
+	0x8b, 0x03, 0x0a, 0x17, 0x54, 0x41, 0x72, 0x69, 0x74, 0x68, 0x6d, 0x65, 0x74, 0x69, 0x63, 0x61,
+	0x6c, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x62, 0x0a, 0x09, 0x6f,
+	0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x44,
+	0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72,
+	0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f,
+	0x6e, 0x2e, 0x54, 0x41, 0x72, 0x69, 0x74, 0x68, 0x6d, 0x65, 0x74, 0x69, 0x63, 0x61, 0x6c, 0x45,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x2e, 0x45, 0x4f, 0x70, 0x65, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12,
+	0x40, 0x0a, 0x0a, 0x6c, 0x65, 0x66, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e,
+	0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72,
+	0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x09, 0x6c, 0x65, 0x66, 0x74, 0x56, 0x61, 0x6c, 0x75,
+	0x65, 0x12, 0x42, 0x0a, 0x0b, 0x72, 0x69, 0x67, 0x68, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43,
+	0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0a, 0x72, 0x69, 0x67, 0x68, 0x74,
+	0x56, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x85, 0x01, 0x0a, 0x0a, 0x45, 0x4f, 0x70, 0x65, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x12, 0x24, 0x0a, 0x20, 0x45, 0x58, 0x50, 0x52, 0x45, 0x53, 0x53, 0x49,
+	0x4f, 0x4e, 0x5f, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53,
+	0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x07, 0x0a, 0x03, 0x4d, 0x55,
+	0x4c, 0x10, 0x01, 0x12, 0x07, 0x0a, 0x03, 0x41, 0x44, 0x44, 0x10, 0x02, 0x12, 0x07, 0x0a, 0x03,
+	0x53, 0x55, 0x42, 0x10, 0x03, 0x12, 0x07, 0x0a, 0x03, 0x44, 0x49, 0x56, 0x10, 0x07, 0x12, 0x07,
+	0x0a, 0x03, 0x4d, 0x4f, 0x44, 0x10, 0x08, 0x12, 0x0b, 0x0a, 0x07, 0x42, 0x49, 0x54, 0x5f, 0x41,
+	0x4e, 0x44, 0x10, 0x04, 0x12, 0x0a, 0x0a, 0x06, 0x42, 0x49, 0x54, 0x5f, 0x4f, 0x52, 0x10, 0x05,
+	0x12, 0x0b, 0x0a, 0x07, 0x42, 0x49, 0x54, 0x5f, 0x58, 0x4f, 0x52, 0x10, 0x06, 0x1a, 0x4a, 0x0a,
+	0x09, 0x54, 0x43, 0x6f, 0x61, 0x6c, 0x65, 0x73, 0x63, 0x65, 0x12, 0x3d, 0x0a, 0x08, 0x6f, 0x70,
+	0x65, 0x72, 0x61, 0x6e, 0x64, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e,
+	0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e,
+	0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52,
+	0x08, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x6e, 0x64, 0x73, 0x1a, 0xdd, 0x01, 0x0a, 0x03, 0x54, 0x49,
+	0x66, 0x12, 0x3e, 0x0a, 0x09, 0x70, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x20, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e,
+	0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x50, 0x72, 0x65,
+	0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x52, 0x09, 0x70, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74,
+	0x65, 0x12, 0x4a, 0x0a, 0x0f, 0x74, 0x68, 0x65, 0x6e, 0x5f, 0x65, 0x78, 0x70, 0x72, 0x65, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71,
+	0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70,
+	0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0e, 0x74,
+	0x68, 0x65, 0x6e, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x4a, 0x0a,
+	0x0f, 0x65, 0x6c, 0x73, 0x65, 0x5f, 0x65, 0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43,
+	0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0e, 0x65, 0x6c, 0x73, 0x65, 0x45,
+	0x78, 0x70, 0x72, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x1a, 0x5f, 0x0a, 0x05, 0x54, 0x43, 0x61,
+	0x73, 0x74, 0x12, 0x37, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x21, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x4e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63,
+	0x74, 0x6f, 0x72, 0x2e, 0x4e, 0x41, 0x70, 0x69, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x72, 0x65, 0x73,
+	0x73, 0x69, 0x6f, 0x6e, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x1d, 0x0a, 0x04, 0x74,
+	0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x59, 0x64, 0x62, 0x2e,
+	0x54, 0x79, 0x70, 0x65, 0x52, 0x04, 0x74, 0x79, 0x70, 0x65, 0x1a, 0x07, 0x0a, 0x05, 0x54, 0x4e,
 	0x75, 0x6c, 0x6c, 0x42, 0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x22, 0x82,
 	0x13, 0x0a, 0x0a, 0x54, 0x50, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x12, 0x48, 0x0a,
 	0x08, 0x6e, 0x65, 0x67, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32,
@@ -3736,7 +3816,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 }
 
 var file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 42)
+var file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_goTypes = []interface{}{
 	(EDateTimeFormat)(0),                                // 0: NYql.NConnector.NApi.EDateTimeFormat
 	(TReadSplitsRequest_EMode)(0),                       // 1: NYql.NConnector.NApi.TReadSplitsRequest.EMode
@@ -3772,47 +3852,49 @@ var file_ydb_library_yql_providers_generic_connector_api_service_protos_connecto
 	(*TExpression_TArithmeticalExpression)(nil),         // 31: NYql.NConnector.NApi.TExpression.TArithmeticalExpression
 	(*TExpression_TCoalesce)(nil),                       // 32: NYql.NConnector.NApi.TExpression.TCoalesce
 	(*TExpression_TIf)(nil),                             // 33: NYql.NConnector.NApi.TExpression.TIf
-	(*TExpression_TNull)(nil),                           // 34: NYql.NConnector.NApi.TExpression.TNull
-	(*TPredicate_TNegation)(nil),                        // 35: NYql.NConnector.NApi.TPredicate.TNegation
-	(*TPredicate_TConjunction)(nil),                     // 36: NYql.NConnector.NApi.TPredicate.TConjunction
-	(*TPredicate_TDisjunction)(nil),                     // 37: NYql.NConnector.NApi.TPredicate.TDisjunction
-	(*TPredicate_TCoalesce)(nil),                        // 38: NYql.NConnector.NApi.TPredicate.TCoalesce
-	(*TPredicate_TIf)(nil),                              // 39: NYql.NConnector.NApi.TPredicate.TIf
-	(*TPredicate_TBetween)(nil),                         // 40: NYql.NConnector.NApi.TPredicate.TBetween
-	(*TPredicate_TIn)(nil),                              // 41: NYql.NConnector.NApi.TPredicate.TIn
-	(*TPredicate_TIsNull)(nil),                          // 42: NYql.NConnector.NApi.TPredicate.TIsNull
-	(*TPredicate_TIsNotNull)(nil),                       // 43: NYql.NConnector.NApi.TPredicate.TIsNotNull
-	(*TPredicate_TBoolExpression)(nil),                  // 44: NYql.NConnector.NApi.TPredicate.TBoolExpression
-	(*TPredicate_TComparison)(nil),                      // 45: NYql.NConnector.NApi.TPredicate.TComparison
-	(*TPredicate_TRegexp)(nil),                          // 46: NYql.NConnector.NApi.TPredicate.TRegexp
-	(*TAst_TList)(nil),                                  // 47: NYql.NConnector.NApi.TAst.TList
-	(*common.TDataSourceInstance)(nil),                  // 48: NYql.NConnector.NApi.TDataSourceInstance
-	(*Ydb.Column)(nil),                                  // 49: Ydb.Column
-	(*Ydb.TypedValue)(nil),                              // 50: Ydb.TypedValue
-	(Ydb.StatusIds_StatusCode)(0),                       // 51: Ydb.StatusIds.StatusCode
-	(*Ydb_Issue.IssueMessage)(nil),                      // 52: Ydb.Issue.IssueMessage
-	(*Ydb.Value)(nil),                                   // 53: Ydb.Value
+	(*TExpression_TCast)(nil),                           // 34: NYql.NConnector.NApi.TExpression.TCast
+	(*TExpression_TNull)(nil),                           // 35: NYql.NConnector.NApi.TExpression.TNull
+	(*TPredicate_TNegation)(nil),                        // 36: NYql.NConnector.NApi.TPredicate.TNegation
+	(*TPredicate_TConjunction)(nil),                     // 37: NYql.NConnector.NApi.TPredicate.TConjunction
+	(*TPredicate_TDisjunction)(nil),                     // 38: NYql.NConnector.NApi.TPredicate.TDisjunction
+	(*TPredicate_TCoalesce)(nil),                        // 39: NYql.NConnector.NApi.TPredicate.TCoalesce
+	(*TPredicate_TIf)(nil),                              // 40: NYql.NConnector.NApi.TPredicate.TIf
+	(*TPredicate_TBetween)(nil),                         // 41: NYql.NConnector.NApi.TPredicate.TBetween
+	(*TPredicate_TIn)(nil),                              // 42: NYql.NConnector.NApi.TPredicate.TIn
+	(*TPredicate_TIsNull)(nil),                          // 43: NYql.NConnector.NApi.TPredicate.TIsNull
+	(*TPredicate_TIsNotNull)(nil),                       // 44: NYql.NConnector.NApi.TPredicate.TIsNotNull
+	(*TPredicate_TBoolExpression)(nil),                  // 45: NYql.NConnector.NApi.TPredicate.TBoolExpression
+	(*TPredicate_TComparison)(nil),                      // 46: NYql.NConnector.NApi.TPredicate.TComparison
+	(*TPredicate_TRegexp)(nil),                          // 47: NYql.NConnector.NApi.TPredicate.TRegexp
+	(*TAst_TList)(nil),                                  // 48: NYql.NConnector.NApi.TAst.TList
+	(*common.TDataSourceInstance)(nil),                  // 49: NYql.NConnector.NApi.TDataSourceInstance
+	(*Ydb.Column)(nil),                                  // 50: Ydb.Column
+	(*Ydb.TypedValue)(nil),                              // 51: Ydb.TypedValue
+	(Ydb.StatusIds_StatusCode)(0),                       // 52: Ydb.StatusIds.StatusCode
+	(*Ydb_Issue.IssueMessage)(nil),                      // 53: Ydb.Issue.IssueMessage
+	(*Ydb.Value)(nil),                                   // 54: Ydb.Value
+	(*Ydb.Type)(nil),                                    // 55: Ydb.Type
 }
 var file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_depIdxs = []int32{
-	48, // 0: NYql.NConnector.NApi.TListTablesRequest.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
+	49, // 0: NYql.NConnector.NApi.TListTablesRequest.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
 	21, // 1: NYql.NConnector.NApi.TListTablesResponse.error:type_name -> NYql.NConnector.NApi.TError
-	48, // 2: NYql.NConnector.NApi.TDescribeTableRequest.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
+	49, // 2: NYql.NConnector.NApi.TDescribeTableRequest.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
 	9,  // 3: NYql.NConnector.NApi.TDescribeTableRequest.type_mapping_settings:type_name -> NYql.NConnector.NApi.TTypeMappingSettings
 	0,  // 4: NYql.NConnector.NApi.TTypeMappingSettings.date_time_format:type_name -> NYql.NConnector.NApi.EDateTimeFormat
 	11, // 5: NYql.NConnector.NApi.TDescribeTableResponse.schema:type_name -> NYql.NConnector.NApi.TSchema
 	21, // 6: NYql.NConnector.NApi.TDescribeTableResponse.error:type_name -> NYql.NConnector.NApi.TError
-	49, // 7: NYql.NConnector.NApi.TSchema.columns:type_name -> Ydb.Column
+	50, // 7: NYql.NConnector.NApi.TSchema.columns:type_name -> Ydb.Column
 	14, // 8: NYql.NConnector.NApi.TListSplitsRequest.selects:type_name -> NYql.NConnector.NApi.TSelect
 	15, // 9: NYql.NConnector.NApi.TListSplitsResponse.splits:type_name -> NYql.NConnector.NApi.TSplit
 	21, // 10: NYql.NConnector.NApi.TListSplitsResponse.error:type_name -> NYql.NConnector.NApi.TError
-	48, // 11: NYql.NConnector.NApi.TSelect.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
+	49, // 11: NYql.NConnector.NApi.TSelect.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
 	23, // 12: NYql.NConnector.NApi.TSelect.what:type_name -> NYql.NConnector.NApi.TSelect.TWhat
 	24, // 13: NYql.NConnector.NApi.TSelect.from:type_name -> NYql.NConnector.NApi.TSelect.TFrom
 	25, // 14: NYql.NConnector.NApi.TSelect.where:type_name -> NYql.NConnector.NApi.TSelect.TWhere
 	26, // 15: NYql.NConnector.NApi.TSelect.limit:type_name -> NYql.NConnector.NApi.TSelect.TLimit
 	11, // 16: NYql.NConnector.NApi.TSelect.predefined_schema:type_name -> NYql.NConnector.NApi.TSchema
 	14, // 17: NYql.NConnector.NApi.TSplit.select:type_name -> NYql.NConnector.NApi.TSelect
-	48, // 18: NYql.NConnector.NApi.TReadSplitsRequest.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
+	49, // 18: NYql.NConnector.NApi.TReadSplitsRequest.data_source_instance:type_name -> NYql.NConnector.NApi.TDataSourceInstance
 	15, // 19: NYql.NConnector.NApi.TReadSplitsRequest.splits:type_name -> NYql.NConnector.NApi.TSplit
 	1,  // 20: NYql.NConnector.NApi.TReadSplitsRequest.mode:type_name -> NYql.NConnector.NApi.TReadSplitsRequest.EMode
 	2,  // 21: NYql.NConnector.NApi.TReadSplitsRequest.format:type_name -> NYql.NConnector.NApi.TReadSplitsRequest.EFormat
@@ -3822,66 +3904,69 @@ var file_ydb_library_yql_providers_generic_connector_api_service_protos_connecto
 	18, // 25: NYql.NConnector.NApi.TReadSplitsResponse.continuation:type_name -> NYql.NConnector.NApi.TContinuation
 	29, // 26: NYql.NConnector.NApi.TReadSplitsResponse.stats:type_name -> NYql.NConnector.NApi.TReadSplitsResponse.TStats
 	21, // 27: NYql.NConnector.NApi.TReadSplitsResponse.error:type_name -> NYql.NConnector.NApi.TError
-	50, // 28: NYql.NConnector.NApi.TExpression.typed_value:type_name -> Ydb.TypedValue
+	51, // 28: NYql.NConnector.NApi.TExpression.typed_value:type_name -> Ydb.TypedValue
 	31, // 29: NYql.NConnector.NApi.TExpression.arithmetical_expression:type_name -> NYql.NConnector.NApi.TExpression.TArithmeticalExpression
-	34, // 30: NYql.NConnector.NApi.TExpression.null:type_name -> NYql.NConnector.NApi.TExpression.TNull
+	35, // 30: NYql.NConnector.NApi.TExpression.null:type_name -> NYql.NConnector.NApi.TExpression.TNull
 	32, // 31: NYql.NConnector.NApi.TExpression.coalesce:type_name -> NYql.NConnector.NApi.TExpression.TCoalesce
 	33, // 32: NYql.NConnector.NApi.TExpression.if:type_name -> NYql.NConnector.NApi.TExpression.TIf
-	35, // 33: NYql.NConnector.NApi.TPredicate.negation:type_name -> NYql.NConnector.NApi.TPredicate.TNegation
-	36, // 34: NYql.NConnector.NApi.TPredicate.conjunction:type_name -> NYql.NConnector.NApi.TPredicate.TConjunction
-	37, // 35: NYql.NConnector.NApi.TPredicate.disjunction:type_name -> NYql.NConnector.NApi.TPredicate.TDisjunction
-	40, // 36: NYql.NConnector.NApi.TPredicate.between:type_name -> NYql.NConnector.NApi.TPredicate.TBetween
-	41, // 37: NYql.NConnector.NApi.TPredicate.in:type_name -> NYql.NConnector.NApi.TPredicate.TIn
-	42, // 38: NYql.NConnector.NApi.TPredicate.is_null:type_name -> NYql.NConnector.NApi.TPredicate.TIsNull
-	43, // 39: NYql.NConnector.NApi.TPredicate.is_not_null:type_name -> NYql.NConnector.NApi.TPredicate.TIsNotNull
-	45, // 40: NYql.NConnector.NApi.TPredicate.comparison:type_name -> NYql.NConnector.NApi.TPredicate.TComparison
-	44, // 41: NYql.NConnector.NApi.TPredicate.bool_expression:type_name -> NYql.NConnector.NApi.TPredicate.TBoolExpression
-	38, // 42: NYql.NConnector.NApi.TPredicate.coalesce:type_name -> NYql.NConnector.NApi.TPredicate.TCoalesce
-	39, // 43: NYql.NConnector.NApi.TPredicate.if:type_name -> NYql.NConnector.NApi.TPredicate.TIf
-	46, // 44: NYql.NConnector.NApi.TPredicate.regexp:type_name -> NYql.NConnector.NApi.TPredicate.TRegexp
-	51, // 45: NYql.NConnector.NApi.TError.status:type_name -> Ydb.StatusIds.StatusCode
-	52, // 46: NYql.NConnector.NApi.TError.issues:type_name -> Ydb.Issue.IssueMessage
-	47, // 47: NYql.NConnector.NApi.TAst.list:type_name -> NYql.NConnector.NApi.TAst.TList
-	27, // 48: NYql.NConnector.NApi.TSelect.TWhat.items:type_name -> NYql.NConnector.NApi.TSelect.TWhat.TItem
-	20, // 49: NYql.NConnector.NApi.TSelect.TWhere.filter_typed:type_name -> NYql.NConnector.NApi.TPredicate
-	22, // 50: NYql.NConnector.NApi.TSelect.TWhere.filter_raw:type_name -> NYql.NConnector.NApi.TAst
-	49, // 51: NYql.NConnector.NApi.TSelect.TWhat.TItem.column:type_name -> Ydb.Column
-	49, // 52: NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.meta:type_name -> Ydb.Column
-	30, // 53: NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.data:type_name -> NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.TColumn
-	53, // 54: NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.TColumn.data:type_name -> Ydb.Value
-	4,  // 55: NYql.NConnector.NApi.TExpression.TArithmeticalExpression.operation:type_name -> NYql.NConnector.NApi.TExpression.TArithmeticalExpression.EOperation
-	19, // 56: NYql.NConnector.NApi.TExpression.TArithmeticalExpression.left_value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 57: NYql.NConnector.NApi.TExpression.TArithmeticalExpression.right_value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 58: NYql.NConnector.NApi.TExpression.TCoalesce.operands:type_name -> NYql.NConnector.NApi.TExpression
-	20, // 59: NYql.NConnector.NApi.TExpression.TIf.predicate:type_name -> NYql.NConnector.NApi.TPredicate
-	19, // 60: NYql.NConnector.NApi.TExpression.TIf.then_expression:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 61: NYql.NConnector.NApi.TExpression.TIf.else_expression:type_name -> NYql.NConnector.NApi.TExpression
-	20, // 62: NYql.NConnector.NApi.TPredicate.TNegation.operand:type_name -> NYql.NConnector.NApi.TPredicate
-	20, // 63: NYql.NConnector.NApi.TPredicate.TConjunction.operands:type_name -> NYql.NConnector.NApi.TPredicate
-	20, // 64: NYql.NConnector.NApi.TPredicate.TDisjunction.operands:type_name -> NYql.NConnector.NApi.TPredicate
-	20, // 65: NYql.NConnector.NApi.TPredicate.TCoalesce.operands:type_name -> NYql.NConnector.NApi.TPredicate
-	20, // 66: NYql.NConnector.NApi.TPredicate.TIf.predicate:type_name -> NYql.NConnector.NApi.TPredicate
-	20, // 67: NYql.NConnector.NApi.TPredicate.TIf.then_predicate:type_name -> NYql.NConnector.NApi.TPredicate
-	20, // 68: NYql.NConnector.NApi.TPredicate.TIf.else_predicate:type_name -> NYql.NConnector.NApi.TPredicate
-	19, // 69: NYql.NConnector.NApi.TPredicate.TBetween.value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 70: NYql.NConnector.NApi.TPredicate.TBetween.least:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 71: NYql.NConnector.NApi.TPredicate.TBetween.greatest:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 72: NYql.NConnector.NApi.TPredicate.TIn.value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 73: NYql.NConnector.NApi.TPredicate.TIn.set:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 74: NYql.NConnector.NApi.TPredicate.TIsNull.value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 75: NYql.NConnector.NApi.TPredicate.TIsNotNull.value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 76: NYql.NConnector.NApi.TPredicate.TBoolExpression.value:type_name -> NYql.NConnector.NApi.TExpression
-	5,  // 77: NYql.NConnector.NApi.TPredicate.TComparison.operation:type_name -> NYql.NConnector.NApi.TPredicate.TComparison.EOperation
-	19, // 78: NYql.NConnector.NApi.TPredicate.TComparison.left_value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 79: NYql.NConnector.NApi.TPredicate.TComparison.right_value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 80: NYql.NConnector.NApi.TPredicate.TRegexp.value:type_name -> NYql.NConnector.NApi.TExpression
-	19, // 81: NYql.NConnector.NApi.TPredicate.TRegexp.pattern:type_name -> NYql.NConnector.NApi.TExpression
-	22, // 82: NYql.NConnector.NApi.TAst.TList.children:type_name -> NYql.NConnector.NApi.TAst
-	83, // [83:83] is the sub-list for method output_type
-	83, // [83:83] is the sub-list for method input_type
-	83, // [83:83] is the sub-list for extension type_name
-	83, // [83:83] is the sub-list for extension extendee
-	0,  // [0:83] is the sub-list for field type_name
+	34, // 33: NYql.NConnector.NApi.TExpression.cast:type_name -> NYql.NConnector.NApi.TExpression.TCast
+	36, // 34: NYql.NConnector.NApi.TPredicate.negation:type_name -> NYql.NConnector.NApi.TPredicate.TNegation
+	37, // 35: NYql.NConnector.NApi.TPredicate.conjunction:type_name -> NYql.NConnector.NApi.TPredicate.TConjunction
+	38, // 36: NYql.NConnector.NApi.TPredicate.disjunction:type_name -> NYql.NConnector.NApi.TPredicate.TDisjunction
+	41, // 37: NYql.NConnector.NApi.TPredicate.between:type_name -> NYql.NConnector.NApi.TPredicate.TBetween
+	42, // 38: NYql.NConnector.NApi.TPredicate.in:type_name -> NYql.NConnector.NApi.TPredicate.TIn
+	43, // 39: NYql.NConnector.NApi.TPredicate.is_null:type_name -> NYql.NConnector.NApi.TPredicate.TIsNull
+	44, // 40: NYql.NConnector.NApi.TPredicate.is_not_null:type_name -> NYql.NConnector.NApi.TPredicate.TIsNotNull
+	46, // 41: NYql.NConnector.NApi.TPredicate.comparison:type_name -> NYql.NConnector.NApi.TPredicate.TComparison
+	45, // 42: NYql.NConnector.NApi.TPredicate.bool_expression:type_name -> NYql.NConnector.NApi.TPredicate.TBoolExpression
+	39, // 43: NYql.NConnector.NApi.TPredicate.coalesce:type_name -> NYql.NConnector.NApi.TPredicate.TCoalesce
+	40, // 44: NYql.NConnector.NApi.TPredicate.if:type_name -> NYql.NConnector.NApi.TPredicate.TIf
+	47, // 45: NYql.NConnector.NApi.TPredicate.regexp:type_name -> NYql.NConnector.NApi.TPredicate.TRegexp
+	52, // 46: NYql.NConnector.NApi.TError.status:type_name -> Ydb.StatusIds.StatusCode
+	53, // 47: NYql.NConnector.NApi.TError.issues:type_name -> Ydb.Issue.IssueMessage
+	48, // 48: NYql.NConnector.NApi.TAst.list:type_name -> NYql.NConnector.NApi.TAst.TList
+	27, // 49: NYql.NConnector.NApi.TSelect.TWhat.items:type_name -> NYql.NConnector.NApi.TSelect.TWhat.TItem
+	20, // 50: NYql.NConnector.NApi.TSelect.TWhere.filter_typed:type_name -> NYql.NConnector.NApi.TPredicate
+	22, // 51: NYql.NConnector.NApi.TSelect.TWhere.filter_raw:type_name -> NYql.NConnector.NApi.TAst
+	50, // 52: NYql.NConnector.NApi.TSelect.TWhat.TItem.column:type_name -> Ydb.Column
+	50, // 53: NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.meta:type_name -> Ydb.Column
+	30, // 54: NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.data:type_name -> NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.TColumn
+	54, // 55: NYql.NConnector.NApi.TReadSplitsResponse.TColumnSet.TColumn.data:type_name -> Ydb.Value
+	4,  // 56: NYql.NConnector.NApi.TExpression.TArithmeticalExpression.operation:type_name -> NYql.NConnector.NApi.TExpression.TArithmeticalExpression.EOperation
+	19, // 57: NYql.NConnector.NApi.TExpression.TArithmeticalExpression.left_value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 58: NYql.NConnector.NApi.TExpression.TArithmeticalExpression.right_value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 59: NYql.NConnector.NApi.TExpression.TCoalesce.operands:type_name -> NYql.NConnector.NApi.TExpression
+	20, // 60: NYql.NConnector.NApi.TExpression.TIf.predicate:type_name -> NYql.NConnector.NApi.TPredicate
+	19, // 61: NYql.NConnector.NApi.TExpression.TIf.then_expression:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 62: NYql.NConnector.NApi.TExpression.TIf.else_expression:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 63: NYql.NConnector.NApi.TExpression.TCast.value:type_name -> NYql.NConnector.NApi.TExpression
+	55, // 64: NYql.NConnector.NApi.TExpression.TCast.type:type_name -> Ydb.Type
+	20, // 65: NYql.NConnector.NApi.TPredicate.TNegation.operand:type_name -> NYql.NConnector.NApi.TPredicate
+	20, // 66: NYql.NConnector.NApi.TPredicate.TConjunction.operands:type_name -> NYql.NConnector.NApi.TPredicate
+	20, // 67: NYql.NConnector.NApi.TPredicate.TDisjunction.operands:type_name -> NYql.NConnector.NApi.TPredicate
+	20, // 68: NYql.NConnector.NApi.TPredicate.TCoalesce.operands:type_name -> NYql.NConnector.NApi.TPredicate
+	20, // 69: NYql.NConnector.NApi.TPredicate.TIf.predicate:type_name -> NYql.NConnector.NApi.TPredicate
+	20, // 70: NYql.NConnector.NApi.TPredicate.TIf.then_predicate:type_name -> NYql.NConnector.NApi.TPredicate
+	20, // 71: NYql.NConnector.NApi.TPredicate.TIf.else_predicate:type_name -> NYql.NConnector.NApi.TPredicate
+	19, // 72: NYql.NConnector.NApi.TPredicate.TBetween.value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 73: NYql.NConnector.NApi.TPredicate.TBetween.least:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 74: NYql.NConnector.NApi.TPredicate.TBetween.greatest:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 75: NYql.NConnector.NApi.TPredicate.TIn.value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 76: NYql.NConnector.NApi.TPredicate.TIn.set:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 77: NYql.NConnector.NApi.TPredicate.TIsNull.value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 78: NYql.NConnector.NApi.TPredicate.TIsNotNull.value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 79: NYql.NConnector.NApi.TPredicate.TBoolExpression.value:type_name -> NYql.NConnector.NApi.TExpression
+	5,  // 80: NYql.NConnector.NApi.TPredicate.TComparison.operation:type_name -> NYql.NConnector.NApi.TPredicate.TComparison.EOperation
+	19, // 81: NYql.NConnector.NApi.TPredicate.TComparison.left_value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 82: NYql.NConnector.NApi.TPredicate.TComparison.right_value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 83: NYql.NConnector.NApi.TPredicate.TRegexp.value:type_name -> NYql.NConnector.NApi.TExpression
+	19, // 84: NYql.NConnector.NApi.TPredicate.TRegexp.pattern:type_name -> NYql.NConnector.NApi.TExpression
+	22, // 85: NYql.NConnector.NApi.TAst.TList.children:type_name -> NYql.NConnector.NApi.TAst
+	86, // [86:86] is the sub-list for method output_type
+	86, // [86:86] is the sub-list for method input_type
+	86, // [86:86] is the sub-list for extension type_name
+	86, // [86:86] is the sub-list for extension extendee
+	0,  // [0:86] is the sub-list for field type_name
 }
 
 func init() {
@@ -4229,7 +4314,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TExpression_TNull); i {
+			switch v := v.(*TExpression_TCast); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4241,7 +4326,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[29].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TNegation); i {
+			switch v := v.(*TExpression_TNull); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4253,7 +4338,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TConjunction); i {
+			switch v := v.(*TPredicate_TNegation); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4265,7 +4350,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TDisjunction); i {
+			switch v := v.(*TPredicate_TConjunction); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4277,7 +4362,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TCoalesce); i {
+			switch v := v.(*TPredicate_TDisjunction); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4289,7 +4374,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TIf); i {
+			switch v := v.(*TPredicate_TCoalesce); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4301,7 +4386,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TBetween); i {
+			switch v := v.(*TPredicate_TIf); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4313,7 +4398,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[35].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TIn); i {
+			switch v := v.(*TPredicate_TBetween); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4325,7 +4410,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[36].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TIsNull); i {
+			switch v := v.(*TPredicate_TIn); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4337,7 +4422,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[37].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TIsNotNull); i {
+			switch v := v.(*TPredicate_TIsNull); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4349,7 +4434,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[38].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TBoolExpression); i {
+			switch v := v.(*TPredicate_TIsNotNull); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4361,7 +4446,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[39].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TComparison); i {
+			switch v := v.(*TPredicate_TBoolExpression); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4373,7 +4458,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[40].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*TPredicate_TRegexp); i {
+			switch v := v.(*TPredicate_TComparison); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -4385,6 +4470,18 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			}
 		}
 		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[41].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TPredicate_TRegexp); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[42].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*TAst_TList); i {
 			case 0:
 				return &v.state
@@ -4417,6 +4514,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 		(*TExpression_Null)(nil),
 		(*TExpression_Coalesce)(nil),
 		(*TExpression_If)(nil),
+		(*TExpression_Cast)(nil),
 	}
 	file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_msgTypes[14].OneofWrappers = []interface{}{
 		(*TPredicate_Negation)(nil),
@@ -4445,7 +4543,7 @@ func file_ydb_library_yql_providers_generic_connector_api_service_protos_connect
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_ydb_library_yql_providers_generic_connector_api_service_protos_connector_proto_rawDesc,
 			NumEnums:      6,
-			NumMessages:   42,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

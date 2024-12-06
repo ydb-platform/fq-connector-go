@@ -68,6 +68,9 @@ func runClient(cmd *cobra.Command, _ []string) error {
 		sessionID: sessionID,
 	}
 
+	// override credentials if IAM-token provided
+	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
+
 	if err := callServer(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
@@ -93,7 +96,8 @@ func callServer(
 	switch cfg.DataSourceInstance.Kind {
 	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
 		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM, api_common.EDataSourceKind_ORACLE:
+		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM,
+		api_common.EDataSourceKind_ORACLE, api_common.EDataSourceKind_LOGGING:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: dateTimeFormat,
 		}

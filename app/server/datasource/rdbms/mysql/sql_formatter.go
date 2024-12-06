@@ -78,8 +78,8 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", strings.Replace(ident, "`", "``", -1))
 }
 
-func (f sqlFormatter) FormatFrom(tableName string) string {
-	return f.SanitiseIdentifier(tableName)
+func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParams) (string, error) {
+	return f.SanitiseIdentifier(params.TableName), nil
 }
 
 func NewSQLFormatter() rdbms_utils.SQLFormatter {
