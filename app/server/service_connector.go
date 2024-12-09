@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
@@ -39,7 +40,7 @@ func (s *serviceConnector) DescribeTable(
 	ctx context.Context,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	logger := mustFromContext(ctx)
+	logger := utils.LoggerMustFromContext(ctx)
 	logger = common.AnnotateLoggerForUnaryCall(logger, "DescribeTable", request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
@@ -72,7 +73,7 @@ func (s *serviceConnector) ListSplits(
 	request *api_service_protos.TListSplitsRequest,
 	stream api_service.Connector_ListSplitsServer,
 ) error {
-	logger := mustFromContext(stream.Context())
+	logger := utils.LoggerMustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
 	if err := ValidateListSplitsRequest(logger, request); err != nil {
@@ -162,7 +163,7 @@ func (s *serviceConnector) ReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) error {
-	logger := mustFromContext(stream.Context())
+	logger := utils.LoggerMustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	var err error
@@ -233,9 +234,9 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 		tlsConfig *config.TServerTLSConfig
 	)
 
-	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(logger, registry), UnaryServerMetadata(logger)}
+	unaryInterceptors := []grpc.UnaryServerInterceptor{UnaryServerMetrics(logger, registry), utils.UnaryServerMetadata(logger)}
 
-	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(logger, registry), StreamServerMetadata(logger)}
+	streamInterceptors := []grpc.StreamServerInterceptor{StreamServerMetrics(logger, registry), utils.StreamServerMetadata(logger)}
 
 	opts = append(opts, grpc.ChainUnaryInterceptor(unaryInterceptors...), grpc.ChainStreamInterceptor(streamInterceptors...))
 
@@ -308,17 +309,23 @@ func newServiceConnector(
 	grpcServer := grpc.NewServer(options...)
 	reflection.Register(grpcServer)
 
+	dataSourceCollection, err := NewDataSourceCollection(
+		queryLoggerFactory,
+		memory.DefaultAllocator,
+		paging.NewReadLimiterFactory(cfg.ReadLimit),
+		conversion.NewCollection(cfg.Conversion),
+		cfg,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("new data source collection: %w", err)
+	}
+
 	s := &serviceConnector{
-		dataSourceCollection: NewDataSourceCollection(
-			queryLoggerFactory,
-			memory.DefaultAllocator,
-			paging.NewReadLimiterFactory(cfg.ReadLimit),
-			conversion.NewCollection(cfg.Conversion),
-			cfg),
-		logger:     logger,
-		grpcServer: grpcServer,
-		listener:   listener,
-		cfg:        cfg,
+		dataSourceCollection: dataSourceCollection,
+		logger:               logger,
+		grpcServer:           grpcServer,
+		listener:             listener,
+		cfg:                  cfg,
 	}
 
 	api_service.RegisterConnectorServer(grpcServer, s)

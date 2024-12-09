@@ -22,7 +22,16 @@ func MakeReadSplitsQuery(
 	slct *api_service_protos.TSelect,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
 ) (*ReadSplitsQuery, error) {
-	selectPart, newSelectWhat, err := formatSelectHead(formatter, slct.GetWhat(), slct.GetFrom().GetTable(), true)
+	selectPart, newSelectWhat, err := formatSelectHead(
+		ctx,
+		logger,
+		formatter,
+		slct.GetWhat(),
+		slct.GetFrom().GetTable(),
+		slct.DataSourceInstance,
+		true,
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to format select statement: %w", err)
 	}
