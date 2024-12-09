@@ -44,21 +44,26 @@ type staticResolver struct {
 func (r *staticResolver) resolve(
 	request *resolveParams,
 ) (*resolveResponse, error) {
+	if len(r.cfg.Databases) == 0 {
+		return nil, fmt.Errorf("no YDB endpoints provided")
+	}
+
 	// get random YDB endpoint from provided list
 	ix := rand.Intn(len(r.cfg.Databases))
+
 	endpoint := r.cfg.Databases[ix].Endpoint
 	databaseName := r.cfg.Databases[ix].Name
 
 	// pick a preconfigured folder
 	folder, exists := r.cfg.Folders[request.folderId]
 	if !exists {
-		return nil, fmt.Errorf("folder_id %s is missing", request.folderId)
+		return nil, fmt.Errorf("folder_id '%s' is missing", request.folderId)
 	}
 
 	// resolve log group name into log group id
 	logGroupId, exists := folder.LogGroups[request.logGroupName]
 	if !exists {
-		return nil, fmt.Errorf("log group %s is missing", request.logGroupName)
+		return nil, fmt.Errorf("log group '%s' is missing", request.logGroupName)
 	}
 
 	tableName := fmt.Sprintf("logs/origin/yc.logs.cloud/%s/%s", request.folderId, logGroupId)
