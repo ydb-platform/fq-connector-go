@@ -15,7 +15,7 @@ import (
 type Factory[T paging.Acceptor] interface {
 	Make(
 		logger *zap.Logger,
-		dataSourceType api_common.EDataSourceKind,
+		dataSourceType api_common.EGenericDataSourceKind,
 	) (DataSource[T], error)
 }
 

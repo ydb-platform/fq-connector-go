@@ -27,7 +27,7 @@ func TestReadSplit(t *testing.T) {
 	}
 	split := &api_service_protos.TSplit{
 		Select: &api_service_protos.TSelect{
-			DataSourceInstance: &api_common.TDataSourceInstance{},
+			DataSourceInstance: &api_common.TGenericDataSourceInstance{},
 			What: &api_service_protos.TSelect_TWhat{
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
 					{

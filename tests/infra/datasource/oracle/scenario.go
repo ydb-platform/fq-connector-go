@@ -15,11 +15,11 @@ import (
 
 func testInvalidServiceName[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
 	s *suite.Base[ID, IDBUILDER],
-	dsiSrc *api_common.TDataSourceInstance,
+	dsiSrc *api_common.TGenericDataSourceInstance,
 	table *test_utils.Table[ID, IDBUILDER],
 ) {
-	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
-	oraOpts := dsi.Options.(*api_common.TDataSourceInstance_OracleOptions)
+	dsi := proto.Clone(dsiSrc).(*api_common.TGenericDataSourceInstance)
+	oraOpts := dsi.Options.(*api_common.TGenericDataSourceInstance_OracleOptions)
 
 	oraOpts.OracleOptions.ServiceName = "wrong"
 

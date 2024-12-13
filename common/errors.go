@@ -306,7 +306,7 @@ func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	}
 }
 
-func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_service_protos.TError {
+func NewAPIErrorFromStdError(err error, kind api_common.EGenericDataSourceKind) *api_service_protos.TError {
 	if err == nil {
 		panic("nil error")
 	}
@@ -315,23 +315,23 @@ func NewAPIErrorFromStdError(err error, kind api_common.EDataSourceKind) *api_se
 	var apiError *api_service_protos.TError
 
 	switch kind {
-	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
-	case api_common.EDataSourceKind_CLICKHOUSE:
+	case api_common.EGenericDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
+	case api_common.EGenericDataSourceKind_CLICKHOUSE:
 		apiError = newAPIErrorFromClickHouseError(err)
-	case api_common.EDataSourceKind_POSTGRESQL, api_common.EDataSourceKind_GREENPLUM:
+	case api_common.EGenericDataSourceKind_POSTGRESQL, api_common.EGenericDataSourceKind_GREENPLUM:
 		apiError = newAPIErrorFromPostgreSQLError(err)
-	case api_common.EDataSourceKind_MYSQL:
+	case api_common.EGenericDataSourceKind_MYSQL:
 		apiError = newAPIErrorFromMySQLError(err)
-	case api_common.EDataSourceKind_YDB:
+	case api_common.EGenericDataSourceKind_YDB:
 		apiError = newAPIErrorFromYdbError(err)
-	case api_common.EDataSourceKind_ORACLE:
+	case api_common.EGenericDataSourceKind_ORACLE:
 		apiError = newAPIErrorFromOracleError(err)
-	case api_common.EDataSourceKind_MS_SQL_SERVER:
+	case api_common.EGenericDataSourceKind_MS_SQL_SERVER:
 		apiError = newAPIErrorFromMsSQLServer(err)
-	case api_common.EDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_LOGGING:
 		apiError = newAPIErrorFromYdbError(err)
 	default:
-		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EDataSourceKind_name[int32(kind)]))
+		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EGenericDataSourceKind_name[int32(kind)]))
 	}
 
 	if apiError != nil {

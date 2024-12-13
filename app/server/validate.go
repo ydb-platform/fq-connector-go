@@ -70,9 +70,9 @@ func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error 
 	return nil
 }
 
-type dataSourceInstancesValidator func(dsi *api_common.TDataSourceInstance) error
+type dataSourceInstancesValidator func(dsi *api_common.TGenericDataSourceInstance) error
 
-func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceInstance) error {
+func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TGenericDataSourceInstance) error {
 	if dsi == nil {
 		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
 	}
@@ -80,10 +80,10 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 	var validators []dataSourceInstancesValidator
 
 	switch dsi.Kind {
-	case api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
+	case api_common.EGenericDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
 		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
-	case api_common.EDataSourceKind_LOGGING:
-	case api_common.EDataSourceKind_ORACLE:
+	case api_common.EGenericDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_ORACLE:
 		validators = append(validators, validateEndpoint, validateUseTLS(logger))
 	default:
 		validators = append(validators, validateEndpoint, validateDatabase, validateUseTLS(logger))
@@ -100,30 +100,30 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TDataSourceI
 	return nil
 }
 
-func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
+func validateDataSourceOptions(dsi *api_common.TGenericDataSourceInstance) error {
 	switch dsi.GetKind() {
-	case api_common.EDataSourceKind_POSTGRESQL:
+	case api_common.EGenericDataSourceKind_POSTGRESQL:
 		if dsi.GetPgOptions().GetSchema() == "" {
 			return fmt.Errorf("schema field is empty: %w", common.ErrInvalidRequest)
 		}
-	case api_common.EDataSourceKind_ORACLE:
+	case api_common.EGenericDataSourceKind_ORACLE:
 		if dsi.GetOracleOptions().GetServiceName() == "" {
 			return fmt.Errorf("service_name field is empty: %w", common.ErrInvalidRequest)
 		}
-	case api_common.EDataSourceKind_MS_SQL_SERVER:
+	case api_common.EGenericDataSourceKind_MS_SQL_SERVER:
 		// TODO: check schema
 		return nil
 
-	case api_common.EDataSourceKind_GREENPLUM:
+	case api_common.EGenericDataSourceKind_GREENPLUM:
 		return nil
-	case api_common.EDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_LOGGING:
 		if dsi.GetLoggingOptions().GetFolderId() == "" {
 			return fmt.Errorf("folder_id field is empty: %w", common.ErrInvalidRequest)
 		}
-	case api_common.EDataSourceKind_CLICKHOUSE,
-		api_common.EDataSourceKind_S3,
-		api_common.EDataSourceKind_YDB,
-		api_common.EDataSourceKind_MYSQL:
+	case api_common.EGenericDataSourceKind_CLICKHOUSE,
+		api_common.EGenericDataSourceKind_S3,
+		api_common.EGenericDataSourceKind_YDB,
+		api_common.EGenericDataSourceKind_MYSQL:
 	default:
 		return fmt.Errorf("unsupported data source %s: %w", dsi.GetKind().String(), common.ErrInvalidRequest)
 	}
@@ -131,7 +131,7 @@ func validateDataSourceOptions(dsi *api_common.TDataSourceInstance) error {
 	return nil
 }
 
-func validateEndpoint(dsi *api_common.TDataSourceInstance) error {
+func validateEndpoint(dsi *api_common.TGenericDataSourceInstance) error {
 	endpoint := dsi.GetEndpoint()
 
 	if endpoint == nil {
@@ -149,7 +149,7 @@ func validateEndpoint(dsi *api_common.TDataSourceInstance) error {
 	return nil
 }
 
-func validateDatabase(dsi *api_common.TDataSourceInstance) error {
+func validateDatabase(dsi *api_common.TGenericDataSourceInstance) error {
 	if dsi.Database == "" {
 		return fmt.Errorf("database is empty: %w", common.ErrInvalidRequest)
 	}
@@ -158,7 +158,7 @@ func validateDatabase(dsi *api_common.TDataSourceInstance) error {
 }
 
 func validateUseTLS(logger *zap.Logger) dataSourceInstancesValidator {
-	return func(dsi *api_common.TDataSourceInstance) error {
+	return func(dsi *api_common.TGenericDataSourceInstance) error {
 		if dsi.UseTls {
 			logger.Info("connector will use secure connection to access data source")
 		} else {

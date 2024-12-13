@@ -20,10 +20,10 @@ func AnnotateLoggerWithMethod(l *zap.Logger, method string) *zap.Logger {
 	return l.With(zap.String("method", method))
 }
 
-func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TDataSourceInstance) *zap.Logger {
+func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
 	// TODO: can we print just a login without a password?
 	fields := []zapcore.Field{
-		zap.String("data_source_kind", api_common.EDataSourceKind_name[int32(dsi.GetKind())]),
+		zap.String("data_source_kind", api_common.EGenericDataSourceKind_name[int32(dsi.GetKind())]),
 	}
 
 	if dsi.GetDatabase() != "" {
@@ -38,7 +38,7 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TDataSo
 		)
 	}
 
-	if dsi.Protocol != api_common.EProtocol_PROTOCOL_UNSPECIFIED {
+	if dsi.Protocol != api_common.EGenericProtocol_PROTOCOL_UNSPECIFIED {
 		fields = append(fields,
 			zap.String("protocol", dsi.GetProtocol().String()),
 		)
@@ -59,7 +59,7 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TDataSo
 	return l.With(fields...)
 }
 
-func AnnotateLoggerForUnaryCall(l *zap.Logger, method string, dsi *api_common.TDataSourceInstance) *zap.Logger {
+func AnnotateLoggerForUnaryCall(l *zap.Logger, method string, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
 	l = AnnotateLoggerWithDataSourceInstance(l, dsi)
 	l = AnnotateLoggerWithMethod(l, method)
 

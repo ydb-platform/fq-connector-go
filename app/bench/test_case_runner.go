@@ -68,7 +68,7 @@ func newTestingServerLocal(serverParams *config.TBenchmarkServerParams) (common.
 		}),
 		server.WithPagingConfig(serverParams.Paging),
 		server.WithPprofServerConfig(&config.TPprofServerConfig{
-			Endpoint: &api_common.TEndpoint{Host: "localhost", Port: 50052},
+			Endpoint: &api_common.TGenericEndpoint{Host: "localhost", Port: 50052},
 		}),
 		server.WithConversionConfig(
 			&config.TConversionConfig{

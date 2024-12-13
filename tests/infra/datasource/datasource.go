@@ -5,5 +5,5 @@ import (
 )
 
 type DataSource struct {
-	Instances []*api_common.TDataSourceInstance
+	Instances []*api_common.TGenericDataSourceInstance
 }

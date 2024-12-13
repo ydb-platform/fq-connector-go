@@ -25,7 +25,7 @@ func (c *connectionManager) Make(
 	params *rdbms_utils.ConnectionParamsMakeParams,
 ) (rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
-	if dsi.Protocol != api_common.EProtocol_NATIVE {
+	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
 		return nil, fmt.Errorf("can not create Oracle connection with protocol '%v'", dsi.Protocol)
 	}
 

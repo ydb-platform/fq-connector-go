@@ -34,6 +34,11 @@ class YDBProtoFile:
             self.src_patched = self.__patch_connector_protofile(
                 filepath, lines_initial, go_package
             )
+        elif "package NYql;" in lines_initial:
+            self.src_patched = self.__patch_gateways_config_protofile(
+                filepath, lines_initial, go_package
+            )
+            print(self.src_patched)
         else:
             raise ValueError(f"unknown line pattern for {filepath}")
 
@@ -53,7 +58,9 @@ class YDBProtoFile:
     def __patch_connector_protofile(
         self, filepath: Path, lines_initial: Sequence[str], go_package: str
     ) -> str:
-        import_line_pos = self.__find_import_line(filepath, lines_initial)
+        import_line_pos = self.__find_line_by_prefix(
+            filepath, lines_initial, "option go_package"
+        )
         import_line = f'option go_package = "{go_package}";'
 
         lines_patched = (
@@ -63,10 +70,38 @@ class YDBProtoFile:
         )
         return "\n".join(lines_patched)
 
-    def __find_import_line(self, filepath: Path, lines_initial: Sequence[str]) -> int:
+    def __patch_gateways_config_protofile(
+        self, filepath: Path, lines_initial: Sequence[str], go_package: str
+    ) -> str:
+        usefull_start_pos = self.__find_line_by_prefix(
+            filepath,
+            lines_initial,
+            "/////////// Generic gateway for the external data sources ////////////",
+        )
+        usefull_end_pos = self.__find_line_by_prefix(
+            filepath, lines_initial, "message TGenericClusterConfig"
+        )
+
+        lines_patched = (
+            ['syntax = "proto3";']
+            + lines_initial[:1]
+            + [f'option go_package = "{go_package}";']
+            + lines_initial[usefull_start_pos:usefull_end_pos]
+        )
+
+        lines_concatenated = "\n".join(lines_patched)
+
+        # we want protofile to look like it has proto3 syntax
+        lines_concatenated = lines_concatenated.replace("optional", "") 
+
+        return lines_concatenated
+
+    def __find_line_by_prefix(
+        self, filepath: Path, lines_initial: Sequence[str], prefix: str
+    ) -> int:
         import_line_pos = None
         for i, line in enumerate(lines_initial):
-            if line.startswith("option go_package"):
+            if line.startswith(prefix):
                 import_line_pos = i
                 break
 
@@ -102,11 +137,7 @@ source_params = [
         "github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Issue",
     ),
     (
-        "ydb/library/yql/providers/generic/connector/api/common/endpoint.proto",
-        "github.com/ydb-platform/fq-connector-go/api/common",
-    ),
-    (
-        "ydb/library/yql/providers/generic/connector/api/common/data_source.proto",
+        "yql/essentials/providers/common/proto/gateways_config.proto",
         "github.com/ydb-platform/fq-connector-go/api/common",
     ),
     (
@@ -151,7 +182,7 @@ def __find_executable(name: str) -> Path:
 
 
 def run_protoc(
-    source_dir: Path,
+    proto_files: Sequence[Path],
     target_dir: Path,
     go_module: str,
     includes: Sequence[Path],
@@ -161,9 +192,6 @@ def run_protoc(
     protoc_binary = __find_executable("protoc")
     protoc_gen_go_binary = __find_executable("protoc-gen-go")
     protoc_gen_go_grpc_binary = __find_executable("protoc-gen-go-grpc")
-
-    # look for project protofiles
-    proto_files = source_dir.rglob("*.proto")
 
     # build protoc args
     cmd = [
@@ -243,9 +271,23 @@ def main():
     for f in ydb_source_files:
         f.patch()
     try:
+        # Generate YQL Generic protofiles
+        run_protoc(
+            [
+                ydb_github_root.joinpath(
+                    "yql/essentials/providers/common/proto/gateways_config.proto"
+                ),
+            ],
+            connector_github_root.joinpath("api"),
+            "github.com/ydb-platform/fq-connector-go/api",
+            [ydb_github_root, protobuf_includes],
+            True,
+        )
         # Generate Connector API
         run_protoc(
-            ydb_github_root.joinpath("ydb/library/yql/providers/generic/connector/api"),
+            ydb_github_root.joinpath(
+                "ydb/library/yql/providers/generic/connector/api"
+            ).rglob("*.proto"),
             connector_github_root.joinpath("api"),
             "github.com/ydb-platform/fq-connector-go/api",
             [ydb_github_root, protobuf_includes],
@@ -253,7 +295,7 @@ def main():
         )
         # Generate config protofiles
         run_protoc(
-            connector_github_root.joinpath("app/config"),
+            connector_github_root.joinpath("app/config").rglob("*.proto"),
             connector_github_root.joinpath("app/config"),
             "github.com/ydb-platform/fq-connector-go/app/config",
             [ydb_github_root, connector_github_root, protobuf_includes],

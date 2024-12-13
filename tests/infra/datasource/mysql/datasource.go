@@ -18,18 +18,18 @@ const (
 )
 
 func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
-	dsi := &api_common.TDataSourceInstance{
-		Kind:     api_common.EDataSourceKind_MYSQL,
+	dsi := &api_common.TGenericDataSourceInstance{
+		Kind:     api_common.EGenericDataSourceKind_MYSQL,
 		Database: database,
-		Credentials: &api_common.TCredentials{
-			Payload: &api_common.TCredentials_Basic{
-				Basic: &api_common.TCredentials_TBasic{
+		Credentials: &api_common.TGenericCredentials{
+			Payload: &api_common.TGenericCredentials_Basic{
+				Basic: &api_common.TGenericCredentials_TBasic{
 					Username: username,
 					Password: password,
 				},
 			},
 		},
-		Protocol: api_common.EProtocol_NATIVE,
+		Protocol: api_common.EGenericProtocol_NATIVE,
 		UseTls:   false,
 	}
 
@@ -41,6 +41,6 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 	}
 
 	return &datasource.DataSource{
-		Instances: []*api_common.TDataSourceInstance{dsi},
+		Instances: []*api_common.TGenericDataSourceInstance{dsi},
 	}, nil
 }

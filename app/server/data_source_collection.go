@@ -35,17 +35,17 @@ func (dsc *DataSourceCollection) DescribeTable(
 	kind := request.GetDataSourceInstance().GetKind()
 
 	switch kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
-		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM,
-		api_common.EDataSourceKind_ORACLE, api_common.EDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
+		api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
+		api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
+		api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return nil, fmt.Errorf("make data source: %w", err)
 		}
 
 		return ds.DescribeTable(ctx, logger, request)
-	case api_common.EDataSourceKind_S3:
+	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -61,17 +61,17 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	split *api_service_protos.TSplit,
 ) error {
 	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
-		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM,
-		api_common.EDataSourceKind_ORACLE, api_common.EDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
+		api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
+		api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
+		api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING:
 		ds, err := dsc.rdbms.Make(logger, kind)
 		if err != nil {
 			return fmt.Errorf("make data source: %w", err)
 		}
 
 		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
-	case api_common.EDataSourceKind_S3:
+	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
 		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)

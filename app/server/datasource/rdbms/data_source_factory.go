@@ -38,24 +38,24 @@ type dataSourceFactory struct {
 
 func (dsf *dataSourceFactory) Make(
 	logger *zap.Logger,
-	dataSourceType api_common.EDataSourceKind,
+	dataSourceType api_common.EGenericDataSourceKind,
 ) (datasource.DataSource[any], error) {
 	switch dataSourceType {
-	case api_common.EDataSourceKind_CLICKHOUSE:
+	case api_common.EGenericDataSourceKind_CLICKHOUSE:
 		return NewDataSource(logger, &dsf.clickhouse, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_POSTGRESQL:
+	case api_common.EGenericDataSourceKind_POSTGRESQL:
 		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_YDB:
+	case api_common.EGenericDataSourceKind_YDB:
 		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_MS_SQL_SERVER:
+	case api_common.EGenericDataSourceKind_MS_SQL_SERVER:
 		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_MYSQL:
+	case api_common.EGenericDataSourceKind_MYSQL:
 		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_GREENPLUM:
+	case api_common.EGenericDataSourceKind_GREENPLUM:
 		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_ORACLE:
+	case api_common.EGenericDataSourceKind_ORACLE:
 		return NewDataSource(logger, &dsf.oracle, dsf.converterCollection), nil
-	case api_common.EDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_LOGGING:
 		return NewDataSource(logger, &dsf.logging, dsf.converterCollection), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
@@ -79,9 +79,13 @@ func NewDataSourceFactory(
 	oracleTypeMapper := oracle.NewTypeMapper()
 
 	// for PostgreSQL-like systems
-	schemaGetters := map[api_common.EDataSourceKind]func(dsi *api_common.TDataSourceInstance) string{
-		api_common.EDataSourceKind_POSTGRESQL: func(dsi *api_common.TDataSourceInstance) string { return dsi.GetPgOptions().Schema },
-		api_common.EDataSourceKind_GREENPLUM:  func(dsi *api_common.TDataSourceInstance) string { return dsi.GetGpOptions().Schema },
+	schemaGetters := map[api_common.EGenericDataSourceKind]func(dsi *api_common.TGenericDataSourceInstance) string{
+		api_common.EGenericDataSourceKind_POSTGRESQL: func(dsi *api_common.TGenericDataSourceInstance) string {
+			return dsi.GetPgOptions().Schema
+		},
+		api_common.EGenericDataSourceKind_GREENPLUM: func(dsi *api_common.TGenericDataSourceInstance) string {
+			return dsi.GetGpOptions().Schema
+		},
 	}
 
 	dsf := &dataSourceFactory{
@@ -98,14 +102,14 @@ func NewDataSourceFactory(
 		postgresql: Preset{
 			SQLFormatter: postgresql.NewSQLFormatter(),
 			ConnectionManager: postgresql.NewConnectionManager(
-				cfg.Postgresql, connManagerBase, schemaGetters[api_common.EDataSourceKind_POSTGRESQL]),
+				cfg.Postgresql, connManagerBase, schemaGetters[api_common.EGenericDataSourceKind_POSTGRESQL]),
 			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
 				func(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 					return postgresql.TableMetadataQuery(
 						request,
-						schemaGetters[api_common.EDataSourceKind_POSTGRESQL](request.DataSourceInstance))
+						schemaGetters[api_common.EGenericDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
@@ -145,14 +149,14 @@ func NewDataSourceFactory(
 		greenplum: Preset{
 			SQLFormatter: postgresql.NewSQLFormatter(),
 			ConnectionManager: postgresql.NewConnectionManager(
-				cfg.Greenplum, connManagerBase, schemaGetters[api_common.EDataSourceKind_GREENPLUM]),
+				cfg.Greenplum, connManagerBase, schemaGetters[api_common.EGenericDataSourceKind_GREENPLUM]),
 			TypeMapper: postgresqlTypeMapper,
 			SchemaProvider: rdbms_utils.NewDefaultSchemaProvider(
 				postgresqlTypeMapper,
 				func(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 					return postgresql.TableMetadataQuery(
 						request,
-						schemaGetters[api_common.EDataSourceKind_GREENPLUM](request.DataSourceInstance))
+						schemaGetters[api_common.EGenericDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),

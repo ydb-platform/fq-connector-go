@@ -276,21 +276,21 @@ func (s *Suite) TestPositiveStats() {
 }
 
 func (s *Suite) TestMissingDataSource() {
-	dsi := &api_common.TDataSourceInstance{
-		Kind:     api_common.EDataSourceKind_POSTGRESQL,
-		Endpoint: &api_common.TEndpoint{Host: "www.google.com", Port: 5432},
+	dsi := &api_common.TGenericDataSourceInstance{
+		Kind:     api_common.EGenericDataSourceKind_POSTGRESQL,
+		Endpoint: &api_common.TGenericEndpoint{Host: "www.google.com", Port: 5432},
 		Database: "it's not important",
-		Credentials: &api_common.TCredentials{
-			Payload: &api_common.TCredentials_Basic{
-				Basic: &api_common.TCredentials_TBasic{
+		Credentials: &api_common.TGenericCredentials{
+			Payload: &api_common.TGenericCredentials_Basic{
+				Basic: &api_common.TGenericCredentials_TBasic{
 					Username: "it's not important",
 					Password: "it's not important",
 				},
 			},
 		},
 		UseTls:   false,
-		Protocol: api_common.EProtocol_NATIVE,
-		Options: &api_common.TDataSourceInstance_PgOptions{
+		Protocol: api_common.EGenericProtocol_NATIVE,
+		Options: &api_common.TGenericDataSourceInstance_PgOptions{
 			PgOptions: &api_common.TPostgreSQLDataSourceOptions{
 				Schema: "public",
 			},

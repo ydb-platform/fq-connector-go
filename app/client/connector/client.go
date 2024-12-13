@@ -94,10 +94,10 @@ func callServer(
 	var splits []*api_service_protos.TSplit
 
 	switch cfg.DataSourceInstance.Kind {
-	case api_common.EDataSourceKind_CLICKHOUSE, api_common.EDataSourceKind_POSTGRESQL,
-		api_common.EDataSourceKind_YDB, api_common.EDataSourceKind_MS_SQL_SERVER,
-		api_common.EDataSourceKind_MYSQL, api_common.EDataSourceKind_GREENPLUM,
-		api_common.EDataSourceKind_ORACLE, api_common.EDataSourceKind_LOGGING:
+	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
+		api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
+		api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
+		api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: dateTimeFormat,
 		}
@@ -122,7 +122,7 @@ func callServer(
 func prepareSplits(
 	logger *zap.Logger,
 	cl *common.ClientBuffering,
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
 	metainfo requestMetadata,

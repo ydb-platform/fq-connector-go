@@ -35,10 +35,10 @@ type Rows interface {
 }
 
 type ConnectionParamsMakeParams struct {
-	Ctx                context.Context                 // mandatory
-	Logger             *zap.Logger                     // mandatory
-	DataSourceInstance *api_common.TDataSourceInstance // mandatory
-	TableName          string                          // optional
+	Ctx                context.Context                        // mandatory
+	Logger             *zap.Logger                            // mandatory
+	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
+	TableName          string                                 // optional
 }
 
 type ConnectionManager interface {
@@ -54,7 +54,7 @@ type SQLFormatterFormatFromParams struct {
 	Ctx                context.Context
 	Logger             *zap.Logger
 	TableName          string
-	DataSourceInstance *api_common.TDataSourceInstance
+	DataSourceInstance *api_common.TGenericDataSourceInstance
 }
 
 type SQLFormatter interface {

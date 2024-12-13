@@ -64,7 +64,7 @@ func (b *Base[_, _]) SetupSuite() {
 		),
 		server.WithMetricsServerConfig(
 			&config.TMetricsServerConfig{
-				Endpoint: &api_common.TEndpoint{
+				Endpoint: &api_common.TGenericEndpoint{
 					Host: "localhost",
 					Port: 8766,
 				},
@@ -156,7 +156,7 @@ func (b *Base[ID, IDBUILDER]) ValidateTable(
 
 func (b *Base[ID, IDBUILDER]) doValidateTable(
 	table *test_utils.Table[ID, IDBUILDER],
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	customOptions ...ValidateTableOption,
 ) {
 	options := newDefaultValidateTableOptions()
