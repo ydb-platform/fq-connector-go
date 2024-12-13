@@ -97,7 +97,7 @@ func newConnectionDatabaseSQL(
 	logger *zap.Logger,
 	queryLogger common.QueryLogger,
 	cfg *config.TYdbConfig,
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	ydbDriver *ydb_sdk.Driver,
 ) (ydbConnection, error) {
 	ydbConn, err := ydb_sdk.Connector(

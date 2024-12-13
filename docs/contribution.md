@@ -100,7 +100,7 @@ make run
 
 ### ConnectionManager
 
-Начать стоит с реализации интерфейса `СonnectionManager`. Здесь вам нужно просто научиться по параметрам, пришедшим в структуре типа `TDataSourceInstance`, конструировать сетевое соединение к базе. Наиболее хрестоматийные примеры можно посмотреть в папках [clickhouse](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/clickhouse/connection_manager.go) и [postgresql](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/postgresql/connection_manager.go).
+Начать стоит с реализации интерфейса `СonnectionManager`. Здесь вам нужно просто научиться по параметрам, пришедшим в структуре типа `TGenericDataSourceInstance`, конструировать сетевое соединение к базе. Наиболее хрестоматийные примеры можно посмотреть в папках [clickhouse](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/clickhouse/connection_manager.go) и [postgresql](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/postgresql/connection_manager.go).
 
 > [!IMPORTANT]
 > Для работы с внешними источниками данных вам потребуется **драйвер** - библиотека на языке Go, которая реализует протокол взаимодействия с базой. Существуют важные нюансы при выборе библиотек:
@@ -110,7 +110,7 @@ make run
 
 Некоторые источники данных предоставляют несколько сетевых интерфейсов для доступа данных: например, к ClickHouse можно подключиться как по TCP-протоколу, так и по HTTP-протоколу. Изучите ваш источник данных в этом отношении. В большинстве случаев достаточно только реализации `NATIVE` (то есть TCP) протокола.
 
-Иногда при соединении с источником требуется указать какие-то особенные параметры, например, у PostgreSQL есть понятие схемы (пространства имён для таблиц). Если вам недостаточн общее параметров, уже присутствующих в структуре [TDataSourceInstance](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L65-L86), вы можете добавить в опциональное поле `options` новую структуру, описывающую специфику именно вашего источника.
+Иногда при соединении с источником требуется указать какие-то особенные параметры, например, у PostgreSQL есть понятие схемы (пространства имён для таблиц). Если вам недостаточн общее параметров, уже присутствующих в структуре [TGenericDataSourceInstance](https://github.com/ydb-platform/ydb/blob/main/ydb/library/yql/providers/generic/connector/api/common/data_source.proto#L65-L86), вы можете добавить в опциональное поле `options` новую структуру, описывающую специфику именно вашего источника.
 
 ### Connection, Rows и трансформеры
 

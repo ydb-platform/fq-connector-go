@@ -74,7 +74,7 @@ func makeConnectionHTTP(
 	ctx context.Context,
 	logger *zap.Logger,
 	cfg *config.TClickHouseConfig,
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	queryLogger common.QueryLogger,
 ) (rdbms_utils.Connection, error) {
 	opts := &clickhouse.Options{

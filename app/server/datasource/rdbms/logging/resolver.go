@@ -19,7 +19,7 @@ type resolveParams struct {
 }
 
 type resolveResponse struct {
-	endpoint     *api_common.TEndpoint
+	endpoint     *api_common.TGenericEndpoint
 	databaseName string
 	tableName    string
 }

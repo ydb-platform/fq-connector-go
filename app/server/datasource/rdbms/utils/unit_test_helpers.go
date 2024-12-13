@@ -127,7 +127,7 @@ func NewNestedValueExpression(val string) *api_service_protos.TExpression {
 func MakeTestSplit() *api_service_protos.TSplit {
 	return &api_service_protos.TSplit{
 		Select: &api_service_protos.TSelect{
-			DataSourceInstance: &api_common.TDataSourceInstance{},
+			DataSourceInstance: &api_common.TGenericDataSourceInstance{},
 			What:               NewDefaultWhat(),
 			From: &api_service_protos.TSelect_TFrom{
 				Table: "example_1",

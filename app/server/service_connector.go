@@ -81,7 +81,7 @@ func (s *serviceConnector) ListSplits(
 			&api_service_protos.TListSplitsResponse{
 				Error: common.NewAPIErrorFromStdError(
 					err,
-					api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
+					api_common.EGenericDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
 				),
 			},
 		)
@@ -175,7 +175,7 @@ func (s *serviceConnector) ReadSplits(
 		response := &api_service_protos.TReadSplitsResponse{
 			Error: common.NewAPIErrorFromStdError(
 				err,
-				api_common.EDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
+				api_common.EGenericDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
 			),
 		}
 
@@ -283,7 +283,7 @@ func newServiceConnector(
 	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
 	// TODO: drop deprecated fields after YQ-2057
-	var endpoint *api_common.TEndpoint
+	var endpoint *api_common.TGenericEndpoint
 
 	switch {
 	case cfg.GetConnectorServer().GetEndpoint() != nil:

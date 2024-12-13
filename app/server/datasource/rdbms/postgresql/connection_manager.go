@@ -68,7 +68,7 @@ var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.ConnectionManagerBase
-	schemaGetter func(dsi *api_common.TDataSourceInstance) string
+	schemaGetter func(dsi *api_common.TGenericDataSourceInstance) string
 	cfg          ConnectionManagerConfig
 }
 
@@ -80,7 +80,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("currently only basic auth is supported")
 	}
 
-	if dsi.Protocol != api_common.EProtocol_NATIVE {
+	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
 		return nil, fmt.Errorf("can not create PostgreSQL connection with protocol '%v'", dsi.Protocol)
 	}
 
@@ -146,7 +146,7 @@ type ConnectionManagerConfig interface {
 func NewConnectionManager(
 	cfg ConnectionManagerConfig,
 	base rdbms_utils.ConnectionManagerBase,
-	schemaGetter func(*api_common.TDataSourceInstance) string,
+	schemaGetter func(*api_common.TGenericDataSourceInstance) string,
 ) rdbms_utils.ConnectionManager {
 	return &connectionManager{
 		ConnectionManagerBase: base,

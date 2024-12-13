@@ -100,8 +100,8 @@ func getChecksum(tag string) (string, error) {
 		line := scanner.Text()
 		if strings.Contains(line, "sha256") {
 			fmt.Println(line)
-			line = strings.Split(line, "<span>")[1]
-			line = strings.Split(line, "</span>")[0]
+			line = strings.Split(line, "class=\"Link\">")[1]
+			line = strings.Split(line, "</a>")[0]
 			checksum = line
 
 			break

@@ -69,7 +69,7 @@ func getJSON(u url.URL, target any) error {
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
-func buildURL(endpoint *api_common.TEndpoint, useTLS bool) url.URL {
+func buildURL(endpoint *api_common.TGenericEndpoint, useTLS bool) url.URL {
 	var u url.URL
 
 	if useTLS {
@@ -84,7 +84,7 @@ func buildURL(endpoint *api_common.TEndpoint, useTLS bool) url.URL {
 	return u
 }
 
-func NewMetricsSnapshot(endpoint *api_common.TEndpoint, useTLS bool) (*MetricsSnapshot, error) {
+func NewMetricsSnapshot(endpoint *api_common.TGenericEndpoint, useTLS bool) (*MetricsSnapshot, error) {
 	mp := &MetricsSnapshot{}
 
 	if err := getJSON(buildURL(endpoint, useTLS), &mp.data); err != nil {

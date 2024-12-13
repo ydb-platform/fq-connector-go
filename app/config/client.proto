@@ -1,22 +1,21 @@
 syntax = "proto3";
 package NYql.Connector.App.Config;
 
-import "ydb/library/yql/providers/generic/connector/api/common/data_source.proto";
-import "ydb/library/yql/providers/generic/connector/api/common/endpoint.proto";
+import "yql/essentials/providers/common/proto/gateways_config.proto";
 
 option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
 
 // Connector client configuration
 message TClientConfig {
     // Connector GRPC API endpoint to connect
-    NYql.NConnector.NApi.TEndpoint connector_server_endpoint = 4;
+    NYql.TGenericEndpoint connector_server_endpoint = 4;
     // TLS credentials for Connector
     TClientTLSConfig tls = 2;
     // Data source instance we read data from
-    NYql.NConnector.NApi.TDataSourceInstance data_source_instance = 3;
+    NYql.TGenericDataSourceInstance data_source_instance = 3;
 
     // Solomon metrics endpoint to connect
-    NYql.NConnector.NApi.TEndpoint metrics_server_endpoint = 5;
+    NYql.TGenericEndpoint metrics_server_endpoint = 5;
 
     reserved 1;
 }

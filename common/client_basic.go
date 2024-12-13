@@ -19,7 +19,7 @@ type clientBasic struct {
 
 func (c *clientBasic) DescribeTable(
 	ctx context.Context,
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	typeMappingSettings *api_service_protos.TTypeMappingSettings,
 	tableName string,
 ) (*api_service_protos.TDescribeTableResponse, error) {

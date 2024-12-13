@@ -29,9 +29,9 @@ func (c *connectionManager) Make(
 	}
 
 	switch dsi.Protocol {
-	case api_common.EProtocol_NATIVE:
+	case api_common.EGenericProtocol_NATIVE:
 		return makeConnectionNative(ctx, logger, c.cfg, dsi, c.QueryLoggerFactory.Make(logger))
-	case api_common.EProtocol_HTTP:
+	case api_common.EGenericProtocol_HTTP:
 		return makeConnectionHTTP(ctx, logger, c.cfg, dsi, c.QueryLoggerFactory.Make(logger))
 	default:
 		return nil, fmt.Errorf("can not run ClickHouse connection with protocol '%v'", dsi.Protocol)

@@ -16,7 +16,7 @@ type EndpointDeterminer struct {
 	dockerComposeFile string
 }
 
-func (ed *EndpointDeterminer) GetEndpoint(service string, internalPort int) (*api_common.TEndpoint, error) {
+func (ed *EndpointDeterminer) GetEndpoint(service string, internalPort int) (*api_common.TGenericEndpoint, error) {
 	cmd := "docker"
 	args := []string{
 		"compose",
@@ -45,7 +45,7 @@ func (ed *EndpointDeterminer) GetEndpoint(service string, internalPort int) (*ap
 		return nil, fmt.Errorf("convert '%s' to int: %w", portStr, err)
 	}
 
-	return &api_common.TEndpoint{
+	return &api_common.TGenericEndpoint{
 		Host: host,
 		Port: uint32(port),
 	}, nil

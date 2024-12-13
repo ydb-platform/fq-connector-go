@@ -18,23 +18,23 @@ const (
 )
 
 func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
-	dsi := &api_common.TDataSourceInstance{
-		Kind:     api_common.EDataSourceKind_ORACLE,
+	dsi := &api_common.TGenericDataSourceInstance{
+		Kind:     api_common.EGenericDataSourceKind_ORACLE,
 		Database: database,
-		Credentials: &api_common.TCredentials{
-			Payload: &api_common.TCredentials_Basic{
-				Basic: &api_common.TCredentials_TBasic{
+		Credentials: &api_common.TGenericCredentials{
+			Payload: &api_common.TGenericCredentials_Basic{
+				Basic: &api_common.TGenericCredentials_TBasic{
 					Username: username,
 					Password: password,
 				},
 			},
 		},
-		Options: &api_common.TDataSourceInstance_OracleOptions{
+		Options: &api_common.TGenericDataSourceInstance_OracleOptions{
 			OracleOptions: &api_common.TOracleDataSourceOptions{
 				ServiceName: dbServiceName,
 			},
 		},
-		Protocol: api_common.EProtocol_NATIVE,
+		Protocol: api_common.EGenericProtocol_NATIVE,
 		UseTls:   false,
 	}
 
@@ -46,6 +46,6 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 	}
 
 	return &datasource.DataSource{
-		Instances: []*api_common.TDataSourceInstance{dsi},
+		Instances: []*api_common.TGenericDataSourceInstance{dsi},
 	}, nil
 }

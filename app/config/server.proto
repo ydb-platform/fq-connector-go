@@ -1,13 +1,13 @@
 syntax = "proto3";
 package NYql.Connector.App.Config;
 
-import "ydb/library/yql/providers/generic/connector/api/common/endpoint.proto";
+import "yql/essentials/providers/common/proto/gateways_config.proto";
 
 option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
 
 // Connector server configuration
 message TServerConfig {
-    NYql.NConnector.NApi.TEndpoint endpoint = 1 [deprecated=true];
+    NYql.TGenericEndpoint endpoint = 1 [deprecated=true];
     TServerTLSConfig tls = 2 [deprecated=true];
 
     // TConnectorServerConfig contains configuration of the main GRPC server
@@ -34,7 +34,7 @@ message TServerConfig {
 // TConnectorServerConfig - configuration of the main GRPC server
 message TConnectorServerConfig {
     // Network address server will be listening on
-    NYql.NConnector.NApi.TEndpoint endpoint = 1;
+    NYql.TGenericEndpoint endpoint = 1;
     // TLS settings.
     // Leave it empty for insecure connections.
     TServerTLSConfig tls = 2;
@@ -78,7 +78,7 @@ enum ELogLevel {
 // TPprofServerConfig configures HTTP server delivering Go runtime profiler data 
 message TPprofServerConfig {
     // Network address server will be listening on
-    NYql.NConnector.NApi.TEndpoint endpoint = 1;
+    NYql.TGenericEndpoint endpoint = 1;
     // TLS settings.
     // Leave it empty for insecure connections.
     TServerTLSConfig tls = 2;
@@ -87,7 +87,7 @@ message TPprofServerConfig {
 // TMetricsConfig - configuration of the metrics service
 message TMetricsServerConfig {
     // Network address server will be listening on
-    NYql.NConnector.NApi.TEndpoint endpoint = 1;
+    NYql.TGenericEndpoint endpoint = 1;
     // TLS settings.
     // Leave it empty for insecure connections.
     TServerTLSConfig tls = 2;
@@ -247,7 +247,7 @@ message TLoggingConfig {
     message TStaticResolving {
         message TDatabase {
             // network address
-            NYql.NConnector.NApi.TEndpoint endpoint = 1;
+            NYql.TGenericEndpoint endpoint = 1;
             // database name
             string name = 2; 
         }

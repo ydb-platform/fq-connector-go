@@ -49,7 +49,7 @@ func formatSelectHead(
 	formatter SQLFormatter,
 	selectWhat *api_service_protos.TSelect_TWhat,
 	tableName string,
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	fakeZeroOnEmptyColumnsSet bool,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
 	// SELECT $columns FROM $from

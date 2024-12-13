@@ -47,7 +47,7 @@ func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDB
 func TestMissingDataSource[
 	ID test_utils.TableIDTypes,
 	IDBUILDER test_utils.ArrowIDBuilder[ID],
-](s *Base[ID, IDBUILDER], dsi *api_common.TDataSourceInstance) {
+](s *Base[ID, IDBUILDER], dsi *api_common.TGenericDataSourceInstance) {
 	// Do not retry negative tests
 	md := metadata.Pairs(common.ForbidRetries, "1")
 	ctx := metadata.NewOutgoingContext(test_utils.NewContextWithTestName(), md)
@@ -74,10 +74,10 @@ func TestMissingDataSource[
 
 func TestInvalidLogin[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
 	s *Base[ID, IDBUILDER],
-	dsiSrc *api_common.TDataSourceInstance,
+	dsiSrc *api_common.TGenericDataSourceInstance,
 	table *test_utils.Table[ID, IDBUILDER],
 ) {
-	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
+	dsi := proto.Clone(dsiSrc).(*api_common.TGenericDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Username = "wrong"
 
@@ -102,10 +102,10 @@ func TestInvalidLogin[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBu
 
 func TestInvalidPassword[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
 	s *Base[ID, IDBUILDER],
-	dsiSrc *api_common.TDataSourceInstance,
+	dsiSrc *api_common.TGenericDataSourceInstance,
 	table *test_utils.Table[ID, IDBUILDER],
 ) {
-	dsi := proto.Clone(dsiSrc).(*api_common.TDataSourceInstance)
+	dsi := proto.Clone(dsiSrc).(*api_common.TGenericDataSourceInstance)
 
 	dsi.Credentials.GetBasic().Password = "wrong"
 
@@ -130,7 +130,7 @@ func TestInvalidPassword[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowI
 
 func TestUnsupportedPushdownFilteringMandatory[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]](
 	s *Base[ID, IDBUILDER],
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	table *test_utils.Table[ID, IDBUILDER],
 	predicate *api_service_protos.TPredicate,
 ) {

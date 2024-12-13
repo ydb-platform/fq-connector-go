@@ -217,7 +217,7 @@ func validateConnectorServerConfig(c *config.TConnectorServerConfig) error {
 	return nil
 }
 
-func validateEndpoint(c *api_common.TEndpoint) error {
+func validateEndpoint(c *api_common.TGenericEndpoint) error {
 	if c == nil {
 		return fmt.Errorf("required section is missing")
 	}
@@ -532,13 +532,13 @@ const (
 func NewDefaultConfig() *config.TServerConfig {
 	cfg := &config.TServerConfig{
 		ConnectorServer: &config.TConnectorServerConfig{
-			Endpoint: &api_common.TEndpoint{
+			Endpoint: &api_common.TGenericEndpoint{
 				Host: defaultHost,
 				Port: defaultPortConnector,
 			},
 		},
 		PprofServer: &config.TPprofServerConfig{
-			Endpoint: &api_common.TEndpoint{
+			Endpoint: &api_common.TGenericEndpoint{
 				Host: defaultHost,
 				Port: defaultPortPprof,
 			},

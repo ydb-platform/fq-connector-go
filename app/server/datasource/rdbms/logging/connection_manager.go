@@ -36,8 +36,8 @@ func (cm *connectionManager) Make(
 	params.Logger.Debug("Resolved log group into YDB endpoint", response.ToZapFields()...)
 
 	// prepare new data source instance describing the underlying YDB database
-	ydbDataSourceInstance := &api_common.TDataSourceInstance{
-		Kind:        api_common.EDataSourceKind_YDB,
+	ydbDataSourceInstance := &api_common.TGenericDataSourceInstance{
+		Kind:        api_common.EGenericDataSourceKind_YDB,
 		Endpoint:    response.endpoint,
 		Database:    response.databaseName,
 		Credentials: params.DataSourceInstance.GetCredentials(),

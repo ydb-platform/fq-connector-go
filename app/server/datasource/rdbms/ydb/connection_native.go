@@ -109,7 +109,7 @@ func (r *rowsNative) Close() error {
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
-	dsi         *api_common.TDataSourceInstance
+	dsi         *api_common.TGenericDataSourceInstance
 	queryLogger common.QueryLogger
 	ctx         context.Context
 	driver      *ydb_sdk.Driver
@@ -293,7 +293,7 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 func newConnectionNative(
 	ctx context.Context,
 	queryLogger common.QueryLogger,
-	dsi *api_common.TDataSourceInstance,
+	dsi *api_common.TGenericDataSourceInstance,
 	driver *ydb_sdk.Driver,
 ) ydbConnection {
 	return &connectionNative{
