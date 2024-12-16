@@ -42,6 +42,7 @@ func (c *connectionManager) Make(
 
 	if c.cfg.ServiceAccountKeyFileCredentials != "" {
 		logger.Debug("YDB Connector will use service account key file credentials")
+
 		cred = yc.WithServiceAccountKeyFileCredentials(c.cfg.ServiceAccountKeyFileCredentials)
 	} else if dsi.Credentials.GetToken() != nil {
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
