@@ -228,6 +228,11 @@ message TYdbConfig {
     // MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES is the default mode.
     Mode mode = 4;
 
+    // Path to JSON file with static SA credentials.
+    // If this file is provided, the YDB connector will use 
+    // this credentials to access the database.
+    string service_account_key_file_credentials = 5;
+
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 

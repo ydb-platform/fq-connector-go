@@ -9,6 +9,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
+	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -46,6 +47,8 @@ func (c *connectionManager) Make(
 	} else {
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
+
+	cred = yc.WithServiceAccountKeyFileCredentials("/home/vitalyisaev/.tokens/yq3839.json")
 
 	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
 
