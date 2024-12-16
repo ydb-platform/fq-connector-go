@@ -23,20 +23,15 @@ func absInt(x int) int {
 	return x
 }
 
-//go:linkname decomposeDate time.(*Time).date
-func decomposeDate(*time.Time, bool) (year int, month int, day int, dayOfYear int)
-
-//go:linkname formatBits strconv.formatBits
-func formatBits([]byte, uint64, int, bool, bool) (b []byte, s string)
-
 type dateToStringConverterUnsafe struct{}
 
 func (dateToStringConverterUnsafe) Convert(in *time.Time) (string, error) {
 	buf := make([]byte, 0, 11)
 
-	year, month, day, _ := decomposeDate(in, true)
-
-	// year
+	// We used to call the unexported method *Time.date() directly before,
+	// but since Go 1.23 it's restricted to use go:linkname,
+	// so now we spend 3x more time here:
+	year, month, day := in.Year(), in.Month(), in.Day()
 
 	if year < 0 {
 		buf = append(buf, byte('-'))
