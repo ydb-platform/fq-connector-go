@@ -41,18 +41,24 @@ func (c *connectionManager) Make(
 	var cred ydb_sdk.Option
 
 	if c.cfg.ServiceAccountKeyFileCredentials != "" {
-		logger.Debug("YDB Connector will use service account key file credentials")
+		logger.Debug("connector will use service account key file credentials for authorization")
 
 		cred = yc.WithServiceAccountKeyFileCredentials(c.cfg.ServiceAccountKeyFileCredentials)
 	} else if dsi.Credentials.GetToken() != nil {
+		logger.Debug("connector will use token for authorization")
+
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
 	} else if dsi.Credentials.GetBasic() != nil {
+		logger.Debug("connector will use base auth credentials for authorization")
+
 		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
 	} else {
+		logger.Warn("connector will not use any credentials for authorization")
+
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
 
-	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
+	logger.Debug("trying to open YDB SDK connection", zap.String("dsn", dsn))
 
 	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(c.cfg.OpenConnectionTimeout))
 	defer openCtxCancel()
@@ -86,10 +92,10 @@ func (c *connectionManager) Make(
 	case config.TYdbConfig_MODE_UNSPECIFIED:
 		fallthrough
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
-		logger.Debug("YDB Connector will use Native SDK over Query Service")
+		logger.Debug("connector will use Native SDK over Query Service")
 		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
-		logger.Debug("YDB Connector will use database/sql SDK with scan queries over Table Service")
+		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")
 		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
 	default:
 		return nil, fmt.Errorf("unknown mode: %v", c.cfg.Mode)
