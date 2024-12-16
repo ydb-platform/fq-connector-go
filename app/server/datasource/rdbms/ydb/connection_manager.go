@@ -40,15 +40,16 @@ func (c *connectionManager) Make(
 
 	var cred ydb_sdk.Option
 
-	if dsi.Credentials.GetToken() != nil {
+	if c.cfg.ServiceAccountKeyFileCredentials != "" {
+		logger.Debug("YDB Connector will use service account key file credentials")
+		cred = yc.WithServiceAccountKeyFileCredentials(c.cfg.ServiceAccountKeyFileCredentials)
+	} else if dsi.Credentials.GetToken() != nil {
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
 	} else if dsi.Credentials.GetBasic() != nil {
 		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
 	} else {
 		cred = ydb_sdk.WithAnonymousCredentials()
 	}
-
-	cred = yc.WithServiceAccountKeyFileCredentials("/home/vitalyisaev/.tokens/yq3839.json")
 
 	logger.Debug("Trying to open YDB SDK connection", zap.String("dsn", dsn))
 
