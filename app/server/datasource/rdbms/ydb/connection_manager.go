@@ -9,6 +9,7 @@ import (
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
+	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 
@@ -39,7 +40,11 @@ func (c *connectionManager) Make(
 
 	var cred ydb_sdk.Option
 
-	if dsi.Credentials.GetToken() != nil {
+	if c.cfg.ServiceAccountKeyFileCredentials != "" {
+		logger.Debug("YDB Connector will use service account key file credentials")
+
+		cred = yc.WithServiceAccountKeyFileCredentials(c.cfg.ServiceAccountKeyFileCredentials)
+	} else if dsi.Credentials.GetToken() != nil {
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
 	} else if dsi.Credentials.GetBasic() != nil {
 		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
