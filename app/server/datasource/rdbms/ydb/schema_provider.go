@@ -34,7 +34,7 @@ func (f *schemaProvider) GetSchema(
 		return nil, fmt.Errorf("get prefix: %w", err)
 	}
 
-	logger.Debug("Obtaining table metadata", zap.String("prefix", prefix))
+	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
 
 	err = db.Table().Do(
 		ctx,

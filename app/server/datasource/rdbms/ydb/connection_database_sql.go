@@ -113,7 +113,7 @@ func newConnectionDatabaseSQL(
 
 	conn := sql.OpenDB(ydbConn)
 
-	logger.Debug("Pinging database")
+	logger.Debug("pinging database")
 
 	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(cfg.PingConnectionTimeout))
 	defer pingCtxCancel()

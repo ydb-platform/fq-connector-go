@@ -27,11 +27,7 @@ type dateToStringConverterUnsafe struct{}
 
 func (dateToStringConverterUnsafe) Convert(in *time.Time) (string, error) {
 	buf := make([]byte, 0, 11)
-
-	// We used to call the unexported method *Time.date() directly before,
-	// but since Go 1.23 it's restricted to use go:linkname,
-	// so now we spend 3x more time here:
-	year, month, day := in.Year(), in.Month(), in.Day()
+	year, month, day := in.Date()
 
 	if year < 0 {
 		buf = append(buf, byte('-'))
