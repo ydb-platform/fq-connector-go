@@ -341,6 +341,16 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 		return fmt.Errorf("invalid `mode` value: %v", c.Mode)
 	}
 
+	if c.ServiceAccountKeyFileCredentials != "" {
+		if err := fileMustExist(c.ServiceAccountKeyFileCredentials); err != nil {
+			return fmt.Errorf("invalid value of field `service_account_key_file_credentials`: %w", err)
+		}
+
+		if c.IamEndpoint == nil {
+			return fmt.Errorf("you must set `iam_endpoint` if `service_account_key_file_credentials` is set")
+		}
+	}
+
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
 		return fmt.Errorf("validate `exponential_backoff`: %v", err)
 	}

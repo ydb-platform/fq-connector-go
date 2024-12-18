@@ -48,7 +48,7 @@ func (c *connectionManager) Make(
 
 		cred = yc.WithServiceAccountKeyFileCredentials(
 			c.cfg.ServiceAccountKeyFileCredentials,
-			yc.WithEndpoint("iam.api.cloud-preprod.yandex.net:443"),
+			yc.WithEndpoint(common.EndpointToString(c.cfg.IamEndpoint)),
 		)
 	} else if dsi.Credentials.GetToken() != nil {
 		logger.Debug("connector will use token for authorization")
