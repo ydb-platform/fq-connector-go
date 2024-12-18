@@ -233,6 +233,10 @@ message TYdbConfig {
     // this credentials to access the database.
     string service_account_key_file_credentials = 5;
 
+    // One should provide IAM endpoint to authenticate service account
+    // if service_account_key_file_credentials is set.
+    NYql.TGenericEndpoint iam_endpoint = 6;
+
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
