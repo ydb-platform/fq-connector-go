@@ -171,6 +171,15 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 	if c.ExponentialBackoff == nil {
 		c.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
+
+	if c.ServiceAccountKeyFileCredentials != "" {
+		if c.IamEndpoint == nil {
+			c.IamEndpoint = &api_common.TGenericEndpoint{
+				Host: "iam.api.cloud.yandex.net",
+				Port: 443,
+			}
+		}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {
@@ -339,6 +348,24 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if c.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
 		return fmt.Errorf("invalid `mode` value: %v", c.Mode)
+	}
+
+	if c.ServiceAccountKeyFileCredentials != "" {
+		if err := fileMustExist(c.ServiceAccountKeyFileCredentials); err != nil {
+			return fmt.Errorf("invalid value of field `service_account_key_file_credentials`: %w", err)
+		}
+
+		if c.IamEndpoint == nil {
+			return fmt.Errorf("you must set `iam_endpoint` if `service_account_key_file_credentials` is set")
+		}
+
+		if c.IamEndpoint.Host == "" {
+			return fmt.Errorf("invalid value of field `iam_endpoint.host`: %v", c.IamEndpoint.Host)
+		}
+
+		if c.IamEndpoint.Port == 0 {
+			return fmt.Errorf("invalid value of field `iam_endpoint.port`: %v", c.IamEndpoint.Port)
+		}
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {

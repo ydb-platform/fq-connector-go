@@ -41,9 +41,15 @@ func (c *connectionManager) Make(
 	var cred ydb_sdk.Option
 
 	if c.cfg.ServiceAccountKeyFileCredentials != "" {
-		logger.Debug("connector will use service account key file credentials for authorization")
+		logger.Debug(
+			"connector will use service account key file credentials for authorization",
+			zap.String("path", c.cfg.ServiceAccountKeyFileCredentials),
+		)
 
-		cred = yc.WithServiceAccountKeyFileCredentials(c.cfg.ServiceAccountKeyFileCredentials)
+		cred = yc.WithServiceAccountKeyFileCredentials(
+			c.cfg.ServiceAccountKeyFileCredentials,
+			yc.WithEndpoint(common.EndpointToString(c.cfg.IamEndpoint)),
+		)
 	} else if dsi.Credentials.GetToken() != nil {
 		logger.Debug("connector will use token for authorization")
 
@@ -105,7 +111,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("new connection: %w", err)
 	}
 
-	logger.Debug("Connection is ready")
+	logger.Debug("connection is ready")
 
 	return ydbConn, nil
 }
