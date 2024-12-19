@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/phuslu/fasttime"
+
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -137,11 +139,11 @@ func (timestampToStringConverterUTC) Convert(in *time.Time) (string, error) {
 	// ClickHouse - 1 nanosecond  (10^-9 s)
 	// Oracle -  1 nanosecond  (10^-9 s)
 	// Trailing zeros are omitted
-	return in.UTC().Format("2006-01-02T15:04:05.999999999Z"), nil
+	return fasttime.Strftime("%Y-%m-%dT%H:%M:%S.%N%:z", in.UTC()), nil
 }
 
 type timestampToStringConverterNaive struct{}
 
 func (timestampToStringConverterNaive) Convert(in *time.Time) (string, error) {
-	return in.Format("2006-01-02T15:04:05.999999999"), nil
+	return fasttime.Strftime("%Y-%m-%dT%H:%M:%S.%N%:z", *in), nil
 }
