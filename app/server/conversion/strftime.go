@@ -18,6 +18,7 @@ const tab = "00010203040506070809" +
 func formatNanoseconds(buf []byte, ns int) []byte {
 	// fast transformation of nanoseconds
 	var tmp [9]byte
+
 	b := ns % 100 * 2
 	tmp[8] = tab[b+1]
 	tmp[7] = tab[b]
