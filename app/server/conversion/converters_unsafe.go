@@ -15,6 +15,14 @@ func (collectionUnsafe) DateToString() ValuePtrConverter[time.Time, string] {
 	return dateToStringConverterUnsafe{}
 }
 
+func (collectionUnsafe) TimestampToString(utc bool) ValuePtrConverter[time.Time, string] {
+	if utc {
+		return timestampToStringConverterUTCUnsafe{}
+	}
+
+	return timestampToStringConverterNaive{}
+}
+
 func absInt(x int) int {
 	if x < 0 {
 		return -x
@@ -71,9 +79,11 @@ func (dateToStringConverterUnsafe) Convert(in *time.Time) (string, error) {
 
 type timestampToStringConverterUTCUnsafe struct{}
 
-func (timestampToStringConverterUTCUnsafe) Convert(in *time.Time) (string, error) {
+func (timestampToStringConverterUTCUnsafe) Convert(src *time.Time) (string, error) {
+	utc := src.UTC()
+
 	buf := make([]byte, 0, 32)
-	year, month, day := in.Date()
+	year, month, day := utc.Date()
 
 	// year
 
@@ -115,7 +125,7 @@ func (timestampToStringConverterUTCUnsafe) Convert(in *time.Time) (string, error
 	// T
 	buf = append(buf, byte('T'))
 
-	hour, minutes, seconds := in.Clock()
+	hour, minutes, seconds := utc.Clock()
 
 	// hours
 
@@ -147,7 +157,7 @@ func (timestampToStringConverterUTCUnsafe) Convert(in *time.Time) (string, error
 
 	// nanoseconds
 
-	nanoseconds := in.Nanosecond()
+	nanoseconds := utc.Nanosecond()
 	if nanoseconds > 0 {
 		buf = append(buf, byte('.'))
 
@@ -159,67 +169,4 @@ func (timestampToStringConverterUTCUnsafe) Convert(in *time.Time) (string, error
 	p := unsafe.SliceData(buf)
 
 	return unsafe.String(p, len(buf)), nil
-}
-
-const tab = "00010203040506070809" +
-	"10111213141516171819" +
-	"20212223242526272829" +
-	"30313233343536373839" +
-	"40414243444546474849" +
-	"50515253545556575859" +
-	"60616263646566676869" +
-	"70717273747576777879" +
-	"80818283848586878889" +
-	"90919293949596979899"
-
-func formatNanoseconds(buf []byte, ns int) []byte {
-	// fast transformation of nanoseconds
-	var tmp [9]byte
-	b := ns % 100 * 2
-	tmp[8] = tab[b+1]
-	tmp[7] = tab[b]
-	ns /= 100
-	b = ns % 100 * 2
-	tmp[6] = tab[b+1]
-	tmp[5] = tab[b]
-	ns /= 100
-	b = ns % 100 * 2
-	tmp[4] = tab[b+1]
-	tmp[3] = tab[b]
-	ns /= 100
-	b = ns % 100 * 2
-	tmp[2] = tab[b+1]
-	tmp[1] = tab[b]
-	tmp[0] = byte(ns/100) + '0'
-
-	// check for trailing zeroes
-	i := 8
-	for ; i >= 0; i-- {
-		if tmp[i] != '0' {
-			break
-		}
-	}
-
-	buf = append(buf, tmp[:i+1]...)
-
-	return buf
-}
-
-func digitsInNumber(n int) int {
-	if n < 0 {
-		n = -n
-	}
-
-	if n == 0 {
-		return 1
-	}
-
-	digits := 0
-
-	for n > 0 {
-		digits++
-		n /= 10
-	}
-
-	return digits
 }
