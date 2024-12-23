@@ -38,8 +38,7 @@ class YDBProtoFile:
             self.src_patched = self.__patch_gateways_config_protofile(
                 filepath, lines_initial, go_package
             )
-        elif "package yandex.cloud.priv.logging.v1;" in lines_initial:
-            self.src_patched = self.src_initial
+            print(self.src_patched)
         else:
             raise ValueError(f"unknown line pattern for {filepath}")
 
