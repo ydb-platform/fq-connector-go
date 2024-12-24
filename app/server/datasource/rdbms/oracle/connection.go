@@ -21,7 +21,7 @@ func (c Connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c Connection) Query(queryParams *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
 	c.logger.Dump(queryParams.QueryText, queryParams.QueryArgs.Values()...)
 
 	valueArgs := make([]driver.NamedValue, queryParams.QueryArgs.Count())
@@ -42,5 +42,5 @@ func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Row
 
 	rows := newRows(out)
 
-	return rows, nil
+	return []rdbms_utils.Rows{rows}, nil
 }

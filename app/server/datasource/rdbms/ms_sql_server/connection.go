@@ -2,6 +2,7 @@ package ms_sql_server
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/denisenkom/go-mssqldb"
 
@@ -20,10 +21,13 @@ func (c Connection) Close() error {
 	return c.db.Close()
 }
 
-func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c Connection) Query(params *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.db.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
+	if err != nil {
+		return nil, fmt.Errorf("query context: %w", err)
+	}
 
-	return rows{out}, err
+	return []rdbms_utils.Rows{rows{out}}, err
 }

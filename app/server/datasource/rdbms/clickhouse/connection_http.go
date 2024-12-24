@@ -24,13 +24,13 @@ type connectionHTTP struct {
 	logger common.QueryLogger
 }
 
-var _ rdbms_utils.Rows = (*rows)(nil)
+var _ rdbms_utils.Rows = (*rowsHTTP)(nil)
 
-type rows struct {
+type rowsHTTP struct {
 	*sql.Rows
 }
 
-func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r *rowsHTTP) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	columns, err := r.ColumnTypes()
 	if err != nil {
 		return nil, fmt.Errorf("column types: %w", err)
@@ -49,7 +49,7 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 	return transformer, nil
 }
 
-func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.DB.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
@@ -67,7 +67,7 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 
-	return &rows{Rows: out}, nil
+	return []rdbms_utils.Rows{&rowsHTTP{Rows: out}}, nil
 }
 
 func makeConnectionHTTP(

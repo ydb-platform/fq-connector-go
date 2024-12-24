@@ -26,17 +26,17 @@ func (f *schemaProvider) GetSchema(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
-	db := conn.(ydbConnection).getDriver()
+	ydbDriver := conn.(ydbConnection).getDriver()
 	desc := options.Description{}
 
-	prefix, err := f.prefixGetter.GetPrefix(ctx, logger, db, request)
+	prefix, err := f.prefixGetter.GetPrefix(ctx, logger, ydbDriver, request)
 	if err != nil {
 		return nil, fmt.Errorf("get prefix: %w", err)
 	}
 
 	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
 
-	err = db.Table().Do(
+	err = ydbDriver.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error

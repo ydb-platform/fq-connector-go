@@ -33,10 +33,16 @@ func (f *DefaultSchemaProvider) GetSchema(
 		QueryArgs: args,
 	}
 
-	rows, err := conn.Query(queryParams)
+	rs, err := conn.Query(queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}
+
+	if len(rs) != 1 {
+		panic("implementation error: invalid number of rows")
+	}
+
+	rows := rs[0]
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 

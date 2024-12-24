@@ -116,7 +116,7 @@ type connectionNative struct {
 }
 
 // nolint: gocyclo
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
 	rowsChan := make(chan rdbms_utils.Rows, 1)
 
 	finalErr := c.driver.Query().Do(
@@ -234,7 +234,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 
 	select {
 	case rows := <-rowsChan:
-		return rows, nil
+		return []rdbms_utils.Rows{rows}, nil
 	case <-params.Ctx.Done():
 		return nil, params.Ctx.Err()
 	}

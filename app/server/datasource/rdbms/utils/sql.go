@@ -21,7 +21,10 @@ type QueryParams struct {
 }
 
 type Connection interface {
-	Query(params *QueryParams) (Rows, error)
+	// Several different physical connections to different data sources may exist
+	// behind the logical abstraction of a connection.
+	// This is why this method returns a collection of iterators, rather than a single iterator.
+	Query(params *QueryParams) ([]Rows, error)
 	Close() error
 }
 
@@ -39,6 +42,11 @@ type ConnectionParamsMakeParams struct {
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
 	TableName          string                                 // optional
+
+	// Sometimes, it's sufficient to establish a single connection with a specific data source,
+	// even if there are multiple instances available.
+	// Zero value means no limit.
+	MaxConnections int // optional
 }
 
 type ConnectionManager interface {

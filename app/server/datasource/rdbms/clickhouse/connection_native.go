@@ -51,7 +51,7 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 	return transformer, nil
 }
 
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
@@ -69,7 +69,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 
-	return &rowsNative{Rows: out}, nil
+	return []rdbms_utils.Rows{&rowsNative{Rows: out}}, nil
 }
 
 func makeConnectionNative(

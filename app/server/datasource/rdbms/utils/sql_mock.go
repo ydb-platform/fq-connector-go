@@ -18,12 +18,12 @@ type ConnectionMock struct {
 	mock.Mock
 }
 
-func (m *ConnectionMock) Query(params *QueryParams) (Rows, error) {
+func (m *ConnectionMock) Query(params *QueryParams) ([]Rows, error) {
 	called := []any{params.QueryText}
 	called = append(called, params.QueryArgs.Values()...)
 	args := m.Called(called...)
 
-	return args.Get(0).(Rows), args.Error(1)
+	return args.Get(0).([]Rows), args.Error(1)
 }
 
 func (m *ConnectionMock) Close() error {

@@ -49,7 +49,7 @@ type connectionDatabaseSQL struct {
 	logger common.QueryLogger
 }
 
-func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.DB.QueryContext(
@@ -70,7 +70,7 @@ func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_ut
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 
-	return rowsDatabaseSQL{Rows: out}, nil
+	return []rdbms_utils.Rows{rowsDatabaseSQL{Rows: out}}, nil
 }
 
 func (c *connectionDatabaseSQL) getDriver() *ydb_sdk.Driver {

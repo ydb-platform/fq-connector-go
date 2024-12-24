@@ -3,15 +3,77 @@ package logging
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 	"github.com/ydb-platform/fq-connector-go/common"
+	"golang.org/x/sync/errgroup"
 
 	"go.uber.org/zap"
 )
+
+var _ rdbms_utils.Connection = (*connection)(nil)
+
+type connection struct {
+	ydbConns []rdbms_utils.Connection
+}
+
+func (c *connection) Query(params *rdbms_utils.QueryParams) ([]rdbms_utils.Rows, error) {
+	group := errgroup.Group{}
+
+	var (
+		rows  = make([]rdbms_utils.Rows, 0, len(c.ydbConns))
+		mutex sync.Mutex
+	)
+
+	for _, ydbConn := range c.ydbConns {
+		ydbConn := ydbConn
+
+		group.Go(func() error {
+			rs, err := ydbConn.Query(params)
+			if err != nil {
+				return fmt.Errorf("YDB connection query: %w", err)
+			}
+
+			mutex.Lock()
+			defer mutex.Unlock()
+			rows = append(rows, rs...)
+
+			return nil
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		for _, row := range rows {
+			if err := row.Close(); err != nil {
+				params.Logger.Error("close row", zap.Error(err))
+			}
+		}
+
+		return nil, fmt.Errorf("group wait: %w", err)
+	}
+
+	return rows, nil
+}
+
+func (c *connection) Close() error {
+	group := errgroup.Group{}
+
+	for _, ydbConn := range c.ydbConns {
+		ydbConn := ydbConn
+
+		group.Go(func() error {
+			return ydbConn.Close()
+		})
+	}
+
+	return group.Wait()
+}
+
+var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
 
 type connectionManager struct {
 	rdbms_utils.Connection
@@ -33,22 +95,49 @@ func (cm *connectionManager) Make(
 		return nil, fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
-	params.Logger.Debug("Resolved log group into YDB endpoint", response.ToZapFields()...)
+	var ydbConns []rdbms_utils.Connection
+
+	for _, source := range response.sources {
+		ydbConn, err := cm.makeConnectionFromYDBSource(params.Ctx, params.Logger, source)
+		if err != nil {
+			for _, ydbConn := range ydbConns {
+				if err := ydbConn.Close(); err != nil {
+					params.Logger.Error("close YDB connection", zap.Error(err))
+				}
+			}
+
+			return nil, fmt.Errorf("make connection for YDB source: %w", err)
+		}
+
+		ydbConns = append(ydbConns, ydbConn)
+	}
+
+	return &connection{ydbConns: ydbConns}, nil
+}
+
+func (cm *connectionManager) makeConnectionFromYDBSource(
+	ctx context.Context,
+	logger *zap.Logger,
+	source *ydbSource,
+) (rdbms_utils.Connection, error) {
+	logger.Debug("Resolved log group into YDB endpoint", source.ToZapFields()...)
 
 	// prepare new data source instance describing the underlying YDB database
 	ydbDataSourceInstance := &api_common.TGenericDataSourceInstance{
-		Kind:        api_common.EGenericDataSourceKind_YDB,
-		Endpoint:    response.endpoint,
-		Database:    response.databaseName,
-		Credentials: params.DataSourceInstance.GetCredentials(),
+		Kind:     api_common.EGenericDataSourceKind_YDB,
+		Endpoint: source.endpoint,
+		Database: source.databaseName,
+		// We set no credentials provided by user, because YDB connector accessing Logging database
+		// should use own service account credentials.
+		Credentials: nil,
 		UseTls:      true,
 	}
 
 	// reannotate logger with new data source instance
-	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, ydbDataSourceInstance)
+	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(logger, ydbDataSourceInstance)
 
 	ydbParams := &rdbms_utils.ConnectionParamsMakeParams{
-		Ctx:                params.Ctx,
+		Ctx:                ctx,
 		Logger:             ydbLogger,
 		DataSourceInstance: ydbDataSourceInstance,
 	}
