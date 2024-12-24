@@ -22,7 +22,15 @@ type QueryParams struct {
 
 type Connection interface {
 	Query(params *QueryParams) (Rows, error)
+	// For the most of the data sources the database name / table name pair
+	// is strictly defined by the user input.
+	// However, there are data sources that rewrite database / table names specified by the user request.
+	From() (database, table string)
 	Close() error
+}
+
+type ConnectionSet interface {
+	Connections() []Connection
 }
 
 type Rows interface {
@@ -34,7 +42,7 @@ type Rows interface {
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
-type ConnectionParamsMakeParams struct {
+type ConnectionManagerMakeParams struct {
 	Ctx                context.Context                        // mandatory
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
@@ -42,7 +50,7 @@ type ConnectionParamsMakeParams struct {
 }
 
 type ConnectionManager interface {
-	Make(params *ConnectionParamsMakeParams) (Connection, error)
+	Make(params *ConnectionManagerMakeParams) (Connection, error)
 	Release(ctx context.Context, logger *zap.Logger, connection Connection)
 }
 

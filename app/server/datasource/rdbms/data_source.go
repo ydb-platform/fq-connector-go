@@ -46,7 +46,7 @@ func (ds *dataSourceImpl) DescribeTable(
 		func() error {
 			var makeConnErr error
 
-			params := &rdbms_utils.ConnectionParamsMakeParams{
+			params := &rdbms_utils.ConnectionManagerMakeParams{
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: request.DataSourceInstance,
@@ -96,7 +96,7 @@ func (ds *dataSourceImpl) doReadSplit(
 		func() error {
 			var makeConnErr error
 
-			params := &rdbms_utils.ConnectionParamsMakeParams{
+			params := &rdbms_utils.ConnectionManagerMakeParams{
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: split.Select.DataSourceInstance,

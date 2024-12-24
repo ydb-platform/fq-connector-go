@@ -35,7 +35,7 @@ type ConnectionManagerMock struct {
 }
 
 func (m *ConnectionManagerMock) Make(
-	params *ConnectionParamsMakeParams,
+	params *ConnectionManagerMakeParams,
 ) (Connection, error) {
 	args := m.Called(params.DataSourceInstance)
 

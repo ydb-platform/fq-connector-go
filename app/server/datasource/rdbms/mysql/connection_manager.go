@@ -25,7 +25,7 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	params *rdbms_utils.ConnectionParamsMakeParams,
+	params *rdbms_utils.ConnectionManagerMakeParams,
 ) (rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	optionFuncs := make([]func(c *client.Conn), 0)

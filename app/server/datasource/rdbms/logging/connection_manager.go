@@ -20,7 +20,7 @@ type connectionManager struct {
 }
 
 func (cm *connectionManager) Make(
-	params *rdbms_utils.ConnectionParamsMakeParams,
+	params *rdbms_utils.ConnectionManagerMakeParams,
 ) (rdbms_utils.Connection, error) {
 	// turn log group name into YDB endpoint
 	request := &resolveParams{
@@ -47,7 +47,7 @@ func (cm *connectionManager) Make(
 	// reannotate logger with new data source instance
 	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, ydbDataSourceInstance)
 
-	ydbParams := &rdbms_utils.ConnectionParamsMakeParams{
+	ydbParams := &rdbms_utils.ConnectionManagerMakeParams{
 		Ctx:                params.Ctx,
 		Logger:             ydbLogger,
 		DataSourceInstance: ydbDataSourceInstance,
