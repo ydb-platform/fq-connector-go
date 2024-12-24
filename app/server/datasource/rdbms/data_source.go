@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
@@ -40,7 +41,7 @@ func (ds *dataSourceImpl) DescribeTable(
 	logger *zap.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	var conn rdbms_utils.Connection
+	var cs []rdbms_utils.Connection
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
@@ -51,9 +52,10 @@ func (ds *dataSourceImpl) DescribeTable(
 				Logger:             logger,
 				DataSourceInstance: request.DataSourceInstance,
 				TableName:          request.Table,
+				MaxConnections:     1,
 			}
 
-			conn, makeConnErr = ds.connectionManager.Make(params)
+			cs, makeConnErr = ds.connectionManager.Make(params)
 			if makeConnErr != nil {
 				return fmt.Errorf("make connection: %w", makeConnErr)
 			}
@@ -66,7 +68,10 @@ func (ds *dataSourceImpl) DescribeTable(
 		return nil, fmt.Errorf("retry: %w", err)
 	}
 
-	defer ds.connectionManager.Release(ctx, logger, conn)
+	defer ds.connectionManager.Release(ctx, logger, cs)
+
+	// We asked for a single connection
+	conn := cs[0]
 
 	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
 	if err != nil {
@@ -83,14 +88,9 @@ func (ds *dataSourceImpl) doReadSplit(
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 ) error {
-	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(ctx, logger, ds.sqlFormatter, split.Select, request.Filtering)
-	if err != nil {
-		return fmt.Errorf("make read split query: %w", err)
-	}
+	var cs []rdbms_utils.Connection
 
-	var conn rdbms_utils.Connection
-
-	err = ds.retrierSet.MakeConnection.Run(
+	err := ds.retrierSet.MakeConnection.Run(
 		ctx,
 		logger,
 		func() error {
@@ -103,7 +103,7 @@ func (ds *dataSourceImpl) doReadSplit(
 				TableName:          split.Select.From.Table,
 			}
 
-			conn, makeConnErr = ds.connectionManager.Make(params)
+			cs, makeConnErr = ds.connectionManager.Make(params)
 			if makeConnErr != nil {
 				return fmt.Errorf("make connection: %w", makeConnErr)
 			}
@@ -116,7 +116,45 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("make connection: %w", err)
 	}
 
-	defer ds.connectionManager.Release(ctx, logger, conn)
+	defer ds.connectionManager.Release(ctx, logger, cs)
+
+	// Read data from every connection in a distinct goroutine
+	errgroup, ctx := errgroup.WithContext(ctx)
+
+	for _, conn := range cs {
+		conn := conn
+
+		errgroup.Go(func() error {
+			return ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
+		})
+	}
+
+	return errgroup.Wait()
+}
+
+func (ds *dataSourceImpl) doReadSplitSingleConn(
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TReadSplitsRequest,
+	split *api_service_protos.TSplit,
+	sink paging.Sink[any],
+	conn rdbms_utils.Connection,
+) error {
+	databaseName, tableName := conn.From()
+
+	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+		ctx,
+		logger,
+		ds.sqlFormatter,
+		split.Select,
+		request.Filtering,
+		databaseName,
+		tableName,
+	)
+
+	if err != nil {
+		return fmt.Errorf("make read split query: %w", err)
+	}
 
 	var rows rdbms_utils.Rows
 

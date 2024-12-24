@@ -21,14 +21,13 @@ func MakeReadSplitsQuery(
 	formatter SQLFormatter,
 	slct *api_service_protos.TSelect,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
+	databaseName, tableName string,
 ) (*ReadSplitsQuery, error) {
 	selectPart, newSelectWhat, err := formatSelectHead(
-		ctx,
-		logger,
 		formatter,
 		slct.GetWhat(),
-		slct.GetFrom().GetTable(),
-		slct.DataSourceInstance,
+		databaseName,
+		tableName,
 		true,
 	)
 
