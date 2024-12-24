@@ -249,7 +249,7 @@ message TLoggingConfig {
     // Logging connector can resolve the underlying YDB endpoints 
     // via calls to Cloud Logging API
     message TDynamicResolving {
-        // TODO: add API endpoint and other params
+        NYql.TGenericEndpoint logging_endpoint = 1;
     }
 
     // But for the tests it is useful to set all the YDB endpoints manually.
