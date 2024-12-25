@@ -299,8 +299,8 @@ func newConnectionNative(
 	ctx context.Context,
 	queryLogger common.QueryLogger,
 	dsi *api_common.TGenericDataSourceInstance,
-	driver *ydb_sdk.Driver,
 	tableName string,
+	driver *ydb_sdk.Driver,
 ) ydbConnection {
 	return &connectionNative{
 		ctx:         ctx,

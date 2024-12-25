@@ -99,10 +99,10 @@ func (c *connectionManager) Make(
 		fallthrough
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
 		logger.Debug("connector will use Native SDK over Query Service")
-		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, ydbDriver, params.TableName)
+		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, params.TableName, ydbDriver)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")
-		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
+		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, params.TableName, ydbDriver)
 	default:
 		return nil, fmt.Errorf("unknown mode: %v", c.cfg.Mode)
 	}

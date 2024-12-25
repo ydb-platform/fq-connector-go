@@ -104,6 +104,7 @@ func newConnectionDatabaseSQL(
 	queryLogger common.QueryLogger,
 	cfg *config.TYdbConfig,
 	dsi *api_common.TGenericDataSourceInstance,
+	tableName string,
 	ydbDriver *ydb_sdk.Driver,
 ) (ydbConnection, error) {
 	ydbConn, err := ydb_sdk.Connector(
@@ -129,5 +130,5 @@ func newConnectionDatabaseSQL(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionDatabaseSQL{DB: conn, driver: ydbDriver, logger: queryLogger}, nil
+	return &connectionDatabaseSQL{DB: conn, driver: ydbDriver, logger: queryLogger, dataabaseName: dsi.Database, tableName: tableName}, nil
 }

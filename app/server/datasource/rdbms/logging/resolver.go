@@ -77,7 +77,7 @@ func (r *staticResolver) resolve(request *resolveParams) (*resolveResponse, erro
 
 	return &resolveResponse{
 		sources: []*ydbSource{
-			&ydbSource{
+			{
 				endpoint:     endpoint,
 				tableName:    tableName,
 				databaseName: databaseName,
