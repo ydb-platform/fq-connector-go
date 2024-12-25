@@ -45,7 +45,7 @@ type ConnectionManagerMakeParams struct {
 	Ctx                context.Context                        // mandatory
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
-	TableName          string                                 // optional
+	TableName          string                                 // mandatory
 
 	// MaxConnections is the maximum number of connections to make.
 	// Even if there are a plenty of physical instances of a data source,
@@ -61,13 +61,6 @@ type ConnectionManager interface {
 
 type ConnectionManagerBase struct {
 	QueryLoggerFactory common.QueryLoggerFactory
-}
-
-type SQLFormatterFormatFromParams struct {
-	Ctx                context.Context
-	Logger             *zap.Logger
-	TableName          string
-	DataSourceInstance *api_common.TGenericDataSourceInstance
 }
 
 type SQLFormatter interface {

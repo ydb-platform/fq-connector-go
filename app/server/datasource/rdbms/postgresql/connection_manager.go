@@ -17,7 +17,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ rdbms_utils.Connection = (*Connection)(nil)
+var _ rdbms_utils.Connection = (*connection)(nil)
 
 type rows struct {
 	pgx.Rows
@@ -44,16 +44,18 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 	return transformerFromOIDs(oids, ydbTypes, cc)
 }
 
-type Connection struct {
+type connection struct {
 	*pgx.Conn
-	logger common.QueryLogger
+	logger       common.QueryLogger
+	databaseName string
+	tableName    string
 }
 
-func (c Connection) Close() error {
+func (c *connection) Close() error {
 	return c.Conn.Close(context.TODO())
 }
 
-func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
@@ -62,6 +64,10 @@ func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, er
 	}
 
 	return rows{Rows: out}, nil
+}
+
+func (c *connection) From() (string, string) {
+	return c.databaseName, c.tableName
 }
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
@@ -74,7 +80,7 @@ type connectionManager struct {
 
 func (c *connectionManager) Make(
 	params *rdbms_utils.ConnectionManagerMakeParams,
-) (rdbms_utils.Connection, error) {
+) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	if dsi.GetCredentials().GetBasic() == nil {
 		return nil, fmt.Errorf("currently only basic auth is supported")
@@ -128,15 +134,17 @@ func (c *connectionManager) Make(
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return &Connection{conn, queryLogger}, nil
+	return []rdbms_utils.Connection{&connection{conn, queryLogger, dsi.Database, params.TableName}}, nil
 }
 
-func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
-	if err := conn.(*Connection).Conn.DeallocateAll(ctx); err != nil {
-		logger.Error("deallocate prepared statements", zap.Error(err))
-	}
+func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+	for _, conn := range cs {
+		if err := conn.(*connection).Conn.DeallocateAll(ctx); err != nil {
+			logger.Error("deallocate prepared statements", zap.Error(err))
+		}
 
-	common.LogCloserError(logger, conn, "close connection")
+		common.LogCloserError(logger, conn, "close connection")
+	}
 }
 
 type ConnectionManagerConfig interface {

@@ -33,7 +33,7 @@ type connectionManager struct {
 
 func (c *connectionManager) Make(
 	params *rdbms_utils.ConnectionManagerMakeParams,
-) (rdbms_utils.Connection, error) {
+) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	endpoint := common.EndpointToString(dsi.Endpoint)
 	dsn := sugar.DSN(endpoint, dsi.Database, sugar.WithSecure(dsi.UseTls))
@@ -99,7 +99,7 @@ func (c *connectionManager) Make(
 		fallthrough
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
 		logger.Debug("connector will use Native SDK over Query Service")
-		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, ydbDriver)
+		ydbConn = newConnectionNative(ctx, c.QueryLoggerFactory.Make(logger), dsi, ydbDriver, params.TableName)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")
 		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, ydbDriver)
@@ -113,11 +113,13 @@ func (c *connectionManager) Make(
 
 	logger.Debug("connection is ready")
 
-	return ydbConn, nil
+	return []rdbms_utils.Connection{ydbConn}, nil
 }
 
-func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close YDB connection")
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+	for _, conn := range cs {
+		common.LogCloserError(logger, conn, "close YDB connection")
+	}
 }
 
 func NewConnectionManager(

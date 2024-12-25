@@ -30,20 +30,24 @@ func (m *ConnectionMock) Close() error {
 	return m.Called().Error(0)
 }
 
+func (m *ConnectionMock) From() (string, string) {
+	return m.Called().String(0), m.Called().String(1)
+}
+
 type ConnectionManagerMock struct {
 	mock.Mock
 }
 
 func (m *ConnectionManagerMock) Make(
 	params *ConnectionManagerMakeParams,
-) (Connection, error) {
+) ([]Connection, error) {
 	args := m.Called(params.DataSourceInstance)
 
-	return args.Get(0).(Connection), args.Error(1)
+	return args.Get(0).([]Connection), args.Error(1)
 }
 
-func (m *ConnectionManagerMock) Release(_ context.Context, _ *zap.Logger, conn Connection) {
-	m.Called(conn)
+func (m *ConnectionManagerMock) Release(_ context.Context, _ *zap.Logger, cs []Connection) {
+	m.Called(cs)
 }
 
 var _ Rows = (*RowsMock)(nil)

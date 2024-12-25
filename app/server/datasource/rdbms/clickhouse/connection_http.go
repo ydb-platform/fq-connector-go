@@ -21,7 +21,9 @@ import (
 
 type connectionHTTP struct {
 	*sql.DB
-	logger common.QueryLogger
+	logger       common.QueryLogger
+	databaseName string
+	tableName    string
 }
 
 var _ rdbms_utils.Rows = (*rows)(nil)
@@ -70,11 +72,16 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 	return &rows{Rows: out}, nil
 }
 
+func (c *connectionHTTP) From() (string, string) {
+	return c.databaseName, c.tableName
+}
+
 func makeConnectionHTTP(
 	ctx context.Context,
 	logger *zap.Logger,
 	cfg *config.TClickHouseConfig,
 	dsi *api_common.TGenericDataSourceInstance,
+	tableName string,
 	queryLogger common.QueryLogger,
 ) (rdbms_utils.Connection, error) {
 	opts := &clickhouse.Options{
@@ -122,5 +129,5 @@ func makeConnectionHTTP(
 	conn.SetMaxOpenConns(maxOpenConns)
 	conn.SetConnMaxLifetime(connMaxLifetime)
 
-	return &connectionHTTP{DB: conn, logger: queryLogger}, nil
+	return &connectionHTTP{DB: conn, logger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
 }

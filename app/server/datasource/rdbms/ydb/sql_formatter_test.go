@@ -24,6 +24,8 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 		err              error
 	}
 
+	const tableName = "tab"
+
 	logger := common.NewTestLogger(t)
 	formatter := NewSQLFormatter(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES)
 
@@ -461,6 +463,8 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				formatter,
 				tc.selectReq,
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
+				"",
+				tableName,
 			)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))

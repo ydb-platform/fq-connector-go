@@ -12,15 +12,21 @@ import (
 var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
-	db     *sql.DB
-	logger common.QueryLogger
+	db           *sql.DB
+	logger       common.QueryLogger
+	databaseName string
+	tableName    string
 }
 
-func (c Connection) Close() error {
+func (c *Connection) Close() error {
 	return c.db.Close()
 }
 
-func (c Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *Connection) From() (string, string) {
+	return c.databaseName, c.tableName
+}
+
+func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.db.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)

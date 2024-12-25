@@ -23,7 +23,7 @@ type connectionManager struct {
 
 func (c *connectionManager) Make(
 	params *rdbms_utils.ConnectionManagerMakeParams,
-) (rdbms_utils.Connection, error) {
+) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
 		return nil, fmt.Errorf("can not create Oracle connection with protocol '%v'", dsi.Protocol)
@@ -74,11 +74,13 @@ func (c *connectionManager) Make(
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return &Connection{conn, queryLogger}, nil
+	return []rdbms_utils.Connection{&connection{conn, queryLogger, params.DataSourceInstance.Database, params.TableName}}, nil
 }
 
-func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close Oracle connection")
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn []rdbms_utils.Connection) {
+	for _, c := range conn {
+		common.LogCloserError(logger, c, "close Oracle connection")
+	}
 }
 
 func NewConnectionManager(

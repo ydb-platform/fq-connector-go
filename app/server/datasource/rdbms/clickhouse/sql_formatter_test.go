@@ -23,6 +23,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 		err              error
 	}
 
+	const tableName = "tab"
 	logger := common.NewTestLogger(t)
 	formatter := NewSQLFormatter()
 
@@ -455,7 +456,10 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				context.Background(),
 				logger, formatter,
 				tc.selectReq,
-				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
+				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
+				"",
+				tableName,
+			)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
 				return
