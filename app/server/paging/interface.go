@@ -31,14 +31,11 @@ type ReadResult[T Acceptor] struct {
 	IsTerminalMessage bool
 }
 
-// Sink is a destination for a data stream that is read out of an external data source.
+// Sink is a destination for a data stream that is read out of an external data source connection.
 type Sink[T Acceptor] interface {
 	// AddRow saves the row obtained from a stream incoming from an external data source.
 	AddRow(rowTransformer RowTransformer[T]) error
-	// AddError propagates an error occurred during the reading from the external data source.
-	AddError(err error)
-	// Finish reports the successful completion of reading the data stream.
+
+	// Finish reports the successful completion of data stream reading.
 	Finish()
-	// ResultQueue returns a channel with results
-	ResultQueue() <-chan *ReadResult[T]
 }

@@ -86,8 +86,9 @@ func (ds *dataSourceImpl) doReadSplit(
 	logger *zap.Logger,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sink paging.Sink[any],
+	sinkFactory *paging.SinkFactory[any],
 ) error {
+	// Make connection(s) to the data source.
 	var cs []rdbms_utils.Connection
 
 	err := ds.retrierSet.MakeConnection.Run(
@@ -118,11 +119,19 @@ func (ds *dataSourceImpl) doReadSplit(
 
 	defer ds.connectionManager.Release(ctx, logger, cs)
 
-	// Read data from every connection in a distinct goroutine
+	// Prepare sinks that will accept the data from the connections.
+	sinks, err := sinkFactory.MakeSinks(len(cs))
+	if err != nil {
+		return fmt.Errorf("make sinks: %w", err)
+	}
+
+	// Read data from every connection in a distinct goroutine.
+	// TODO: check if it's OK to override context
 	errgroup, ctx := errgroup.WithContext(ctx)
 
-	for _, conn := range cs {
+	for i, conn := range cs {
 		conn := conn
+		sink := sinks[i]
 
 		errgroup.Go(func() error {
 			return ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
@@ -204,6 +213,9 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		return fmt.Errorf("rows error: %w", err)
 	}
 
+	// Notify parent that there will be no more data from this connection.
+	sink.Finish()
+
 	return nil
 }
 
@@ -212,14 +224,9 @@ func (ds *dataSourceImpl) ReadSplit(
 	logger *zap.Logger,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sink paging.Sink[any],
-) {
-	err := ds.doReadSplit(ctx, logger, request, split, sink)
-	if err != nil {
-		sink.AddError(err)
-	}
-
-	sink.Finish()
+	sinkFactory *paging.SinkFactory[any],
+) error {
+	return ds.doReadSplit(ctx, logger, request, split, sinkFactory)
 }
 
 func NewDataSource(

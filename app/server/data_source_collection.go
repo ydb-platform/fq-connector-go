@@ -101,26 +101,20 @@ func readSplit[T paging.Acceptor](
 		return fmt.Errorf("new columnar buffer factory: %w", err)
 	}
 
-	trafficTracker := paging.NewTrafficTracker[T](cfg.Paging)
-
-	sink, err := paging.NewSink(
+	sinkFactory := paging.NewSinkFactory[T](
 		stream.Context(),
 		logger,
-		trafficTracker,
+		cfg.Paging,
 		columnarBufferFactory,
 		readLimiterFactory.MakeReadLimiter(logger),
-		int(cfg.Paging.PrefetchQueueCapacity),
 	)
-	if err != nil {
-		return fmt.Errorf("new sink: %w", err)
-	}
 
 	streamer := streaming.NewStreamer(
 		logger,
 		stream,
 		request,
 		split,
-		sink,
+		sinkFactory,
 		dataSource,
 	)
 
@@ -128,7 +122,7 @@ func readSplit[T paging.Acceptor](
 		return fmt.Errorf("run paging streamer: %w", err)
 	}
 
-	readStats := trafficTracker.DumpStats(true)
+	readStats := sinkFactory.FinalStats()
 
 	logger.Debug(
 		"split reading finished",

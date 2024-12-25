@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
-	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
+	ydb_balancers "github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
-	"github.com/ydb-platform/ydb-go-sdk/v3/sugar"
+	ydb_sugar "github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	yc "github.com/ydb-platform/ydb-go-yc"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -36,7 +36,7 @@ func (c *connectionManager) Make(
 ) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	endpoint := common.EndpointToString(dsi.Endpoint)
-	dsn := sugar.DSN(endpoint, dsi.Database, sugar.WithSecure(dsi.UseTls))
+	dsn := ydb_sugar.DSN(endpoint, dsi.Database, ydb_sugar.WithSecure(dsi.UseTls))
 
 	var cred ydb_sdk.Option
 
@@ -72,7 +72,7 @@ func (c *connectionManager) Make(
 	ydbOptions := []ydb_sdk.Option{
 		cred,
 		ydb_sdk.WithDialTimeout(common.MustDurationFromString(c.cfg.OpenConnectionTimeout)),
-		ydb_sdk.WithBalancer(balancers.SingleConn()), // see YQ-3089
+		ydb_sdk.WithBalancer(ydb_balancers.SingleConn()), // see YQ-3089
 		ydb_sdk.With(ydb_sdk_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 

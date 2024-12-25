@@ -38,19 +38,15 @@ func (ds *dataSource) ReadSplit(
 	logger *zap.Logger,
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sink paging.Sink[string]) {
-	if err := ds.doReadSplit(ctx, logger, split, sink); err != nil {
-		sink.AddError(err)
-	}
-
-	sink.Finish()
+	sinkFactory *paging.SinkFactory[string]) error {
+	return ds.doReadSplit(ctx, logger, split, sinkFactory)
 }
 
 func (*dataSource) doReadSplit(
 	ctx context.Context,
 	_ *zap.Logger,
 	split *api_service_protos.TSplit,
-	sink paging.Sink[string]) error {
+	sinkFactory *paging.SinkFactory[string]) error {
 	conn := makeConnection()
 
 	var (
@@ -80,9 +76,18 @@ func (*dataSource) doReadSplit(
 
 	csvReader := csv.NewReader(response.Body)
 
+	sinks, err := sinkFactory.MakeSinks(1)
+	if err != nil {
+		return fmt.Errorf("make sinks: %w", err)
+	}
+
+	sink := sinks[0]
+
 	if err := transformCSV(split.Select.What, split.Select.PredefinedSchema, csvReader, sink); err != nil {
 		return fmt.Errorf("transform csv: %w", err)
 	}
+
+	sink.Finish()
 
 	return nil
 }
