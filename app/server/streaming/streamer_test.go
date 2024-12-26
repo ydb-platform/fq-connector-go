@@ -155,7 +155,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	stream.On("Context").Return(ctx)
 
 	connection := &rdbms_utils.ConnectionMock{}
-	connection.On("From").Return("", "example_1").Twice()
+	connection.On("From").Return("", "example_1").Once()
 
 	connectionManager := &rdbms_utils.ConnectionManagerMock{}
 	connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()

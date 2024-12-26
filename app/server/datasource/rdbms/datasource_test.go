@@ -68,7 +68,7 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
-		connection.On("From").Return("", "example_1").Twice()
+		connection.On("From").Return("", "example_1").Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
 		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
@@ -124,7 +124,7 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
-		connection.On("From").Return("", "example_1").Twice()
+		connection.On("From").Return("", "example_1").Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
 		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
