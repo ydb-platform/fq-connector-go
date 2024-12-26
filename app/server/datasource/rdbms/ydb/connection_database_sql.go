@@ -79,7 +79,7 @@ func (c *connectionDatabaseSQL) getDriver() *ydb_sdk.Driver {
 	return c.driver
 }
 
-func (c *connectionDatabaseSQL) From() (string, string) {
+func (c *connectionDatabaseSQL) From() (databaseName, tableName string) {
 	return c.dataabaseName, c.tableName
 }
 

@@ -47,7 +47,7 @@ func (s *Streamer[T]) writeDataToStream() error {
 				return fmt.Errorf("send buffer to stream: %w", err)
 			}
 		case err := <-s.errorChan:
-			// an error occured during reading
+			// an error occurred during reading
 			if err != nil {
 				return fmt.Errorf("error: %w", err)
 			}

@@ -74,7 +74,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	return &rowsNative{Rows: out}, nil
 }
 
-func (c *connectionNative) From() (string, string) {
+func (c *connectionNative) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
 }
 

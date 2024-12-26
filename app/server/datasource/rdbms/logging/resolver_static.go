@@ -48,7 +48,7 @@ func (r *staticResolver) resolve(request *resolveParams) (*resolveResponse, erro
 	}, nil
 }
 
-func (r *staticResolver) Close() error { return nil }
+func (staticResolver) Close() error { return nil }
 
 func newResolverStatic(cfg *config.TLoggingConfig_TStaticResolving) Resolver {
 	return &staticResolver{

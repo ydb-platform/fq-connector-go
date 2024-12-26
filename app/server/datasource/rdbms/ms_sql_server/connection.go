@@ -22,7 +22,7 @@ func (c *Connection) Close() error {
 	return c.db.Close()
 }
 
-func (c *Connection) From() (string, string) {
+func (c *Connection) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
 }
 

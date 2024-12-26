@@ -23,8 +23,6 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 		err              error
 	}
 
-	const tableName = "tab"
-
 	logger := common.NewTestLogger(t)
 	formatter := NewSQLFormatter()
 
@@ -460,7 +458,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				tc.selectReq,
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
 				"",
-				tableName,
+				tc.selectReq.From.Table,
 			)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))

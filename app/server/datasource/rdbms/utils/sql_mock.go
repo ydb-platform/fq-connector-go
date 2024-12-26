@@ -30,8 +30,9 @@ func (m *ConnectionMock) Close() error {
 	return m.Called().Error(0)
 }
 
-func (m *ConnectionMock) From() (string, string) {
-	return m.Called().String(0), m.Called().String(1)
+func (m *ConnectionMock) From() (databaseName, tableName string) {
+	args := m.Called()
+	return args.String(0), args.String(1)
 }
 
 type ConnectionManagerMock struct {

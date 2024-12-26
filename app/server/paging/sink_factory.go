@@ -4,9 +4,10 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
-	"go.uber.org/zap"
 )
 
 type sinkFactoryState int8
@@ -91,9 +92,9 @@ func (f *sinkFactoryImpl[T]) ResultQueue() <-chan *ReadResult[T] {
 // FinalStats returns the overall statistics collected during the request processing.
 func (f *sinkFactoryImpl[T]) FinalStats() *api_service_protos.TReadSplitsResponse_TStats {
 	overallStats := &api_service_protos.TReadSplitsResponse_TStats{}
+
 	for _, tracker := range f.trafficTrackers {
 		partialStats := tracker.DumpStats(true)
-
 		overallStats.Rows += partialStats.Rows
 		overallStats.Bytes += partialStats.Bytes
 	}
@@ -120,6 +121,7 @@ func (f *sinkFactoryImpl[T]) sinkTerminationHandler(terminateChan <-chan struct{
 				f.logger.Info("all sinks terminated")
 				close(f.resultQueue)
 				f.state = sinkFactoryFinished
+
 				return
 			}
 

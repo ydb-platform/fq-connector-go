@@ -186,6 +186,7 @@ func NewDataSourceFactory(
 	}
 
 	var err error
+
 	dsf.loggingResolver, err = logging.NewResolver(cfg.Logging)
 	if err != nil {
 		return nil, fmt.Errorf("logging resolver: %w", err)

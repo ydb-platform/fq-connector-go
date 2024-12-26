@@ -245,7 +245,7 @@ func (c *connectionNative) getDriver() *ydb_sdk.Driver {
 	return c.driver
 }
 
-func (c *connectionNative) From() (string, string) {
+func (c *connectionNative) From() (datbaseName, tableName string) {
 	return c.dsi.Database, c.tableName
 }
 

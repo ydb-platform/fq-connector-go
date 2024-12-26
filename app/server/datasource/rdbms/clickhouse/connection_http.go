@@ -72,7 +72,7 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 	return &rows{Rows: out}, nil
 }
 
-func (c *connectionHTTP) From() (string, string) {
+func (c *connectionHTTP) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
 }
 

@@ -83,7 +83,7 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return sanitizedIdent
 }
 
-func (f sqlFormatter) FormatFrom(databaseName, tableName string) string {
+func (f sqlFormatter) FormatFrom(_, tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 

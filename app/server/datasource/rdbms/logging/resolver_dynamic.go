@@ -4,12 +4,13 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	api_logging "github.com/ydb-platform/fq-connector-go/api/logging/v1"
-	"github.com/ydb-platform/fq-connector-go/app/config"
-	"github.com/ydb-platform/fq-connector-go/common"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
+
+	api_logging "github.com/ydb-platform/fq-connector-go/api/logging/v1"
+	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type dynamicResolver struct {

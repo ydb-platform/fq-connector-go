@@ -47,6 +47,6 @@ func (c *connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Ro
 	return rows, nil
 }
 
-func (c *connection) From() (string, string) {
+func (c *connection) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
 }

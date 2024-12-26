@@ -155,10 +155,11 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	stream.On("Context").Return(ctx)
 
 	connection := &rdbms_utils.ConnectionMock{}
+	connection.On("From").Return("", "example_1").Twice()
 
 	connectionManager := &rdbms_utils.ConnectionManagerMock{}
-	connectionManager.On("Make", split.Select.DataSourceInstance).Return(connection, nil).Once()
-	connectionManager.On("Release", connection).Return().Once()
+	connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
+	connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
 
 	rows := &rdbms_utils.RowsMock{
 		PredefinedData: tc.src,
@@ -252,20 +253,13 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	require.NoError(t, err)
 
 	pagingCfg := &config.TPagingConfig{RowsPerPage: uint64(tc.rowsPerPage)}
-	trafficTracker := paging.NewTrafficTracker[any](pagingCfg)
 	readLimiterFactory := paging.NewReadLimiterFactory(nil)
-	sink, err := paging.NewSink(
-		ctx,
-		logger,
-		trafficTracker,
-		columnarBufferFactory,
-		readLimiterFactory.MakeReadLimiter(logger),
-		tc.bufferQueueCapacity,
-	)
-	require.NoError(t, err)
+	readLimiter := readLimiterFactory.MakeReadLimiter(logger)
+
+	sinkFactory := paging.NewSinkFactory(ctx, logger, pagingCfg, columnarBufferFactory, readLimiter)
 
 	request := &api_service_protos.TReadSplitsRequest{}
-	streamer := NewStreamer(logger, stream, request, split, sink, dataSource)
+	streamer := NewStreamer(logger, stream, request, split, sinkFactory, dataSource)
 
 	err = streamer.Run()
 

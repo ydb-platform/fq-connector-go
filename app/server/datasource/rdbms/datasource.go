@@ -127,18 +127,18 @@ func (ds *dataSourceImpl) ReadSplit(
 
 	// Read data from every connection in a distinct goroutine.
 	// TODO: check if it's OK to override context
-	errgroup, ctx := errgroup.WithContext(ctx)
+	group, ctx := errgroup.WithContext(ctx)
 
 	for i, conn := range cs {
 		conn := conn
 		sink := sinks[i]
 
-		errgroup.Go(func() error {
+		group.Go(func() error {
 			return ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
 		})
 	}
 
-	return errgroup.Wait()
+	return group.Wait()
 }
 
 func (ds *dataSourceImpl) doReadSplitSingleConn(
