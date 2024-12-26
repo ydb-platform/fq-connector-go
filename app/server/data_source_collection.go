@@ -80,6 +80,10 @@ func (dsc *DataSourceCollection) DoReadSplit(
 	}
 }
 
+func (dsc *DataSourceCollection) Close() error {
+	return dsc.rdbms.Close()
+}
+
 func readSplit[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,

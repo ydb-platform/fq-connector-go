@@ -17,6 +17,7 @@ type Factory[T paging.Acceptor] interface {
 		logger *zap.Logger,
 		dataSourceType api_common.EGenericDataSourceKind,
 	) (DataSource[T], error)
+	Close() error
 }
 
 // DataSource is an abstraction over external data storage that is available for data and metadata extraction.

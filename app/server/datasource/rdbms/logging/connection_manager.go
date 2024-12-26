@@ -27,8 +27,11 @@ func (cm *connectionManager) Make(
 	// Turn log group name into physical YDB endpoints
 	// via static config or Logging API call.
 	request := &resolveParams{
+		ctx:          params.Ctx,
+		logger:       params.Logger,
 		folderId:     params.DataSourceInstance.GetLoggingOptions().GetFolderId(),
 		logGroupName: params.TableName,
+		iamToken:     params.DataSourceInstance.GetCredentials().GetToken().GetValue(),
 	}
 
 	response, err := cm.resolver.resolve(request)

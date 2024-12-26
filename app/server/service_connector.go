@@ -273,6 +273,7 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 
 func (s *serviceConnector) stop() {
 	s.grpcServer.GracefulStop()
+	common.LogCloserError(s.logger, s.dataSourceCollection, "closing data source collection")
 }
 
 func newServiceConnector(
