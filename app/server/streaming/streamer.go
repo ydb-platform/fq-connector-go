@@ -19,7 +19,7 @@ type Streamer[T paging.Acceptor] struct {
 	dataSource  datasource.DataSource[T]
 	request     *api_service_protos.TReadSplitsRequest
 	split       *api_service_protos.TSplit
-	sinkFactory *paging.SinkFactory[T]
+	sinkFactory paging.SinkFactory[T]
 	logger      *zap.Logger
 	errorChan   chan error      // notifies about errors happened during reading process
 	ctx         context.Context // clone of a stream context
@@ -135,7 +135,7 @@ func NewStreamer[T paging.Acceptor](
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sinkFactory *paging.SinkFactory[T],
+	sinkFactory paging.SinkFactory[T],
 	dataSource datasource.DataSource[T],
 ) *Streamer[T] {
 	ctx, cancel := context.WithCancel(stream.Context())

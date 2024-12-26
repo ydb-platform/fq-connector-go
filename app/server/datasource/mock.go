@@ -30,7 +30,7 @@ func (m *DataSourceMock[T]) ReadSplit(
 	_ *zap.Logger,
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sinkFactory *paging.SinkFactory[T],
+	sinkFactory paging.SinkFactory[T],
 ) error {
 	return m.Called(split, sinkFactory).Error(0)
 }

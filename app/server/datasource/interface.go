@@ -38,7 +38,7 @@ type DataSource[T paging.Acceptor] interface {
 		logger *zap.Logger,
 		request *api_service_protos.TReadSplitsRequest,
 		split *api_service_protos.TSplit,
-		sinkFactory *paging.SinkFactory[T],
+		sinkFactory paging.SinkFactory[T],
 	) error
 }
 

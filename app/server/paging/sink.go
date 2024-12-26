@@ -119,10 +119,6 @@ func (s *sinkImpl[T]) Finish() {
 	}
 }
 
-func (s *sinkImpl[T]) ResultQueue() <-chan *ReadResult[T] {
-	return s.resultQueue
-}
-
 func (s *sinkImpl[T]) respondWith(
 	buf ColumnarBuffer[T],
 	stats *api_service_protos.TReadSplitsResponse_TStats,

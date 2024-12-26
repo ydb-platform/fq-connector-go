@@ -38,7 +38,7 @@ func (ds *dataSource) ReadSplit(
 	logger *zap.Logger,
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sinkFactory *paging.SinkFactory[string]) error {
+	sinkFactory paging.SinkFactory[string]) error {
 	return ds.doReadSplit(ctx, logger, split, sinkFactory)
 }
 
@@ -46,7 +46,7 @@ func (*dataSource) doReadSplit(
 	ctx context.Context,
 	_ *zap.Logger,
 	split *api_service_protos.TSplit,
-	sinkFactory *paging.SinkFactory[string]) error {
+	sinkFactory paging.SinkFactory[string]) error {
 	conn := makeConnection()
 
 	var (

@@ -81,12 +81,12 @@ func (ds *dataSourceImpl) DescribeTable(
 	return &api_service_protos.TDescribeTableResponse{Schema: schema}, nil
 }
 
-func (ds *dataSourceImpl) doReadSplit(
+func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sinkFactory *paging.SinkFactory[any],
+	sinkFactory paging.SinkFactory[any],
 ) error {
 	// Make connection(s) to the data source.
 	var cs []rdbms_utils.Connection
@@ -217,16 +217,6 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	sink.Finish()
 
 	return nil
-}
-
-func (ds *dataSourceImpl) ReadSplit(
-	ctx context.Context,
-	logger *zap.Logger,
-	request *api_service_protos.TReadSplitsRequest,
-	split *api_service_protos.TSplit,
-	sinkFactory *paging.SinkFactory[any],
-) error {
-	return ds.doReadSplit(ctx, logger, request, split, sinkFactory)
 }
 
 func NewDataSource(
