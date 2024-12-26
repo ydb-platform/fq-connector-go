@@ -15,7 +15,9 @@ import (
 )
 
 func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	var opts []grpc.DialOption
+	opts := []grpc.DialOption{
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(32 * 1024 * 1024)),
+	}
 
 	if cfg.Tls != nil {
 		tlsCfg := &tls.Config{}

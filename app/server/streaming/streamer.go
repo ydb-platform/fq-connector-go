@@ -88,7 +88,10 @@ func dumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSp
 	switch t := resp.GetPayload().(type) {
 	case *api_service_protos.TReadSplitsResponse_ArrowIpcStreaming:
 		if dump := resp.GetArrowIpcStreaming(); dump != nil {
-			logger.Debug("response", zap.Int("arrow_blob_length", len(dump)))
+			logger.Debug("response",
+				zap.Uint64("rows", resp.GetStats().Rows),
+				zap.Uint64("bytes", resp.GetStats().Bytes),
+				zap.Int("arrow_blob_size", len(dump)))
 		}
 	case *api_service_protos.TReadSplitsResponse_ColumnSet:
 		for i := range t.ColumnSet.Data {

@@ -99,7 +99,7 @@ func (cm *connectionManager) makeConnectionFromYDBSource(
 		Kind:        api_common.EGenericDataSourceKind_YDB,
 		Endpoint:    src.endpoint,
 		Database:    src.databaseName,
-		Credentials: nil,
+		Credentials: nil, // YDB connector should use static SA credentials provided in config
 		UseTls:      true,
 	}
 
