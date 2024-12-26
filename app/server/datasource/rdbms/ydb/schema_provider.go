@@ -26,9 +26,11 @@ func (f *schemaProvider) GetSchema(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
+	databaseName, tableName := conn.From()
+
 	var (
 		driver = conn.(ydbConnection).getDriver()
-		prefix = path.Join(driver.Name(), request.Table)
+		prefix = path.Join(databaseName, tableName)
 		desc   options.Description
 	)
 

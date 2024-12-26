@@ -52,7 +52,7 @@ func (ds *dataSourceImpl) DescribeTable(
 				Logger:             logger,
 				DataSourceInstance: request.DataSourceInstance,
 				TableName:          request.Table,
-				MaxConnections:     1,
+				MaxConnections:     1, // single connection is enough to get metadata
 			}
 
 			cs, makeConnErr = ds.connectionManager.Make(params)

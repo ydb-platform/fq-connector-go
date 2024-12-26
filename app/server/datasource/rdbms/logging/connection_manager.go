@@ -3,6 +3,7 @@ package logging
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"golang.org/x/sync/errgroup"
 
@@ -39,21 +40,36 @@ func (cm *connectionManager) Make(
 		return nil, fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
+	// Determine how much connections we need to create
+	// taking into account optional limit.
+	totalConnections := len(response.sources)
+	if params.MaxConnections > 0 && params.MaxConnections < totalConnections {
+		totalConnections = params.MaxConnections
+	}
+
 	var (
 		group errgroup.Group
-		cs    = make([]rdbms_utils.Connection, len(response.sources))
+		cs    = make([]rdbms_utils.Connection, 0, totalConnections)
+		mutex sync.Mutex
 	)
 
 	for i, src := range response.sources {
-		i := i
+		// If connection limit is set, create only requested number of connections.
+		if i >= totalConnections {
+			break
+		}
+
 		src := src
 
 		group.Go(func() error {
-			var err error
-			cs[i], err = cm.makeConnectionFromYDBSource(params, src)
+			conn, err := cm.makeConnectionFromYDBSource(params, src)
 			if err != nil {
 				return fmt.Errorf("make connection from YDB source: %w", err)
 			}
+
+			mutex.Lock()
+			cs = append(cs, conn)
+			mutex.Unlock()
 
 			return nil
 		})
@@ -76,7 +92,7 @@ func (cm *connectionManager) makeConnectionFromYDBSource(
 	params *rdbms_utils.ConnectionManagerMakeParams,
 	src *ydbSource,
 ) (rdbms_utils.Connection, error) {
-	params.Logger.Debug("Resolved log group into YDB endpoint", src.ToZapFields()...)
+	params.Logger.Debug("resolved log group into YDB endpoint", src.ToZapFields()...)
 
 	// prepare new data source instance describing the underlying YDB database
 	ydbDataSourceInstance := &api_common.TGenericDataSourceInstance{

@@ -2,6 +2,8 @@ package common
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 )
@@ -11,17 +13,19 @@ func EndpointToString(ep *api_common.TGenericEndpoint) string {
 }
 
 func StringToEndpoint(s string) (*api_common.TGenericEndpoint, error) {
-	var (
-		host string
-		port uint32
-	)
+	ss := strings.Split(s, ":")
 
-	if _, err := fmt.Sscanf(s, "%s:%d", &host, &port); err != nil {
-		return nil, fmt.Errorf("parse endpoint '%s': %w", s, err)
+	if len(ss) != 2 {
+		return nil, fmt.Errorf("invalid endpoint format: %s", s)
+	}
+
+	port, err := strconv.ParseUint(ss[1], 10, 32)
+	if err != nil {
+		return nil, fmt.Errorf("invalid port: %s", ss[1])
 	}
 
 	return &api_common.TGenericEndpoint{
-		Host: host,
-		Port: port,
+		Host: ss[0],
+		Port: uint32(port),
 	}, nil
 }
