@@ -24,6 +24,10 @@ func StringToEndpoint(s string) (*api_common.TGenericEndpoint, error) {
 		return nil, fmt.Errorf("invalid port: %s", ss[1])
 	}
 
+	if port > 65535 {
+		return nil, fmt.Errorf("invalid port: %s", ss[1])
+	}
+
 	return &api_common.TGenericEndpoint{
 		Host: ss[0],
 		Port: uint32(port),
