@@ -22,8 +22,8 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	params *rdbms_utils.ConnectionParamsMakeParams,
-) (rdbms_utils.Connection, error) {
+	params *rdbms_utils.ConnectionManagerMakeParams,
+) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 
 	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
@@ -63,11 +63,13 @@ func (c *connectionManager) Make(
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return &Connection{db, queryLogger}, nil
+	return []rdbms_utils.Connection{&Connection{db, queryLogger, params.DataSourceInstance.Database, params.TableName}}, nil
 }
 
-func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close connection")
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+	for _, conn := range cs {
+		common.LogCloserError(logger, conn, "close connection")
+	}
 }
 
 func NewConnectionManager(

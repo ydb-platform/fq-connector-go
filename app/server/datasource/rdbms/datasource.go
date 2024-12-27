@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
@@ -40,20 +41,21 @@ func (ds *dataSourceImpl) DescribeTable(
 	logger *zap.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	var conn rdbms_utils.Connection
+	var cs []rdbms_utils.Connection
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var makeConnErr error
 
-			params := &rdbms_utils.ConnectionParamsMakeParams{
+			params := &rdbms_utils.ConnectionManagerMakeParams{
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: request.DataSourceInstance,
 				TableName:          request.Table,
+				MaxConnections:     1, // single connection is enough to get metadata
 			}
 
-			conn, makeConnErr = ds.connectionManager.Make(params)
+			cs, makeConnErr = ds.connectionManager.Make(params)
 			if makeConnErr != nil {
 				return fmt.Errorf("make connection: %w", makeConnErr)
 			}
@@ -66,7 +68,10 @@ func (ds *dataSourceImpl) DescribeTable(
 		return nil, fmt.Errorf("retry: %w", err)
 	}
 
-	defer ds.connectionManager.Release(ctx, logger, conn)
+	defer ds.connectionManager.Release(ctx, logger, cs)
+
+	// We asked for a single connection
+	conn := cs[0]
 
 	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
 	if err != nil {
@@ -76,34 +81,30 @@ func (ds *dataSourceImpl) DescribeTable(
 	return &api_service_protos.TDescribeTableResponse{Schema: schema}, nil
 }
 
-func (ds *dataSourceImpl) doReadSplit(
+func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sink paging.Sink[any],
+	sinkFactory paging.SinkFactory[any],
 ) error {
-	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(ctx, logger, ds.sqlFormatter, split.Select, request.Filtering)
-	if err != nil {
-		return fmt.Errorf("make read split query: %w", err)
-	}
+	// Make connection(s) to the data source.
+	var cs []rdbms_utils.Connection
 
-	var conn rdbms_utils.Connection
-
-	err = ds.retrierSet.MakeConnection.Run(
+	err := ds.retrierSet.MakeConnection.Run(
 		ctx,
 		logger,
 		func() error {
 			var makeConnErr error
 
-			params := &rdbms_utils.ConnectionParamsMakeParams{
+			params := &rdbms_utils.ConnectionManagerMakeParams{
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: split.Select.DataSourceInstance,
 				TableName:          split.Select.From.Table,
 			}
 
-			conn, makeConnErr = ds.connectionManager.Make(params)
+			cs, makeConnErr = ds.connectionManager.Make(params)
 			if makeConnErr != nil {
 				return fmt.Errorf("make connection: %w", makeConnErr)
 			}
@@ -116,7 +117,53 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("make connection: %w", err)
 	}
 
-	defer ds.connectionManager.Release(ctx, logger, conn)
+	defer ds.connectionManager.Release(ctx, logger, cs)
+
+	// Prepare sinks that will accept the data from the connections.
+	sinks, err := sinkFactory.MakeSinks(len(cs))
+	if err != nil {
+		return fmt.Errorf("make sinks: %w", err)
+	}
+
+	// Read data from every connection in a distinct goroutine.
+	// TODO: check if it's OK to override context
+	group, ctx := errgroup.WithContext(ctx)
+
+	for i, conn := range cs {
+		conn := conn
+		sink := sinks[i]
+
+		group.Go(func() error {
+			return ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
+		})
+	}
+
+	return group.Wait()
+}
+
+func (ds *dataSourceImpl) doReadSplitSingleConn(
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TReadSplitsRequest,
+	split *api_service_protos.TSplit,
+	sink paging.Sink[any],
+	conn rdbms_utils.Connection,
+) error {
+	databaseName, tableName := conn.From()
+
+	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+		ctx,
+		logger,
+		ds.sqlFormatter,
+		split.Select,
+		request.Filtering,
+		databaseName,
+		tableName,
+	)
+
+	if err != nil {
+		return fmt.Errorf("make read split query: %w", err)
+	}
 
 	var rows rdbms_utils.Rows
 
@@ -166,22 +213,10 @@ func (ds *dataSourceImpl) doReadSplit(
 		return fmt.Errorf("rows error: %w", err)
 	}
 
-	return nil
-}
-
-func (ds *dataSourceImpl) ReadSplit(
-	ctx context.Context,
-	logger *zap.Logger,
-	request *api_service_protos.TReadSplitsRequest,
-	split *api_service_protos.TSplit,
-	sink paging.Sink[any],
-) {
-	err := ds.doReadSplit(ctx, logger, request, split, sink)
-	if err != nil {
-		sink.AddError(err)
-	}
-
+	// Notify parent that there will be no more data from this connection.
 	sink.Finish()
+
+	return nil
 }
 
 func NewDataSource(

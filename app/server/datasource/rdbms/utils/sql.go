@@ -21,7 +21,14 @@ type QueryParams struct {
 }
 
 type Connection interface {
+	// Query runs a query on a specific connection.
 	Query(params *QueryParams) (Rows, error)
+	// For the most of the data sources the database name / table name pair
+	// is strictly defined by the user input.
+	// However, in certain kinds of data sources it's necessary
+	// to override database / table names specified by the user request.
+	From() (database, table string)
+	// Close terminates network connections.
 	Close() error
 }
 
@@ -34,27 +41,26 @@ type Rows interface {
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
-type ConnectionParamsMakeParams struct {
+type ConnectionManagerMakeParams struct {
 	Ctx                context.Context                        // mandatory
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
-	TableName          string                                 // optional
+	TableName          string                                 // mandatory
+
+	// MaxConnections is the maximum number of connections to make.
+	// Even if there are a plenty of physical instances of a data source,
+	// only requested number of connections will be made.
+	// Zero value means no limit.
+	MaxConnections int // optional
 }
 
 type ConnectionManager interface {
-	Make(params *ConnectionParamsMakeParams) (Connection, error)
-	Release(ctx context.Context, logger *zap.Logger, connection Connection)
+	Make(params *ConnectionManagerMakeParams) ([]Connection, error)
+	Release(ctx context.Context, logger *zap.Logger, cs []Connection)
 }
 
 type ConnectionManagerBase struct {
 	QueryLoggerFactory common.QueryLoggerFactory
-}
-
-type SQLFormatterFormatFromParams struct {
-	Ctx                context.Context
-	Logger             *zap.Logger
-	TableName          string
-	DataSourceInstance *api_common.TGenericDataSourceInstance
 }
 
 type SQLFormatter interface {
@@ -69,8 +75,7 @@ type SQLFormatter interface {
 
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
-	// For some datasources this call may involve queries to external APIs.
-	FormatFrom(params *SQLFormatterFormatFromParams) (string, error)
+	FormatFrom(databaseName, tableName string) string
 }
 
 type SchemaProvider interface {

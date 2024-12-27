@@ -384,18 +384,30 @@ func validateLoggingConfig(c *config.TLoggingConfig) error {
 		return fmt.Errorf("validate `ydb`: %w", err)
 	}
 
-	if staticConfig := c.GetStatic(); staticConfig != nil {
-		if err := validateLoggingResolvingStaticConfig(staticConfig); err != nil {
-			return fmt.Errorf("validate `static`: %w", err)
-		}
-	} else {
-		return fmt.Errorf("missing `static` section")
+	if c.GetStatic() == nil && c.GetDynamic() == nil {
+		return fmt.Errorf("you should set either `static` or `dynamic` section")
+	}
+
+	if c.GetStatic() != nil && c.GetDynamic() != nil {
+		return fmt.Errorf("you should set either `static` or `dynamic` section, not both of them")
+	}
+
+	if err := validateLoggingResolvingStaticConfig(c.GetStatic()); err != nil {
+		return fmt.Errorf("validate `static`: %w", err)
+	}
+
+	if err := validateLoggingResolvingDynamicConfig(c.GetDynamic()); err != nil {
+		return fmt.Errorf("validate `dynamic`: %w", err)
 	}
 
 	return nil
 }
 
 func validateLoggingResolvingStaticConfig(c *config.TLoggingConfig_TStaticResolving) error {
+	if c == nil {
+		return nil
+	}
+
 	if len(c.Databases) == 0 {
 		// it's kind of OK to have empty list of databases
 		return nil
@@ -424,6 +436,22 @@ func validateLoggingResolvingStaticConfig(c *config.TLoggingConfig_TStaticResolv
 		if len(folder.LogGroups) == 0 {
 			return fmt.Errorf("missing `log_groups` for folder %s", folderId)
 		}
+	}
+
+	return nil
+}
+
+func validateLoggingResolvingDynamicConfig(c *config.TLoggingConfig_TDynamicResolving) error {
+	if c == nil {
+		return nil
+	}
+
+	if c.LoggingEndpoint.Host == "" {
+		return fmt.Errorf("missing `logging_endpoint.host`")
+	}
+
+	if c.LoggingEndpoint.Port == 0 {
+		return fmt.Errorf("missing `logging_endpoint.port`")
 	}
 
 	return nil

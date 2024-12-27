@@ -30,6 +30,26 @@ func (m *SinkMock) ResultQueue() <-chan *ReadResult[any] {
 	return m.Called().Get(0).(chan *ReadResult[any])
 }
 
+var _ SinkFactory[any] = (*SinkFactoryMock)(nil)
+
+type SinkFactoryMock struct {
+	mock.Mock
+}
+
+func (m *SinkFactoryMock) MakeSinks(totalSinks int) ([]Sink[any], error) {
+	args := m.Called(totalSinks)
+
+	return args.Get(0).([]Sink[any]), args.Error(1)
+}
+
+func (m *SinkFactoryMock) ResultQueue() <-chan *ReadResult[any] {
+	return m.Called().Get(0).(chan *ReadResult[any])
+}
+
+func (m *SinkFactoryMock) FinalStats() *api_service_protos.TReadSplitsResponse_TStats {
+	return m.Called().Get(0).(*api_service_protos.TReadSplitsResponse_TStats)
+}
+
 var _ ColumnarBuffer[any] = (*ColumnarBufferMock)(nil)
 
 type ColumnarBufferMock struct {

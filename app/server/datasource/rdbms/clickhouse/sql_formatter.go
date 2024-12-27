@@ -83,8 +83,8 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return sanitizedIdent
 }
 
-func (f sqlFormatter) FormatFrom(params *rdbms_utils.SQLFormatterFormatFromParams) (string, error) {
-	return f.SanitiseIdentifier(params.TableName), nil
+func (f sqlFormatter) FormatFrom(_, tableName string) string {
+	return f.SanitiseIdentifier(tableName)
 }
 
 func NewSQLFormatter() rdbms_utils.SQLFormatter {

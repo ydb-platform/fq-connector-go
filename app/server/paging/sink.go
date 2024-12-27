@@ -14,9 +14,9 @@ import (
 type sinkState int8
 
 const (
-	operational sinkState = iota + 1
-	failed
-	finished
+	sinkOperational sinkState = iota + 1
+	sinkFailed
+	sinkFinished
 )
 
 var _ Sink[any] = (*sinkImpl[any])(nil)
@@ -25,6 +25,7 @@ var _ Sink[string] = (*sinkImpl[string])(nil)
 type sinkImpl[T Acceptor] struct {
 	currBuffer     ColumnarBuffer[T]        // accumulates incoming rows
 	resultQueue    chan *ReadResult[T]      // outgoing buffer queue
+	terminateChan  chan<- struct{}          // notify factory when the data reading is finished
 	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
 	trafficTracker *TrafficTracker[T]       // tracks the amount of data passed through the sink
 	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request
@@ -34,8 +35,8 @@ type sinkImpl[T Acceptor] struct {
 }
 
 func (s *sinkImpl[T]) AddRow(rowTransformer RowTransformer[T]) error {
-	if s.state != operational {
-		panic(s.unexpectedState(operational))
+	if s.state != sinkOperational {
+		panic(s.unexpectedState(sinkOperational))
 	}
 
 	if err := s.readLimiter.addRow(); err != nil {
@@ -69,16 +70,6 @@ func (s *sinkImpl[T]) AddRow(rowTransformer RowTransformer[T]) error {
 	return nil
 }
 
-func (s *sinkImpl[T]) AddError(err error) {
-	if s.state != operational {
-		panic(s.unexpectedState(operational))
-	}
-
-	s.respondWith(nil, nil, err, true)
-
-	s.state = failed
-}
-
 func (s *sinkImpl[T]) flush(makeNewBuffer bool, isTerminalMessage bool) error {
 	if s.currBuffer.TotalRows() == 0 {
 		return nil
@@ -106,27 +97,26 @@ func (s *sinkImpl[T]) flush(makeNewBuffer bool, isTerminalMessage bool) error {
 }
 
 func (s *sinkImpl[T]) Finish() {
-	if s.state != operational && s.state != failed {
-		panic(s.unexpectedState(operational, failed))
+	if s.state != sinkOperational && s.state != sinkFailed {
+		panic(s.unexpectedState(sinkOperational, sinkFailed))
 	}
 
 	// if there is some data left, send it to the channel
-	if s.state == operational {
+	if s.state == sinkOperational {
 		err := s.flush(false, true)
 		if err != nil {
 			s.respondWith(nil, nil, fmt.Errorf("flush: %w", err), true)
-			s.state = failed
+			s.state = sinkFailed
 		} else {
-			s.state = finished
+			s.state = sinkFinished
 		}
 	}
 
-	// notify reader about the end of data
-	close(s.resultQueue)
-}
-
-func (s *sinkImpl[T]) ResultQueue() <-chan *ReadResult[T] {
-	return s.resultQueue
+	// notify factory about the end of data
+	select {
+	case s.terminateChan <- struct{}{}:
+	case <-s.ctx.Done():
+	}
 }
 
 func (s *sinkImpl[T]) respondWith(
@@ -144,29 +134,4 @@ func (s *sinkImpl[T]) unexpectedState(expected ...sinkState) error {
 	return fmt.Errorf(
 		"unexpected state '%v' (expected are '%v'): %w",
 		s.state, expected, common.ErrInvariantViolation)
-}
-
-func NewSink[T Acceptor](
-	ctx context.Context,
-	logger *zap.Logger,
-	trafficTracker *TrafficTracker[T],
-	columnarBufferFactory ColumnarBufferFactory[T],
-	readLimiter ReadLimiter,
-	resultQueueCapacity int,
-) (Sink[T], error) {
-	buffer, err := columnarBufferFactory.MakeBuffer()
-	if err != nil {
-		return nil, fmt.Errorf("wrap buffer: %w", err)
-	}
-
-	return &sinkImpl[T]{
-		bufferFactory:  columnarBufferFactory,
-		readLimiter:    readLimiter,
-		resultQueue:    make(chan *ReadResult[T], resultQueueCapacity),
-		trafficTracker: trafficTracker,
-		currBuffer:     buffer,
-		logger:         logger,
-		state:          operational,
-		ctx:            ctx,
-	}, nil
 }

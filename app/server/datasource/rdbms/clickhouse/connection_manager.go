@@ -20,26 +20,39 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	params *rdbms_utils.ConnectionParamsMakeParams,
-) (rdbms_utils.Connection, error) {
-	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
-
-	if dsi.GetCredentials().GetBasic() == nil {
+	params *rdbms_utils.ConnectionManagerMakeParams,
+) ([]rdbms_utils.Connection, error) {
+	if params.DataSourceInstance.GetCredentials().GetBasic() == nil {
 		return nil, fmt.Errorf("currently only basic auth is supported")
 	}
 
-	switch dsi.Protocol {
+	var (
+		conn rdbms_utils.Connection
+		err  error
+	)
+
+	switch params.DataSourceInstance.Protocol {
 	case api_common.EGenericProtocol_NATIVE:
-		return makeConnectionNative(ctx, logger, c.cfg, dsi, c.QueryLoggerFactory.Make(logger))
+		conn, err = makeConnectionNative(
+			params.Ctx, params.Logger, c.cfg, params.DataSourceInstance, params.TableName, c.QueryLoggerFactory.Make(params.Logger))
 	case api_common.EGenericProtocol_HTTP:
-		return makeConnectionHTTP(ctx, logger, c.cfg, dsi, c.QueryLoggerFactory.Make(logger))
+		conn, err = makeConnectionHTTP(
+			params.Ctx, params.Logger, c.cfg, params.DataSourceInstance, params.TableName, c.QueryLoggerFactory.Make(params.Logger))
 	default:
-		return nil, fmt.Errorf("can not run ClickHouse connection with protocol '%v'", dsi.Protocol)
+		return nil, fmt.Errorf("can not run ClickHouse connection with protocol '%v'", params.DataSourceInstance.Protocol)
 	}
+
+	if err != nil {
+		return nil, fmt.Errorf("make connection: %w", err)
+	}
+
+	return []rdbms_utils.Connection{conn}, nil
 }
 
-func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close clickhouse connection")
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+	for _, conn := range cs {
+		common.LogCloserError(logger, conn, "close clickhouse connection")
+	}
 }
 
 func NewConnectionManager(

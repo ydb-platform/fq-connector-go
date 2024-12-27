@@ -10,18 +10,20 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ rdbms_utils.Connection = (*Connection)(nil)
+var _ rdbms_utils.Connection = (*connection)(nil)
 
-type Connection struct {
-	conn   *go_ora.Connection
-	logger common.QueryLogger
+type connection struct {
+	conn         *go_ora.Connection
+	logger       common.QueryLogger
+	databaseName string
+	tableName    string
 }
 
-func (c Connection) Close() error {
+func (c *connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.logger.Dump(queryParams.QueryText, queryParams.QueryArgs.Values()...)
 
 	valueArgs := make([]driver.NamedValue, queryParams.QueryArgs.Count())
@@ -43,4 +45,8 @@ func (c Connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Row
 	rows := newRows(out)
 
 	return rows, nil
+}
+
+func (c *connection) From() (databaseName, tableName string) {
+	return c.databaseName, c.tableName
 }

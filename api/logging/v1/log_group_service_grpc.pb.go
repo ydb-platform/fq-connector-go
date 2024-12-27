@@ -19,7 +19,7 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	LogGroupService_GetReadingEndpoint_FullMethodName = "/logging.v1.LogGroupService/GetReadingEndpoint"
+	LogGroupService_GetReadingEndpoint_FullMethodName = "/yandex.cloud.priv.logging.v1.LogGroupService/GetReadingEndpoint"
 )
 
 // LogGroupServiceClient is the client API for LogGroupService service.
@@ -96,7 +96,7 @@ func _LogGroupService_GetReadingEndpoint_Handler(srv interface{}, ctx context.Co
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var LogGroupService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "logging.v1.LogGroupService",
+	ServiceName: "yandex.cloud.priv.logging.v1.LogGroupService",
 	HandlerType: (*LogGroupServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

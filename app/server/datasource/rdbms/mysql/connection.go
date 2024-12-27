@@ -12,19 +12,21 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ rdbms_utils.Connection = (*Connection)(nil)
+var _ rdbms_utils.Connection = (*connection)(nil)
 
-type Connection struct {
-	logger common.QueryLogger
-	conn   *client.Conn
-	cfg    *config.TMySQLConfig
+type connection struct {
+	logger       common.QueryLogger
+	conn         *client.Conn
+	cfg          *config.TMySQLConfig
+	databaseName string
+	tableName    string
 }
 
-func (c *Connection) Close() error {
+func (c *connection) Close() error {
 	return c.conn.Close()
 }
 
-func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	results := make(chan rowData, c.cfg.ResultChanCapacity)
@@ -88,4 +90,8 @@ func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 	}()
 
 	return r, nil
+}
+
+func (c *connection) From() (databaseName, tableName string) {
+	return c.databaseName, c.tableName
 }

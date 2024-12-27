@@ -15,14 +15,15 @@ import (
 )
 
 type Streamer[T paging.Acceptor] struct {
-	stream     api_service.Connector_ReadSplitsServer
-	dataSource datasource.DataSource[T]
-	request    *api_service_protos.TReadSplitsRequest
-	split      *api_service_protos.TSplit
-	sink       paging.Sink[T]
-	logger     *zap.Logger
-	ctx        context.Context // clone of a stream context
-	cancel     context.CancelFunc
+	stream      api_service.Connector_ReadSplitsServer
+	dataSource  datasource.DataSource[T]
+	request     *api_service_protos.TReadSplitsRequest
+	split       *api_service_protos.TSplit
+	sinkFactory paging.SinkFactory[T]
+	logger      *zap.Logger
+	errorChan   chan error      // notifies about errors happened during reading process
+	ctx         context.Context // clone of a stream context
+	cancel      context.CancelFunc
 }
 
 func (s *Streamer[T]) writeDataToStream() error {
@@ -31,7 +32,7 @@ func (s *Streamer[T]) writeDataToStream() error {
 
 	for {
 		select {
-		case result, ok := <-s.sink.ResultQueue():
+		case result, ok := <-s.sinkFactory.ResultQueue():
 			if !ok {
 				// correct termination
 				return nil
@@ -44,6 +45,11 @@ func (s *Streamer[T]) writeDataToStream() error {
 			// handle next data block
 			if err := s.sendResultToStream(result); err != nil {
 				return fmt.Errorf("send buffer to stream: %w", err)
+			}
+		case err := <-s.errorChan:
+			// an error occurred during reading
+			if err != nil {
+				return fmt.Errorf("error: %w", err)
 			}
 		case <-s.stream.Context().Done():
 			// handle request termination
@@ -82,7 +88,10 @@ func dumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSp
 	switch t := resp.GetPayload().(type) {
 	case *api_service_protos.TReadSplitsResponse_ArrowIpcStreaming:
 		if dump := resp.GetArrowIpcStreaming(); dump != nil {
-			logger.Debug("response", zap.Int("arrow_blob_length", len(dump)))
+			logger.Debug("response",
+				zap.Uint64("rows", resp.GetStats().Rows),
+				zap.Uint64("bytes", resp.GetStats().Bytes),
+				zap.Int("arrow_blob_size", len(dump)))
 		}
 	case *api_service_protos.TReadSplitsResponse_ColumnSet:
 		for i := range t.ColumnSet.Data {
@@ -103,14 +112,17 @@ func (s *Streamer[T]) Run() error {
 	defer wg.Wait()
 
 	// Launch reading from the data source.
-	// Subsriber goroutine controls publisher goroutine lifetime.
+	// Subscriber goroutine controls publisher goroutine lifetime.
 	go func() {
 		defer wg.Done()
 
-		s.dataSource.ReadSplit(s.ctx, s.logger, s.request, s.split, s.sink)
+		select {
+		case s.errorChan <- s.dataSource.ReadSplit(s.ctx, s.logger, s.request, s.split, s.sinkFactory):
+		case <-s.ctx.Done():
+		}
 	}()
 
-	// pass received blocks into the GRPC channel
+	// Pass received blocks into the GRPC channel
 	if err := s.writeDataToStream(); err != nil {
 		return fmt.Errorf("write data to stream: %w", err)
 	}
@@ -123,19 +135,20 @@ func NewStreamer[T paging.Acceptor](
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
-	sink paging.Sink[T],
+	sinkFactory paging.SinkFactory[T],
 	dataSource datasource.DataSource[T],
 ) *Streamer[T] {
 	ctx, cancel := context.WithCancel(stream.Context())
 
 	return &Streamer[T]{
-		logger:     logger,
-		request:    request,
-		stream:     stream,
-		split:      split,
-		dataSource: dataSource,
-		sink:       sink,
-		ctx:        ctx,
-		cancel:     cancel,
+		logger:      logger,
+		request:     request,
+		stream:      stream,
+		split:       split,
+		dataSource:  dataSource,
+		sinkFactory: sinkFactory,
+		errorChan:   make(chan error),
+		ctx:         ctx,
+		cancel:      cancel,
 	}
 }

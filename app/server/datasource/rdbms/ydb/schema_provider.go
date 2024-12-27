@@ -3,6 +3,7 @@ package ydb
 import (
 	"context"
 	"fmt"
+	"path"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
@@ -14,8 +15,7 @@ import (
 )
 
 type schemaProvider struct {
-	typeMapper   datasource.TypeMapper
-	prefixGetter PrefixGetter
+	typeMapper datasource.TypeMapper
 }
 
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
@@ -26,17 +26,17 @@ func (f *schemaProvider) GetSchema(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
-	db := conn.(ydbConnection).getDriver()
-	desc := options.Description{}
+	databaseName, tableName := conn.From()
 
-	prefix, err := f.prefixGetter.GetPrefix(ctx, logger, db, request)
-	if err != nil {
-		return nil, fmt.Errorf("get prefix: %w", err)
-	}
+	var (
+		driver = conn.(ydbConnection).getDriver()
+		prefix = path.Join(databaseName, tableName)
+		desc   options.Description
+	)
 
 	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
 
-	err = db.Table().Do(
+	err := driver.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
@@ -71,10 +71,8 @@ func (f *schemaProvider) GetSchema(
 
 func NewSchemaProvider(
 	typeMapper datasource.TypeMapper,
-	preffixGetter PrefixGetter,
 ) rdbms_utils.SchemaProvider {
 	return &schemaProvider{
-		typeMapper:   typeMapper,
-		prefixGetter: preffixGetter,
+		typeMapper: typeMapper,
 	}
 }

@@ -34,6 +34,7 @@ type dataSourceFactory struct {
 	oracle              Preset
 	logging             Preset
 	converterCollection conversion.Collection
+	loggingResolver     logging.Resolver
 }
 
 func (dsf *dataSourceFactory) Make(
@@ -60,6 +61,14 @@ func (dsf *dataSourceFactory) Make(
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
+}
+
+func (dsf *dataSourceFactory) Close() error {
+	if err := dsf.loggingResolver.Close(); err != nil {
+		return fmt.Errorf("close logging resolver: %w", err)
+	}
+
+	return nil
 }
 
 func NewDataSourceFactory(
@@ -120,7 +129,7 @@ func NewDataSourceFactory(
 			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
-			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper, ydb.NewPrefixGetter()),
+			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
@@ -176,16 +185,18 @@ func NewDataSourceFactory(
 		converterCollection: converterCollection,
 	}
 
-	loggingResolver, err := logging.NewResolver(cfg.Logging)
+	var err error
+
+	dsf.loggingResolver, err = logging.NewResolver(cfg.Logging)
 	if err != nil {
 		return nil, fmt.Errorf("logging resolver: %w", err)
 	}
 
 	dsf.logging = Preset{
-		SQLFormatter:      logging.NewSQLFormatter(loggingResolver, cfg.Ydb.Mode),
-		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, loggingResolver),
+		SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
+		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        ydbTypeMapper,
-		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper, logging.NewPrefixGetter(loggingResolver)),
+		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),

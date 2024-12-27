@@ -22,7 +22,9 @@ var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
 	driver.Conn
-	logger common.QueryLogger
+	logger       common.QueryLogger
+	databaseName string
+	tableName    string
 }
 
 var _ rdbms_utils.Rows = (*rowsNative)(nil)
@@ -72,11 +74,16 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	return &rowsNative{Rows: out}, nil
 }
 
+func (c *connectionNative) From() (databaseName, tableName string) {
+	return c.databaseName, c.tableName
+}
+
 func makeConnectionNative(
 	ctx context.Context,
 	logger *zap.Logger,
 	cfg *config.TClickHouseConfig,
 	dsi *api_common.TGenericDataSourceInstance,
+	tableName string,
 	queryLogger common.QueryLogger,
 ) (rdbms_utils.Connection, error) {
 	opts := &clickhouse.Options{
@@ -117,5 +124,5 @@ func makeConnectionNative(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionNative{Conn: conn, logger: queryLogger}, nil
+	return &connectionNative{Conn: conn, logger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
 }

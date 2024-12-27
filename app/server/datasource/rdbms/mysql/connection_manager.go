@@ -25,8 +25,8 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	params *rdbms_utils.ConnectionParamsMakeParams,
-) (rdbms_utils.Connection, error) {
+	params *rdbms_utils.ConnectionManagerMakeParams,
+) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	optionFuncs := make([]func(c *client.Conn), 0)
 
@@ -82,11 +82,13 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("set time zone: %w", err)
 	}
 
-	return &Connection{queryLogger, conn, c.cfg}, nil
+	return []rdbms_utils.Connection{&connection{queryLogger, conn, c.cfg, dsi.Database, params.TableName}}, nil
 }
 
-func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn rdbms_utils.Connection) {
-	common.LogCloserError(logger, conn, "close mysql connection")
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+	for _, cs := range cs {
+		common.LogCloserError(logger, cs, "close connection")
+	}
 }
 
 func NewConnectionManager(cfg *config.TMySQLConfig, base rdbms_utils.ConnectionManagerBase) rdbms_utils.ConnectionManager {

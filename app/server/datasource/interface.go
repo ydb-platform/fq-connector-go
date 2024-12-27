@@ -17,6 +17,7 @@ type Factory[T paging.Acceptor] interface {
 		logger *zap.Logger,
 		dataSourceType api_common.EGenericDataSourceKind,
 	) (DataSource[T], error)
+	Close() error
 }
 
 // DataSource is an abstraction over external data storage that is available for data and metadata extraction.
@@ -37,8 +38,8 @@ type DataSource[T paging.Acceptor] interface {
 		logger *zap.Logger,
 		request *api_service_protos.TReadSplitsRequest,
 		split *api_service_protos.TSplit,
-		sink paging.Sink[T],
-	)
+		sinkFactory paging.SinkFactory[T],
+	) error
 }
 
 type TypeMapper interface {

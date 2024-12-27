@@ -455,13 +455,16 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 				context.Background(),
 				logger, formatter,
 				tc.selectReq,
-				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
+				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
+				"",
+				tc.selectReq.From.Table,
+			)
 			if tc.err != nil {
-				require.True(t, errors.Is(err, tc.err))
+				require.True(t, errors.Is(err, tc.err), err, tc.err)
 				return
 			}
 
-			require.NoError(t, err)
+			require.NoError(t, err, err)
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
 			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
 			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)

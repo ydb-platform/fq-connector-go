@@ -3,7 +3,6 @@ package logging
 import (
 	"context"
 	"fmt"
-	"math/rand"
 
 	"go.uber.org/zap"
 
@@ -16,15 +15,16 @@ type resolveParams struct {
 	logger       *zap.Logger
 	folderId     string
 	logGroupName string
+	iamToken     string // optional, used for authorization into external APIs
 }
 
-type resolveResponse struct {
+type ydbSource struct {
 	endpoint     *api_common.TGenericEndpoint
 	databaseName string
 	tableName    string
 }
 
-func (r *resolveResponse) ToZapFields() []zap.Field {
+func (r *ydbSource) ToZapFields() []zap.Field {
 	return []zap.Field{
 		zap.String("host", r.endpoint.Host),
 		zap.Uint32("port", r.endpoint.Port),
@@ -33,58 +33,22 @@ func (r *resolveResponse) ToZapFields() []zap.Field {
 	}
 }
 
+type resolveResponse struct {
+	sources []*ydbSource
+}
+
 type Resolver interface {
 	resolve(request *resolveParams) (*resolveResponse, error)
-}
-
-type staticResolver struct {
-	cfg *config.TLoggingConfig_TStaticResolving
-}
-
-func (r *staticResolver) resolve(
-	request *resolveParams,
-) (*resolveResponse, error) {
-	if len(r.cfg.Databases) == 0 {
-		return nil, fmt.Errorf("no YDB endpoints provided")
-	}
-
-	// get random YDB endpoint from provided list
-	ix := rand.Intn(len(r.cfg.Databases))
-
-	endpoint := r.cfg.Databases[ix].Endpoint
-	databaseName := r.cfg.Databases[ix].Name
-
-	// pick a preconfigured folder
-	folder, exists := r.cfg.Folders[request.folderId]
-	if !exists {
-		return nil, fmt.Errorf("folder_id '%s' is missing", request.folderId)
-	}
-
-	// resolve log group name into log group id
-	logGroupId, exists := folder.LogGroups[request.logGroupName]
-	if !exists {
-		return nil, fmt.Errorf("log group '%s' is missing", request.logGroupName)
-	}
-
-	tableName := fmt.Sprintf("logs/origin/yc.logs.cloud/%s/%s", request.folderId, logGroupId)
-
-	return &resolveResponse{
-		endpoint:     endpoint,
-		tableName:    tableName,
-		databaseName: databaseName,
-	}, nil
-}
-
-func newStaticResolver(cfg *config.TLoggingConfig_TStaticResolving) Resolver {
-	return &staticResolver{
-		cfg: cfg,
-	}
+	Close() error
 }
 
 func NewResolver(cfg *config.TLoggingConfig) (Resolver, error) {
-	if cfg.GetStatic() != nil {
-		return newStaticResolver(cfg.GetStatic()), nil
+	switch cfg.GetResolving().(type) {
+	case *config.TLoggingConfig_Static:
+		return newResolverStatic(cfg.GetStatic()), nil
+	case *config.TLoggingConfig_Dynamic:
+		return newResolverDynamic(cfg)
+	default:
+		return nil, fmt.Errorf("unsupported resolver type: %T", cfg.GetResolving())
 	}
-
-	return nil, fmt.Errorf("unsupported resolver type: %T", cfg.GetResolving())
 }

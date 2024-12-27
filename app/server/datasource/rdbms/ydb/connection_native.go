@@ -113,6 +113,7 @@ type connectionNative struct {
 	queryLogger common.QueryLogger
 	ctx         context.Context
 	driver      *ydb_sdk.Driver
+	tableName   string
 }
 
 // nolint: gocyclo
@@ -244,6 +245,10 @@ func (c *connectionNative) getDriver() *ydb_sdk.Driver {
 	return c.driver
 }
 
+func (c *connectionNative) From() (datbaseName, tableName string) {
+	return c.dsi.Database, c.tableName
+}
+
 func (c *connectionNative) Close() error {
 	if err := c.driver.Close(c.ctx); err != nil {
 		return fmt.Errorf("driver close: %w", err)
@@ -294,6 +299,7 @@ func newConnectionNative(
 	ctx context.Context,
 	queryLogger common.QueryLogger,
 	dsi *api_common.TGenericDataSourceInstance,
+	tableName string,
 	driver *ydb_sdk.Driver,
 ) ydbConnection {
 	return &connectionNative{
@@ -301,5 +307,6 @@ func newConnectionNative(
 		driver:      driver,
 		queryLogger: queryLogger,
 		dsi:         dsi,
+		tableName:   tableName,
 	}
 }

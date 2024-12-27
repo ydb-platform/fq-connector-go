@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -67,8 +68,10 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
-		connectionManager.On("Make", split.Select.DataSourceInstance).Return(connection, nil).Once()
-		connectionManager.On("Release", connection).Return().Once()
+		connection.On("From").Return("", "example_1").Once()
+
+		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
+		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
 
 		rows := &rdbms_utils.RowsMock{
 			PredefinedData: [][]any{
@@ -99,10 +102,15 @@ func TestReadSplit(t *testing.T) {
 		sink.On("AddRow", transformer).Return(nil).Times(2)
 		sink.On("Finish").Return().Once()
 
-		dataSource := NewDataSource(logger, preset, converterCollection)
-		dataSource.ReadSplit(ctx, logger, readSplitsRequest, split, sink)
+		sinkFactory := &paging.SinkFactoryMock{}
+		sinkFactory.On("MakeSinks", 1).Return([]paging.Sink[any]{sink}, nil).Once()
 
-		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink)
+		dataSource := NewDataSource(logger, preset, converterCollection)
+
+		err := dataSource.ReadSplit(ctx, logger, readSplitsRequest, split, sinkFactory)
+		require.NoError(t, err)
+
+		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
 	})
 
 	t.Run("scan error", func(t *testing.T) {
@@ -116,8 +124,10 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
-		connectionManager.On("Make", split.Select.DataSourceInstance).Return(connection, nil).Once()
-		connectionManager.On("Release", connection).Return().Once()
+		connection.On("From").Return("", "example_1").Once()
+
+		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
+		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
 
 		rows := &rdbms_utils.RowsMock{
 			PredefinedData: [][]any{
@@ -149,15 +159,15 @@ func TestReadSplit(t *testing.T) {
 
 		sink := &paging.SinkMock{}
 		sink.On("AddRow", transformer).Return(nil).Once()
-		sink.On("AddError", mock.MatchedBy(func(err error) bool {
-			return errors.Is(err, scanErr)
-		})).Return().Once()
-		sink.On("Finish").Return().Once()
+
+		sinkFactory := &paging.SinkFactoryMock{}
+		sinkFactory.On("MakeSinks", 1).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		datasource := NewDataSource(logger, preset, converterCollection)
 
-		datasource.ReadSplit(ctx, logger, readSplitsRequest, split, sink)
+		err := datasource.ReadSplit(ctx, logger, readSplitsRequest, split, sinkFactory)
+		require.True(t, errors.Is(err, scanErr))
 
-		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink)
+		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
 	})
 }

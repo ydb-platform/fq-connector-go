@@ -456,7 +456,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				logger,
 				formatter,
 				tc.selectReq,
-				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL)
+				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
+				"",
+				tc.selectReq.From.Table,
+			)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
 				return
