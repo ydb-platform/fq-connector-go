@@ -33,7 +33,7 @@ type sinkFactoryImpl[T Acceptor] struct {
 
 	// Every sink has own traffic tracker, but factory keeps all created trackers during its lifetime
 	// to provide overall traffic stats.
-	trafficTrackers []*TrafficTracker[T]
+	trafficTrackers []*trafficTracker[T]
 }
 
 // MakeSinks is used to generate Sink objects, one per each data source connection.
@@ -58,7 +58,7 @@ func (f *sinkFactoryImpl[T]) MakeSinks(totalSinks int) ([]Sink[T], error) {
 		}
 
 		// preserve traffic tracker to obtain stats in future
-		trafficTracker := NewTrafficTracker[T](f.cfg)
+		trafficTracker := newTrafficTracker[T](f.cfg)
 		f.trafficTrackers = append(f.trafficTrackers, trafficTracker)
 
 		sink := &sinkImpl[T]{

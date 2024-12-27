@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -202,6 +203,8 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 	case *pgtype.Date:
 		return 16, fixedSize, nil
 	case *pgtype.Timestamp:
+		return 16, fixedSize, nil
+	case **uuid.UUID:
 		return 16, fixedSize, nil
 	default:
 		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)

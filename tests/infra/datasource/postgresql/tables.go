@@ -72,6 +72,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"col_23_timestamp":           common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
 				"col_24_date":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
 				"col_25_json":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
+				"col_26_uuid":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
@@ -203,6 +204,11 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 							"[{\"name\": \"James Holden\",\"age\": 35}," +
 							"{\"name\": \"Naomi Nagata\",\"age\": 30}]}"),
 						ptr.String("{ \"TODO\" : \"unicode\" }"),
+						nil,
+					},
+					"col_26_uuid": []*[]byte{
+						ptr.T([]byte(string("dce06500-b56b-412b-bc39-f9fafb602663"))),
+						ptr.T([]byte(string("b18cafa2-9892-4515-843d-e8ee9bd9a858"))),
 						nil,
 					},
 				},

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -40,7 +41,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT)
 	case "double precision", "float8":
 		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
-	case "bytea":
+	case "bytea", "uuid":
 		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "character", "character varying", "text":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
@@ -73,7 +74,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	}, nil
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,funlen
 func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(oids))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(oids))
@@ -207,6 +208,18 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with type oid %d: %w", ydbTypes[i], oid, common.ErrDataTypeNotSupported)
 			}
+		case pgtype.UUIDOID:
+			acceptors = append(acceptors, new(*uuid.UUID))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				cast := acceptor.(**uuid.UUID)
+				if *cast != nil {
+					builder.(*array.BinaryBuilder).Append([]byte((**cast).String()))
+				} else {
+					builder.(*array.BinaryBuilder).AppendNull()
+				}
+
+				return nil
+			})
 		default:
 			return nil, fmt.Errorf("convert type OID %d: %w", oid, common.ErrDataTypeNotSupported)
 		}
