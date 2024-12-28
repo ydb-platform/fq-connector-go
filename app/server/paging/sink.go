@@ -27,7 +27,7 @@ type sinkImpl[T Acceptor] struct {
 	resultQueue    chan *ReadResult[T]      // outgoing buffer queue
 	terminateChan  chan<- struct{}          // notify factory when the data reading is finished
 	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
-	trafficTracker *TrafficTracker[T]       // tracks the amount of data passed through the sink
+	trafficTracker *trafficTracker[T]       // tracks the amount of data passed through the sink
 	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request
 	logger         *zap.Logger              // annotated logger
 	state          sinkState                // flag showing if it's ready to return data
