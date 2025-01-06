@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./etc:/etc/trino
+      - ./data:/var/trino/data
+    depends_on:
+      - valkey
+
+  valkey:
+    image: valkey/valkey:8.0.1
+    container_name: valkey
+    ports:
+      - "6379:6379"
