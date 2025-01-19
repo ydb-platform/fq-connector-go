@@ -16,6 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	grpc_codes "google.golang.org/grpc/codes"
 
@@ -260,6 +261,38 @@ func newAPIErrorFromTLSError(err error) *api_service_protos.TError {
 	return nil
 }
 
+func newAPIErrorFromMongoDbError(err error) *api_service_protos.TError {
+	if err == nil {
+		return nil
+	}
+
+	// https://www.mongodb.com/docs/manual/reference/error-codes/
+	const (
+		kHostNotFound         = 7
+		kUnauthorized         = 13
+		kAuthenticationFailed = 18
+	)
+
+	var status ydb_proto.StatusIds_StatusCode
+
+	if mongo.IsTimeout(err) {
+		status = ydb_proto.StatusIds_TIMEOUT
+	} else if e, ok := err.(mongo.ServerError); ok {
+		if e.HasErrorCode(kHostNotFound) {
+			status = ydb_proto.StatusIds_NOT_FOUND
+		} else if e.HasErrorCode(kUnauthorized) || e.HasErrorCode(kAuthenticationFailed) {
+			status = ydb_proto.StatusIds_UNAUTHORIZED
+		} else {
+			status = ydb_proto.StatusIds_INTERNAL_ERROR
+		}
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: err.Error(),
+	}
+}
+
 //nolint:gocyclo
 func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	var status ydb_proto.StatusIds_StatusCode
@@ -330,6 +363,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EGenericDataSourceKind) 
 		apiError = newAPIErrorFromMsSQLServer(err)
 	case api_common.EGenericDataSourceKind_LOGGING:
 		apiError = newAPIErrorFromYdbError(err)
+	case api_common.EGenericDataSourceKind_MONGODB:
+		apiError = newAPIErrorFromMongoDbError(err)
 	default:
 		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EGenericDataSourceKind_name[int32(kind)]))
 	}
