@@ -13,10 +13,12 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/mongodb"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -49,6 +51,14 @@ func (dsc *DataSourceCollection) DescribeTable(
 		ds := s3.NewDataSource()
 
 		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EGenericDataSourceKind_MONGODB:
+		mongoDbCfg := dsc.cfg.Datasources.Mongodb
+		ds := mongodb.NewDataSource(&retry.RetrierSet{
+			MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+			Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+		}, mongoDbCfg)
+
+		return ds.DescribeTable(ctx, logger, request)
 	default:
 		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -75,6 +85,14 @@ func (dsc *DataSourceCollection) DoReadSplit(
 		ds := s3.NewDataSource()
 
 		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+	case api_common.EGenericDataSourceKind_MONGODB:
+		mongoDbCfg := dsc.cfg.Datasources.Mongodb
+		ds := mongodb.NewDataSource(&retry.RetrierSet{
+			MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+			Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+		}, mongoDbCfg)
+
+		return readSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}

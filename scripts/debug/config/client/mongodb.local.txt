@@ -1,0 +1,30 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
+}
+
+data_source_instance {
+    kind: MONGODB
+    endpoint {
+        host: "localhost"
+        port: 27017
+    }
+    database: "connector"
+    credentials {
+        basic {
+            username: "admin"
+            password: "password"
+        }
+    }
+    protocol: NATIVE
+    mongodb_options {
+        count_docs_to_read: 3
+        do_parse: true
+        skip_unsupported_types: true
+    }
+}

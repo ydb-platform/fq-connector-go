@@ -98,3 +98,15 @@ services:
       nofile:
         soft: 262144
         hard: 262144
+
+  mongodb:
+    image: mongo:latest
+    container_name: ${USER}-fq-connector-go-tests-mongodb
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: connector
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - ./mongodb/init/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
