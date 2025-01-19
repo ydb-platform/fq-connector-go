@@ -212,6 +212,8 @@ message TMongoDbConfig {
     // Timeout for MongoDB connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2;
+    // Number of documents to process in DescribeTable method to deduce table schema
+    uint32 count_docs_to_deduce_schema = 3;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }

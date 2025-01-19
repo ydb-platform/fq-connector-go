@@ -51,7 +51,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 		ds := s3.NewDataSource()
 
 		return ds.DescribeTable(ctx, logger, request)
-	case api_common.EGenericDataSourceKind_MONGODB:
+	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(&retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
@@ -85,7 +85,7 @@ func (dsc *DataSourceCollection) DoReadSplit(
 		ds := s3.NewDataSource()
 
 		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
-	case api_common.EGenericDataSourceKind_MONGODB:
+	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(&retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),

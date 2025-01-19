@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,13 +19,6 @@ import (
 )
 
 var _ datasource.DataSource[string] = (*dataSource)(nil)
-
-func getUnparsedDocSchema(tableName string) *api_service_protos.TSchema {
-	return &api_service_protos.TSchema{Columns: []*Ydb.Column{
-		{Name: idColumn, Type: common.MakePrimitiveType(Ydb.Type_STRING)},
-		{Name: tableName, Type: common.MakePrimitiveType(Ydb.Type_JSON)},
-	}}
-}
 
 type dataSource struct {
 	retrierSet *retry.RetrierSet
@@ -101,20 +93,20 @@ func (ds *dataSource) DescribeTable(
 		}
 	}()
 
-	if !mongoDbOptions.DoParse {
-		return &api_service_protos.TDescribeTableResponse{Schema: getUnparsedDocSchema(request.Table)}, nil
-	}
-
 	collection := conn.Database(dsi.Database).Collection(request.Table)
 
-	cursor, err := collection.Find(ctx, bson.D{}, options.Find().SetLimit(int64(mongoDbOptions.CountDocsToRead)))
+	cursor, err := collection.Find(ctx, bson.D{}, options.Find().SetLimit(int64(ds.cfg.GetCountDocsToDeduceSchema())))
 	if err != nil {
 		return nil, fmt.Errorf("colection.Find: %w", err)
 	}
 
-	defer cursor.Close(ctx)
+	defer func() {
+		if err = cursor.Close(ctx); err != nil {
+			logger.Fatal(fmt.Sprintf("cursor.Close: %v", err))
+		}
+	}()
 
-	docs := make([]bson.Raw, 0, mongoDbOptions.CountDocsToRead)
+	docs := make([]bson.Raw, 0, ds.cfg.GetCountDocsToDeduceSchema())
 	for cursor.Next(ctx) {
 		docs = append(docs, cursor.Current)
 	}
@@ -123,7 +115,10 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("cursor.Err(): %w", err)
 	}
 
-	columns, err := bsonToYqlColumn(docs, mongoDbOptions.SkipUnsupportedTypes, logger)
+	omitUnsupported :=
+		mongoDbOptions.UnsupportedTypeDisplayMode == api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT
+
+	columns, err := bsonToYql(logger, docs, omitUnsupported)
 	if err != nil {
 		return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
 	}

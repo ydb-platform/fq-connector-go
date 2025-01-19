@@ -145,13 +145,15 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Oracle.Pushdown == nil {
 		c.Datasources.Oracle.Pushdown = makeDefaultPushdownConfig()
+	}
 
 	// MongoDB
 
 	if c.Datasources.Mongodb == nil {
 		c.Datasources.Mongodb = &config.TMongoDbConfig{
-			OpenConnectionTimeout: "5s",
-			PingConnectionTimeout: "5s",
+			OpenConnectionTimeout:   "5s",
+			PingConnectionTimeout:   "5s",
+			CountDocsToDeduceSchema: 5,
 		}
 	}
 

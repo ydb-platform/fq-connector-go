@@ -16,6 +16,10 @@ func MakeOptionalType(ydbType *Ydb.Type) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_OptionalType{OptionalType: &Ydb.OptionalType{Item: ydbType}}}
 }
 
+func MakeTaggedType(tag string, ydbType *Ydb.Type) *Ydb.Type {
+	return &Ydb.Type{Type: &Ydb.Type_TaggedType{TaggedType: &Ydb.TaggedType{Tag: tag, Type: ydbType}}}
+}
+
 func MakeListType(ydbType *Ydb.Type) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_ListType{ListType: &Ydb.ListType{Item: ydbType}}}
 }

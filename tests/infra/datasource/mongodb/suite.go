@@ -21,30 +21,13 @@ func (s *Suite) TestDescribeTable() {
 	}
 }
 
-func (s *Suite) TestDescribeTableLeaveUnparsed() {
-	for _, instance := range s.dataSource.Instances {
-		instance.Options = &api_common.TGenericDataSourceInstance_MongodbOptions{
-			MongodbOptions: &api_common.TMongoDbDataSourceOptions{
-				CountDocsToRead:      3,
-				DoParse:              false,
-				SkipUnsupportedTypes: true,
-			},
-		}
-	}
-
-	testCaseNames := []string{"simple_json"}
-	for _, testCase := range testCaseNames {
-		s.ValidateTableMetadata(s.dataSource, tables[testCase])
-	}
-}
-
 func (s *Suite) TestDescribeTableIncludeUnsupported() {
 	for _, instance := range s.dataSource.Instances {
 		instance.Options = &api_common.TGenericDataSourceInstance_MongodbOptions{
 			MongodbOptions: &api_common.TMongoDbDataSourceOptions{
-				CountDocsToRead:      3,
-				DoParse:              true,
-				SkipUnsupportedTypes: false,
+				ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
+				UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_AS_STRING,
+				UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL,
 			},
 		}
 	}

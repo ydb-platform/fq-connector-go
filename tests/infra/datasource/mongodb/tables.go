@@ -11,13 +11,15 @@ import (
 
 var memPool memory.Allocator = memory.NewGoAllocator()
 
+var idType = common.MakeTaggedType("ObjectId", common.MakePrimitiveType(Ydb.Type_STRING))
+
 var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 	"simple": {
 		Name:                  "simple",
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id": common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id": idType,
 				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"c":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
@@ -30,7 +32,7 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id":     common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id":     idType,
 				"int32":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"int64":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"string":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
@@ -46,7 +48,7 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id":     common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id":     idType,
 				"int32":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 				"int64":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 				"string":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
@@ -62,7 +64,7 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id": common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id": idType,
 				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
@@ -74,7 +76,7 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id":    common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id":    idType,
 				"arr":    common.MakeOptionalType(common.MakeListType(common.MakePrimitiveType(Ydb.Type_INT32))),
 				"struct": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 				"nested": common.MakeOptionalType(common.MakeListType(common.MakePrimitiveType(Ydb.Type_JSON))),
@@ -87,7 +89,7 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id":  common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id":  idType,
 				"date": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INTERVAL)),
 			},
 		},
@@ -98,19 +100,8 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"_id":     common.MakePrimitiveType(Ydb.Type_STRING),
+				"_id":     idType,
 				"decimal": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-			},
-		},
-		Records: []*test_utils.Record[string, *array.StringBuilder]{},
-	},
-	"simple_json": {
-		Name:                  "simple",
-		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
-		Schema: &test_utils.TableSchema{
-			Columns: map[string]*Ydb.Type{
-				"_id":    common.MakePrimitiveType(Ydb.Type_STRING),
-				"simple": common.MakePrimitiveType(Ydb.Type_JSON),
 			},
 		},
 		Records: []*test_utils.Record[string, *array.StringBuilder]{},

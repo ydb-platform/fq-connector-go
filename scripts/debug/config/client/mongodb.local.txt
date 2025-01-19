@@ -9,7 +9,7 @@ metrics_server_endpoint {
 }
 
 data_source_instance {
-    kind: MONGODB
+    kind: MONGO_DB
     endpoint {
         host: "localhost"
         port: 27017
@@ -23,8 +23,8 @@ data_source_instance {
     }
     protocol: NATIVE
     mongodb_options {
-        count_docs_to_read: 3
-        do_parse: true
-        skip_unsupported_types: true
+        reading_mode: TABLE
+        unsupported_type_display_mode: UNSUPPORTED_OMIT
+        unexpected_type_display_mode: UNEXPECTED_AS_NULL
     }
 }

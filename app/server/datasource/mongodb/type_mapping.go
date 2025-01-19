@@ -15,8 +15,13 @@ var errEmptyArray = errors.New("can't determine field type for items in an empty
 var errNull = errors.New("can't determine field type for null")
 
 const idColumn string = "_id"
+const objectIdTag string = "ObjectId"
 
-func typeMap(v bson.RawValue, logger *zap.Logger) (*Ydb.Type, error) {
+func typesEqual(lhs, rhs *Ydb.Type) bool {
+	return lhs.String() == rhs.String()
+}
+
+func typeMap(logger *zap.Logger, v bson.RawValue, omitUnsupported bool) (*Ydb.Type, error) {
 	switch v.Type {
 	case bson.TypeInt32:
 		return common.MakePrimitiveType(Ydb.Type_INT32), nil
@@ -28,26 +33,19 @@ func typeMap(v bson.RawValue, logger *zap.Logger) (*Ydb.Type, error) {
 		return common.MakePrimitiveType(Ydb.Type_DOUBLE), nil
 	case bson.TypeString:
 		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
-	case bson.TypeBinary, bson.TypeObjectID:
+	case bson.TypeBinary:
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
+	case bson.TypeObjectID:
+		return common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING)), nil
 	case bson.TypeDateTime:
 		return common.MakePrimitiveType(Ydb.Type_INTERVAL), nil
 	case bson.TypeArray:
 		elements, err := v.Array().Elements()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("v.Array().Elements: %w", err)
 		}
 
-		if len(elements) > 0 {
-			innerType, err := typeMap(elements[0].Value(), logger)
-			if err != nil {
-				return nil, err
-			}
-
-			return common.MakeListType(innerType), nil
-		}
-
-		return nil, errEmptyArray
+		return typeMapArray(logger, elements, omitUnsupported)
 
 	case bson.TypeEmbeddedDocument:
 		return common.MakePrimitiveType(Ydb.Type_JSON), nil
@@ -60,79 +58,138 @@ func typeMap(v bson.RawValue, logger *zap.Logger) (*Ydb.Type, error) {
 	return nil, common.ErrDataTypeNotSupported
 }
 
-func bsonToYqlColumn(docs []bson.Raw, doSkipUnsupported bool, logger *zap.Logger) ([]*Ydb.Column, error) {
+func typeMapArray(logger *zap.Logger, elements []bson.RawElement, omitUnsupported bool) (*Ydb.Type, error) {
+	var innerType *Ydb.Type
+
+	for _, elem := range elements {
+		newInnerType, err := typeMap(logger, elem.Value(), omitUnsupported)
+		if !omitUnsupported && errors.Is(err, common.ErrDataTypeNotSupported) {
+			return common.MakeListType(common.MakePrimitiveType(Ydb.Type_UTF8)), nil
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("typeMap inner value for array: %w", err)
+		}
+
+		if innerType == nil {
+			innerType = newInnerType
+			continue
+		}
+
+		if !typesEqual(newInnerType, innerType) {
+			return common.MakeListType(common.MakePrimitiveType(Ydb.Type_UTF8)), nil
+		}
+	}
+
+	if innerType == nil {
+		return nil, errEmptyArray
+	}
+
+	return common.MakeListType(innerType), nil
+}
+
+func bsonToYqlColumn(
+	logger *zap.Logger,
+	elem bson.RawElement,
+	deducedTypes map[string]*Ydb.Type,
+	ambiguousFields, ambiguousArrayFields map[string]struct{},
+	omitUnsupported bool,
+) error {
+	key, err := elem.KeyErr()
+	if err != nil {
+		return fmt.Errorf("elem.KeyErr: %w", err)
+	}
+
+	prevType, prevTypeExists := deducedTypes[key]
+
+	t, err := typeMap(logger, elem.Value(), omitUnsupported)
+	if err != nil {
+		if errors.Is(err, errNull) {
+			ambiguousFields[key] = struct{}{}
+
+			return nil
+		} else if errors.Is(err, errEmptyArray) {
+			ambiguousArrayFields[key] = struct{}{}
+
+			if prevTypeExists && prevType.GetListType() == nil {
+				deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
+
+				logger.Debug(fmt.Sprintf("bsonToYqlColumn: keeping serialized %v. prev: %v curr: []", key, prevType.String()))
+			}
+
+			return nil
+		} else if errors.Is(err, common.ErrDataTypeNotSupported) {
+			logger.Debug(fmt.Sprintf("bsonToYqlColumn: data not supported: %v", key))
+
+			if !omitUnsupported {
+				deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
+			}
+
+			return nil
+		}
+
+		return err
+	}
+
+	tString := t.String()
+	_, prevIsArray := ambiguousArrayFields[key]
+
+	// Leaving fields that have inconsistent types serialized
+	// Extra check for arrays because we might have encountered an empty one:
+	// we know it is an array, but prevType is not determined yet
+	if (prevTypeExists && !typesEqual(prevType, t)) || (prevIsArray && t.GetListType() == nil) {
+		deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
+
+		logger.Debug(fmt.Sprintf("bsonToYqlColumn: keeping serialized %v. prev: %v curr: %v", key, prevType.String(), tString))
+
+		return nil
+	}
+
+	deducedTypes[key] = t
+
+	logger.Debug(fmt.Sprintf("bsonToYqlColumn: column %v of type %v", key, tString))
+
+	return nil
+}
+
+func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported bool) ([]*Ydb.Column, error) {
 	if len(docs) == 0 {
 		return []*Ydb.Column{}, nil
 	}
 
 	deducedTypes := make(map[string]*Ydb.Type)
 	ambiguousFields := make(map[string]struct{})
+	ambiguousArrayFields := make(map[string]struct{})
 
 	for _, doc := range docs {
 		elements, err := doc.Elements()
 		if err != nil {
-			return nil, fmt.Errorf("doc.Elements(): %w", err)
+			return nil, fmt.Errorf("doc.Elements: %w", err)
 		}
 
 		for _, elem := range elements {
-			key, err := elem.KeyErr()
+			err := bsonToYqlColumn(
+				logger,
+				elem,
+				deducedTypes,
+				ambiguousFields,
+				ambiguousArrayFields,
+				omitUnsupported,
+			)
+
 			if err != nil {
-				return nil, fmt.Errorf("elem.KeyErr(): %w", err)
-			}
-
-			prevType, prevTypeExists := deducedTypes[key]
-			prevTypeString := prevType.String()
-
-			t, err := typeMap(elem.Value(), logger)
-			if err != nil {
-				if errors.Is(err, errNull) {
-					if !prevTypeExists {
-						ambiguousFields[key] = struct{}{}
-					}
-
-					continue
-				} else if errors.Is(err, errEmptyArray) {
-					if prevTypeExists && prevType.GetListType() == nil {
-						deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
-
-						logger.Debug(fmt.Sprintf("bsonToYqlColumn: keeping serialized %v. prev: %v curr: []", key, prevTypeString))
-					} else if !prevTypeExists {
-						ambiguousFields[key] = struct{}{}
-					}
-
-					continue
-				} else if errors.Is(err, common.ErrDataTypeNotSupported) {
-					logger.Debug(fmt.Sprintf("bsonToYqlColumn: data not supported: %v", key))
-
-					if !doSkipUnsupported {
-						deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
-					}
-
-					continue
-				}
-
-				return nil, err
-			}
-
-			tString := t.String()
-
-			if !prevTypeExists {
-				deducedTypes[key] = t
-
-				logger.Debug(fmt.Sprintf("bsonToYqlColumn: new column %v %v", key, tString))
-			} else if prevTypeString != tString {
-				deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
-
-				logger.Debug(fmt.Sprintf("bsonToYqlColumn: keeping serialized %v. curr: %v prev: %v", key, prevTypeString, tString))
+				return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
 			}
 		}
 	}
 
-	if !doSkipUnsupported {
-		for field := range ambiguousFields {
-			if _, ok := deducedTypes[field]; !ok {
-				deducedTypes[field] = common.MakePrimitiveType(Ydb.Type_UTF8)
-			}
+	for field := range ambiguousArrayFields {
+		ambiguousFields[field] = struct{}{}
+	}
+
+	for field := range ambiguousFields {
+		if _, ok := deducedTypes[field]; !ok {
+			deducedTypes[field] = common.MakePrimitiveType(Ydb.Type_UTF8)
 		}
 	}
 
@@ -140,7 +197,7 @@ func bsonToYqlColumn(docs []bson.Raw, doSkipUnsupported bool, logger *zap.Logger
 
 	for columnName, deducedType := range deducedTypes {
 		if columnName == idColumn {
-			columns = append(columns, &Ydb.Column{Name: columnName, Type: deducedTypes[columnName]})
+			columns = append(columns, &Ydb.Column{Name: columnName, Type: deducedType})
 		} else {
 			columns = append(columns, &Ydb.Column{Name: columnName, Type: common.MakeOptionalType(deducedType)})
 		}

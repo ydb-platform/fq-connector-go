@@ -17,14 +17,14 @@ const (
 )
 
 var defaultMongoDbOptions *api_common.TMongoDbDataSourceOptions = &api_common.TMongoDbDataSourceOptions{
-	CountDocsToRead:      3,
-	DoParse:              true,
-	SkipUnsupportedTypes: true,
+	ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
+	UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT,
+	UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL,
 }
 
 func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
 	dsi := &api_common.TGenericDataSourceInstance{
-		Kind:     api_common.EGenericDataSourceKind_MONGODB,
+		Kind:     api_common.EGenericDataSourceKind_MONGO_DB,
 		Database: database,
 		Credentials: &api_common.TGenericCredentials{
 			Payload: &api_common.TGenericCredentials_Basic{

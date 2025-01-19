@@ -268,9 +268,9 @@ func newAPIErrorFromMongoDbError(err error) *api_service_protos.TError {
 
 	// https://www.mongodb.com/docs/manual/reference/error-codes/
 	const (
-		kHostNotFound         = 7
-		kUnauthorized         = 13
-		kAuthenticationFailed = 18
+		hostNotFound         = 7
+		unauthorized         = 13
+		authenticationFailed = 18
 	)
 
 	var status ydb_proto.StatusIds_StatusCode
@@ -278,9 +278,9 @@ func newAPIErrorFromMongoDbError(err error) *api_service_protos.TError {
 	if mongo.IsTimeout(err) {
 		status = ydb_proto.StatusIds_TIMEOUT
 	} else if e, ok := err.(mongo.ServerError); ok {
-		if e.HasErrorCode(kHostNotFound) {
+		if e.HasErrorCode(hostNotFound) {
 			status = ydb_proto.StatusIds_NOT_FOUND
-		} else if e.HasErrorCode(kUnauthorized) || e.HasErrorCode(kAuthenticationFailed) {
+		} else if e.HasErrorCode(unauthorized) || e.HasErrorCode(authenticationFailed) {
 			status = ydb_proto.StatusIds_UNAUTHORIZED
 		} else {
 			status = ydb_proto.StatusIds_INTERNAL_ERROR
@@ -363,7 +363,7 @@ func NewAPIErrorFromStdError(err error, kind api_common.EGenericDataSourceKind) 
 		apiError = newAPIErrorFromMsSQLServer(err)
 	case api_common.EGenericDataSourceKind_LOGGING:
 		apiError = newAPIErrorFromYdbError(err)
-	case api_common.EGenericDataSourceKind_MONGODB:
+	case api_common.EGenericDataSourceKind_MONGO_DB:
 		apiError = newAPIErrorFromMongoDbError(err)
 	default:
 		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EGenericDataSourceKind_name[int32(kind)]))

@@ -311,5 +311,5 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 |Object|Json / Struct|STRUCT|
 |Array|List\<T\>|LIST|
 |Decimal128 |Decimal|DECIMAL128|
-|ObjectId (12 bytes)|String|BINARY|
+|ObjectId (12 bytes)|Tagged("ObjectId", String)|BINARY|
 |Date (int64, milliseconds since epoch)|Interval|DATE64|

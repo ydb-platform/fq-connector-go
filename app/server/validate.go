@@ -124,7 +124,7 @@ func validateDataSourceOptions(dsi *api_common.TGenericDataSourceInstance) error
 		api_common.EGenericDataSourceKind_S3,
 		api_common.EGenericDataSourceKind_YDB,
 		api_common.EGenericDataSourceKind_MYSQL,
-		api_common.EGenericDataSourceKind_MONGODB:
+		api_common.EGenericDataSourceKind_MONGO_DB:
 	default:
 		return fmt.Errorf("unsupported data source %s: %w", dsi.GetKind().String(), common.ErrInvalidRequest)
 	}

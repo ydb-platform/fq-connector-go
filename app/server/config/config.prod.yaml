@@ -51,6 +51,7 @@ datasources:
 
   mongodb:
     <<: *data_source_default_var
+    count_docs_to_deduce_schema: 5
 
   ydb:
     <<: *data_source_default_var
