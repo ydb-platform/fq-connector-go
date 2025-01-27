@@ -64,10 +64,7 @@ func (r *dynamicResolver) Close() error {
 func newResolverDynamic(cfg *config.TLoggingConfig) (Resolver, error) {
 	endpoint := common.EndpointToString(cfg.GetDynamic().LoggingEndpoint)
 
-	// TODO: configure this in future
-	tlsCfg := &tls.Config{
-		InsecureSkipVerify: true,
-	}
+	tlsCfg := &tls.Config{}
 
 	grpcConn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	if err != nil {
