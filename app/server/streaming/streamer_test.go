@@ -235,7 +235,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	typeMapper := clickhouse.NewTypeMapper()
 
 	dataSourcePreset := &rdbms.Preset{
-		SQLFormatter:      clickhouse.NewSQLFormatter(),
+		SQLFormatter:      clickhouse.NewSQLFormatter(nil),
 		ConnectionManager: connectionManager,
 		TypeMapper:        typeMapper,
 		RetrierSet:        retry.NewRetrierSetNoop(),

@@ -71,6 +71,11 @@ func (b *Base[_, _]) SetupSuite() {
 			},
 		),
 		server.WithConnectionTimeouts("2s", "1s"),
+		server.WithPushdownConfig(
+			&config.TPushdownConfig{
+				EnableTimestampPushdown: true,
+			},
+		),
 	}
 
 	options = append(options, b.cfg.embeddedOptions...)
@@ -164,7 +169,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 		option.apply(options)
 	}
 
-	b.Require().NotEmpty(table.Name)
+	b.Require().NotEmpty(table.Name, "perhaps you mistyped the table name")
 
 	ctx, cancel := context.WithTimeout(test_utils.NewContextWithTestName(), 60*time.Second)
 	defer cancel()

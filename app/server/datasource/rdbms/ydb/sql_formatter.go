@@ -18,6 +18,7 @@ type sqlFormatter struct {
 	cfg  *config.TPushdownConfig
 }
 
+//nolint:gocyclo
 func (f *sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:

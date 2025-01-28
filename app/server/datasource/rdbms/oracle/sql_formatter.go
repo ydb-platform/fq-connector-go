@@ -92,5 +92,5 @@ func (f sqlFormatter) FormatFrom(_, tableName string) string {
 }
 
 func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
-	return sqlFormatter{}
+	return sqlFormatter{cfg: cfg}
 }

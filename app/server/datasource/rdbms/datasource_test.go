@@ -63,7 +63,7 @@ func TestReadSplit(t *testing.T) {
 
 		preset := &Preset{
 			ConnectionManager: connectionManager,
-			SQLFormatter:      postgresql.NewSQLFormatter(), // TODO: parametrize
+			SQLFormatter:      postgresql.NewSQLFormatter(nil), // TODO: parametrize
 			RetrierSet:        retry.NewRetrierSetNoop(),
 		}
 
@@ -119,7 +119,7 @@ func TestReadSplit(t *testing.T) {
 
 		preset := &Preset{
 			ConnectionManager: connectionManager,
-			SQLFormatter:      postgresql.NewSQLFormatter(), // TODO: parametrize
+			SQLFormatter:      postgresql.NewSQLFormatter(nil), // TODO: parametrize
 			RetrierSet:        retry.NewRetrierSetNoop(),
 		}
 
