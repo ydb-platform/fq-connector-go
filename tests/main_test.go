@@ -13,6 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/clickhouse"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/greenplum"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mongodb"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ms_sql_server"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle"
@@ -86,4 +87,9 @@ func TestOracle(t *testing.T) {
 func TestMsSqlServer(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, ms_sql_server.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MS SQL Server")))
+}
+
+func TestMongoDB(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
+	testify_suite.Run(t, mongodb.NewSuite(suite.NewBase[string, *array.StringBuilder](t, state, "MongoDB")))
 }

@@ -19,14 +19,14 @@ import (
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
-	*array.Int64Builder | *array.Int32Builder
+	*array.Int64Builder | *array.Int32Builder | *array.StringBuilder
 	Append(ID)
 	NewArray() arrow.Array
 	Release()
 }
 
 // Record is somewhat equivalent to arrow.Record.
-// Store columns in map because order of columns in some datasource is undefined.
+// Store columns in map because order of columns in some datasources is undefined.
 // (i.e. in YDB - https://st.yandex-team.ru/KIKIMR-20836)
 type Record[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]] struct {
 	Columns map[string]any
@@ -66,7 +66,7 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	idIndex := -1
 
 	for i, field := range table.Schema().Fields() {
-		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" {
+		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" || field.Name == "_id" {
 			idIndex = i
 			break
 		}
@@ -133,12 +133,14 @@ func newTableIDColumn[ID TableIDTypes](arr arrow.Array) arrowIDCol[ID] {
 	return arrowIDCol[ID]{arr}
 }
 
-func (c arrowIDCol[ID]) mustValue(i int) ID {
+func (c arrowIDCol[ID]) innerValue(i int) any {
 	switch col := c.idCol.(type) {
 	case *array.Int32:
-		return ID(col.Value(i))
+		return col.Value(i)
 	case *array.Int64:
-		return ID(col.Value(i))
+		return col.Value(i)
+	case *array.String:
+		return col.Value(i)
 	default:
 		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
 	}
@@ -190,7 +192,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 
 	for i := int64(0); i < table.NumRows(); i++ {
 		records[i] = tableRow[ID]{
-			ID:   idCol.mustValue(int(i)),
+			ID:   idCol.innerValue(int(i)).(ID),
 			Rest: restCols[i],
 		}
 	}

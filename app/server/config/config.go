@@ -121,6 +121,19 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Oracle.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	// MongoDB
+
+	if c.Datasources.Mongodb == nil {
+		c.Datasources.Mongodb = &config.TMongoDbConfig{
+			OpenConnectionTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Mongodb.ExponentialBackoff == nil {
+		c.Datasources.Mongodb.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
 	// PostgreSQL
 
 	if c.Datasources.Postgresql == nil {
