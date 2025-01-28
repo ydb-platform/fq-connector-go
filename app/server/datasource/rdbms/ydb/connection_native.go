@@ -13,7 +13,6 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -114,6 +113,7 @@ type connectionNative struct {
 	ctx         context.Context
 	driver      *ydb_sdk.Driver
 	tableName   string
+	formatter   rdbms_utils.SQLFormatter
 }
 
 // nolint: gocyclo
@@ -130,10 +130,9 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			}
 
 			// prepare parameter list
-			formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE)
 			paramsBuilder := ydb_sdk.ParamsBuilder()
 			for i, arg := range params.QueryArgs.Values() {
-				placeholder := formatter.GetPlaceholder(i)
+				placeholder := c.formatter.GetPlaceholder(i)
 
 				switch t := arg.(type) {
 				case int8:
@@ -301,6 +300,7 @@ func newConnectionNative(
 	dsi *api_common.TGenericDataSourceInstance,
 	tableName string,
 	driver *ydb_sdk.Driver,
+	formatter rdbms_utils.SQLFormatter,
 ) ydbConnection {
 	return &connectionNative{
 		ctx:         ctx,
@@ -308,5 +308,6 @@ func newConnectionNative(
 		queryLogger: queryLogger,
 		dsi:         dsi,
 		tableName:   tableName,
+		formatter:   formatter,
 	}
 }

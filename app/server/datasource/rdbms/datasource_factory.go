@@ -99,7 +99,7 @@ func NewDataSourceFactory(
 
 	dsf := &dataSourceFactory{
 		clickhouse: Preset{
-			SQLFormatter:      clickhouse.NewSQLFormatter(),
+			SQLFormatter:      clickhouse.NewSQLFormatter(cfg.Clickhouse.Pushdown),
 			ConnectionManager: clickhouse.NewConnectionManager(cfg.Clickhouse, connManagerBase),
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
@@ -109,7 +109,7 @@ func NewDataSourceFactory(
 			},
 		},
 		postgresql: Preset{
-			SQLFormatter: postgresql.NewSQLFormatter(),
+			SQLFormatter: postgresql.NewSQLFormatter(cfg.Postgresql.Pushdown),
 			ConnectionManager: postgresql.NewConnectionManager(
 				cfg.Postgresql, connManagerBase, schemaGetters[api_common.EGenericDataSourceKind_POSTGRESQL]),
 			TypeMapper: postgresqlTypeMapper,
@@ -126,7 +126,7 @@ func NewDataSourceFactory(
 			},
 		},
 		ydb: Preset{
-			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
+			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode, cfg.Clickhouse.Pushdown),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
@@ -136,7 +136,7 @@ func NewDataSourceFactory(
 			},
 		},
 		msSQLServer: Preset{
-			SQLFormatter:      ms_sql_server.NewSQLFormatter(),
+			SQLFormatter:      ms_sql_server.NewSQLFormatter(cfg.MsSqlServer.Pushdown),
 			ConnectionManager: ms_sql_server.NewConnectionManager(cfg.MsSqlServer, connManagerBase),
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
@@ -146,7 +146,7 @@ func NewDataSourceFactory(
 			},
 		},
 		mysql: Preset{
-			SQLFormatter:      mysql.NewSQLFormatter(),
+			SQLFormatter:      mysql.NewSQLFormatter(cfg.Mysql.Pushdown),
 			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerBase),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.TableMetadataQuery),
@@ -156,7 +156,7 @@ func NewDataSourceFactory(
 			},
 		},
 		greenplum: Preset{
-			SQLFormatter: postgresql.NewSQLFormatter(),
+			SQLFormatter: postgresql.NewSQLFormatter(cfg.Greenplum.Pushdown),
 			ConnectionManager: postgresql.NewConnectionManager(
 				cfg.Greenplum, connManagerBase, schemaGetters[api_common.EGenericDataSourceKind_GREENPLUM]),
 			TypeMapper: postgresqlTypeMapper,
@@ -173,7 +173,7 @@ func NewDataSourceFactory(
 			},
 		},
 		oracle: Preset{
-			SQLFormatter:      oracle.NewSQLFormatter(),
+			SQLFormatter:      oracle.NewSQLFormatter(cfg.Oracle.Pushdown),
 			ConnectionManager: oracle.NewConnectionManager(cfg.Oracle, connManagerBase),
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
@@ -193,7 +193,7 @@ func NewDataSourceFactory(
 	}
 
 	dsf.logging = Preset{
-		SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode),
+		SQLFormatter:      ydb.NewSQLFormatter(cfg.Logging.Ydb.Mode, cfg.Logging.Ydb.Pushdown),
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        ydbTypeMapper,
 		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),

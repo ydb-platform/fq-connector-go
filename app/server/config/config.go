@@ -25,6 +25,12 @@ func makeDefaultExponentialBackoffConfig() *config.TExponentialBackoffConfig {
 	}
 }
 
+func makeDefaultPushdownConfig() *config.TPushdownConfig {
+	return &config.TPushdownConfig{
+		EnableTimestampPushdown: false,
+	}
+}
+
 // TODO: use reflection to generalize datasource setting code
 //
 //nolint:gocyclo
@@ -70,6 +76,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Clickhouse.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	if c.Datasources.Clickhouse.Pushdown == nil {
+		c.Datasources.Clickhouse.Pushdown = makeDefaultPushdownConfig()
+	}
+
 	// Greenplum
 
 	if c.Datasources.Greenplum == nil {
@@ -80,6 +90,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Greenplum.ExponentialBackoff == nil {
 		c.Datasources.Greenplum.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	if c.Datasources.Greenplum.Pushdown == nil {
+		c.Datasources.Greenplum.Pushdown = makeDefaultPushdownConfig()
 	}
 
 	// MS SQL Server
@@ -95,6 +109,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.MsSqlServer.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	if c.Datasources.MsSqlServer.Pushdown == nil {
+		c.Datasources.MsSqlServer.Pushdown = makeDefaultPushdownConfig()
+	}
+
 	// MySQL
 
 	if c.Datasources.Mysql == nil {
@@ -106,6 +124,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Mysql.ExponentialBackoff == nil {
 		c.Datasources.Mysql.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	if c.Datasources.Mysql.Pushdown == nil {
+		c.Datasources.Mysql.Pushdown = makeDefaultPushdownConfig()
 	}
 
 	// Oracle
@@ -121,6 +143,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Oracle.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	if c.Datasources.Oracle.Pushdown == nil {
+		c.Datasources.Oracle.Pushdown = makeDefaultPushdownConfig()
+	}
+
 	// PostgreSQL
 
 	if c.Datasources.Postgresql == nil {
@@ -131,6 +157,10 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Postgresql.ExponentialBackoff == nil {
 		c.Datasources.Postgresql.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	if c.Datasources.Postgresql.Pushdown == nil {
+		c.Datasources.Postgresql.Pushdown = makeDefaultPushdownConfig()
 	}
 
 	// YDB
@@ -170,6 +200,10 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 
 	if c.ExponentialBackoff == nil {
 		c.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	if c.Pushdown == nil {
+		c.Pushdown = makeDefaultPushdownConfig()
 	}
 
 	if c.ServiceAccountKeyFileCredentials != "" {
@@ -322,12 +356,62 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("required section is missing")
 	}
 
-	if err := validateYdbConfig(c.Ydb); err != nil {
-		return fmt.Errorf("validate `ydb`: %w", err)
+	if err := validateRelationalDatasourceConfig(c.Clickhouse); err != nil {
+		return fmt.Errorf("validate `clickhouse`: %w", err)
+	}
+
+	if err := validateRelationalDatasourceConfig(c.Greenplum); err != nil {
+		return fmt.Errorf("validate `greenplum`: %w", err)
 	}
 
 	if err := validateLoggingConfig(c.Logging); err != nil {
 		return fmt.Errorf("validate `logging`: %w", err)
+	}
+
+	if err := validateRelationalDatasourceConfig(c.MsSqlServer); err != nil {
+		return fmt.Errorf("validate `ms_sql_server`: %w", err)
+	}
+
+	if err := validateRelationalDatasourceConfig(c.Mysql); err != nil {
+		return fmt.Errorf("validate `mysql`: %w", err)
+	}
+
+	if err := validateRelationalDatasourceConfig(c.Oracle); err != nil {
+		return fmt.Errorf("validate `oracle`: %w", err)
+	}
+
+	if err := validateRelationalDatasourceConfig(c.Postgresql); err != nil {
+		return fmt.Errorf("validate `postgresql`: %w", err)
+	}
+
+	if err := validateYdbConfig(c.Ydb); err != nil {
+		return fmt.Errorf("validate `ydb`: %w", err)
+	}
+
+	return nil
+}
+
+type relationalDatasourceConfig interface {
+	GetOpenConnectionTimeout() string
+	GetExponentialBackoff() *config.TExponentialBackoffConfig
+	GetPushdown() *config.TPushdownConfig
+}
+
+func validateRelationalDatasourceConfig(c relationalDatasourceConfig) error {
+	if c == nil {
+		return nil
+	}
+
+	if _, err := common.DurationFromString(c.GetOpenConnectionTimeout()); err != nil {
+		return fmt.Errorf("validate `open_connection_timeout`: %v", err)
+	}
+
+	if c.GetExponentialBackoff() == nil {
+		return errors.New("missing `exponential_backoff`")
+	}
+
+	if c.GetPushdown() == nil {
+		return errors.New("missing `pushdown`")
 	}
 
 	return nil
@@ -335,7 +419,7 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 
 func validateYdbConfig(c *config.TYdbConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return nil
 	}
 
 	if _, err := common.DurationFromString(c.OpenConnectionTimeout); err != nil {
@@ -377,7 +461,7 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 func validateLoggingConfig(c *config.TLoggingConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return nil
 	}
 
 	if err := validateYdbConfig(c.Ydb); err != nil {

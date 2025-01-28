@@ -50,6 +50,8 @@ datasources:
 
   postgresql:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: true
 
   oracle:
     <<: *data_source_default_var

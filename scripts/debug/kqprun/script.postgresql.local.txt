@@ -1,0 +1,1 @@
+SELECT * FROM external_datasource.`datetime` WHERE col_01_timestamp > Timestamp("2019-01-01T01:02:03.456789Z");

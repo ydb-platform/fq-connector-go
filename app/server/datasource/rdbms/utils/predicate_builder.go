@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -27,7 +28,14 @@ func formatPrimitiveValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.Ty
 	case *Ydb.Value_Uint32Value:
 		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Uint32Value), nil
 	case *Ydb.Value_Int64Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Int64Value), nil
+		switch value.Type.GetTypeId() {
+		case Ydb.Type_INT64:
+			return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Int64Value), nil
+		case Ydb.Type_TIMESTAMP:
+			return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, time.UnixMicro(v.Int64Value)), nil
+		default:
+			return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
+		}
 	case *Ydb.Value_Uint64Value:
 		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Uint64Value), nil
 	case *Ydb.Value_FloatValue:
