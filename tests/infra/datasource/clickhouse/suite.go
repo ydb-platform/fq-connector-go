@@ -33,8 +33,7 @@ func (s *Suite) TestDatetimeFormatYQL() {
 	)
 }
 
-// FIXME: `DateTime64` pushdown doesn't work correctly
-// https://github.com/ClickHouse/clickhouse-go/issues/1483
+// FIXME: YQ-4063
 /*
 func (s *Suite) TestPushdownTimestampEQ() {
 	t := time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC)

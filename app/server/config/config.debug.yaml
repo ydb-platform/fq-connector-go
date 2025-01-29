@@ -38,7 +38,7 @@ datasources:
   clickhouse:
     <<: *data_source_default_var
     pushdown:
-      enable_timestamp_pushdown: false # https://github.com/ClickHouse/clickhouse-go/issues/1483
+      enable_timestamp_pushdown: false # YQ-4063
     
   greenplum:
     <<: *data_source_default_var
@@ -47,6 +47,8 @@ datasources:
 
   ms_sql_server:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: false # YQ-4062
 
   mysql:
     <<: *data_source_default_var
@@ -61,6 +63,8 @@ datasources:
 
   oracle:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: false # YQ-3527
 
   ydb:
     <<: *data_source_default_var

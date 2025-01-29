@@ -187,7 +187,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
-	"datetime_format_yql_pushdown_time_EQ": { // used in a couple of tests, so table name is generalized
+	"datetime_format_yql_pushdown_timestamp_EQ": {
 		Name:                  "datetimes",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{

@@ -42,7 +42,7 @@ func (s *Suite) TestPushdownTimestampToDatetimeEQ() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["datetime_format_yql_pushdown_time_EQ"],
+		tables["datetime_format_yql_pushdown_timestamp_EQ"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_02_datetime",
@@ -59,7 +59,7 @@ func (s *Suite) TestPushdownTimestampToTimestampEQ() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["datetime_format_yql_pushdown_time_EQ"],
+		tables["datetime_format_yql_pushdown_timestamp_EQ"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_03_timestamp",

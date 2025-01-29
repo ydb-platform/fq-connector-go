@@ -13,6 +13,7 @@ import (
 func main() {
 	// Define ClickHouse connection info
 	connStr := "clickhouse://admin:password@localhost:9000"
+
 	db, err := sql.Open("clickhouse", connStr)
 	if err != nil {
 		log.Fatalf("failed to open connection: %v", err)
@@ -20,7 +21,7 @@ func main() {
 	defer db.Close()
 
 	// Check the connection
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		log.Fatalf("failed to ping database: %v", err)
 	}
 
@@ -34,6 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to drop table: %v", err)
 	}
+
 	fmt.Println("Table dropped successfully.")
 
 	// 2. Create a table
@@ -61,23 +63,31 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to insert data: %v", err)
 	}
+
 	fmt.Println("Data inserted successfully.")
 
 	// 4. Query the table with a filtering expression
 	timeValue := time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC)
+
 	rows, err := db.QueryContext(ctx, "SELECT id, datetimeValue FROM example_table WHERE datetimeValue = ?", timeValue)
 	if err != nil {
 		log.Fatalf("failed to execute query: %v", err)
 	}
+
 	defer rows.Close()
 
 	fmt.Println("Rows filtered and fetched:")
+
 	for rows.Next() {
-		var id uint32
-		var datetimeValue time.Time
+		var (
+			id            uint32
+			datetimeValue time.Time
+		)
+
 		if err := rows.Scan(&id, &datetimeValue); err != nil {
 			log.Fatalf("failed to scan row: %v", err)
 		}
+
 		fmt.Printf("ID: %d, DateTime: %s\n", id, datetimeValue.Format(time.RFC3339Nano))
 	}
 

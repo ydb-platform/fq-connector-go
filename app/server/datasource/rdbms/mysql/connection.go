@@ -27,8 +27,9 @@ func (c *connection) Close() error {
 	return c.conn.Close()
 }
 
-func transformArgs(src *rdbms_utils.QueryArgs) []interface{} {
-	dst := make([]interface{}, len(src.Values()))
+func transformArgs(src *rdbms_utils.QueryArgs) []any {
+	dst := make([]any, len(src.Values()))
+
 	for i, v := range src.Values() {
 		switch t := v.(type) {
 		// MySQL driver does not accept time.Time objects
@@ -39,6 +40,7 @@ func transformArgs(src *rdbms_utils.QueryArgs) []interface{} {
 			dst[i] = v
 		}
 	}
+
 	return dst
 }
 
