@@ -40,6 +40,8 @@ datasources:
     
   greenplum:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: true
 
   ms_sql_server:
     <<: *data_source_default_var
