@@ -64,48 +64,24 @@ func main() {
 	fmt.Println("Data inserted successfully.")
 
 	// 4. Query the table with a filtering expression
-	timeValues := []time.Time{
-		time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC).Add(time.Nanosecond * 876543999),
-		time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC).Add(time.Nanosecond * 876544000),
+	timeValue := time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC)
+	rows, err := db.QueryContext(ctx, "SELECT id, datetimeValue FROM example_table WHERE datetimeValue = ?", timeValue)
+	if err != nil {
+		log.Fatalf("failed to execute query: %v", err)
+	}
+	defer rows.Close()
+
+	fmt.Println("Rows filtered and fetched:")
+	for rows.Next() {
+		var id uint32
+		var datetimeValue time.Time
+		if err := rows.Scan(&id, &datetimeValue); err != nil {
+			log.Fatalf("failed to scan row: %v", err)
+		}
+		fmt.Printf("ID: %d, DateTime: %s\n", id, datetimeValue.Format(time.RFC3339Nano))
 	}
 
-	for _, timeValue := range timeValues {
-		fmt.Printf("\n Checking time value: %v\n", timeValue)
-
-		rows, err := db.QueryContext(ctx, "SELECT id, datetimeValue FROM example_table WHERE datetimeValue > ?", timeValue)
-		if err != nil {
-			log.Fatalf("failed to execute query: %v", err)
-		}
-		defer rows.Close()
-
-		fmt.Println("Rows filtered and fetched after query with a filter `datetimeValue > ?`:")
-		for rows.Next() {
-			var id uint32
-			var datetimeValue time.Time
-			if err := rows.Scan(&id, &datetimeValue); err != nil {
-				log.Fatalf("failed to scan row: %v", err)
-			}
-			fmt.Printf("ID: %d, DateTime: %s\n", id, datetimeValue.Format(time.RFC3339Nano))
-		}
-
-		rows, err = db.QueryContext(ctx, "SELECT id, datetimeValue FROM example_table WHERE datetimeValue < ?", timeValue)
-		if err != nil {
-			log.Fatalf("failed to execute query: %v", err)
-		}
-		defer rows.Close()
-
-		fmt.Println("Rows filtered and fetched after query with a filter `datetimeValue < ?`:")
-		for rows.Next() {
-			var id uint32
-			var datetimeValue time.Time
-			if err := rows.Scan(&id, &datetimeValue); err != nil {
-				log.Fatalf("failed to scan row: %v", err)
-			}
-			fmt.Printf("ID: %d, DateTime: %s\n", id, datetimeValue.Format(time.RFC3339Nano))
-		}
-
-		if err := rows.Err(); err != nil {
-			log.Fatalf("rows iteration error: %v", err)
-		}
+	if err := rows.Err(); err != nil {
+		log.Fatalf("rows iteration error: %v", err)
 	}
 }
