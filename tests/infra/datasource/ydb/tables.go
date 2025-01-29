@@ -215,8 +215,44 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 	},
 
+	"datetime_format_yql_pushdown_timestamp_EQ": {
+		Name:                  "datetime",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":               common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_date":      common.MakePrimitiveType(Ydb.Type_DATE),
+				"col_02_datetime":  common.MakePrimitiveType(Ydb.Type_DATETIME),
+				"col_03_timestamp": common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id": []int32{1},
+					"col_01_date": []uint16{
+						common.MustTimeToYDBType[uint16](
+							common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC),
+						),
+					},
+
+					"col_02_datetime": []uint32{
+						common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC),
+						),
+					},
+					"col_03_timestamp": []uint64{
+						common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC),
+						),
+					},
+				},
+			},
+		},
+	},
+
 	// YQ-3338: YDB connector always returns date / time columns in YQL_FORMAT,
-	// 	because it is always fits YDB's date / time type value ranges
+	// 	because it always fits YDB's date / time type value ranges
 	"datetime_format_string": {
 		Name:                  "datetime",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
