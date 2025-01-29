@@ -37,6 +37,8 @@ data_source_default:  &data_source_default_var
 datasources:
   clickhouse:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: false # https://github.com/ClickHouse/clickhouse-go/issues/1483
     
   greenplum:
     <<: *data_source_default_var
@@ -49,6 +51,8 @@ datasources:
   mysql:
     <<: *data_source_default_var
     result_chan_capacity: 1024
+    pushdown:
+      enable_timestamp_pushdown: true
 
   postgresql:
     <<: *data_source_default_var
@@ -62,3 +66,5 @@ datasources:
     <<: *data_source_default_var
     use_underlay_network_for_dedicated_databases: false
     mode: MODE_QUERY_SERVICE_NATIVE
+    pushdown:
+      enable_timestamp_pushdown: true
