@@ -136,7 +136,7 @@ message TExponentialBackoffConfig {
 	string max_elapsed_time = 5;
 }
 
-// TPushdownConfig containes various settings for predicate pushdown
+// TPushdownConfig contains various settings for predicate pushdown
 message TPushdownConfig {
     // Enables filter pushdown for columns of YQL Timestamp type
     bool enable_timestamp_pushdown = 1;
@@ -253,7 +253,7 @@ message TYdbConfig {
     TPushdownConfig pushdown = 11;
 }
 
-// TLoggingConfig containes settings specific for Logging external datasource
+// TLoggingConfig contains settings specific for Logging external datasource
 message TLoggingConfig {
     // Under the hood the Logging connector goes to YDB, 
     // so all YDB settings can be applied to this connector as well.
