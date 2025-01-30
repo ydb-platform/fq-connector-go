@@ -187,6 +187,40 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"datetime_format_yql_pushdown_timestamp_EQ": {
+		Name:                  "datetimes",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":               common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"col_01_date":      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				"col_02_datetime":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+				"col_03_timestamp": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				// In YQL mode, PG datetime values exceeding YQL date/datetime/timestamp type bounds
+				// are returned as NULL
+				Columns: map[string]any{
+					"id": []*int32{
+						ptr.Int32(2),
+					},
+					"col_01_date": []*uint16{
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+					},
+					"col_02_datetime": []*uint64{
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
+					},
+					"col_03_timestamp": []*uint64{
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
+					},
+				},
+			},
+		},
+	},
 	"datetime_format_string": {
 		Name:                  "datetimes",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),

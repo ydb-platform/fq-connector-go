@@ -244,9 +244,46 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 					"col_04_datetime64": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456780, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 987654320, time.UTC))),
+					},
+				},
+			},
+		},
+	},
+
+	"datetime_format_yql_pushdown_timestamp_EQ": {
+		Name:                  "datetime",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":                common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_date":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				"col_02_date32":     common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
+				"col_03_datetime":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATETIME)),
+				"col_04_datetime64": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP)),
+			},
+		},
+
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id": []int32{2},
+					"col_01_date": []*uint16{
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+					},
+					"col_02_date32": []*uint16{
+						nil,
+						ptr.Uint16(common.MustTimeToYDBType[uint16](common.TimeToYDBDate, time.Date(1988, 11, 20, 0, 0, 0, 0, time.UTC))),
+					},
+					"col_03_datetime": []*uint32{
+						ptr.Uint32(common.MustTimeToYDBType[uint32](
+							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
+					},
+					"col_04_datetime64": []*uint64{
+						ptr.Uint64(common.MustTimeToYDBType[uint64](
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC))),
 					},
 				},
 			},
@@ -278,7 +315,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 					"col_03_datetime": []string{"1970-01-01T00:00:00Z", "1988-11-20T12:55:28Z", "2023-03-21T11:21:31Z"},
 					"col_04_datetime64": []string{
 						"1950-05-27T01:02:03.1111Z",
-						"1988-11-20T12:55:28.12345678Z",
+						"1988-11-20T12:55:28.123456Z",
 						"2023-03-21T11:21:31.98765432Z",
 					},
 				},

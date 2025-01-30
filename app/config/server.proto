@@ -136,6 +136,12 @@ message TExponentialBackoffConfig {
 	string max_elapsed_time = 5;
 }
 
+// TPushdownConfig contains various settings for predicate pushdown
+message TPushdownConfig {
+    // Enables filter pushdown for columns of YQL Timestamp type
+    bool enable_timestamp_pushdown = 1;
+}
+
 
 // TClickHouseConfig contains settings specific for ClickHouse data source
 message TClickHouseConfig {
@@ -147,6 +153,7 @@ message TClickHouseConfig {
     string ping_connection_timeout = 2;
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
 // TGreenplumConfig contains settings specific for Greenplum data source
@@ -156,6 +163,7 @@ message TGreenplumConfig {
     string open_connection_timeout = 1; 
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
 // TMsSQLServerConfig contains settings specific for MsSQLServer data source
@@ -168,6 +176,7 @@ message TMsSQLServerConfig {
     string ping_connection_timeout = 1;
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
 
@@ -179,6 +188,7 @@ message TMySQLConfig {
     string open_connection_timeout = 2; 
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
 // TOracleConfig contains settings specific for Oracle data source
@@ -191,6 +201,7 @@ message TOracleConfig {
     string ping_connection_timeout = 2;
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
 // TPostgreSQLConfig contains settings specific for PostgreSQL data source
@@ -200,6 +211,7 @@ message TPostgreSQLConfig {
     string open_connection_timeout = 1; 
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
 // TYdbConfig contains settings specific for YDB data source
@@ -238,9 +250,10 @@ message TYdbConfig {
     NYql.TGenericEndpoint iam_endpoint = 6;
 
     TExponentialBackoffConfig exponential_backoff = 10;
+    TPushdownConfig pushdown = 11;
 }
 
-// TLoggingConfig containes settings specific for Logging external datasource
+// TLoggingConfig contains settings specific for Logging external datasource
 message TLoggingConfig {
     // Under the hood the Logging connector goes to YDB, 
     // so all YDB settings can be applied to this connector as well.

@@ -24,7 +24,7 @@ func TestMakeSQLFormatterQuery(t *testing.T) {
 	}
 
 	logger := common.NewTestLogger(t)
-	formatter := NewSQLFormatter()
+	formatter := NewSQLFormatter(nil)
 
 	tcs := []testCase{
 		{

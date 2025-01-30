@@ -7,15 +7,17 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 )
 
 var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 
 type sqlFormatter struct {
+	cfg *config.TPushdownConfig
 }
 
-func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -39,6 +41,8 @@ func (sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 		return true
 	case Ydb.Type_DOUBLE:
 		return true
+	case Ydb.Type_TIMESTAMP:
+		return f.cfg.EnableTimestampPushdown
 	default:
 		return false
 	}
@@ -82,6 +86,6 @@ func (f sqlFormatter) FormatFrom(_, tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 
-func NewSQLFormatter() rdbms_utils.SQLFormatter {
-	return sqlFormatter{}
+func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
+	return sqlFormatter{cfg: cfg}
 }

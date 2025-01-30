@@ -1,6 +1,8 @@
 package ydb
 
 import (
+	"time"
+
 	"github.com/apache/arrow/go/v13/arrow/array"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -32,6 +34,23 @@ func (s *Suite) TestDatetimeFormatYQL() {
 	s.ValidateTable(
 		s.dataSource,
 		tables["datetime_format_yql"],
+		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
+	)
+}
+
+func (s *Suite) TestPushdownTimestampEQ() {
+	t := time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC)
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["datetime_format_yql_pushdown_timestamp_EQ"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_03_timestamp",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_TIMESTAMP), t.UnixMicro()),
+			),
+		}),
 		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
 	)
 }

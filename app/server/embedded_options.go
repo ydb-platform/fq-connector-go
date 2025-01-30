@@ -1,6 +1,10 @@
 package server
 
-import "github.com/ydb-platform/fq-connector-go/app/config"
+import (
+	"reflect"
+
+	"github.com/ydb-platform/fq-connector-go/app/config"
+)
 
 // EmbeddedOption parametrizes initialization of Connector server embedded into tests
 type EmbeddedOption interface {
@@ -101,4 +105,28 @@ func (o *withYdbConnectorMode) apply(cfg *config.TServerConfig) {
 
 func WithYdbConnectorMode(mode config.TYdbConfig_Mode) EmbeddedOption {
 	return &withYdbConnectorMode{mode: mode}
+}
+
+type withPushdownConfig struct {
+	pushdownConfig *config.TPushdownConfig
+}
+
+func (o *withPushdownConfig) apply(cfg *config.TServerConfig) {
+	val := reflect.ValueOf(cfg.Datasources).Elem()
+
+	// Loop through the each datasource config and set the Pushdown field to the new value
+	for i := 0; i < val.NumField(); i++ {
+		outerValue := val.Field(i)
+
+		if outerValue.Type().Kind() == reflect.Pointer && outerValue.Elem().Type().Kind() == reflect.Struct {
+			pushdownField := reflect.Indirect(outerValue).FieldByName("Pushdown")
+			if pushdownField.IsValid() && pushdownField.CanSet() {
+				pushdownField.Set(reflect.ValueOf(o.pushdownConfig))
+			}
+		}
+	}
+}
+
+func WithPushdownConfig(cfg *config.TPushdownConfig) EmbeddedOption {
+	return &withPushdownConfig{pushdownConfig: cfg}
 }

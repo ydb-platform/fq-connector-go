@@ -3,6 +3,7 @@ package mysql
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
@@ -24,6 +25,23 @@ type connection struct {
 
 func (c *connection) Close() error {
 	return c.conn.Close()
+}
+
+func transformArgs(src *rdbms_utils.QueryArgs) []any {
+	dst := make([]any, len(src.Values()))
+
+	for i, v := range src.Values() {
+		switch t := v.(type) {
+		// MySQL driver does not accept time.Time objects
+		case time.Time:
+			// TODO: check if time.RFC3339 (without Nano) would be enough
+			dst[i] = t.Format(time.RFC3339Nano)
+		default:
+			dst[i] = v
+		}
+	}
+
+	return dst
 }
 
 func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
@@ -85,7 +103,7 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 				return nil
 			},
 			nil,
-			params.QueryArgs.Values()...,
+			transformArgs(params.QueryArgs)...,
 		)
 	}()
 

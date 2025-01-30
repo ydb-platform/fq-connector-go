@@ -73,6 +73,8 @@ func primitiveYqlTypeName(typeId Ydb.Type_PrimitiveTypeId) (string, error) {
 		return typeString, nil
 	case Ydb.Type_UTF8:
 		return typeUtf8, nil
+	case Ydb.Type_TIMESTAMP:
+		return typeTimestamp, nil
 	default:
 		return "", fmt.Errorf("unexpected primitive type id: %v", typeId)
 	}

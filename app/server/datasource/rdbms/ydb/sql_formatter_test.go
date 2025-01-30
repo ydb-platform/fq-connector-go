@@ -25,7 +25,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 	}
 
 	logger := common.NewTestLogger(t)
-	formatter := NewSQLFormatter(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES)
+	formatter := NewSQLFormatter(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES, nil)
 
 	tcs := []testCase{
 		{
