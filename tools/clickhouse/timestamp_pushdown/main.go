@@ -42,7 +42,8 @@ func main() {
 	createTableQuery := `
 		CREATE TABLE IF NOT EXISTS example_table (
 			id UInt32,
-			datetimeValue DateTime64(8, 'UTC')
+			datetimeValue DateTime64(8, 'Asia/Tokyo')
+			--datetimeValue DateTime64(8, 'UTC')
 		) ENGINE = MergeTree()
 		PRIMARY KEY id;`
 
@@ -56,7 +57,7 @@ func main() {
 	// 3. Insert some data into the table
 	insertQuery := `
 		INSERT INTO example_table (*) VALUES
-		(1, '1988-11-20 12:55:28.123456000')
+		(1, '2024-01-01 00:00:00.00000000')
 	`
 
 	_, err = db.ExecContext(ctx, insertQuery)
@@ -67,9 +68,7 @@ func main() {
 	fmt.Println("Data inserted successfully.")
 
 	// 4. Query the table with a filtering expression
-	timeValue := time.Date(1988, 11, 20, 12, 55, 28, 123456000, time.UTC)
-
-	rows, err := db.QueryContext(ctx, "SELECT id, datetimeValue FROM example_table WHERE datetimeValue = ?", timeValue)
+	rows, err := db.QueryContext(ctx, "SELECT id, datetimeValue FROM example_table")
 	if err != nil {
 		log.Fatalf("failed to execute query: %v", err)
 	}
@@ -88,7 +87,7 @@ func main() {
 			log.Fatalf("failed to scan row: %v", err)
 		}
 
-		fmt.Printf("ID: %d, DateTime: %s\n", id, datetimeValue.Format(time.RFC3339Nano))
+		fmt.Printf("ID: %d, DateTime: %v (%s)\n", id, datetimeValue, datetimeValue.Format(time.RFC3339Nano))
 	}
 
 	if err := rows.Err(); err != nil {

@@ -2,7 +2,7 @@ CREATE OBJECT mysql_local_password (TYPE SECRET) WITH (value = "password");
 
 CREATE EXTERNAL DATA SOURCE mysql_external_datasource WITH (
     SOURCE_TYPE="MySQL",
-    LOCATION="mysql:3306",
+    LOCATION="localhost:3306",
     AUTH_METHOD="BASIC",
     LOGIN="root",
     DATABASE_NAME="fq",

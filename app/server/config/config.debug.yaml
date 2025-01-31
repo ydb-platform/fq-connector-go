@@ -10,7 +10,7 @@ logger:
 metrics_server:
   endpoint:
     host: "0.0.0.0"
-    port: 8766
+    port: 8767
 
 pprof_server:
   endpoint:

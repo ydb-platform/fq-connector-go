@@ -1,0 +1,2 @@
+--SELECT * FROM external_datasource.example_table WHERE datetimeValue = Timestamp("2023-12-31T15:00:00.000000Z");
+SELECT * FROM external_datasource.example_table;
