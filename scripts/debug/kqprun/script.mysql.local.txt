@@ -1,1 +1,1 @@
-SELECT * FROM mysql_external_datasource.simple;
+SELECT * FROM mysql_external_datasource.datetimes;

@@ -1,0 +1,11 @@
+CREATE OBJECT local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE external_datasource WITH (
+    SOURCE_TYPE="ClickHouse",
+    LOCATION="localhost:9000",
+    AUTH_METHOD="BASIC",
+    PROTOCOL="NATIVE",
+    LOGIN="admin",
+    DATABASE_NAME="default",
+    PASSWORD_SECRET_NAME="local_password"
+);
