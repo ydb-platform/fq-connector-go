@@ -50,6 +50,7 @@ func (ds *dataSource) DescribeTable(
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var makeConnErr error
+
 			uri := fmt.Sprintf(
 				"mongodb://%s:%s@%s:%d/%s?%v&authSource=admin",
 				dsi.Credentials.GetBasic().Username,
@@ -75,10 +76,12 @@ func (ds *dataSource) DescribeTable(
 				if err := conn.Disconnect(ctx); err != nil {
 					logger.Fatal(fmt.Sprintf("conn.Disconnect: %v", err))
 				}
+
 				return fmt.Errorf("conn.Ping: %w", makeConnErr)
 			}
 
 			logger.Debug("Connected to MongoDB!")
+
 			return nil
 		},
 	)

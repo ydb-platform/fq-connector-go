@@ -17,10 +17,6 @@ var errNull = errors.New("can't determine field type for null")
 const idColumn string = "_id"
 const objectIdTag string = "ObjectId"
 
-func typesEqual(lhs, rhs *Ydb.Type) bool {
-	return lhs.String() == rhs.String()
-}
-
 func typeMap(logger *zap.Logger, v bson.RawValue, omitUnsupported bool) (*Ydb.Type, error) {
 	switch v.Type {
 	case bson.TypeInt32:
@@ -76,7 +72,7 @@ func typeMapArray(logger *zap.Logger, elements []bson.RawElement, omitUnsupporte
 			continue
 		}
 
-		if !typesEqual(newInnerType, innerType) {
+		if !common.TypesEqual(newInnerType, innerType) {
 			return common.MakeListType(common.MakePrimitiveType(Ydb.Type_UTF8)), nil
 		}
 	}
@@ -137,7 +133,7 @@ func bsonToYqlColumn(
 	// Leaving fields that have inconsistent types serialized
 	// Extra check for arrays because we might have encountered an empty one:
 	// we know it is an array, but prevType is not determined yet
-	if (prevTypeExists && !typesEqual(prevType, t)) || (prevIsArray && t.GetListType() == nil) {
+	if (prevTypeExists && !common.TypesEqual(prevType, t)) || (prevIsArray && t.GetListType() == nil) {
 		deducedTypes[key] = common.MakePrimitiveType(Ydb.Type_UTF8)
 
 		logger.Debug(fmt.Sprintf("bsonToYqlColumn: keeping serialized %v. prev: %v curr: %v", key, prevType.String(), tString))

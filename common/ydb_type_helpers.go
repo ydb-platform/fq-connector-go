@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
@@ -86,4 +87,97 @@ func MakeYdbDateTimeType(ydbTypeID Ydb.Type_PrimitiveTypeId, format api_service_
 	default:
 		return nil, fmt.Errorf("unexpected datetime format '%s': %w", format, ErrInvalidRequest)
 	}
+}
+
+//nolint:gocyclo
+func TypesEqual(lhs, rhs *Ydb.Type) bool {
+	switch lhsType := lhs.Type.(type) {
+	case *Ydb.Type_TypeId:
+		return lhsType.TypeId == rhs.GetTypeId()
+	case *Ydb.Type_NullType:
+		return rhs.GetNullType() != structpb.NullValue(0)
+	case *Ydb.Type_OptionalType:
+		rhsType := rhs.GetOptionalType()
+		return rhsType != nil &&
+			TypesEqual(rhsType.Item, lhsType.OptionalType.Item)
+	case *Ydb.Type_DictType:
+		rhsType := rhs.GetDictType()
+
+		return rhsType != nil &&
+			TypesEqual(rhsType.Key, lhsType.DictType.Key) &&
+			TypesEqual(rhsType.Payload, lhsType.DictType.Payload)
+	case *Ydb.Type_ListType:
+		rhsType := rhs.GetListType()
+		return rhsType != nil &&
+			TypesEqual(rhsType.Item, lhsType.ListType.Item)
+	case *Ydb.Type_DecimalType:
+		rhsType := rhs.GetDecimalType()
+
+		return rhsType != nil &&
+			rhsType.Precision == lhsType.DecimalType.Precision &&
+			rhsType.Scale == lhsType.DecimalType.Scale
+	case *Ydb.Type_TupleType:
+		rhsType := rhs.GetTupleType()
+		return rhsType != nil && tuplesEqual(rhsType, lhsType.TupleType)
+	case *Ydb.Type_StructType:
+		rhsType := rhs.GetStructType()
+		return rhsType != nil && structsEqual(rhsType, lhsType.StructType)
+	case *Ydb.Type_VariantType:
+		rhsType := rhs.GetVariantType()
+		return rhsType != nil && variantsEqual(rhsType, lhsType.VariantType)
+	case *Ydb.Type_TaggedType:
+		rhsType := rhs.GetTaggedType()
+		return rhsType.Tag == lhsType.TaggedType.Tag &&
+			TypesEqual(rhsType.Type, lhsType.TaggedType.Type)
+	case *Ydb.Type_VoidType:
+		return rhs.GetVoidType() != structpb.NullValue(0)
+	case *Ydb.Type_EmptyListType:
+		return rhs.GetEmptyListType() != structpb.NullValue(0)
+	case *Ydb.Type_EmptyDictType:
+		return rhs.GetEmptyDictType() != structpb.NullValue(0)
+	case *Ydb.Type_PgType:
+		rhsType := rhs.GetPgType()
+		return rhsType != nil && rhs.GetPgType().TypeName == lhsType.PgType.TypeName
+	}
+
+	panic("unreachable")
+}
+
+func tuplesEqual(lhs, rhs *Ydb.TupleType) bool {
+	if len(lhs.Elements) != len(rhs.Elements) {
+		return false
+	}
+
+	for i := range len(rhs.Elements) {
+		if !TypesEqual(rhs.Elements[i], lhs.Elements[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func structsEqual(lhs, rhs *Ydb.StructType) bool {
+	if len(rhs.Members) != len(lhs.Members) {
+		return false
+	}
+
+	for i := range len(rhs.Members) {
+		if rhs.Members[i].Name != lhs.Members[i].Name || !TypesEqual(rhs.Members[i].Type, lhs.Members[i].Type) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func variantsEqual(lhs, rhs *Ydb.VariantType) bool {
+	switch innerType := lhs.Type.(type) {
+	case *Ydb.VariantType_TupleItems:
+		return tuplesEqual(innerType.TupleItems, rhs.GetTupleItems())
+	case *Ydb.VariantType_StructItems:
+		return structsEqual(innerType.StructItems, rhs.GetStructItems())
+	}
+
+	panic("unreachable")
 }
