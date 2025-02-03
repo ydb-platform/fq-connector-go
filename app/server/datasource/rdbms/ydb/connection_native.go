@@ -132,6 +132,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 
 			// prepare parameter list
 			paramsBuilder := ydb_sdk.ParamsBuilder()
+
 			for i, arg := range params.QueryArgs.Values() {
 				placeholder := c.formatter.GetPlaceholder(i)
 
@@ -202,6 +203,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 					return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
 				}
 			}
+
 			c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
 
 			// execute query
@@ -237,6 +239,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
+
 				return ctx.Err()
 			}
 		},

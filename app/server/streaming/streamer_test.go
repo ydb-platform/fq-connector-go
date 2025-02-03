@@ -225,7 +225,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		}
 	} else {
 		// the first attempt to send response is failed
-		stream.On("Send", mock.MatchedBy(func(response *api_service_protos.TReadSplitsResponse) bool {
+		stream.On("Send", mock.MatchedBy(func(_ *api_service_protos.TReadSplitsResponse) bool {
 			cancel() // emulate real behavior of GRPC
 
 			return true

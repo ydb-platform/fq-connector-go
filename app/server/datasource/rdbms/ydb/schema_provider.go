@@ -40,6 +40,7 @@ func (f *schemaProvider) GetSchema(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
+
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
 				return fmt.Errorf("describe table: %w", errInner)

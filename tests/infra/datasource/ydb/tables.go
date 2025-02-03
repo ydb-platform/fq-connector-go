@@ -561,10 +561,10 @@ func pushdownStringsSchemaYdb() *test_utils.TableSchema {
 	}
 }
 
-func makeRange[T constraints.Integer](min, max T) []T {
-	result := make([]T, max-min+1)
+func makeRange[T constraints.Integer](minValue, maxValue T) []T {
+	result := make([]T, maxValue-minValue+1)
 	for i := range result {
-		result[i] = min + T(i)
+		result[i] = minValue + T(i)
 	}
 
 	return result

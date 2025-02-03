@@ -187,13 +187,13 @@ var (
 	maxClickHouseDatetime64 = time.Date(2299, time.December, 31, 23, 59, 59, 99999999, time.UTC)
 )
 
-func saturateDateTime(in *time.Time, min, max time.Time) *time.Time {
-	if in.Before(min) {
-		*in = min
+func saturateDateTime(in *time.Time, minValue, maxValue time.Time) *time.Time {
+	if in.Before(minValue) {
+		*in = minValue
 	}
 
-	if in.After(max) {
-		*in = max
+	if in.After(maxValue) {
+		*in = maxValue
 	}
 
 	return in

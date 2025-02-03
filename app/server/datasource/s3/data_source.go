@@ -159,12 +159,12 @@ func transformCSV(
 	csvReader *csv.Reader,
 	_ paging.Sink[string],
 ) error {
-	wantedColumnIds, appenders, err := prepareReading(selectWhat, schema)
+	wantedColumnIDs, appenders, err := prepareReading(selectWhat, schema)
 	if err != nil {
 		return fmt.Errorf("get wanted columns ids: %w", err)
 	}
 
-	transformer := paging.NewRowTransformer[string](nil, appenders, wantedColumnIds)
+	transformer := paging.NewRowTransformer[string](nil, appenders, wantedColumnIDs)
 
 	for {
 		row, err := csvReader.Read()
@@ -188,7 +188,7 @@ func transformCSV(
 }
 
 func makeConnection() *s3.Client {
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...any) (aws.Endpoint, error) {
+	resolver := aws.EndpointResolverWithOptionsFunc(func(_, _ string, _ ...any) (aws.Endpoint, error) {
 		return aws.Endpoint{
 			PartitionID:       "aws",
 			URL:               "http://127.0.0.1:9000",

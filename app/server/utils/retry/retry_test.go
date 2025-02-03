@@ -23,7 +23,7 @@ func TestRetry(t *testing.T) {
 
 	t.Run("retriable", func(t *testing.T) {
 		retrier := NewRetrierFromConfig(cfg,
-			func(err error) bool {
+			func(_ error) bool {
 				// all errors are retriable
 				return true
 			})
@@ -40,7 +40,7 @@ func TestRetry(t *testing.T) {
 
 	t.Run("non-retriable", func(t *testing.T) {
 		retrier := NewRetrierFromConfig(cfg,
-			func(err error) bool {
+			func(_ error) bool {
 				// all errors are non-retriable
 				return false
 			})
