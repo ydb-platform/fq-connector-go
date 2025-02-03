@@ -105,6 +105,7 @@ func getTableDescription(ctx context.Context, ydbDriver *ydb.Driver) (*options.D
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
+
 			desc, errInner = s.DescribeTable(ctx, filePath)
 			if errInner != nil {
 				return fmt.Errorf("describe table: %w", errInner)
@@ -138,6 +139,7 @@ func getData(ctx context.Context, ydbDriver *ydb.Driver) error {
 		}
 
 		fmt.Println(result)
+
 		rs, err := result.NextResultSet(ctx)
 		if err != nil {
 			return fmt.Errorf("next result set: %w", err)
@@ -149,6 +151,7 @@ func getData(ctx context.Context, ydbDriver *ydb.Driver) error {
 				fmt.Println("EOF")
 				return nil
 			}
+
 			return fmt.Errorf("next row: %w", err)
 		}
 

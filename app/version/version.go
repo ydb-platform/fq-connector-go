@@ -25,7 +25,7 @@ var (
 var Cmd = &cobra.Command{
 	Use:   "version",
 	Short: "version of current build",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		fmt.Println(GetInfo())
 	},
 }

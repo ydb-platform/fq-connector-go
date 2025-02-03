@@ -54,6 +54,7 @@ func BenchmarkDateToStringConverter(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
+
 			_ = out
 		}
 	})
@@ -66,6 +67,7 @@ func BenchmarkDateToStringConverter(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
+
 			_ = out
 		}
 	})
@@ -85,8 +87,8 @@ func FuzzDateToStringConverter(f *testing.F) {
 	f.Add(-1, 1, 1, 0, 0, 0, 0)
 	f.Add(-100500, -10, -35, -8, -2000, -300000, -50404040)
 
-	f.Fuzz(func(t *testing.T, year int, month int, day int, hour int, min int, sec int, nsec int) {
-		in := time.Date(year, time.Month(month), day, hour, min, sec, nsec, time.UTC)
+	f.Fuzz(func(t *testing.T, year int, month int, day int, hour int, minutes int, sec int, nsec int) {
+		in := time.Date(year, time.Month(month), day, hour, minutes, sec, nsec, time.UTC)
 		expectedOut, err := converterDefault.Convert(&in)
 		require.NoError(t, err)
 		actualOut, err := converterUnsafe.Convert(&in)
@@ -144,6 +146,7 @@ func BenchmarkTimestampToStringConverter(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
+
 			_ = out
 		}
 	})
@@ -156,6 +159,7 @@ func BenchmarkTimestampToStringConverter(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
+
 			_ = out
 		}
 	})

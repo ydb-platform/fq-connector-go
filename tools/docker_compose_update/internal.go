@@ -125,6 +125,10 @@ func checkFileExistance(path string) error {
 
 func walkDockerCompose(logger *zap.Logger, rootPath string, newImage string) error {
 	walkFunc := func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return fmt.Errorf("walk func err: %w", err)
+		}
+
 		if info != nil && info.IsDir() {
 			composeFilePath := filepath.Join(path, "docker-compose.yml")
 

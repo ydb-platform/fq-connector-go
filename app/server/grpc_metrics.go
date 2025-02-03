@@ -117,7 +117,7 @@ func UnaryServerMetrics(logger *zap.Logger, registry metrics.Registry) grpc.Unar
 				logger.Error("panic occurred", zap.Any("error", p), zap.String("stacktrace", fmt.Sprint(string(stacktrace))))
 
 				// return transport error to the client
-				err = status.Errorf(codes.Internal, fmt.Sprintf("Server paniced: %v", p))
+				err = status.Errorf(codes.Internal, "Server paniced")
 			}
 		}
 
@@ -201,7 +201,7 @@ func StreamServerMetrics(logger *zap.Logger, registry metrics.Registry) grpc.Str
 				logger.Error("panic occurred", zap.Any("error", p), zap.String("stacktrace", fmt.Sprint(string(stacktrace))))
 
 				// return transport error to the client
-				err := status.Errorf(codes.Internal, fmt.Sprintf("Server paniced: %v", p))
+				err := status.Errorf(codes.Internal, "Server paniced")
 				_ = ss.SendMsg(err)
 			}
 		}

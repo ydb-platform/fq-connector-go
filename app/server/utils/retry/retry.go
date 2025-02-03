@@ -77,7 +77,7 @@ func NewRetrierFromConfig(cfg *config.TExponentialBackoffConfig, retriableErrorC
 
 func NewRetrierNoop() Retrier {
 	return &retrierDefault{
-		retriableErrorChecker: func(err error) bool {
+		retriableErrorChecker: func(_ error) bool {
 			// all errors are non-retriable by default
 			return false
 		},
