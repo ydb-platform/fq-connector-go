@@ -1,7 +1,6 @@
 package oracle
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -104,13 +104,13 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		switch typeName {
 		case "NUMBER":
 			acceptors = append(acceptors, new(*int64))
-			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+			appenders = append(appenders, utils.MakeAppenderNullable[int64, int64, *array.Int64Builder](cc.Int64()))
 		case "NCHAR", "CHAR", "LongVarChar", "LONG", "ROWID", "UROWID":
 			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case "RAW", "LongRaw":
 			acceptors = append(acceptors, new(*[]byte))
-			appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+			appenders = append(appenders, utils.MakeAppenderNullable[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		case "OCIBlobLocator":
 			ydbType := ydbTypes[i]
 
@@ -122,9 +122,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			acceptors = append(acceptors, new(*[]byte))
 
 			if ydbTypeID == Ydb.Type_JSON {
-				appenders = append(appenders, makeAppender[[]byte, string, *array.StringBuilder](cc.BytesToString()))
+				appenders = append(appenders, utils.MakeAppenderNullable[[]byte, string, *array.StringBuilder](cc.BytesToString()))
 			} else {
-				appenders = append(appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+				appenders = append(appenders, utils.MakeAppenderNullable[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 			}
 
 		// YQ-3498: go-ora driver has a bug when reading BINARY_FLOAT -1.1, gives -1.2
@@ -134,7 +134,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		// 	appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
 		case "IBDouble":
 			acceptors = append(acceptors, new(*float64))
-			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+			appenders = append(appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
 		case "DATE":
 			// Oracle Date value range is much more wide than YDB's Datetime value range
 			ydbType := ydbTypes[i]
@@ -149,9 +149,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
 				appenders = append(appenders,
-					makeAppender[time.Time, string, *array.StringBuilder](cc.DatetimeToString()))
+					utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.DatetimeToString()))
 			case Ydb.Type_DATETIME:
-				appenders = append(appenders, makeAppender[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbType, typeName, common.ErrDataTypeNotSupported)
 			}
@@ -169,9 +169,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
 				appenders = append(appenders,
-					makeAppender[time.Time, string, *array.StringBuilder](cc.TimestampToString(true)))
+					utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.TimestampToString(true)))
 			case Ydb.Type_TIMESTAMP:
-				appenders = append(appenders, makeAppender[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 			default:
 				return nil, fmt.Errorf("unexpected ydb type %v with sql type %s: %w", ydbType, typeName, common.ErrDataTypeNotSupported)
 			}
@@ -181,49 +181,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	}
 
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
-}
-
-func makeAppender[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](conv conversion.ValuePtrConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
-	return func(acceptor any, builder array.Builder) error {
-		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
-	}
-}
-
-func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
-	acceptor any,
-	builder array.Builder,
-	conv conversion.ValuePtrConverter[IN, OUT],
-) error {
-	cast := acceptor.(**IN)
-
-	if *cast == nil {
-		builder.AppendNull()
-
-		return nil
-	}
-
-	value := *cast
-
-	out, err := conv.Convert(value)
-	if err != nil {
-		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-			// TODO: write warning to logger
-			builder.AppendNull()
-
-			return nil
-		}
-
-		return fmt.Errorf("convert value %v: %w", value, err)
-	}
-
-	//nolint:forcetypeassert
-	builder.(AB).Append(out)
-
-	return nil
 }
 
 func NewTypeMapper() datasource.TypeMapper {
