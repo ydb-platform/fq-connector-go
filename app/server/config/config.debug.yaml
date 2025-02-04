@@ -66,6 +66,10 @@ datasources:
     pushdown:
       enable_timestamp_pushdown: false # YQ-3527
 
+  mongodb:
+    <<: *data_source_default_var
+    count_docs_to_deduce_schema: 5
+
   ydb:
     <<: *data_source_default_var
     use_underlay_network_for_dedicated_databases: false

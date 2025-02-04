@@ -204,6 +204,20 @@ message TOracleConfig {
     TPushdownConfig pushdown = 11;
 }
 
+// TMongoDbConfig contains settings specific for Oracle data source
+message TMongoDbConfig {
+    // Timeout for MongoDB connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1; 
+    // Timeout for MongoDB connection pinging.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 2;
+    // Number of documents to process in DescribeTable method to deduce table schema
+    uint32 count_docs_to_deduce_schema = 3;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
 // TPostgreSQLConfig contains settings specific for PostgreSQL data source
 message TPostgreSQLConfig {
     // Timeout for PostgreSQL connection opening.
@@ -304,4 +318,5 @@ message TDatasourcesConfig {
     TGreenplumConfig greenplum = 6;
     TOracleConfig oracle = 7;
     TLoggingConfig logging = 8;
+    TMongoDbConfig mongodb = 9;
 }
