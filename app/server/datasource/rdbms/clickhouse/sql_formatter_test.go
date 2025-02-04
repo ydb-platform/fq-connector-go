@@ -13,7 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func TestMakeSQLFormatterQuery(t *testing.T) {
+func TestMakeReadSplitsQuery(t *testing.T) {
 	type testCase struct {
 		testName         string
 		selectReq        *api_service_protos.TSelect

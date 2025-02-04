@@ -6,102 +6,128 @@ import (
 	"time"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func formatValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
-	if value.Type.GetOptionalType() != nil {
-		return formatOptionalValue(formatter, args, value)
-	}
-
-	return formatPrimitiveValue(formatter, args, value)
+// SQL query predicate construction process has some context. Here is it:
+type predicateBuilder struct {
+	formatter SQLFormatter
+	args      *QueryArgs
+	errors    []error // the errors that may occure during predicate construction
 }
 
-func formatPrimitiveValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
+func (pb *predicateBuilder) formatValue(value *Ydb.TypedValue) (string, error) {
+	if value.Type.GetOptionalType() != nil {
+		return pb.formatOptionalValue(value)
+	}
+
+	return pb.formatPrimitiveValue(value)
+}
+
+func (pb *predicateBuilder) formatPrimitiveValue(value *Ydb.TypedValue) (string, error) {
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.BoolValue), nil
+		pb.args.AddTyped(value.Type, v.BoolValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Int32Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Int32Value), nil
+		pb.args.AddTyped(value.Type, v.Int32Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Uint32Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Uint32Value), nil
+		pb.args.AddTyped(value.Type, v.Uint32Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Int64Value:
 		switch value.Type.GetTypeId() {
 		case Ydb.Type_INT64:
-			return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Int64Value), nil
+			pb.args.AddTyped(value.Type, v.Int64Value)
+			return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 		case Ydb.Type_TIMESTAMP:
-			return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, time.UnixMicro(v.Int64Value)), nil
+			pb.args.AddTyped(value.Type, time.UnixMicro(v.Int64Value))
+			return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 		default:
-			return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
+			return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
 		}
 	case *Ydb.Value_Uint64Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.Uint64Value), nil
+		pb.args.AddTyped(value.Type, v.Uint64Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_FloatValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.FloatValue), nil
+		pb.args.AddTyped(value.Type, v.FloatValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_DoubleValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.DoubleValue), nil
+		pb.args.AddTyped(value.Type, v.DoubleValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_BytesValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.BytesValue), nil
+		pb.args.AddTyped(value.Type, v.BytesValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_TextValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, v.TextValue), nil
+		pb.args.AddTyped(value.Type, v.TextValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_NullFlagValue:
-		placeholder, newArgs, err := formatNullFlagValue(formatter, args, value)
+		placeholder, err := pb.formatNullFlagValue(value)
 		if err != nil {
-			return "", args, fmt.Errorf("format null flag value: %w", err)
+			return "", fmt.Errorf("format null flag value: %w", err)
 		}
 
-		return placeholder, newArgs, nil
+		return placeholder, nil
 	default:
-		return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
+		return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
 	}
 }
 
-func formatOptionalValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
+func (pb *predicateBuilder) formatOptionalValue(value *Ydb.TypedValue) (string, error) {
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.BoolValue), nil
+		pb.args.AddTyped(value.Type, &v.BoolValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Int32Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Int32Value), nil
+		pb.args.AddTyped(value.Type, &v.Int32Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Uint32Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Uint32Value), nil
+		pb.args.AddTyped(value.Type, &v.Uint32Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Int64Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Int64Value), nil
+		pb.args.AddTyped(value.Type, &v.Int64Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_Uint64Value:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.Uint64Value), nil
+		pb.args.AddTyped(value.Type, &v.Uint64Value)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_FloatValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.FloatValue), nil
+		pb.args.AddTyped(value.Type, &v.FloatValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_DoubleValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.DoubleValue), nil
+		pb.args.AddTyped(value.Type, &v.DoubleValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_BytesValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.BytesValue), nil
+		pb.args.AddTyped(value.Type, &v.BytesValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_TextValue:
-		return formatter.GetPlaceholder(args.Count()), args.AddTyped(value.Type, &v.TextValue), nil
+		pb.args.AddTyped(value.Type, &v.TextValue)
+		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 	case *Ydb.Value_NullFlagValue:
-		placeholder, newArgs, err := formatNullFlagValue(formatter, args, value)
+		placeholder, err := pb.formatNullFlagValue(value)
 		if err != nil {
-			return "", args, fmt.Errorf("format null flag value: %w", err)
+			return "", fmt.Errorf("format null flag value: %w", err)
 		}
-
-		return placeholder, newArgs, nil
+		return placeholder, nil
 	default:
-		return "", args, fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
+		return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
 	}
 }
 
 func addTypedNull[ACCEPTOR_TYPE any](
-	formatter SQLFormatter,
-	args *QueryArgs,
+	pb *predicateBuilder,
 	ydbType *Ydb.Type,
-) (string, *QueryArgs, error) {
-	return formatter.GetPlaceholder(args.Count()), args.AddTyped(ydbType, (*ACCEPTOR_TYPE)(nil)), nil
+) (string, error) {
+	pb.args.AddTyped(ydbType, (*ACCEPTOR_TYPE)(nil))
+	return pb.formatter.GetPlaceholder(pb.args.Count()), nil
 }
 
-func formatNullFlagValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.TypedValue) (string, *QueryArgs, error) {
+func (pb *predicateBuilder) formatNullFlagValue(value *Ydb.TypedValue) (string, error) {
 	optType, ok := value.Type.GetType().(*Ydb.Type_OptionalType)
 	if !ok {
-		return "", args, fmt.Errorf(
+		return "", fmt.Errorf(
 			"null flag values must be optionally typed, got type '%T' instead: %w",
 			value.Type.GetType(), common.ErrUnimplementedTypedValue)
 	}
@@ -110,48 +136,46 @@ func formatNullFlagValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.Typ
 	case *Ydb.Type_TypeId:
 		switch innerType.TypeId {
 		case Ydb.Type_BOOL:
-			return addTypedNull[bool](formatter, args, value.Type)
+			return addTypedNull[bool](pb, value.Type)
 		case Ydb.Type_INT8:
-			return addTypedNull[int8](formatter, args, value.Type)
+			return addTypedNull[int8](pb, value.Type)
 		case Ydb.Type_UINT8:
-			return addTypedNull[uint8](formatter, args, value.Type)
+			return addTypedNull[uint8](pb, value.Type)
 		case Ydb.Type_INT16:
-			return addTypedNull[int16](formatter, args, value.Type)
+			return addTypedNull[int16](pb, value.Type)
 		case Ydb.Type_UINT16:
-			return addTypedNull[uint16](formatter, args, value.Type)
+			return addTypedNull[uint16](pb, value.Type)
 		case Ydb.Type_INT32:
-			return addTypedNull[int32](formatter, args, value.Type)
+			return addTypedNull[int32](pb, value.Type)
 		case Ydb.Type_UINT32:
-			return addTypedNull[uint32](formatter, args, value.Type)
+			return addTypedNull[uint32](pb, value.Type)
 		case Ydb.Type_INT64:
-			return addTypedNull[int64](formatter, args, value.Type)
+			return addTypedNull[int64](pb, value.Type)
 		case Ydb.Type_UINT64:
-			return addTypedNull[uint64](formatter, args, value.Type)
+			return addTypedNull[uint64](pb, value.Type)
 		case Ydb.Type_STRING:
-			return addTypedNull[[]byte](formatter, args, value.Type)
+			return addTypedNull[[]byte](pb, value.Type)
 		case Ydb.Type_UTF8:
-			return addTypedNull[string](formatter, args, value.Type)
+			return addTypedNull[string](pb, value.Type)
 		default:
-			return "", args, fmt.Errorf("unsupported primitive type '%v': %w", innerType, common.ErrUnimplementedTypedValue)
+			return "", fmt.Errorf("unsupported primitive type '%v': %w", innerType, common.ErrUnimplementedTypedValue)
 		}
 	default:
-		return "", args, fmt.Errorf("unsupported type '%v': %w", innerType, common.ErrUnimplementedTypedValue)
+		return "", fmt.Errorf("unsupported type '%v': %w", innerType, common.ErrUnimplementedTypedValue)
 	}
 }
 
-func formatColumn(formatter SQLFormatter, args *QueryArgs, col string) (string, *QueryArgs, error) {
-	return formatter.SanitiseIdentifier(col), args, nil
+func (pb *predicateBuilder) formatColumn(col string) (string, error) {
+	return pb.formatter.SanitiseIdentifier(col), nil
 }
 
-func formatNull(_ SQLFormatter, args *QueryArgs, _ *api_service_protos.TExpression_TNull) (string, *QueryArgs, error) {
-	return "NULL", args, nil
+func (pb *predicateBuilder) formatNull(_ *api_service_protos.TExpression_TNull) (string, error) {
+	return "NULL", nil
 }
 
-func formatArithmeticalExpression(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatArithmeticalExpression(
 	expression *api_service_protos.TExpression_TArithmeticalExpression,
-) (string, *QueryArgs, error) {
+) (string, error) {
 	var operation string
 
 	switch op := expression.Operation; op {
@@ -168,66 +192,63 @@ func formatArithmeticalExpression(
 	case api_service_protos.TExpression_TArithmeticalExpression_BIT_XOR:
 		operation = " ^ "
 	default:
-		return "", args, fmt.Errorf("operation %d: %w", op, common.ErrUnimplementedArithmeticalExpression)
+		return "", fmt.Errorf("operation %d: %w", op, common.ErrUnimplementedArithmeticalExpression)
 	}
 
-	left, args, err := formatExpression(formatter, args, expression.LeftValue)
+	left, err := pb.formatExpression(expression.LeftValue)
 	if err != nil {
-		return "", args, fmt.Errorf("format left expression: %w", err)
+		return "", fmt.Errorf("format left expression %v: %w", expression.LeftValue, err)
 	}
 
-	right, args, err := formatExpression(formatter, args, expression.RightValue)
+	right, err := pb.formatExpression(expression.RightValue)
 	if err != nil {
-		return "", args, fmt.Errorf("format right expression: %w", err)
+		return "", fmt.Errorf("format right expression %v: %w", expression.RightValue, err)
 	}
 
-	return fmt.Sprintf("(%s%s%s)", left, operation, right), args, nil
+	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil
 }
 
-func formatExpression(formatter SQLFormatter, args *QueryArgs, expression *api_service_protos.TExpression) (string, *QueryArgs, error) {
-	if !formatter.SupportsPushdownExpression(expression) {
-		return "", args, common.ErrUnsupportedExpression
+func (pb *predicateBuilder) formatExpression(expression *api_service_protos.TExpression) (string, error) {
+	if !pb.formatter.SupportsPushdownExpression(expression) {
+		return "", common.ErrUnsupportedExpression
 	}
 
 	var (
-		result  string
-		newArgs *QueryArgs
-		err     error
+		result string
+		err    error
 	)
 
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
-		result, newArgs, err = formatColumn(formatter, args, e.Column)
+		result, err = pb.formatColumn(e.Column)
 		if err != nil {
-			return result, newArgs, fmt.Errorf("format column: %w", err)
+			return result, fmt.Errorf("format column: %w", err)
 		}
 	case *api_service_protos.TExpression_TypedValue:
-		result, newArgs, err = formatValue(formatter, args, e.TypedValue)
+		result, err = pb.formatValue(e.TypedValue)
 		if err != nil {
-			return result, newArgs, fmt.Errorf("format value: %w", err)
+			return result, fmt.Errorf("format value: %w", err)
 		}
 	case *api_service_protos.TExpression_ArithmeticalExpression:
-		result, newArgs, err = formatArithmeticalExpression(formatter, args, e.ArithmeticalExpression)
+		result, err = pb.formatArithmeticalExpression(e.ArithmeticalExpression)
 		if err != nil {
-			return result, newArgs, fmt.Errorf("format arithmetical expression: %w", err)
+			return result, fmt.Errorf("format arithmetical expression: %w", err)
 		}
 	case *api_service_protos.TExpression_Null:
-		result, newArgs, err = formatNull(formatter, args, e.Null)
+		result, err = pb.formatNull(e.Null)
 		if err != nil {
-			return result, newArgs, fmt.Errorf("format null: %w", err)
+			return result, fmt.Errorf("format null: %w", err)
 		}
 	default:
-		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedExpression, e)
+		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedExpression, e)
 	}
 
-	return result, newArgs, nil
+	return result, nil
 }
 
-func formatComparison(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatComparison(
 	comparison *api_service_protos.TPredicate_TComparison,
-) (string, *QueryArgs, error) {
+) (string, error) {
 	var operation string
 
 	switch op := comparison.Operation; op {
@@ -244,41 +265,37 @@ func formatComparison(
 	case api_service_protos.TPredicate_TComparison_G:
 		operation = " > "
 	default:
-		return "", args, fmt.Errorf("%w, op: %d", common.ErrUnimplementedOperation, op)
+		return "", fmt.Errorf("%w, op: %d", common.ErrUnimplementedOperation, op)
 	}
 
-	left, args, err := formatExpression(formatter, args, comparison.LeftValue)
+	left, err := pb.formatExpression(comparison.LeftValue)
 	if err != nil {
-		return "", args, fmt.Errorf("format left expression: %w", err)
+		return "", fmt.Errorf("format left expression: %v: %w", comparison.LeftValue, err)
 	}
 
-	right, args, err := formatExpression(formatter, args, comparison.RightValue)
+	right, err := pb.formatExpression(comparison.RightValue)
 	if err != nil {
-		return "", args, fmt.Errorf("format right expression: %w", err)
+		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
 	}
 
-	return fmt.Sprintf("(%s%s%s)", left, operation, right), args, nil
+	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil
 }
 
-func formatNegation(
-	formatter SQLFormatter,
-	args *QueryArgs,
-	negation *api_service_protos.TPredicate_TNegation) (string, *QueryArgs, error) {
+func (pb *predicateBuilder) formatNegation(
+	negation *api_service_protos.TPredicate_TNegation) (string, error) {
 
-	pred, args, err := formatPredicate(formatter, args, negation.Operand, false)
+	pred, err := pb.formatPredicate(negation.Operand, false)
 	if err != nil {
-		return "", args, fmt.Errorf("format predicate: %w", err)
+		return "", fmt.Errorf("format predicate: %w", err)
 	}
 
-	return fmt.Sprintf("(NOT %s)", pred), args, nil
+	return fmt.Sprintf("(NOT %s)", pred), nil
 }
 
-func formatConjunction(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatConjunction(
 	conjunction *api_service_protos.TPredicate_TConjunction,
 	topLevel bool,
-) (string, *QueryArgs, error) {
+) (string, error) {
 	var (
 		sb        strings.Builder
 		succeeded int32
@@ -288,15 +305,16 @@ func formatConjunction(
 	)
 
 	for _, predicate := range conjunction.Operands {
-		argsCut := args
-		statement, args, err = formatPredicate(formatter, args, predicate, false)
+		statement, err = pb.formatPredicate(predicate, false)
+		fmt.Println("CRAB", statement, err)
 
 		if err != nil {
 			if !topLevel {
-				return "", args, fmt.Errorf("failed to format AND statement: %w", err)
+				return "", fmt.Errorf("format predicate: %w", err)
 			}
 
-			args = argsCut
+			// For some pushdown modes, this kind of error may be considered as non-fatal.
+			pb.errors = append(pb.errors, fmt.Errorf("format predicate: %w", err))
 		} else {
 			if succeeded > 0 {
 				if succeeded == 1 {
@@ -315,7 +333,7 @@ func formatConjunction(
 	}
 
 	if succeeded == 0 {
-		return "", args, fmt.Errorf("failed to format AND statement: %w", err)
+		return "", fmt.Errorf("format predicate: %w", err)
 	}
 
 	if succeeded == 1 {
@@ -324,14 +342,12 @@ func formatConjunction(
 		sb.WriteString(")")
 	}
 
-	return sb.String(), args, nil
+	return sb.String(), nil
 }
 
-func formatDisjunction(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatDisjunction(
 	disjunction *api_service_protos.TPredicate_TDisjunction,
-) (string, *QueryArgs, error) {
+) (string, error) {
 	var (
 		sb        strings.Builder
 		cnt       int32
@@ -341,9 +357,9 @@ func formatDisjunction(
 	)
 
 	for _, predicate := range disjunction.Operands {
-		statement, args, err = formatPredicate(formatter, args, predicate, false)
+		statement, err = pb.formatPredicate(predicate, false)
 		if err != nil {
-			return "", args, fmt.Errorf("format predicate: %w", err)
+			return "", fmt.Errorf("format predicate: %w", err)
 		}
 
 		if cnt > 0 {
@@ -362,7 +378,7 @@ func formatDisjunction(
 	}
 
 	if cnt == 0 {
-		return "", args, fmt.Errorf("no operands")
+		return "", fmt.Errorf("no operands")
 	}
 
 	if cnt == 1 {
@@ -371,103 +387,116 @@ func formatDisjunction(
 		sb.WriteString(")")
 	}
 
-	return sb.String(), args, nil
+	return sb.String(), nil
 }
 
-func formatIsNull(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatIsNull(
 	isNull *api_service_protos.TPredicate_TIsNull,
-) (string, *QueryArgs, error) {
-	statement, args, err := formatExpression(formatter, args, isNull.Value)
+) (string, error) {
+	statement, err := pb.formatExpression(isNull.Value)
 	if err != nil {
-		return "", args, fmt.Errorf("format expression: %w", err)
+		return "", fmt.Errorf("format expression: %w", err)
 	}
 
-	return fmt.Sprintf("(%s IS NULL)", statement), args, nil
+	return fmt.Sprintf("(%s IS NULL)", statement), nil
 }
 
-func formatIsNotNull(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatIsNotNull(
 	isNotNull *api_service_protos.TPredicate_TIsNotNull,
-) (string, *QueryArgs, error) {
-	statement, args, err := formatExpression(formatter, args, isNotNull.Value)
+) (string, error) {
+	statement, err := pb.formatExpression(isNotNull.Value)
 	if err != nil {
-		return "", args, fmt.Errorf("format expression: %w", err)
+		return "", fmt.Errorf("format expression: %w", err)
 	}
 
-	return fmt.Sprintf("(%s IS NOT NULL)", statement), args, nil
+	return fmt.Sprintf("(%s IS NOT NULL)", statement), nil
 }
 
-func formatPredicate(
-	formatter SQLFormatter,
-	args *QueryArgs,
+func (pb *predicateBuilder) formatPredicate(
 	predicate *api_service_protos.TPredicate,
 	topLevel bool,
-) (string, *QueryArgs, error) {
+) (string, error) {
 	var (
-		result  string
-		newArgs *QueryArgs
-		err     error
+		result string
+		err    error
 	)
 
 	switch p := predicate.Payload.(type) {
 	case *api_service_protos.TPredicate_Negation:
-		result, newArgs, err = formatNegation(formatter, args, p.Negation)
+		result, err = pb.formatNegation(p.Negation)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format negation: %w", err)
+			return "", fmt.Errorf("format negation: %w", err)
 		}
 	case *api_service_protos.TPredicate_Conjunction:
-		result, newArgs, err = formatConjunction(formatter, args, p.Conjunction, topLevel)
+		result, err = pb.formatConjunction(p.Conjunction, topLevel)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format conjunction: %w", err)
+			return "", fmt.Errorf("format conjunction: %w", err)
 		}
 	case *api_service_protos.TPredicate_Disjunction:
-		result, newArgs, err = formatDisjunction(formatter, args, p.Disjunction)
+		result, err = pb.formatDisjunction(p.Disjunction)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format disjunction: %w", err)
+			return "", fmt.Errorf("format disjunction: %w", err)
 		}
 	case *api_service_protos.TPredicate_IsNull:
-		result, newArgs, err = formatIsNull(formatter, args, p.IsNull)
+		result, err = pb.formatIsNull(p.IsNull)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format is null: %w", err)
+			return "", fmt.Errorf("format is null: %w", err)
 		}
 	case *api_service_protos.TPredicate_IsNotNull:
-		result, newArgs, err = formatIsNotNull(formatter, args, p.IsNotNull)
+		result, err = pb.formatIsNotNull(p.IsNotNull)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format is not null: %w", err)
+			return "", fmt.Errorf("format is not null: %w", err)
 		}
 	case *api_service_protos.TPredicate_Comparison:
-		result, newArgs, err = formatComparison(formatter, args, p.Comparison)
+		result, err = pb.formatComparison(p.Comparison)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format comparison: %w", err)
+			return "", fmt.Errorf("format comparison: %w", err)
 		}
 	case *api_service_protos.TPredicate_BoolExpression:
-		result, newArgs, err = formatExpression(formatter, args, p.BoolExpression.Value)
+		result, err = pb.formatExpression(p.BoolExpression.Value)
 		if err != nil {
-			return "", newArgs, fmt.Errorf("format expression: %w", err)
+			return "", fmt.Errorf("format expression: %w", err)
 		}
 	default:
-		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
+		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
 	}
 
-	return result, newArgs, nil
+	return result, nil
 }
 
-func formatWhereClause(formatter SQLFormatter, where *api_service_protos.TSelect_TWhere) (string, *QueryArgs, error) {
+func formatWhereClause(
+	logger *zap.Logger,
+	filtering api_service_protos.TReadSplitsRequest_EFiltering,
+	formatter SQLFormatter,
+	where *api_service_protos.TSelect_TWhere,
+) (string, *QueryArgs, error) {
 	if where.FilterTyped == nil {
 		return "", nil, fmt.Errorf("unexpected nil filter: %w", common.ErrInvalidRequest)
 	}
 
-	args := &QueryArgs{}
+	pb := &predicateBuilder{formatter: formatter, args: &QueryArgs{}}
 
-	formatted, args, err := formatPredicate(formatter, args, where.FilterTyped, true)
+	formatted, err := pb.formatPredicate(where.FilterTyped, true)
 	if err != nil {
 		return "", nil, fmt.Errorf("format predicate: %w", err)
 	}
 
 	result := "WHERE " + formatted
 
-	return result, args, nil
+	switch filtering {
+	case api_service_protos.TReadSplitsRequest_FILTERING_UNSPECIFIED, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
+		// Pushdown error is suppressed in this mode. Connector will ask for table full scan,
+		// and it's YDB is in charge for appropriate filtering
+		for _, nonFatalErr := range pb.errors {
+			logger.Warn("Failed to format some part of WHERE clause", zap.Error(nonFatalErr))
+		}
+	case api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY:
+		// Pushdown is mandatory in this mode.
+		// If connector doesn't support some types or expressions, the request will fail.
+		break
+	default:
+		return "", nil, fmt.Errorf("unknown filtering mode: %d", filtering)
+	}
+
+	return result, pb.args, err
 }
