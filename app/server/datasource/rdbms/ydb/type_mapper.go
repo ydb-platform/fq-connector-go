@@ -1,7 +1,6 @@
 package ydb
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -152,56 +152,6 @@ func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 	}
 }
 
-func appendToBuilderSinglePtr[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](
-	conv conversion.ValuePtrConverter[IN, OUT],
-) func(acceptor any, builder array.Builder) error {
-	return func(acceptor any, builder array.Builder) error {
-		ptr := acceptor.(*IN)
-
-		out, err := conv.Convert(ptr)
-		if err != nil {
-			if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-				// TODO: write warning to logger
-				builder.AppendNull()
-
-				return nil
-			}
-
-			return fmt.Errorf("convert value %v: %w", ptr, err)
-		}
-
-		//nolint:forcetypeassert
-		builder.(AB).Append(out)
-
-		return nil
-	}
-}
-
-func appendToBuilderDoublePtr[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](
-	conv conversion.ValuePtrConverter[IN, OUT],
-) func(acceptor any, builder array.Builder) error {
-	return func(acceptor any, builder array.Builder) error {
-		doublePtr := acceptor.(**IN)
-
-		ptr := *doublePtr
-		if ptr == nil {
-			builder.AppendNull()
-
-			return nil
-		}
-
-		return appendToBuilderSinglePtr[IN, OUT, AB](conv)(ptr, builder)
-	}
-}
-
 func transformerFromSQLTypes(typeNames []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(typeNames))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(typeNames))
@@ -302,10 +252,10 @@ func makeAcceptorAppenderCheckOptional[
 	AB common.ArrowBuilder[OUT],
 ](optional bool, conv conversion.ValuePtrConverter[IN, OUT]) (any, func(acceptor any, builder array.Builder) error, error) {
 	if optional {
-		return new(*IN), appendToBuilderDoublePtr[IN, OUT, AB](conv), nil
+		return new(*IN), utils.MakeAppenderNullable[IN, OUT, AB](conv), nil
 	}
 
-	return new(IN), appendToBuilderSinglePtr[IN, OUT, AB](conv), nil
+	return new(IN), utils.MakeAppender[IN, OUT, AB](conv), nil
 }
 
 func NewTypeMapper() datasource.TypeMapper {

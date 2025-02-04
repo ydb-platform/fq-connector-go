@@ -1,7 +1,6 @@
 package postgresql
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -244,23 +244,7 @@ func appendValuePtrToArrowBuilder[
 		return nil
 	}
 
-	cast := value.(*IN)
-
-	out, err := conv.Convert(cast)
-	if err != nil {
-		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-			// TODO: logger ?
-			builder.AppendNull()
-
-			return nil
-		}
-
-		return fmt.Errorf("convert value: %w", err)
-	}
-
-	builder.(AB).Append(out)
-
-	return nil
+	return utils.AppendValueToArrowBuilder[IN, OUT, AB](value, builder, conv)
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
