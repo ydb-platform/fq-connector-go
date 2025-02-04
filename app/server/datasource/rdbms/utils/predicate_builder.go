@@ -132,10 +132,10 @@ func formatNullFlagValue(formatter SQLFormatter, args *QueryArgs, value *Ydb.Typ
 		case Ydb.Type_UTF8:
 			return addTypedNull[string](formatter, args, value.Type)
 		default:
-			return "", args, fmt.Errorf("unsupported primitive type '%v' instead: %w", innerType, common.ErrUnimplementedTypedValue)
+			return "", args, fmt.Errorf("unsupported primitive type '%v': %w", innerType, common.ErrUnimplementedTypedValue)
 		}
 	default:
-		return "", args, fmt.Errorf("unsupported type '%v' instead: %w", innerType, common.ErrUnimplementedTypedValue)
+		return "", args, fmt.Errorf("unsupported type '%v': %w", innerType, common.ErrUnimplementedTypedValue)
 	}
 }
 
@@ -168,17 +168,17 @@ func formatArithmeticalExpression(
 	case api_service_protos.TExpression_TArithmeticalExpression_BIT_XOR:
 		operation = " ^ "
 	default:
-		return "", args, fmt.Errorf("%w, op: %d", common.ErrUnimplementedArithmeticalExpression, op)
+		return "", args, fmt.Errorf("operation %d: %w", op, common.ErrUnimplementedArithmeticalExpression)
 	}
 
 	left, args, err := formatExpression(formatter, args, expression.LeftValue)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format left argument: %w", err)
+		return "", args, fmt.Errorf("format left expression: %w", err)
 	}
 
 	right, args, err := formatExpression(formatter, args, expression.RightValue)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format right argument: %w", err)
+		return "", args, fmt.Errorf("format right expression: %w", err)
 	}
 
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), args, nil
@@ -189,18 +189,38 @@ func formatExpression(formatter SQLFormatter, args *QueryArgs, expression *api_s
 		return "", args, common.ErrUnsupportedExpression
 	}
 
+	var (
+		result  string
+		newArgs *QueryArgs
+		err     error
+	)
+
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
-		return formatColumn(formatter, args, e.Column)
+		result, newArgs, err = formatColumn(formatter, args, e.Column)
+		if err != nil {
+			return result, newArgs, fmt.Errorf("format column: %w", err)
+		}
 	case *api_service_protos.TExpression_TypedValue:
-		return formatValue(formatter, args, e.TypedValue)
+		result, newArgs, err = formatValue(formatter, args, e.TypedValue)
+		if err != nil {
+			return result, newArgs, fmt.Errorf("format value: %w", err)
+		}
 	case *api_service_protos.TExpression_ArithmeticalExpression:
-		return formatArithmeticalExpression(formatter, args, e.ArithmeticalExpression)
+		result, newArgs, err = formatArithmeticalExpression(formatter, args, e.ArithmeticalExpression)
+		if err != nil {
+			return result, newArgs, fmt.Errorf("format arithmetical expression: %w", err)
+		}
 	case *api_service_protos.TExpression_Null:
-		return formatNull(formatter, args, e.Null)
+		result, newArgs, err = formatNull(formatter, args, e.Null)
+		if err != nil {
+			return result, newArgs, fmt.Errorf("format null: %w", err)
+		}
 	default:
 		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedExpression, e)
 	}
+
+	return result, newArgs, nil
 }
 
 func formatComparison(
@@ -229,12 +249,12 @@ func formatComparison(
 
 	left, args, err := formatExpression(formatter, args, comparison.LeftValue)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format left argument: %w", err)
+		return "", args, fmt.Errorf("format left expression: %w", err)
 	}
 
 	right, args, err := formatExpression(formatter, args, comparison.RightValue)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format right argument: %w", err)
+		return "", args, fmt.Errorf("format right expression: %w", err)
 	}
 
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), args, nil
@@ -244,9 +264,10 @@ func formatNegation(
 	formatter SQLFormatter,
 	args *QueryArgs,
 	negation *api_service_protos.TPredicate_TNegation) (string, *QueryArgs, error) {
+
 	pred, args, err := formatPredicate(formatter, args, negation.Operand, false)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format NOT statement: %w", err)
+		return "", args, fmt.Errorf("format predicate: %w", err)
 	}
 
 	return fmt.Sprintf("(NOT %s)", pred), args, nil
@@ -322,7 +343,7 @@ func formatDisjunction(
 	for _, predicate := range disjunction.Operands {
 		statement, args, err = formatPredicate(formatter, args, predicate, false)
 		if err != nil {
-			return "", args, fmt.Errorf("failed to format OR statement: %w", err)
+			return "", args, fmt.Errorf("format predicate: %w", err)
 		}
 
 		if cnt > 0 {
@@ -341,7 +362,7 @@ func formatDisjunction(
 	}
 
 	if cnt == 0 {
-		return "", args, fmt.Errorf("failed to format OR statement: no operands")
+		return "", args, fmt.Errorf("no operands")
 	}
 
 	if cnt == 1 {
@@ -360,7 +381,7 @@ func formatIsNull(
 ) (string, *QueryArgs, error) {
 	statement, args, err := formatExpression(formatter, args, isNull.Value)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format IS NULL statement: %w", err)
+		return "", args, fmt.Errorf("format expression: %w", err)
 	}
 
 	return fmt.Sprintf("(%s IS NULL)", statement), args, nil
@@ -373,7 +394,7 @@ func formatIsNotNull(
 ) (string, *QueryArgs, error) {
 	statement, args, err := formatExpression(formatter, args, isNotNull.Value)
 	if err != nil {
-		return "", args, fmt.Errorf("failed to format IS NOT NULL statement: %w", err)
+		return "", args, fmt.Errorf("format expression: %w", err)
 	}
 
 	return fmt.Sprintf("(%s IS NOT NULL)", statement), args, nil
@@ -385,24 +406,53 @@ func formatPredicate(
 	predicate *api_service_protos.TPredicate,
 	topLevel bool,
 ) (string, *QueryArgs, error) {
+	var (
+		result  string
+		newArgs *QueryArgs
+		err     error
+	)
+
 	switch p := predicate.Payload.(type) {
 	case *api_service_protos.TPredicate_Negation:
-		return formatNegation(formatter, args, p.Negation)
+		result, newArgs, err = formatNegation(formatter, args, p.Negation)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format negation: %w", err)
+		}
 	case *api_service_protos.TPredicate_Conjunction:
-		return formatConjunction(formatter, args, p.Conjunction, topLevel)
+		result, newArgs, err = formatConjunction(formatter, args, p.Conjunction, topLevel)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format conjunction: %w", err)
+		}
 	case *api_service_protos.TPredicate_Disjunction:
-		return formatDisjunction(formatter, args, p.Disjunction)
+		result, newArgs, err = formatDisjunction(formatter, args, p.Disjunction)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format disjunction: %w", err)
+		}
 	case *api_service_protos.TPredicate_IsNull:
-		return formatIsNull(formatter, args, p.IsNull)
+		result, newArgs, err = formatIsNull(formatter, args, p.IsNull)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format is null: %w", err)
+		}
 	case *api_service_protos.TPredicate_IsNotNull:
-		return formatIsNotNull(formatter, args, p.IsNotNull)
+		result, newArgs, err = formatIsNotNull(formatter, args, p.IsNotNull)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format is not null: %w", err)
+		}
 	case *api_service_protos.TPredicate_Comparison:
-		return formatComparison(formatter, args, p.Comparison)
+		result, newArgs, err = formatComparison(formatter, args, p.Comparison)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format comparison: %w", err)
+		}
 	case *api_service_protos.TPredicate_BoolExpression:
-		return formatExpression(formatter, args, p.BoolExpression.Value)
+		result, newArgs, err = formatExpression(formatter, args, p.BoolExpression.Value)
+		if err != nil {
+			return "", newArgs, fmt.Errorf("format expression: %w", err)
+		}
 	default:
 		return "", args, fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
 	}
+
+	return result, newArgs, nil
 }
 
 func formatWhereClause(formatter SQLFormatter, where *api_service_protos.TSelect_TWhere) (string, *QueryArgs, error) {
@@ -411,10 +461,10 @@ func formatWhereClause(formatter SQLFormatter, where *api_service_protos.TSelect
 	}
 
 	args := &QueryArgs{}
-	formatted, args, err := formatPredicate(formatter, args, where.FilterTyped, true)
 
+	formatted, args, err := formatPredicate(formatter, args, where.FilterTyped, true)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("format predicate: %w", err)
 	}
 
 	result := "WHERE " + formatted
