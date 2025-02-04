@@ -1,7 +1,6 @@
 package ms_sql_server
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -96,25 +96,25 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 		switch typeName {
 		case "BIT":
 			acceptors = append(acceptors, new(*bool))
-			appenders = append(appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
+			appenders = append(appenders, utils.MakeAppenderNullable[bool, uint8, *array.Uint8Builder](cc.Bool()))
 		case "TINYINT":
 			acceptors = append(acceptors, new(*int8))
-			appenders = append(appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
+			appenders = append(appenders, utils.MakeAppenderNullable[int8, int8, *array.Int8Builder](cc.Int8()))
 		case "SMALLINT":
 			acceptors = append(acceptors, new(*int16))
-			appenders = append(appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
+			appenders = append(appenders, utils.MakeAppenderNullable[int16, int16, *array.Int16Builder](cc.Int16()))
 		case "INT":
 			acceptors = append(acceptors, new(*int32))
-			appenders = append(appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+			appenders = append(appenders, utils.MakeAppenderNullable[int32, int32, *array.Int32Builder](cc.Int32()))
 		case "BIGINT":
 			acceptors = append(acceptors, new(*int64))
-			appenders = append(appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+			appenders = append(appenders, utils.MakeAppenderNullable[int64, int64, *array.Int64Builder](cc.Int64()))
 		case "REAL":
 			acceptors = append(acceptors, new(*float32))
-			appenders = append(appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+			appenders = append(appenders, utils.MakeAppenderNullable[float32, float32, *array.Float32Builder](cc.Float32()))
 		case "FLOAT":
 			acceptors = append(acceptors, new(*float64))
-			appenders = append(appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+			appenders = append(appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
 		case "BINARY", "VARBINARY", "IMAGE":
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
@@ -129,7 +129,7 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 			})
 		case "CHAR", "VARCHAR", "TEXT", "NCHAR", "NVARCHAR", "NTEXT":
 			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case "DATE":
 			acceptors = append(acceptors, new(*time.Time))
 
@@ -140,9 +140,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, makeAppender[time.Time, string, *array.StringBuilder](cc.DateToString()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.DateToString()))
 			case Ydb.Type_DATE:
-				appenders = append(appenders, makeAppender[time.Time, uint16, *array.Uint16Builder](cc.Date()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint16, *array.Uint16Builder](cc.Date()))
 			default:
 				return nil, fmt.Errorf(
 					"unexpected ydb type %v for ms sql server type %v: %w",
@@ -158,9 +158,9 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, makeAppender[time.Time, string, *array.StringBuilder](cc.DatetimeToString()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.DatetimeToString()))
 			case Ydb.Type_DATETIME:
-				appenders = append(appenders, makeAppender[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint32, *array.Uint32Builder](cc.Datetime()))
 			default:
 				return nil, fmt.Errorf(
 					"unexpected ydb type %v for ms sql server type %v: %w",
@@ -176,9 +176,10 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 
 			switch ydbTypeID {
 			case Ydb.Type_UTF8:
-				appenders = append(appenders, makeAppender[time.Time, string, *array.StringBuilder](cc.TimestampToString(true)))
+				appenders = append(appenders,
+					utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.TimestampToString(true)))
 			case Ydb.Type_TIMESTAMP:
-				appenders = append(appenders, makeAppender[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
+				appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 			default:
 				return nil, fmt.Errorf(
 					"unexpected ydb type %v for ms sql server type %v: %w",
@@ -190,52 +191,6 @@ func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion
 	}
 
 	return paging.NewRowTransformer[any](acceptors, appenders, nil), nil
-}
-
-func makeAppender[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](conv conversion.ValuePtrConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
-	return func(acceptor any, builder array.Builder) error {
-		return appendValueToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
-	}
-}
-
-func appendValueToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
-	acceptor any,
-	builder array.Builder,
-	conv conversion.ValuePtrConverter[IN, OUT],
-) error {
-	cast := acceptor.(**IN)
-
-	if *cast == nil {
-		builder.AppendNull()
-
-		return nil
-	}
-
-	value := *cast
-
-	out, err := conv.Convert(value)
-	if err != nil {
-		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-			// TODO: write warning to logger
-			builder.AppendNull()
-
-			return nil
-		}
-
-		return fmt.Errorf("convert value %v: %w", value, err)
-	}
-
-	//nolint:forcetypeassert
-	builder.(AB).Append(out)
-
-	// it was copied from ClickHouse, not sure if it is necessary
-	*cast = nil
-
-	return nil
 }
 
 func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
