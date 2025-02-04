@@ -13,7 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/mongodb"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/mongodb"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
