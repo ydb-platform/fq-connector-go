@@ -1,2 +1,19 @@
---SELECT * FROM external_datasource.example_table WHERE datetimeValue = Timestamp("2023-12-31T15:00:00.000000Z");
-SELECT * FROM external_datasource.example_table;
+--SELECT * FROM external_datasource.datetime WHERE id > 1 AND col_04_datetime64 > Timestamp("2023-12-31T15:00:00.000000Z");
+
+--SELECT * FROM external_datasource.datetime
+--    WHERE
+--        (id > 1 AND col_04_datetime64 > Timestamp("1980-01-01T00:00:00.000000Z"))
+--        AND
+--        (id < 10 AND col_04_datetime64 < Timestamp("2040-01-01T00:00:00.000000Z"));
+
+
+--SELECT * FROM external_datasource.datetime
+--    WHERE
+--        (id > 1 AND col_04_datetime64 > Timestamp("1980-01-01T00:00:00.000000Z"))
+--        OR
+--        (id < 10 AND col_04_datetime64 < Timestamp("2040-01-01T00:00:00.000000Z"));
+
+SELECT * FROM external_datasource.datetime
+    WHERE id > 1 OR col_04_datetime64 > Timestamp("1980-01-01T00:00:00.000000Z");
+
+--SELECT * FROM external_datasource.datetime;

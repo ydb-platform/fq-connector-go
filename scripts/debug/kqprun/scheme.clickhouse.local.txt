@@ -6,6 +6,6 @@ CREATE EXTERNAL DATA SOURCE external_datasource WITH (
     AUTH_METHOD="BASIC",
     PROTOCOL="NATIVE",
     LOGIN="admin",
-    DATABASE_NAME="default",
+    DATABASE_NAME="connector",
     PASSWORD_SECRET_NAME="local_password"
 );
