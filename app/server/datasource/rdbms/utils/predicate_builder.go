@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -16,7 +17,10 @@ import (
 type predicateBuilder struct {
 	formatter SQLFormatter
 	args      *QueryArgs
-	errors    []error // the errors that may occure during predicate construction
+
+	// In some filtering modes it's possible to suppress errors occurred during
+	// conjunction predicate construction.
+	conjunctionErrors []error
 }
 
 func (pb *predicateBuilder) formatValue(value *Ydb.TypedValue) (string, error) {
@@ -31,39 +35,39 @@ func (pb *predicateBuilder) formatPrimitiveValue(value *Ydb.TypedValue) (string,
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
 		pb.args.AddTyped(value.Type, v.BoolValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int32Value:
 		pb.args.AddTyped(value.Type, v.Int32Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Uint32Value:
 		pb.args.AddTyped(value.Type, v.Uint32Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int64Value:
 		switch value.Type.GetTypeId() {
 		case Ydb.Type_INT64:
 			pb.args.AddTyped(value.Type, v.Int64Value)
-			return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		case Ydb.Type_TIMESTAMP:
 			pb.args.AddTyped(value.Type, time.UnixMicro(v.Int64Value))
-			return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		default:
 			return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
 		}
 	case *Ydb.Value_Uint64Value:
 		pb.args.AddTyped(value.Type, v.Uint64Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_FloatValue:
 		pb.args.AddTyped(value.Type, v.FloatValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_DoubleValue:
 		pb.args.AddTyped(value.Type, v.DoubleValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_BytesValue:
 		pb.args.AddTyped(value.Type, v.BytesValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_TextValue:
 		pb.args.AddTyped(value.Type, v.TextValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_NullFlagValue:
 		placeholder, err := pb.formatNullFlagValue(value)
 		if err != nil {
@@ -80,36 +84,37 @@ func (pb *predicateBuilder) formatOptionalValue(value *Ydb.TypedValue) (string, 
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
 		pb.args.AddTyped(value.Type, &v.BoolValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int32Value:
 		pb.args.AddTyped(value.Type, &v.Int32Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Uint32Value:
 		pb.args.AddTyped(value.Type, &v.Uint32Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int64Value:
 		pb.args.AddTyped(value.Type, &v.Int64Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Uint64Value:
 		pb.args.AddTyped(value.Type, &v.Uint64Value)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_FloatValue:
 		pb.args.AddTyped(value.Type, &v.FloatValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_DoubleValue:
 		pb.args.AddTyped(value.Type, &v.DoubleValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_BytesValue:
 		pb.args.AddTyped(value.Type, &v.BytesValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_TextValue:
 		pb.args.AddTyped(value.Type, &v.TextValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_NullFlagValue:
 		placeholder, err := pb.formatNullFlagValue(value)
 		if err != nil {
 			return "", fmt.Errorf("format null flag value: %w", err)
 		}
+
 		return placeholder, nil
 	default:
 		return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
@@ -121,7 +126,7 @@ func addTypedNull[ACCEPTOR_TYPE any](
 	ydbType *Ydb.Type,
 ) (string, error) {
 	pb.args.AddTyped(ydbType, (*ACCEPTOR_TYPE)(nil))
-	return pb.formatter.GetPlaceholder(pb.args.Count()), nil
+	return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 }
 
 func (pb *predicateBuilder) formatNullFlagValue(value *Ydb.TypedValue) (string, error) {
@@ -165,11 +170,11 @@ func (pb *predicateBuilder) formatNullFlagValue(value *Ydb.TypedValue) (string, 
 	}
 }
 
-func (pb *predicateBuilder) formatColumn(col string) (string, error) {
-	return pb.formatter.SanitiseIdentifier(col), nil
+func (pb *predicateBuilder) formatColumn(col string) string {
+	return pb.formatter.SanitiseIdentifier(col)
 }
 
-func (pb *predicateBuilder) formatNull(_ *api_service_protos.TExpression_TNull) (string, error) {
+func (*predicateBuilder) formatNull(_ *api_service_protos.TExpression_TNull) (string, error) {
 	return "NULL", nil
 }
 
@@ -220,10 +225,7 @@ func (pb *predicateBuilder) formatExpression(expression *api_service_protos.TExp
 
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
-		result, err = pb.formatColumn(e.Column)
-		if err != nil {
-			return result, fmt.Errorf("format column: %w", err)
-		}
+		result = pb.formatColumn(e.Column)
 	case *api_service_protos.TExpression_TypedValue:
 		result, err = pb.formatValue(e.TypedValue)
 		if err != nil {
@@ -283,7 +285,6 @@ func (pb *predicateBuilder) formatComparison(
 
 func (pb *predicateBuilder) formatNegation(
 	negation *api_service_protos.TPredicate_TNegation) (string, error) {
-
 	pred, err := pb.formatPredicate(negation.Operand, false)
 	if err != nil {
 		return "", fmt.Errorf("format predicate: %w", err)
@@ -306,15 +307,14 @@ func (pb *predicateBuilder) formatConjunction(
 
 	for _, predicate := range conjunction.Operands {
 		statement, err = pb.formatPredicate(predicate, false)
-		fmt.Println("CRAB", statement, err)
 
 		if err != nil {
 			if !topLevel {
 				return "", fmt.Errorf("format predicate: %w", err)
 			}
 
-			// For some pushdown modes, this kind of error may be considered as non-fatal.
-			pb.errors = append(pb.errors, fmt.Errorf("format predicate: %w", err))
+			// For some filtering modes this kind of errors may be considered as non-fatal.
+			pb.conjunctionErrors = append(pb.conjunctionErrors, fmt.Errorf("format predicate: %w", err))
 		} else {
 			if succeeded > 0 {
 				if succeeded == 1 {
@@ -464,6 +464,12 @@ func (pb *predicateBuilder) formatPredicate(
 	return result, nil
 }
 
+var optionalFilteringAcceptableErrors = []error{
+	common.ErrUnsupportedExpression,
+	common.ErrUnimplementedPredicateType,
+	common.ErrUnimplementedTypedValue,
+}
+
 func formatWhereClause(
 	logger *zap.Logger,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
@@ -476,27 +482,29 @@ func formatWhereClause(
 
 	pb := &predicateBuilder{formatter: formatter, args: &QueryArgs{}}
 
-	formatted, err := pb.formatPredicate(where.FilterTyped, true)
-	if err != nil {
-		return "", nil, fmt.Errorf("format predicate: %w", err)
-	}
-
-	result := "WHERE " + formatted
+	clause, err := pb.formatPredicate(where.FilterTyped, true)
 
 	switch filtering {
 	case api_service_protos.TReadSplitsRequest_FILTERING_UNSPECIFIED, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
-		// Pushdown error is suppressed in this mode. Connector will ask for table full scan,
-		// and it's YDB is in charge for appropriate filtering
-		for _, nonFatalErr := range pb.errors {
-			logger.Warn("Failed to format some part of WHERE clause", zap.Error(nonFatalErr))
+		// Pushdown error is suppressed in this mode.
+		// Connector will return more data than necessary, so YDB must perform the appropriate filtering on its side.
+		for _, conjunctionErr := range pb.conjunctionErrors {
+			logger.Warn("Failed to pushdown some parts of WHERE clause", zap.Error(conjunctionErr))
 		}
+
+		for _, acceptableError := range optionalFilteringAcceptableErrors {
+			if errors.Is(err, acceptableError) {
+				logger.Warn("Failed to pushdown some parts of WHERE clause", zap.Error(err))
+				return clause, pb.args, nil
+			}
+		}
+
+		return clause, pb.args, err
 	case api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY:
-		// Pushdown is mandatory in this mode.
+		// Pushdowning every expression is mandatory in this mode.
 		// If connector doesn't support some types or expressions, the request will fail.
-		break
+		return clause, pb.args, err
 	default:
 		return "", nil, fmt.Errorf("unknown filtering mode: %d", filtering)
 	}
-
-	return result, pb.args, err
 }

@@ -50,8 +50,9 @@ func MakeReadSplitsQuery(
 			return nil, fmt.Errorf("format where clause: %w", err)
 		}
 
-		sb.WriteString(" ")
-		sb.WriteString(clause)
+		if len(clause) != 0 {
+			sb.WriteString(" WHERE " + clause)
+		}
 	}
 
 	queryText := sb.String()

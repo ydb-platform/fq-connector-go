@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
@@ -63,9 +64,9 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					Items: []*api_service_protos.TSelect_TWhat_TItem{
 						{
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-								Column: &ydb.Column{
+								Column: &Ydb.Column{
 									Name: "col",
-									Type: common.MakePrimitiveType(ydb.Type_INT32),
+									Type: common.MakePrimitiveType(Ydb.Type_INT32),
 								},
 							},
 						},
@@ -78,9 +79,9 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
 					{
 						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-							Column: &ydb.Column{
+							Column: &Ydb.Column{
 								Name: "col",
-								Type: common.MakePrimitiveType(ydb.Type_INT32),
+								Type: common.MakePrimitiveType(Ydb.Type_INT32),
 							},
 						},
 					},
@@ -385,9 +386,9 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					Items: []*api_service_protos.TSelect_TWhat_TItem{
 						{
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-								Column: &ydb.Column{
+								Column: &Ydb.Column{
 									Name: `0; DROP TABLE information_schema.columns`,
-									Type: common.MakePrimitiveType(ydb.Type_INT32),
+									Type: common.MakePrimitiveType(Ydb.Type_INT32),
 								},
 							},
 						},
@@ -400,9 +401,9 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
 					{
 						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-							Column: &ydb.Column{
+							Column: &Ydb.Column{
 								Name: `0; DROP TABLE information_schema.columns`,
-								Type: common.MakePrimitiveType(ydb.Type_INT32),
+								Type: common.MakePrimitiveType(Ydb.Type_INT32),
 							},
 						},
 					},
@@ -420,9 +421,9 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					Items: []*api_service_protos.TSelect_TWhat_TItem{
 						{
 							Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-								Column: &ydb.Column{
+								Column: &Ydb.Column{
 									Name: `0"; DROP TABLE information_schema.columns;`,
-									Type: common.MakePrimitiveType(ydb.Type_INT32),
+									Type: common.MakePrimitiveType(Ydb.Type_INT32),
 								},
 							},
 						},
@@ -435,9 +436,9 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				Items: []*api_service_protos.TSelect_TWhat_TItem{
 					{
 						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-							Column: &ydb.Column{
+							Column: &Ydb.Column{
 								Name: `0"; DROP TABLE information_schema.columns;`,
-								Type: common.MakePrimitiveType(ydb.Type_INT32),
+								Type: common.MakePrimitiveType(Ydb.Type_INT32),
 							},
 						},
 					},
@@ -464,7 +465,7 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				return
 			}
 
-			require.NoError(t, err, err)
+			require.NoError(t, err)
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
 			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
 			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)
