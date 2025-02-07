@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -178,10 +178,10 @@ func addAcceptorAppender(
 		switch ydbTypeId {
 		case Ydb.Type_UINT32:
 			*acceptors = append(*acceptors, new(*uint32))
-			*appenders = append(*appenders, makeAppender[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[uint32, uint32, *array.Uint32Builder](cc.Uint32()))
 		case Ydb.Type_INT32:
 			*acceptors = append(*acceptors, new(*int32))
-			*appenders = append(*appenders, makeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[int32, int32, *array.Int32Builder](cc.Int32()))
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
@@ -189,30 +189,30 @@ func addAcceptorAppender(
 		switch ydbTypeId {
 		case Ydb.Type_UINT64:
 			*acceptors = append(*acceptors, new(*uint64))
-			*appenders = append(*appenders, makeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
 		case Ydb.Type_INT64:
 			*acceptors = append(*acceptors, new(*int64))
-			*appenders = append(*appenders, makeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[int64, int64, *array.Int64Builder](cc.Int64()))
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	case mysql.MYSQL_TYPE_FLOAT:
 		*acceptors = append(*acceptors, new(*float32))
-		*appenders = append(*appenders, makeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+		*appenders = append(*appenders, utils.MakeAppenderNullable[float32, float32, *array.Float32Builder](cc.Float32()))
 	case mysql.MYSQL_TYPE_DOUBLE:
 		*acceptors = append(*acceptors, new(*float64))
-		*appenders = append(*appenders, makeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+		*appenders = append(*appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
 	case mysql.MYSQL_TYPE_TINY:
 		switch ydbTypeId {
 		case Ydb.Type_BOOL:
 			*acceptors = append(*acceptors, new(*bool))
-			*appenders = append(*appenders, makeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[bool, uint8, *array.Uint8Builder](cc.Bool()))
 		case Ydb.Type_UINT8:
 			*acceptors = append(*acceptors, new(*uint8))
-			*appenders = append(*appenders, makeAppender[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[uint8, uint8, *array.Uint8Builder](cc.Uint8()))
 		case Ydb.Type_INT8:
 			*acceptors = append(*acceptors, new(*int8))
-			*appenders = append(*appenders, makeAppender[int8, int8, *array.Int8Builder](cc.Int8()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[int8, int8, *array.Int8Builder](cc.Int8()))
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
@@ -220,24 +220,24 @@ func addAcceptorAppender(
 		switch ydbTypeId {
 		case Ydb.Type_UINT16:
 			*acceptors = append(*acceptors, new(*uint16))
-			*appenders = append(*appenders, makeAppender[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[uint16, uint16, *array.Uint16Builder](cc.Uint16()))
 		case Ydb.Type_INT16:
 			*acceptors = append(*acceptors, new(*int16))
-			*appenders = append(*appenders, makeAppender[int16, int16, *array.Int16Builder](cc.Int16()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[int16, int16, *array.Int16Builder](cc.Int16()))
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	case mysql.MYSQL_TYPE_LONG_BLOB, mysql.MYSQL_TYPE_BLOB, mysql.MYSQL_TYPE_MEDIUM_BLOB, mysql.MYSQL_TYPE_TINY_BLOB:
 		*acceptors = append(*acceptors, new(*[]byte))
-		*appenders = append(*appenders, makeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
+		*appenders = append(*appenders, utils.MakeAppenderNullable[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 	case mysql.MYSQL_TYPE_VARCHAR, mysql.MYSQL_TYPE_STRING, mysql.MYSQL_TYPE_VAR_STRING:
 		*acceptors = append(*acceptors, new(*string))
 
 		switch ydbTypeId {
 		case Ydb.Type_UTF8:
-			*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case Ydb.Type_STRING:
-			*appenders = append(*appenders, makeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+			*appenders = append(*appenders, utils.MakeAppenderNullable[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
@@ -249,13 +249,13 @@ func addAcceptorAppender(
 			*appenders = append(*appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(**time.Time)
 
-				return appendNullableToArrowBuilder[time.Time, string, *array.StringBuilder](cast, builder, cc.DateToString())
+				return utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.DateToString())(cast, builder)
 			})
 		case Ydb.Type_DATE:
 			*appenders = append(*appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(**time.Time)
 
-				return appendNullableToArrowBuilder[time.Time, uint16, *array.Uint16Builder](cast, builder, cc.Date())
+				return utils.MakeAppenderNullable[time.Time, uint16, *array.Uint16Builder](cc.Date())(cast, builder)
 			})
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
@@ -274,73 +274,23 @@ func addAcceptorAppender(
 				// therefore, we can append 'Z' suffix only to TIMESTAMP column (not DATETIME)
 				utc := mySQLType == mysql.MYSQL_TYPE_TIMESTAMP || mySQLType == mysql.MYSQL_TYPE_TIMESTAMP2
 
-				return appendNullableToArrowBuilder[
-					time.Time,
-					string,
-					*array.StringBuilder](cast, builder, cc.TimestampToString(utc))
+				return utils.MakeAppenderNullable[time.Time, string, *array.StringBuilder](cc.TimestampToString(utc))(cast, builder)
 			})
 		case Ydb.Type_TIMESTAMP:
 			*appenders = append(*appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(**time.Time)
 
-				return appendNullableToArrowBuilder[time.Time, uint64, *array.Uint64Builder](
-					cast, builder, cc.Timestamp())
+				return utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp())(cast, builder)
 			})
 		default:
 			return fmt.Errorf("type mismatch: mysql '%d' vs ydb '%s': %w", mySQLType, ydbTypeId.String(), common.ErrDataTypeNotSupported)
 		}
 	case mysql.MYSQL_TYPE_JSON:
 		*acceptors = append(*acceptors, new(*string))
-		*appenders = append(*appenders, makeAppender[string, string, *array.StringBuilder](cc.String()))
+		*appenders = append(*appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 	default:
 		return fmt.Errorf("unexpected mysql type '%d': %w", mySQLType, common.ErrDataTypeNotSupported)
 	}
-
-	return nil
-}
-
-func makeAppender[
-	IN common.ValueType,
-	OUT common.ValueType,
-	AB common.ArrowBuilder[OUT],
-](conv conversion.ValuePtrConverter[IN, OUT]) func(acceptor any, builder array.Builder) error {
-	return func(acceptor any, builder array.Builder) error {
-		return appendNullableToArrowBuilder[IN, OUT, AB](acceptor, builder, conv)
-	}
-}
-
-func appendNullableToArrowBuilder[IN common.ValueType, OUT common.ValueType, AB common.ArrowBuilder[OUT]](
-	acceptor any,
-	builder array.Builder,
-	conv conversion.ValuePtrConverter[IN, OUT],
-) error {
-	cast := acceptor.(**IN)
-
-	if *cast == nil {
-		builder.AppendNull()
-
-		return nil
-	}
-
-	value := *cast
-
-	out, err := conv.Convert(value)
-	if err != nil {
-		if errors.Is(err, common.ErrValueOutOfTypeBounds) {
-			builder.AppendNull()
-
-			return nil
-		}
-
-		return fmt.Errorf("convert value %v: %w", value, err)
-	}
-
-	b, ok := builder.(AB)
-	if !ok {
-		return common.ErrDataTypeNotSupported
-	}
-
-	b.Append(out)
 
 	return nil
 }
