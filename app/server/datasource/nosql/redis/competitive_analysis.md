@@ -83,14 +83,35 @@
 опишем желаемую конвертацию типов. И тогда обычный `SELECT * FROM` будет возвращать результат уже разбитый на колонки,
 как выше.
 
+Формат файла `.json`:
+```
+{
+    "tableName": ...,
+    "schemaName": ...,
+    "key": {
+        "dataFormat": ...,
+        "fields": [
+            ...
+        ]
+    },
+    "value": {
+        "dataFormat": ...,
+        "fields": [
+            ...
+       ]
+    }
+}
+```
+
+А конкретный пример можно посмотреть [тут](dockerized_trino_setup_redis_valkey/etc/table-descriptions/example_table.json)
+
 ### [Amazon Athena](https://docs.aws.amazon.com/athena/latest/ug/connectors-redis.html)
 
 1. **Чтение схемы `Redis`:**
 
-    - Единственным способом является чтение схемы
-      из [AWS Glue](https://docs.aws.amazon.com/athena/latest/ug/connectors-redis.html#connectors-redis-setting-up-databases-and-tables-in-glue)
+    - Либо вычитывать уже указанную схему из [AWS Glue](https://docs.aws.amazon.com/athena/latest/ug/connectors-redis.html#connectors-redis-setting-up-databases-and-tables-in-glue)
         - [Ссылка на код](https://github.com/awslabs/aws-athena-query-federation/blob/8480b18200fe0a44a218f08561027effdc8880ff/athena-redis/src/main/java/com/amazonaws/athena/connectors/redis/RedisMetadataHandler.java#L218)
-    - Схема во время проброса запроса в нативном формате Redis формируется по самому запросу, поэтому не подходит
+    - Либо делать запрос в нативном формате Redis формате с указанием ключей/колонок
         - [Ссылка на код](https://github.com/awslabs/aws-athena-query-federation/blob/8480b18200fe0a44a218f08561027effdc8880ff/athena-redis/src/main/java/com/amazonaws/athena/connectors/redis/RedisMetadataHandler.java#L237C29-L237C56)
 
 2. **Типы данных:**
@@ -125,8 +146,11 @@
 ### [ClickHouse](https://clickhouse.com/docs/en/engines/table-engines/integrations/redis)
 
 1. **Чтение схемы `Redis`:**
-    - Либо задается вручную
-    - Либо формируется при создании таблицы в `DDL`
+    - Либо набор ключей/колонок задается вручную при запросе
+      - ```
+        SELECT redis('redis://host:port', 'HMGET', 'example_table:1', 'field1', 'field2', 'field3');
+        ```
+    - Либо схема формируется при создании таблицы в `DDL`
 
 2. **Поддерживаемые сценарии работы:**
     - Примитивный пушдаун фильтраций ключа
