@@ -16,13 +16,13 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-// This is not used right now,
+// These metadata fields are not used right now,
 type requestMetadata struct {
 	userID    string
 	sessionID string
 }
 
-func runClient(cmd *cobra.Command, _ []string) error {
+func readTable(cmd *cobra.Command, _ []string) error {
 	configPath, err := cmd.Flags().GetString(configFlag)
 	if err != nil {
 		return fmt.Errorf("get config flag: %v", err)
@@ -71,14 +71,14 @@ func runClient(cmd *cobra.Command, _ []string) error {
 	// override credentials if IAM-token provided
 	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
 
-	if err := callServer(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
+	if err := doReadTable(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 
 	return nil
 }
 
-func callServer(
+func doReadTable(
 	logger *zap.Logger,
 	cfg *config.TClientConfig,
 	tableName string,
@@ -97,13 +97,13 @@ func callServer(
 	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
 		api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
 		api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
-		api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING, api_common.EGenericDataSourceKind_MONGO_DB:
+		api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING,
+		api_common.EGenericDataSourceKind_MONGO_DB:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: dateTimeFormat,
 		}
 
-		splits, err = prepareSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName, metainfo)
-
+		splits, err = describeTableAndListSplits(logger, cl, cfg.DataSourceInstance, typeMappingSettings, tableName, metainfo)
 		if err != nil {
 			return fmt.Errorf("prepare splits: %w", err)
 		}
@@ -119,7 +119,7 @@ func callServer(
 	return nil
 }
 
-func prepareSplits(
+func describeTableAndListSplits(
 	logger *zap.Logger,
 	cl *common.ClientBuffering,
 	dsi *api_common.TGenericDataSourceInstance,

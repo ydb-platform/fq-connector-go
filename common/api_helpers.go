@@ -11,7 +11,7 @@ import (
 )
 
 func ListSplitsResponsesToSplits(in []*api_service_protos.TListSplitsResponse) []*api_service_protos.TSplit {
-	var out []*api_service_protos.TSplit
+	out := make([]*api_service_protos.TSplit, 0, len(in))
 
 	for _, resp := range in {
 		out = append(out, resp.Splits...)

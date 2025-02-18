@@ -7,6 +7,33 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Cmd = &cobra.Command{
+	Use:   "connector",
+	Short: "Client for Connector GRPC API",
+}
+
+var readTableCmd = &cobra.Command{
+	Use:   "read_table",
+	Short: "Read table from the external data source",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := readTable(cmd, args); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
+var listSplitsCmd = &cobra.Command{
+	Use:   "list_splits",
+	Short: "List splits for the table in the external data source",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := listSplits(cmd, args); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
 const (
 	configFlag         = "config"
 	tableFlag          = "table"
@@ -16,6 +43,9 @@ const (
 )
 
 func init() {
+	Cmd.AddCommand(readTableCmd)
+	Cmd.AddCommand(listSplitsCmd)
+
 	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
 
 	if err := Cmd.MarkFlagRequired(configFlag); err != nil {
@@ -30,18 +60,7 @@ func init() {
 		os.Exit(1)
 	}
 
-	Cmd.Flags().StringP(userIDFlag, "u", "", "user-id")
-	Cmd.Flags().StringP(sessionIDFlag, "s", "", "flag-id")
-	Cmd.Flags().StringP(dateTimeFormatFlag, "d", "YQL_FORMAT", "date-time-format")
-}
-
-var Cmd = &cobra.Command{
-	Use:   "connector",
-	Short: "Client for Connector GRPC API",
-	Run: func(cmd *cobra.Command, args []string) {
-		if err := runClient(cmd, args); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	},
+	readTableCmd.Flags().StringP(userIDFlag, "u", "", "user-id")
+	readTableCmd.Flags().StringP(sessionIDFlag, "s", "", "flag-id")
+	readTableCmd.Flags().StringP(dateTimeFormatFlag, "", "YQL_FORMAT", "date-time-format")
 }
