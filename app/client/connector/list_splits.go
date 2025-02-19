@@ -6,10 +6,11 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"go.uber.org/zap"
 )
 
 func listSplits(cmd *cobra.Command, _ []string) error {
@@ -25,7 +26,7 @@ func listSplits(cmd *cobra.Command, _ []string) error {
 
 	var cfg config.TClientConfig
 
-	if err := common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
+	if err = common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
 		return fmt.Errorf("unknown instance: %w", err)
 	}
 

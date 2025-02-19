@@ -34,10 +34,10 @@ func (*dataSource) DescribeTable(
 }
 
 func (*dataSource) ListSplits(
-	ctx context.Context,
-	logger *zap.Logger,
-	request *api_service_protos.TListSplitsRequest,
-	slct *api_service_protos.TSelect,
+	_ context.Context,
+	_ *zap.Logger,
+	_ *api_service_protos.TListSplitsRequest,
+	_ *api_service_protos.TSelect,
 ) (<-chan *datasource.ListSplitResult, error) {
 	return nil, nil
 }

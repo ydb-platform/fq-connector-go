@@ -77,7 +77,6 @@ func (dsc *DataSourceCollection) ListSplits(
 			api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
 			api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
 			api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING:
-
 			ds, err := dsc.rdbms.Make(logger, kind)
 			if err != nil {
 				return fmt.Errorf("make data source: %w", err)
