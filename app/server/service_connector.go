@@ -41,7 +41,7 @@ func (s *serviceConnector) DescribeTable(
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	logger := utils.LoggerMustFromContext(ctx)
-	logger = common.AnnotateLoggerForUnaryCall(logger, "DescribeTable", request.DataSourceInstance)
+	logger = common.AnnotateLogger(logger, "DescribeTable", request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
 	if err := ValidateDescribeTableRequest(logger, request); err != nil {

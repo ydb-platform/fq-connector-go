@@ -13,6 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
+	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
@@ -57,35 +58,21 @@ func (s *splitProviderImpl) doListSplits(
 	driver := conn.(ydb.Connection).Driver()
 	databaseName, tableName := conn.From()
 	prefix := path.Join(databaseName, tableName)
-	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
 
 	logger.Debug("Obtaining table shard ids", zap.String("prefix", prefix))
 
-	result, err := driver.Query().Query(ctx, queryText)
-	if err != nil {
-		return fmt.Errorf("querying table shard ids: %w", err)
-	}
-
 	var tabletIds []uint64
 
-	for {
-		resultSet, err := result.NextResultSet(ctx)
+	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
+		queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
+
+		result, err := s.Query(ctx, queryText)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-
-			return fmt.Errorf("next result set: %w", err)
+			return fmt.Errorf("query: %w", err)
 		}
-
-		type rowData struct {
-			TabletId uint64 `sql:"TabletId"`
-		}
-
-		var row rowData
 
 		for {
-			r, err := resultSet.NextRow(ctx)
+			resultSet, err := result.NextResultSet(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -94,12 +81,34 @@ func (s *splitProviderImpl) doListSplits(
 				return fmt.Errorf("next result set: %w", err)
 			}
 
-			if err := r.Scan(&row); err != nil {
-				return fmt.Errorf("row scan: %w", err)
+			type rowData struct {
+				TabletId uint64 `sql:"TabletId"`
 			}
 
-			tabletIds = append(tabletIds, row.TabletId)
+			var row rowData
+
+			for {
+				r, err := resultSet.NextRow(ctx)
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+
+					return fmt.Errorf("next result set: %w", err)
+				}
+
+				if err := r.Scan(&row); err != nil {
+					return fmt.Errorf("row scan: %w", err)
+				}
+
+				tabletIds = append(tabletIds, row.TabletId)
+			}
 		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("querying table shard ids: %w", err)
 	}
 
 	fmt.Println("TABLET IDS:", tabletIds)

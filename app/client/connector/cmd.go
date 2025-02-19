@@ -60,6 +60,10 @@ func init() {
 		os.Exit(1)
 	}
 
+	// inherit parent flags
+	readTableCmd.Flags().AddFlagSet(Cmd.Flags())
+	listSplitsCmd.Flags().AddFlagSet(Cmd.Flags())
+
 	readTableCmd.Flags().StringP(userIDFlag, "u", "", "user-id")
 	readTableCmd.Flags().StringP(sessionIDFlag, "s", "", "flag-id")
 	readTableCmd.Flags().StringP(dateTimeFormatFlag, "", "YQL_FORMAT", "date-time-format")

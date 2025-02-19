@@ -16,10 +16,6 @@ import (
 
 // TODO: it's better to do this in GRPC middleware
 
-func AnnotateLoggerWithMethod(l *zap.Logger, method string) *zap.Logger {
-	return l.With(zap.String("method", method))
-}
-
 func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
 	// TODO: can we print just a login without a password?
 	fields := []zapcore.Field{
@@ -59,9 +55,8 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGeneri
 	return l.With(fields...)
 }
 
-func AnnotateLoggerForUnaryCall(l *zap.Logger, method string, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
+func AnnotateLogger(l *zap.Logger, method string, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
 	l = AnnotateLoggerWithDataSourceInstance(l, dsi)
-	l = AnnotateLoggerWithMethod(l, method)
 
 	return l
 }

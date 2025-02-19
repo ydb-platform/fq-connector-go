@@ -49,9 +49,9 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 	}
 
 	s.logger.Debug(
-		"Got split",
+		"Determined table split",
 		zap.Int("id", s.splitCounter),
-		zap.Any("select", result.Slct),
+		zap.String("table", result.Slct.From.GetTable()),
 		zap.ByteString("description", result.Description),
 	)
 
@@ -86,7 +86,7 @@ func NewListSplitsStreamer[T paging.Acceptor](
 	return &ListSplitsStreamer[T]{
 		stream:     stream,
 		dataSource: dataSource,
-		logger:     logger,
+		logger:     common.AnnotateLoggerWithDataSourceInstance(logger, slct.DataSourceInstance),
 		request:    request,
 		slct:       slct,
 	}

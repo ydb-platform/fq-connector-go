@@ -60,6 +60,10 @@ func listSplits(cmd *cobra.Command, _ []string) error {
 	}
 
 	for responseId, resp := range listSplitsResponse {
+		if !common.IsSuccess(resp.Error) {
+			return common.NewSTDErrorFromAPIError(resp.Error)
+		}
+
 		for splitId, split := range resp.Splits {
 			logger.Info(
 				"Table split",
