@@ -28,9 +28,10 @@ func (*DataSourceMock[T]) DescribeTable(
 func (*DataSourceMock[T]) ListSplits(
 	ctx context.Context,
 	logger *zap.Logger,
-	request *api_service_protos.TSelect,
-) <-chan *ListSplitResult {
-	return nil
+	request *api_service_protos.TListSplitsRequest,
+	slct *api_service_protos.TSelect,
+) (<-chan *ListSplitResult, error) {
+	panic("not implemented") // TODO: Implement
 }
 
 func (m *DataSourceMock[T]) ReadSplit(

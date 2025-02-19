@@ -42,8 +42,9 @@ type DataSource[T paging.Acceptor] interface {
 	ListSplits(
 		ctx context.Context,
 		logger *zap.Logger,
-		slct *api_service_protos.TSelect,
-	) <-chan *ListSplitResult
+		request *api_service_protos.TListSplitsRequest, // contains common settings
+		slct *api_service_protos.TSelect, // describes tables that should be read in splits
+	) (<-chan *ListSplitResult, error)
 
 	// ReadSplit is a main method for reading data from the table.
 	ReadSplit(

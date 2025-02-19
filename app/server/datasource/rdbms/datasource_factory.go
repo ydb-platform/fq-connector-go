@@ -103,6 +103,7 @@ func NewDataSourceFactory(
 			ConnectionManager: clickhouse.NewConnectionManager(cfg.Clickhouse, connManagerBase),
 			TypeMapper:        clickhouseTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(clickhouseTypeMapper, clickhouse.TableMetadataQuery),
+			SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Clickhouse.ExponentialBackoff, retry.ErrorCheckerNoop),
@@ -120,6 +121,7 @@ func NewDataSourceFactory(
 						request,
 						schemaGetters[api_common.EGenericDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
+			SplitProvider: rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerNoop),
@@ -130,6 +132,7 @@ func NewDataSourceFactory(
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
+			SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
@@ -140,6 +143,7 @@ func NewDataSourceFactory(
 			ConnectionManager: ms_sql_server.NewConnectionManager(cfg.MsSqlServer, connManagerBase),
 			TypeMapper:        msSQLServerTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(msSQLServerTypeMapper, ms_sql_server.TableMetadataQuery),
+			SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.MsSqlServer.ExponentialBackoff, retry.ErrorCheckerNoop),
@@ -150,6 +154,7 @@ func NewDataSourceFactory(
 			ConnectionManager: mysql.NewConnectionManager(cfg.Mysql, connManagerBase),
 			TypeMapper:        mysqlTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(mysqlTypeMapper, mysql.TableMetadataQuery),
+			SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Mysql.ExponentialBackoff, retry.ErrorCheckerNoop),
@@ -167,6 +172,7 @@ func NewDataSourceFactory(
 						request,
 						schemaGetters[api_common.EGenericDataSourceKind_GREENPLUM](request.DataSourceInstance))
 				}),
+			SplitProvider: rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Greenplum.ExponentialBackoff, retry.ErrorCheckerNoop),
@@ -177,6 +183,7 @@ func NewDataSourceFactory(
 			ConnectionManager: oracle.NewConnectionManager(cfg.Oracle, connManagerBase),
 			TypeMapper:        oracleTypeMapper,
 			SchemaProvider:    rdbms_utils.NewDefaultSchemaProvider(oracleTypeMapper, oracle.TableMetadataQuery),
+			SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, oracle.ErrorCheckerMakeConnection),
 				Query:          retry.NewRetrierFromConfig(cfg.Oracle.ExponentialBackoff, retry.ErrorCheckerNoop),
@@ -197,6 +204,7 @@ func NewDataSourceFactory(
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        ydbTypeMapper,
 		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
+		SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),

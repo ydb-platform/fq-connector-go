@@ -12,6 +12,7 @@ import (
 )
 
 type ListSplitsStreamer[T paging.Acceptor] struct {
+	request      *api_service_protos.TListSplitsRequest
 	slct         *api_service_protos.TSelect
 	stream       api_service.Connector_ListSplitsServer
 	dataSource   datasource.DataSource[T]
@@ -20,7 +21,10 @@ type ListSplitsStreamer[T paging.Acceptor] struct {
 }
 
 func (s *ListSplitsStreamer[T]) Run() error {
-	results := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.slct)
+	results, err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct)
+	if err != nil {
+		return fmt.Errorf("list splits: %w", err)
+	}
 
 	for {
 		select {
@@ -56,6 +60,7 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 		Error: common.NewSuccess(),
 		Splits: []*api_service_protos.TSplit{
 			{
+				Select: result.Slct,
 				Payload: &api_service_protos.TSplit_Description{
 					Description: result.Description,
 				},
@@ -74,10 +79,14 @@ func NewListSplitsStreamer[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ListSplitsServer,
 	dataSource datasource.DataSource[T],
+	request *api_service_protos.TListSplitsRequest,
+	slct *api_service_protos.TSelect,
 ) *ListSplitsStreamer[T] {
 	return &ListSplitsStreamer[T]{
 		stream:     stream,
 		dataSource: dataSource,
 		logger:     logger,
+		request:    request,
+		slct:       slct,
 	}
 }

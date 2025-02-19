@@ -132,9 +132,10 @@ func (ds *dataSource) DescribeTable(
 func (*dataSource) ListSplits(
 	_ context.Context,
 	_ *zap.Logger,
+	_ *api_service_protos.TListSplitsRequest,
 	_ *api_service_protos.TSelect,
-) <-chan *datasource.ListSplitResult {
-	return nil
+) (<-chan *datasource.ListSplitResult, error) {
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (*dataSource) ReadSplit(

@@ -83,7 +83,7 @@ func (dsc *DataSourceCollection) ListSplits(
 				return fmt.Errorf("make data source: %w", err)
 			}
 
-			streamer := streaming.NewListSplitsStreamer(logger, stream, ds)
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
 
 			if err := streamer.Run(); err != nil {
 				return fmt.Errorf("run streamer: %w", err)
