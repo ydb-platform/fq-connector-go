@@ -18,9 +18,9 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type ydbConnection interface {
+type Connection interface {
 	rdbms_utils.Connection
-	getDriver() *ydb_sdk.Driver
+	Driver() *ydb_sdk.Driver
 }
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)
@@ -92,7 +92,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("open driver error: %w", err)
 	}
 
-	var ydbConn ydbConnection
+	var ydbConn Connection
 
 	switch c.cfg.Mode {
 	case config.TYdbConfig_MODE_UNSPECIFIED:

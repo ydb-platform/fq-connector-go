@@ -204,7 +204,7 @@ func NewDataSourceFactory(
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        ydbTypeMapper,
 		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
-		SplitProvider:     rdbms_utils.NewDefaultSplitProvider(),
+		SplitProvider:     logging.NewSplitProvider(),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),

@@ -29,7 +29,7 @@ func (f *schemaProvider) GetSchema(
 	databaseName, tableName := conn.From()
 
 	var (
-		driver = conn.(ydbConnection).getDriver()
+		driver = conn.(Connection).Driver()
 		prefix = path.Join(databaseName, tableName)
 		desc   options.Description
 	)

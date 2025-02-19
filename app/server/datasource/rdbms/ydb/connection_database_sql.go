@@ -75,7 +75,7 @@ func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_ut
 	return rowsDatabaseSQL{Rows: out}, nil
 }
 
-func (c *connectionDatabaseSQL) getDriver() *ydb_sdk.Driver {
+func (c *connectionDatabaseSQL) Driver() *ydb_sdk.Driver {
 	return c.driver
 }
 
@@ -106,7 +106,7 @@ func newConnectionDatabaseSQL(
 	dsi *api_common.TGenericDataSourceInstance,
 	tableName string,
 	ydbDriver *ydb_sdk.Driver,
-) (ydbConnection, error) {
+) (Connection, error) {
 	ydbConn, err := ydb_sdk.Connector(
 		ydbDriver,
 		ydb_sdk.WithAutoDeclare(),

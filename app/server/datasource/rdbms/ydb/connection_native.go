@@ -258,7 +258,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	}
 }
 
-func (c *connectionNative) getDriver() *ydb_sdk.Driver {
+func (c *connectionNative) Driver() *ydb_sdk.Driver {
 	return c.driver
 }
 
@@ -319,7 +319,7 @@ func newConnectionNative(
 	tableName string,
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
-) ydbConnection {
+) Connection {
 	return &connectionNative{
 		ctx:         ctx,
 		driver:      driver,
