@@ -64,7 +64,40 @@ func (dsc *DataSourceCollection) DescribeTable(
 	}
 }
 
-func (dsc *DataSourceCollection) DoReadSplit(
+func (dsc *DataSourceCollection) ListSplits(
+	logger *zap.Logger,
+	stream api_service.Connector_ListSplitsServer,
+	request *api_service_protos.TListSplitsRequest,
+) error {
+	for _, slct := range request.GetSelects() {
+		kind := slct.GetDataSourceInstance().GetKind()
+
+		switch kind {
+		case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
+			api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
+			api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
+			api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING:
+
+			ds, err := dsc.rdbms.Make(logger, kind)
+			if err != nil {
+				return fmt.Errorf("make data source: %w", err)
+			}
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+		default:
+			// FIXME: support MongoDB
+			return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
+		}
+	}
+
+	return nil
+}
+
+func (dsc *DataSourceCollection) ReadSplit(
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
@@ -80,11 +113,11 @@ func (dsc *DataSourceCollection) DoReadSplit(
 			return fmt.Errorf("make data source: %w", err)
 		}
 
-		return readSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
-		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(&retry.RetrierSet{
@@ -92,17 +125,13 @@ func (dsc *DataSourceCollection) DoReadSplit(
 			Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 		}, mongoDbCfg)
 
-		return readSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
 }
 
-func (dsc *DataSourceCollection) Close() error {
-	return dsc.rdbms.Close()
-}
-
-func readSplit[T paging.Acceptor](
+func doReadSplit[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
@@ -153,6 +182,10 @@ func readSplit[T paging.Acceptor](
 	)
 
 	return nil
+}
+
+func (dsc *DataSourceCollection) Close() error {
+	return dsc.rdbms.Close()
 }
 
 func NewDataSourceCollection(

@@ -6,36 +6,29 @@ import (
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"go.uber.org/zap"
 )
 
-type ListSplitsStreamer struct {
+type ListSplitsStreamer[T paging.Acceptor] struct {
+	slct         *api_service_protos.TSelect
 	stream       api_service.Connector_ListSplitsServer
-	results      chan *datasource.ListSplitResult
+	dataSource   datasource.DataSource[T]
 	splitCounter int
 	logger       *zap.Logger
 }
 
-func (s *ListSplitsStreamer) AddSplitResult(result *datasource.ListSplitResult) {
-	select {
-	case s.results <- result:
-	case <-s.stream.Context().Done():
-		return
-	}
-}
+func (s *ListSplitsStreamer[T]) Run() error {
+	results := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.slct)
 
-func (s *ListSplitsStreamer) Close() {
-	close(s.results)
-}
-
-func (s *ListSplitsStreamer) Run() error {
 	for {
 		select {
-		case result, ok := <-s.results:
+		case result, ok := <-results:
 			if !ok {
 				return nil
 			}
+
 			if err := s.sendResultToStream(result); err != nil {
 				return fmt.Errorf("send result to stream: %w", err)
 			}
@@ -45,7 +38,7 @@ func (s *ListSplitsStreamer) Run() error {
 	}
 }
 
-func (s *ListSplitsStreamer) sendResultToStream(result *datasource.ListSplitResult) error {
+func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitResult) error {
 	if result.Error != nil {
 		return fmt.Errorf("result error: %w", result.Error)
 	}
@@ -77,13 +70,14 @@ func (s *ListSplitsStreamer) sendResultToStream(result *datasource.ListSplitResu
 	return nil
 }
 
-func NewListSplitsStreamer(
+func NewListSplitsStreamer[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ListSplitsServer,
-) *ListSplitsStreamer {
-	return &ListSplitsStreamer{
-		stream:  stream,
-		results: make(chan *datasource.ListSplitResult, 32),
-		logger:  logger,
+	dataSource datasource.DataSource[T],
+) *ListSplitsStreamer[T] {
+	return &ListSplitsStreamer[T]{
+		stream:     stream,
+		dataSource: dataSource,
+		logger:     logger,
 	}
 }

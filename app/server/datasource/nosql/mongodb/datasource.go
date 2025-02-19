@@ -132,7 +132,7 @@ func (ds *dataSource) DescribeTable(
 func (*dataSource) ListSplits(
 	_ context.Context,
 	_ *zap.Logger,
-	_ *api_service_protos.TListSplitsRequest,
+	_ *api_service_protos.TSelect,
 ) <-chan *datasource.ListSplitResult {
 	return nil
 }

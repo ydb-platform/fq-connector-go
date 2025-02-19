@@ -28,7 +28,7 @@ func (*DataSourceMock[T]) DescribeTable(
 func (*DataSourceMock[T]) ListSplits(
 	ctx context.Context,
 	logger *zap.Logger,
-	request *api_service_protos.TListSplitsRequest,
+	request *api_service_protos.TSelect,
 ) <-chan *ListSplitResult {
 	return nil
 }
