@@ -129,6 +129,14 @@ func (ds *dataSource) DescribeTable(
 	return &api_service_protos.TDescribeTableResponse{Schema: &api_service_protos.TSchema{Columns: columns}}, nil
 }
 
+func (*dataSource) ListSplits(
+	_ context.Context,
+	_ *zap.Logger,
+	_ *api_service_protos.TListSplitsRequest,
+) <-chan *datasource.ListSplitResult {
+	return nil
+}
+
 func (*dataSource) ReadSplit(
 	_ context.Context,
 	_ *zap.Logger,

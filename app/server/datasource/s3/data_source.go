@@ -33,6 +33,14 @@ func (*dataSource) DescribeTable(
 	return nil, fmt.Errorf("table description is not implemented for schemaless data sources: %w", common.ErrMethodNotSupported)
 }
 
+func (*dataSource) ListSplits(
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TListSplitsRequest,
+) <-chan *datasource.ListSplitResult {
+	return nil
+}
+
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,

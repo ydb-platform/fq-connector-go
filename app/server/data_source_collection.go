@@ -131,7 +131,7 @@ func readSplit[T paging.Acceptor](
 		readLimiterFactory.MakeReadLimiter(logger),
 	)
 
-	streamer := streaming.NewStreamer(
+	streamer := streaming.NewReadSplitsStreamer(
 		logger,
 		stream,
 		request,

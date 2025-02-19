@@ -20,6 +20,12 @@ type Factory[T paging.Acceptor] interface {
 	Close() error
 }
 
+type ListSplitResult struct {
+	Slct        *api_service_protos.TSelect // the one that was used for split creation
+	Description []byte                      // binary representation of the split
+	Error       error
+}
+
 // DataSource is an abstraction over external data storage that is available for data and metadata extraction.
 // All new data sources must implement this interface.
 // The types of data extracted from the data source are parametrized via [T paging.Acceptor] interface.
@@ -31,6 +37,13 @@ type DataSource[T paging.Acceptor] interface {
 		logger *zap.Logger,
 		request *api_service_protos.TDescribeTableRequest,
 	) (*api_service_protos.TDescribeTableResponse, error)
+
+	// ListSplits analyzes the external table and returns the stream of its splits.
+	ListSplits(
+		ctx context.Context,
+		logger *zap.Logger,
+		request *api_service_protos.TListSplitsRequest,
+	) <-chan *ListSplitResult
 
 	// ReadSplit is a main method for reading data from the table.
 	ReadSplit(
