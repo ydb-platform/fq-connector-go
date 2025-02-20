@@ -6,4 +6,4 @@ RUN apk add bind dnsmasq && apk cache clean
 COPY app/server/config/config.prod.yaml /opt/ydb/cfg/fq-connector-go.yaml
 COPY fq-connector-go /opt/ydb/bin/fq-connector-go
 
-CMD ["/opt/ydb/bin/fq-connector-go", "server", "-c", "/opt/ydb/cfg/fq-connector-go.yaml"]
+ENTRYPOINT ["/opt/ydb/bin/fq-connector-go", "server", "-c", "/opt/ydb/cfg/fq-connector-go.yaml"]
