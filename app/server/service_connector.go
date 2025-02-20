@@ -87,55 +87,15 @@ func (s *serviceConnector) ListSplits(
 		)
 	}
 
-	// Make a trivial copy of requested selects
-	totalSplits := 0
-
-	for _, slct := range request.Selects {
-		if err := s.doListSplitsHandleSelect(logger, stream, slct, &totalSplits); err != nil {
-			logger.Error("request handling failed", zap.Error(err))
-
-			return err
-		}
-	}
-
-	logger.Info("request handling finished", zap.Int("total_splits", totalSplits))
-
-	return nil
-}
-
-func (s *serviceConnector) doListSplitsHandleSelect(
-	logger *zap.Logger,
-	stream api_service.Connector_ListSplitsServer,
-	slct *api_service_protos.TSelect,
-	totalSplits *int,
-) error {
-	logger = common.AnnotateLoggerWithDataSourceInstance(logger, slct.DataSourceInstance)
-
-	args := []zap.Field{
-		zap.Int("split_id", *totalSplits),
-	}
-	args = append(args, common.SelectToFields(slct)...)
-
-	logger.Debug("responding selects", args...)
-
-	resp := &api_service_protos.TListSplitsResponse{
-		Error:  common.NewSuccess(),
-		Splits: []*api_service_protos.TSplit{{Select: slct}},
-	}
-
-	for _, split := range resp.Splits {
-		args := []zap.Field{
-			zap.Int("split_id", *totalSplits),
-		}
-		args = append(args, common.SelectToFields(split.Select)...)
-
-		logger.Debug("responding split", args...)
-
-		*totalSplits++
-	}
-
-	if err := s.doListSplitsResponse(logger, stream, resp); err != nil {
-		return fmt.Errorf("do list splits response: %w", err)
+	if err := s.dataSourceCollection.ListSplits(logger, stream, request); err != nil {
+		return s.doListSplitsResponse(logger, stream,
+			&api_service_protos.TListSplitsResponse{
+				Error: common.NewAPIErrorFromStdError(
+					err,
+					api_common.EGenericDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED,
+				),
+			},
+		)
 	}
 
 	return nil
@@ -203,7 +163,7 @@ func (s *serviceConnector) doReadSplits(
 			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
 			With(zap.Int("split_id", i))
 
-		err := s.dataSourceCollection.DoReadSplit(
+		err := s.dataSourceCollection.ReadSplit(
 			splitLogger,
 			stream,
 			request,

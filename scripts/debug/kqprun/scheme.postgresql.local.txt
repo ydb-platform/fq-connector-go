@@ -2,7 +2,7 @@ CREATE OBJECT postgresql_local_password (TYPE SECRET) WITH (value = "password");
 
 CREATE EXTERNAL DATA SOURCE external_datasource WITH (
     SOURCE_TYPE="PostgreSQL",
-    LOCATION="localhost:5432",
+    LOCATION="localhost:5433",
     AUTH_METHOD="BASIC",
     PROTOCOL="NATIVE",
     LOGIN="admin",

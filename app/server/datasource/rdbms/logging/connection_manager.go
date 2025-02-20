@@ -23,7 +23,7 @@ type connectionManager struct {
 }
 
 func (cm *connectionManager) Make(
-	params *rdbms_utils.ConnectionManagerMakeParams,
+	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	// Turn log group name into physical YDB endpoints
 	// via static config or Logging API call.
@@ -89,7 +89,7 @@ func (cm *connectionManager) Make(
 }
 
 func (cm *connectionManager) makeConnectionFromYDBSource(
-	params *rdbms_utils.ConnectionManagerMakeParams,
+	params *rdbms_utils.ConnectionParams,
 	src *ydbSource,
 ) (rdbms_utils.Connection, error) {
 	params.Logger.Debug("resolved log group into YDB endpoint", src.ToZapFields()...)
@@ -106,7 +106,7 @@ func (cm *connectionManager) makeConnectionFromYDBSource(
 	// reannotate logger with new data source instance
 	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, ydbDataSourceInstance)
 
-	conn, err := cm.ydbConnectionManager.Make(&rdbms_utils.ConnectionManagerMakeParams{
+	conn, err := cm.ydbConnectionManager.Make(&rdbms_utils.ConnectionParams{
 		Ctx:                params.Ctx,
 		Logger:             ydbLogger,
 		DataSourceInstance: ydbDataSourceInstance, // use resolved YDB database

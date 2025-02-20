@@ -21,6 +21,7 @@ type Preset struct {
 	ConnectionManager rdbms_utils.ConnectionManager
 	TypeMapper        datasource.TypeMapper
 	SchemaProvider    rdbms_utils.SchemaProvider
+	SplitProvider     rdbms_utils.SplitProvider
 	RetrierSet        *retry.RetrierSet
 }
 
@@ -31,6 +32,7 @@ type dataSourceImpl struct {
 	sqlFormatter        rdbms_utils.SQLFormatter
 	connectionManager   rdbms_utils.ConnectionManager
 	schemaProvider      rdbms_utils.SchemaProvider
+	splitProvider       rdbms_utils.SplitProvider
 	retrierSet          *retry.RetrierSet
 	converterCollection conversion.Collection
 	logger              *zap.Logger
@@ -47,7 +49,7 @@ func (ds *dataSourceImpl) DescribeTable(
 		func() error {
 			var makeConnErr error
 
-			params := &rdbms_utils.ConnectionManagerMakeParams{
+			params := &rdbms_utils.ConnectionParams{
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: request.DataSourceInstance,
@@ -81,6 +83,49 @@ func (ds *dataSourceImpl) DescribeTable(
 	return &api_service_protos.TDescribeTableResponse{Schema: schema}, nil
 }
 
+func (ds *dataSourceImpl) ListSplits(
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TListSplitsRequest,
+	slct *api_service_protos.TSelect,
+) (<-chan *datasource.ListSplitResult, error) {
+	var cs []rdbms_utils.Connection
+
+	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
+		func() error {
+			var makeConnErr error
+
+			params := &rdbms_utils.ConnectionParams{
+				Ctx:                ctx,
+				Logger:             logger,
+				DataSourceInstance: slct.GetDataSourceInstance(),
+				TableName:          slct.GetFrom().GetTable(),
+				MaxConnections:     1, // single connection is enough to get metadata
+			}
+
+			cs, makeConnErr = ds.connectionManager.Make(params)
+			if makeConnErr != nil {
+				return fmt.Errorf("make connection: %w", makeConnErr)
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("retry: %w", err)
+	}
+
+	defer ds.connectionManager.Release(ctx, logger, cs)
+
+	out, err := ds.splitProvider.ListSplits(ctx, logger, cs[0], request, slct)
+	if err != nil {
+		return nil, fmt.Errorf("list splits: %w", err)
+	}
+
+	return out, nil
+}
+
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -97,7 +142,7 @@ func (ds *dataSourceImpl) ReadSplit(
 		func() error {
 			var makeConnErr error
 
-			params := &rdbms_utils.ConnectionManagerMakeParams{
+			params := &rdbms_utils.ConnectionParams{
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: split.Select.DataSourceInstance,
@@ -230,6 +275,7 @@ func NewDataSource(
 		connectionManager:   preset.ConnectionManager,
 		typeMapper:          preset.TypeMapper,
 		schemaProvider:      preset.SchemaProvider,
+		splitProvider:       preset.SplitProvider,
 		retrierSet:          preset.RetrierSet,
 		converterCollection: converterCollection,
 	}

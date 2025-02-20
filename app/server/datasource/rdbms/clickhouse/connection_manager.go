@@ -20,7 +20,7 @@ type connectionManager struct {
 }
 
 func (c *connectionManager) Make(
-	params *rdbms_utils.ConnectionManagerMakeParams,
+	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	if params.DataSourceInstance.GetCredentials().GetBasic() == nil {
 		return nil, fmt.Errorf("currently only basic auth is supported")

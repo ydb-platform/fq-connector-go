@@ -11,14 +11,14 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type DefaultSchemaProvider struct {
+type defaultSchemaProvider struct {
 	typeMapper      datasource.TypeMapper
 	getArgsAndQuery func(request *api_service_protos.TDescribeTableRequest) (string, *QueryArgs)
 }
 
-var _ SchemaProvider = (*DefaultSchemaProvider)(nil)
+var _ SchemaProvider = (*defaultSchemaProvider)(nil)
 
-func (f *DefaultSchemaProvider) GetSchema(
+func (f *defaultSchemaProvider) GetSchema(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn Connection,
@@ -73,7 +73,7 @@ func NewDefaultSchemaProvider(
 	typeMapper datasource.TypeMapper,
 	getArgsAndQueryFunc func(request *api_service_protos.TDescribeTableRequest) (string, *QueryArgs),
 ) SchemaProvider {
-	return &DefaultSchemaProvider{
+	return &defaultSchemaProvider{
 		typeMapper:      typeMapper,
 		getArgsAndQuery: getArgsAndQueryFunc,
 	}

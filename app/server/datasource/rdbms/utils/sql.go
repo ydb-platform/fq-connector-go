@@ -9,6 +9,7 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -41,7 +42,7 @@ type Rows interface {
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
-type ConnectionManagerMakeParams struct {
+type ConnectionParams struct {
 	Ctx                context.Context                        // mandatory
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
@@ -55,7 +56,7 @@ type ConnectionManagerMakeParams struct {
 }
 
 type ConnectionManager interface {
-	Make(params *ConnectionManagerMakeParams) ([]Connection, error)
+	Make(params *ConnectionParams) ([]Connection, error)
 	Release(ctx context.Context, logger *zap.Logger, cs []Connection)
 }
 
@@ -85,4 +86,14 @@ type SchemaProvider interface {
 		conn Connection,
 		request *api_service_protos.TDescribeTableRequest,
 	) (*api_service_protos.TSchema, error)
+}
+
+type SplitProvider interface {
+	ListSplits(
+		ctx context.Context,
+		logger *zap.Logger,
+		conn Connection,
+		request *api_service_protos.TListSplitsRequest,
+		slct *api_service_protos.TSelect,
+	) (<-chan *datasource.ListSplitResult, error)
 }

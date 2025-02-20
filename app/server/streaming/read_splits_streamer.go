@@ -14,7 +14,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type Streamer[T paging.Acceptor] struct {
+type ReadSplitsStreamer[T paging.Acceptor] struct {
 	stream      api_service.Connector_ReadSplitsServer
 	dataSource  datasource.DataSource[T]
 	request     *api_service_protos.TReadSplitsRequest
@@ -26,7 +26,7 @@ type Streamer[T paging.Acceptor] struct {
 	cancel      context.CancelFunc
 }
 
-func (s *Streamer[T]) writeDataToStream() error {
+func (s *ReadSplitsStreamer[T]) writeDataToStream() error {
 	// exit from this function will cause publisher's goroutine termination as well
 	defer s.cancel()
 
@@ -58,7 +58,7 @@ func (s *Streamer[T]) writeDataToStream() error {
 	}
 }
 
-func (s *Streamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
+func (s *ReadSplitsStreamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
 	// buffer must be explicitly marked as unused,
 	// otherwise memory will leak
 	defer result.ColumnarBuffer.Release()
@@ -105,7 +105,7 @@ func dumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSp
 	}
 }
 
-func (s *Streamer[T]) Run() error {
+func (s *ReadSplitsStreamer[T]) Run() error {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
@@ -130,17 +130,17 @@ func (s *Streamer[T]) Run() error {
 	return nil
 }
 
-func NewStreamer[T paging.Acceptor](
+func NewReadSplitsStreamer[T paging.Acceptor](
 	logger *zap.Logger,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[T],
 	dataSource datasource.DataSource[T],
-) *Streamer[T] {
+) *ReadSplitsStreamer[T] {
 	ctx, cancel := context.WithCancel(stream.Context())
 
-	return &Streamer[T]{
+	return &ReadSplitsStreamer[T]{
 		logger:      logger,
 		request:     request,
 		stream:      stream,
