@@ -295,11 +295,19 @@ message TLoggingConfig {
             // log_group_name -> log_group_id mapping is
             // used for YDB table names construction.
             map<string, string> log_groups = 1;
+            // folders are globally unique across the cloud,
+            // so we can unambiguously identify the cloud for a certain folder_id.
+            string cloud_name = 2;
         }
 
         // folder_id -> log_group_name -> log_group_id mapping is
         // used for YDB table names construction.
         map<string, TFolder> folders = 2;
+
+        // Template that will be used to construct YDB table names 
+        // in the format Go `text/template` format, for example:
+        // "logs/origin/{.CloudName}/{.FolderID}/{.LogGroupID}"
+        string table_naming_pattern = 3;
     }
 
     oneof resolving {

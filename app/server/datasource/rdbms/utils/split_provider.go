@@ -14,24 +14,21 @@ var _ SplitProvider = (*defaultSplitProvider)(nil)
 type defaultSplitProvider struct{}
 
 func (defaultSplitProvider) ListSplits(
-	_ context.Context,
+	ctx context.Context,
 	_ *zap.Logger,
 	_ Connection,
 	_ *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
-) (<-chan *datasource.ListSplitResult, error) {
-	resultChan := make(chan *datasource.ListSplitResult, 1)
+	resultChan chan<- *datasource.ListSplitResult) error {
 
 	// By default we deny table splitting
-	resultChan <- &datasource.ListSplitResult{
-		Slct:        slct,
-		Description: []byte{},
-		Error:       nil,
+	select {
+	case resultChan <- &datasource.ListSplitResult{Slct: slct, Description: []byte{}}:
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 
-	close(resultChan)
-
-	return resultChan, nil
+	return nil
 }
 
 func NewDefaultSplitProvider() SplitProvider {

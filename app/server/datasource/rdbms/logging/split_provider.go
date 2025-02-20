@@ -26,40 +26,36 @@ func (s *splitProviderImpl) ListSplits(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
-) (<-chan *datasource.ListSplitResult, error) {
-	resultChan := make(chan *datasource.ListSplitResult, 64)
+	resultChan chan<- *datasource.ListSplitResult) error {
 
 	// If client refused to split the table, return just one split containing the whole table.
 	if request.MaxSplitCount == 1 {
-		resultChan <- makeSingleSplit(slct)
-		return resultChan, nil
+		select {
+		case resultChan <- makeSingleSplit(slct):
+		case <-ctx.Done():
+		}
+		return nil
 	}
 
-	// Otherwise connect to the database to obtain table metadata and
-	// determine table partitions.
-	go func() {
-		defer close(resultChan)
+	if err := s.doListSplits(ctx, logger, conn, slct, resultChan); err != nil {
+		return fmt.Errorf("do list splits: %w", err)
+	}
 
-		err := s.doListSplits(ctx, logger, conn, resultChan)
-		if err != nil {
-			resultChan <- &datasource.ListSplitResult{Error: err}
-		}
-	}()
-
-	return resultChan, nil
+	return nil
 }
 
 func (s *splitProviderImpl) doListSplits(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
+	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,
 ) error {
 	driver := conn.(ydb.Connection).Driver()
 	databaseName, tableName := conn.From()
 	prefix := path.Join(databaseName, tableName)
 
-	logger.Debug("Obtaining table shard ids", zap.String("prefix", prefix))
+	logger.Debug("obtaining column table shard ids", zap.String("prefix", prefix))
 
 	var tabletIds []uint64
 
@@ -105,22 +101,28 @@ func (s *splitProviderImpl) doListSplits(
 			}
 		}
 
+		fmt.Println("TABLET IDS:", tabletIds)
+
 		return nil
 	})
 	if err != nil {
 		return fmt.Errorf("querying table shard ids: %w", err)
 	}
 
-	fmt.Println("TABLET IDS:", tabletIds)
+	select {
+	case resultChan <- makeSingleSplit(slct):
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 
 	return nil
 }
 
 func makeSingleSplit(slct *api_service_protos.TSelect) *datasource.ListSplitResult {
+	fmt.Println("SPLIT", slct)
 	return &datasource.ListSplitResult{
 		Slct:        slct,
 		Description: []byte{},
-		Error:       nil,
 	}
 }
 

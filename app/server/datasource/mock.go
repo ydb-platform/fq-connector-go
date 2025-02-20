@@ -30,7 +30,7 @@ func (*DataSourceMock[T]) ListSplits(
 	_ *zap.Logger,
 	_ *api_service_protos.TListSplitsRequest,
 	_ *api_service_protos.TSelect,
-) (<-chan *ListSplitResult, error) {
+	_ chan<- *ListSplitResult) error {
 	panic("not implemented") // TODO: Implement
 }
 

@@ -38,8 +38,9 @@ func (*dataSource) ListSplits(
 	_ *zap.Logger,
 	_ *api_service_protos.TListSplitsRequest,
 	_ *api_service_protos.TSelect,
-) (<-chan *datasource.ListSplitResult, error) {
-	return nil, nil
+	_ chan<- *datasource.ListSplitResult,
+) error {
+	return nil
 }
 
 func (ds *dataSource) ReadSplit(

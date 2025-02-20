@@ -21,11 +21,11 @@ type dynamicResolver struct {
 func (r *dynamicResolver) resolve(
 	request *resolveParams,
 ) (*resolveResponse, error) {
-	if request.iamToken == "" {
+	if request.credentials.GetToken().GetValue() == "" {
 		return nil, fmt.Errorf("IAM token is missing")
 	}
 
-	md := metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", request.iamToken))
+	md := metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", request.credentials.GetToken().GetValue()))
 	ctx := metadata.NewOutgoingContext(request.ctx, md)
 
 	response, err := r.client.GetReadingEndpoint(ctx, &api_logging.GetReadingEndpointRequest{

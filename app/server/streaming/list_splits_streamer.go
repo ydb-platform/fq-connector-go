@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"fmt"
+	"sync"
 
 	"go.uber.org/zap"
 
@@ -22,21 +23,33 @@ type ListSplitsStreamer[T paging.Acceptor] struct {
 }
 
 func (s *ListSplitsStreamer[T]) Run() error {
-	results, err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct)
-	if err != nil {
-		return fmt.Errorf("list splits: %w", err)
-	}
+	var (
+		resultChan = make(chan *datasource.ListSplitResult, 32)
+		errChan    = make(chan error, 1)
+	)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct, resultChan)
+		if err != nil {
+			errChan <- fmt.Errorf("list splits: %w", err)
+		}
+	}()
 
 	for {
 		select {
-		case result, ok := <-results:
-			if !ok {
-				return nil
-			}
-
+		case result := <-resultChan:
 			if err := s.sendResultToStream(result); err != nil {
 				return fmt.Errorf("send result to stream: %w", err)
 			}
+		case err := <-errChan:
+			// could be nil
+			return err
 		case <-s.stream.Context().Done():
 			return s.stream.Context().Err()
 		}
@@ -44,14 +57,10 @@ func (s *ListSplitsStreamer[T]) Run() error {
 }
 
 func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitResult) error {
-	if result.Error != nil {
-		return fmt.Errorf("result error: %w", result.Error)
-	}
-
 	s.logger.Debug(
-		"Determined table split",
+		"determined table split",
 		zap.Int("id", s.splitCounter),
-		zap.String("table", result.Slct.From.GetTable()),
+		zap.String("table", result.Slct.From.Table),
 		zap.ByteString("description", result.Description),
 	)
 
