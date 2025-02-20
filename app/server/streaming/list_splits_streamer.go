@@ -38,6 +38,8 @@ func (s *ListSplitsStreamer[T]) Run() error {
 		err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct, resultChan)
 		if err != nil {
 			errChan <- fmt.Errorf("list splits: %w", err)
+		} else {
+			errChan <- nil
 		}
 	}()
 

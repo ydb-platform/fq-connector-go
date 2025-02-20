@@ -77,11 +77,7 @@ func (s *splitProviderImpl) doListSplits(
 				return fmt.Errorf("next result set: %w", err)
 			}
 
-			type rowData struct {
-				TabletId uint64 `sql:"TabletId"`
-			}
-
-			var row rowData
+			var tabletId uint64
 
 			for {
 				r, err := resultSet.NextRow(ctx)
@@ -93,15 +89,13 @@ func (s *splitProviderImpl) doListSplits(
 					return fmt.Errorf("next result set: %w", err)
 				}
 
-				if err := r.Scan(&row); err != nil {
+				if err := r.Scan(&tabletId); err != nil {
 					return fmt.Errorf("row scan: %w", err)
 				}
 
-				tabletIds = append(tabletIds, row.TabletId)
+				tabletIds = append(tabletIds, tabletId)
 			}
 		}
-
-		fmt.Println("TABLET IDS:", tabletIds)
 
 		return nil
 	})
@@ -109,6 +103,7 @@ func (s *splitProviderImpl) doListSplits(
 		return fmt.Errorf("querying table shard ids: %w", err)
 	}
 
+	// TODO: rewrite it
 	select {
 	case resultChan <- makeSingleSplit(slct):
 	case <-ctx.Done():
@@ -119,7 +114,6 @@ func (s *splitProviderImpl) doListSplits(
 }
 
 func makeSingleSplit(slct *api_service_protos.TSelect) *datasource.ListSplitResult {
-	fmt.Println("SPLIT", slct)
 	return &datasource.ListSplitResult{
 		Slct:        slct,
 		Description: []byte{},

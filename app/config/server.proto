@@ -306,7 +306,7 @@ message TLoggingConfig {
 
         // Template that will be used to construct YDB table names 
         // in the format Go `text/template` format, for example:
-        // "logs/origin/{.CloudName}/{.FolderID}/{.LogGroupID}"
+        // "logs/origin/{{.CloudName}}/{{.FolderID}}/{{.LogGroupID}}"
         string table_naming_pattern = 3;
     }
 
