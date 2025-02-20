@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	app_config "github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -64,6 +65,12 @@ func overrideConfigWithFlags(cfg *app_config.TServerConfig, flags *pflag.FlagSet
 		case metricsPort:
 			flagToPort(f, &cfg.MetricsServer.Endpoint.Port, &errs)
 		case pprofPort:
+			if cfg.PprofServer == nil {
+				cfg.PprofServer = &app_config.TPprofServerConfig{
+					Endpoint: &api_common.TGenericEndpoint{},
+				}
+			}
+
 			flagToPort(f, &cfg.PprofServer.Endpoint.Port, &errs)
 		}
 	})
