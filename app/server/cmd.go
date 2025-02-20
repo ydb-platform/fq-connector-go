@@ -70,6 +70,7 @@ func overrideConfigWithFlags(cfg *app_config.TServerConfig, flags *pflag.FlagSet
 					Endpoint: &api_common.TGenericEndpoint{},
 				}
 			}
+
 			flagToPort(f, &cfg.PprofServer.Endpoint.Port, &errs)
 		}
 	})
