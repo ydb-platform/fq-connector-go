@@ -20,10 +20,9 @@ func (defaultSplitProvider) ListSplits(
 	_ *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult) error {
-
 	// By default we deny table splitting
 	select {
-	case resultChan <- &datasource.ListSplitResult{Slct: slct, Description: []byte{}}:
+	case resultChan <- &datasource.ListSplitResult{Slct: slct, Description: nil}:
 	case <-ctx.Done():
 		return ctx.Err()
 	}

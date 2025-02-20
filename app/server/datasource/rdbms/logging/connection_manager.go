@@ -99,7 +99,7 @@ func (cm *connectionManager) makeConnectionFromYDBSource(
 		Kind:        api_common.EGenericDataSourceKind_YDB,
 		Endpoint:    src.endpoint,
 		Database:    src.databaseName,
-		Credentials: src.credentials, // may be overriden by other settings
+		Credentials: src.credentials, // may be overridden by other settings
 		UseTls:      true,
 	}
 

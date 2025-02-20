@@ -9,11 +9,12 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-sdk/v3/query"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
-	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
@@ -27,13 +28,13 @@ func (s *splitProviderImpl) ListSplits(
 	request *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult) error {
-
 	// If client refused to split the table, return just one split containing the whole table.
 	if request.MaxSplitCount == 1 {
 		select {
-		case resultChan <- makeSingleSplit(slct):
+		case resultChan <- makeSplit(slct, nil):
 		case <-ctx.Done():
 		}
+
 		return nil
 	}
 
@@ -44,7 +45,7 @@ func (s *splitProviderImpl) ListSplits(
 	return nil
 }
 
-func (s *splitProviderImpl) doListSplits(
+func (splitProviderImpl) doListSplits(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -55,9 +56,9 @@ func (s *splitProviderImpl) doListSplits(
 	databaseName, tableName := conn.From()
 	prefix := path.Join(databaseName, tableName)
 
-	logger.Debug("obtaining column table shard ids", zap.String("prefix", prefix))
+	logger.Debug("discovering column table shard ids", zap.String("prefix", prefix))
 
-	var tabletIds []uint64
+	var totalShards int
 
 	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
 		queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
@@ -93,9 +94,22 @@ func (s *splitProviderImpl) doListSplits(
 					return fmt.Errorf("row scan: %w", err)
 				}
 
-				tabletIds = append(tabletIds, tabletId)
+				description := &TSplitDescription{
+					TabletIds: []uint64{tabletId},
+				}
+
+				// TODO: rewrite it
+				select {
+				case resultChan <- makeSplit(slct, description):
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+
+				totalShards++
 			}
 		}
+
+		logger.Info("discovered column table shards", zap.Int("total", totalShards))
 
 		return nil
 	})
@@ -103,20 +117,16 @@ func (s *splitProviderImpl) doListSplits(
 		return fmt.Errorf("querying table shard ids: %w", err)
 	}
 
-	// TODO: rewrite it
-	select {
-	case resultChan <- makeSingleSplit(slct):
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-
 	return nil
 }
 
-func makeSingleSplit(slct *api_service_protos.TSelect) *datasource.ListSplitResult {
+func makeSplit(
+	slct *api_service_protos.TSelect,
+	description *TSplitDescription,
+) *datasource.ListSplitResult {
 	return &datasource.ListSplitResult{
 		Slct:        slct,
-		Description: []byte{},
+		Description: description,
 	}
 }
 

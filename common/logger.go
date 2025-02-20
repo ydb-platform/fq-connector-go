@@ -55,7 +55,7 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGeneri
 	return l.With(fields...)
 }
 
-func AnnotateLogger(l *zap.Logger, method string, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
+func AnnotateLogger(l *zap.Logger, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
 	l = AnnotateLoggerWithDataSourceInstance(l, dsi)
 
 	return l

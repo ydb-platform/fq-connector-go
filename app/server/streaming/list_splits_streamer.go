@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -32,6 +33,7 @@ func (s *ListSplitsStreamer[T]) Run() error {
 	defer wg.Wait()
 
 	wg.Add(1)
+
 	go func() {
 		defer wg.Done()
 
@@ -59,11 +61,25 @@ func (s *ListSplitsStreamer[T]) Run() error {
 }
 
 func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitResult) error {
+	var (
+		description []byte
+		err         error
+	)
+
+	if result.Description != nil {
+		description, err = protojson.Marshal(result.Description)
+		if err != nil {
+			return fmt.Errorf("marshal description to JSON: %w", err)
+		}
+	} else {
+		description = []byte{}
+	}
+
 	s.logger.Debug(
 		"determined table split",
 		zap.Int("id", s.splitCounter),
 		zap.String("table", result.Slct.From.Table),
-		zap.ByteString("description", result.Description),
+		zap.ByteString("description", description),
 	)
 
 	// For the sake of simplicity, we make a distinct message for each split.
@@ -74,7 +90,7 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 			{
 				Select: result.Slct,
 				Payload: &api_service_protos.TSplit_Description{
-					Description: result.Description,
+					Description: description,
 				},
 			},
 		},
