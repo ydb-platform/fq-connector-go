@@ -3,11 +3,12 @@ package logging
 import (
 	"fmt"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 type sqlFormatter struct {

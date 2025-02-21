@@ -15,7 +15,7 @@
             "showLog": true
         },
         {
-            "name": "Service",
+            "name": "Service with default config",
             "type": "go",
             "request": "launch",
             "mode": "debug",
@@ -23,6 +23,16 @@
             "env": {},
             "args": ["server", "--config=/home/vitalyisaev/projects/fq-connector-go/app/server/config/config.debug.yaml"],
             "showLog": true
-        }
+        },
+        {
+            "name": "Service with custom logging config",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}/app",
+            "env": {},
+            "args": ["server", "--config=/home/vitalyisaev/arcadia/junk/vitalyisaev/connectors/server.config.logging_yqv2-dev_yq-cl.yaml"],
+            "showLog": true
+        },
     ]
 }
