@@ -33,9 +33,6 @@ func (sqlFormatter) RenderSelectQueryText(
 
 	result := head + fmt.Sprintf(" WITH (ShardId=\"%d\")", splitDescription.ShardIds[0])
 
-	// FIXME: remove it
-	result += " LIMIT 10"
-
 	return result, nil
 }
 
