@@ -100,7 +100,7 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", ident)
 }
 
-func (f sqlFormatter) FormatFrom(_, tableName string) string {
+func (f sqlFormatter) FormatFrom(tableName string) string {
 	// Trim leading slash, otherwise TablePathPrefix won't work.
 	// See https://ydb.tech/docs/ru/yql/reference/syntax/pragma#table-path-prefix
 	tableName = strings.TrimPrefix(tableName, "/")

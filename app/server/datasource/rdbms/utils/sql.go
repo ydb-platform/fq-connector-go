@@ -82,7 +82,7 @@ type SQLFormatter interface {
 
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
-	FormatFrom(databaseName, tableName string) string
+	FormatFrom(tableName string) string
 
 	// RenderSelectQueryText composes final query text from the given clauses.
 	// Particular implementation may mix-in some additional parts into the query.

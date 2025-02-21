@@ -13,7 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func TestMakeReadSplitsQuery(t *testing.T) {
+func TestMakeSelectQuery(t *testing.T) {
 	type testCase struct {
 		testName       string
 		selectReq      *api_service_protos.TSelect
@@ -424,11 +424,11 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				formatter,
 				&api_service_protos.TSplit{Select: tc.selectReq},
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
-				"",
 				tc.selectReq.From.Table,
 			)
+
 			if tc.err != nil {
-				require.True(t, errors.Is(err, tc.err))
+				require.True(t, errors.Is(err, tc.err), err, tc.err)
 				return
 			}
 

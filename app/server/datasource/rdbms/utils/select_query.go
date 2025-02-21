@@ -24,7 +24,7 @@ func MakeSelectQuery(
 	formatter SQLFormatter,
 	split *api_service_protos.TSplit,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
-	databaseName, tableName string,
+	tableName string,
 ) (*SelectQuery, error) {
 	var (
 		parts        SelectQueryParts
@@ -35,7 +35,7 @@ func MakeSelectQuery(
 	// Render SELECT clause
 	parts.SelectClause, modifiedWhat, err = formatSelectClause(formatter, split.Select.What, true)
 	if err != nil {
-		return nil, fmt.Errorf("failed to format select statement: %w", err)
+		return nil, fmt.Errorf("format select clause: %w", err)
 	}
 
 	ydbTypes, err := common.SelectWhatToYDBTypes(modifiedWhat)
@@ -44,7 +44,11 @@ func MakeSelectQuery(
 	}
 
 	// Render FROM clause
-	parts.FromClause = formatter.FormatFrom(databaseName, tableName)
+	if tableName == "" {
+		return nil, common.ErrEmptyTableName
+	}
+
+	parts.FromClause = formatter.FormatFrom(tableName)
 
 	// Render WHERE clause
 	var queryArgs *QueryArgs

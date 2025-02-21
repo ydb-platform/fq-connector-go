@@ -193,7 +193,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	sink paging.Sink[any],
 	conn rdbms_utils.Connection,
 ) error {
-	databaseName, tableName := conn.From()
+	_, tableName := conn.From()
 
 	readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 		ctx,
@@ -201,7 +201,6 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		ds.sqlFormatter,
 		split,
 		request.Filtering,
-		databaseName,
 		tableName,
 	)
 

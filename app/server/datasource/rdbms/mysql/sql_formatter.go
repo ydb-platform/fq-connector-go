@@ -82,7 +82,7 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", strings.Replace(ident, "`", "``", -1))
 }
 
-func (f sqlFormatter) FormatFrom(_, tableName string) string {
+func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 
