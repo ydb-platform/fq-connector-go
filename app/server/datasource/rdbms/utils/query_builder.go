@@ -8,11 +8,14 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type ReadSplitsQuery struct {
 	QueryParams
-	What *api_service_protos.TSelect_TWhat
+	// Types of the columns that will be returned by the query in terms of YDB type system.
+	YDBTypes []*Ydb.Type
 }
 
 func MakeReadSplitsQuery(
@@ -33,6 +36,11 @@ func MakeReadSplitsQuery(
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to format select statement: %w", err)
+	}
+
+	ydbTypes, err := common.SelectWhatToYDBTypes(newSelectWhat)
+	if err != nil {
+		return nil, fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
 
 	var (
@@ -64,6 +72,6 @@ func MakeReadSplitsQuery(
 			QueryText: queryText,
 			QueryArgs: queryArgs,
 		},
-		What: newSelectWhat,
+		YDBTypes: ydbTypes,
 	}, nil
 }

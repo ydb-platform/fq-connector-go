@@ -231,12 +231,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(readSplitsQuery.What)
-	if err != nil {
-		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
-	}
-
-	transformer, err := rows.MakeTransformer(ydbTypes, ds.converterCollection)
+	transformer, err := rows.MakeTransformer(readSplitsQuery.YDBTypes, ds.converterCollection)
 	if err != nil {
 		return fmt.Errorf("make transformer: %w", err)
 	}
