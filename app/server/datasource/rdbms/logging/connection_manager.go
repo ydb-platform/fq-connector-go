@@ -32,7 +32,7 @@ func (cm *connectionManager) Make(
 		logger:       params.Logger,
 		folderId:     params.DataSourceInstance.GetLoggingOptions().GetFolderId(),
 		logGroupName: params.TableName,
-		iamToken:     params.DataSourceInstance.GetCredentials().GetToken().GetValue(),
+		credentials:  params.DataSourceInstance.GetCredentials(),
 	}
 
 	response, err := cm.resolver.resolve(request)
@@ -99,7 +99,7 @@ func (cm *connectionManager) makeConnectionFromYDBSource(
 		Kind:        api_common.EGenericDataSourceKind_YDB,
 		Endpoint:    src.endpoint,
 		Database:    src.databaseName,
-		Credentials: nil, // YDB connector should use static SA credentials provided in config
+		Credentials: src.credentials, // may be overridden by other settings
 		UseTls:      true,
 	}
 

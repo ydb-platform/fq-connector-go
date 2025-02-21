@@ -92,7 +92,7 @@ class YDBProtoFile:
         lines_concatenated = "\n".join(lines_patched)
 
         # we want protofile to look like it has proto3 syntax
-        lines_concatenated = lines_concatenated.replace("optional", "") 
+        lines_concatenated = lines_concatenated.replace("optional", "")
 
         return lines_concatenated
 
@@ -299,6 +299,16 @@ def main():
             connector_github_root.joinpath("app/config"),
             "github.com/ydb-platform/fq-connector-go/app/config",
             [ydb_github_root, connector_github_root, protobuf_includes],
+            False,
+        )
+        # Generate split description files
+        run_protoc(
+            connector_github_root.joinpath("app/server/datasource/rdbms/logging").rglob(
+                "*.proto"
+            ),
+            connector_github_root.joinpath("app/server/datasource/rdbms/logging"),
+            "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging",
+            [connector_github_root, protobuf_includes],
             False,
         )
 

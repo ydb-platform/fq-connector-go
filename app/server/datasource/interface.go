@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -22,8 +23,7 @@ type Factory[T paging.Acceptor] interface {
 
 type ListSplitResult struct {
 	Slct        *api_service_protos.TSelect // the one that was used for split creation
-	Description []byte                      // binary representation of the split
-	Error       error
+	Description proto.Message               // some representation of the split
 }
 
 // DataSource is an abstraction over external data storage that is available for data and metadata extraction.
@@ -44,7 +44,8 @@ type DataSource[T paging.Acceptor] interface {
 		logger *zap.Logger,
 		request *api_service_protos.TListSplitsRequest, // contains common settings
 		slct *api_service_protos.TSelect, // describes tables that should be read in splits
-	) (<-chan *ListSplitResult, error)
+		resultChan chan<- *ListSplitResult,
+	) error
 
 	// ReadSplit is a main method for reading data from the table.
 	ReadSplit(

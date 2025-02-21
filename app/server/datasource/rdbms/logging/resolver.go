@@ -15,13 +15,15 @@ type resolveParams struct {
 	logger       *zap.Logger
 	folderId     string
 	logGroupName string
-	iamToken     string // optional, used for authorization into external APIs
+	// optional, used for authorization into external APIs
+	credentials *api_common.TGenericCredentials
 }
 
 type ydbSource struct {
 	endpoint     *api_common.TGenericEndpoint
 	databaseName string
 	tableName    string
+	credentials  *api_common.TGenericCredentials
 }
 
 func (r *ydbSource) ToZapFields() []zap.Field {

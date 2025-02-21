@@ -88,7 +88,7 @@ func (ds *dataSourceImpl) ListSplits(
 	logger *zap.Logger,
 	request *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
-) (<-chan *datasource.ListSplitResult, error) {
+	resultChan chan<- *datasource.ListSplitResult) error {
 	var cs []rdbms_utils.Connection
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
@@ -113,17 +113,16 @@ func (ds *dataSourceImpl) ListSplits(
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("retry: %w", err)
+		return fmt.Errorf("retry: %w", err)
 	}
 
 	defer ds.connectionManager.Release(ctx, logger, cs)
 
-	out, err := ds.splitProvider.ListSplits(ctx, logger, cs[0], request, slct)
-	if err != nil {
-		return nil, fmt.Errorf("list splits: %w", err)
+	if err := ds.splitProvider.ListSplits(ctx, logger, cs[0], request, slct, resultChan); err != nil {
+		return fmt.Errorf("list splits: %w", err)
 	}
 
-	return out, nil
+	return nil
 }
 
 func (ds *dataSourceImpl) ReadSplit(

@@ -134,8 +134,8 @@ func (*dataSource) ListSplits(
 	_ *zap.Logger,
 	_ *api_service_protos.TListSplitsRequest,
 	_ *api_service_protos.TSelect,
-) (<-chan *datasource.ListSplitResult, error) {
-	return nil, fmt.Errorf("unimplemented")
+	_ chan<- *datasource.ListSplitResult) error {
+	return fmt.Errorf("unimplemented")
 }
 
 func (*dataSource) ReadSplit(

@@ -2,7 +2,9 @@ package logging
 
 import (
 	"fmt"
+	"html/template"
 	"math/rand"
+	"strings"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 )
@@ -34,15 +36,35 @@ func (r *staticResolver) resolve(request *resolveParams) (*resolveResponse, erro
 		return nil, fmt.Errorf("log group '%s' is missing", request.logGroupName)
 	}
 
-	// FIXME: hardcoded cloud name is a mistake
-	tableName := fmt.Sprintf("logs/origin/yc.logs.cloud/%s/%s", request.folderId, logGroupId)
+	// render table name from template and params
+	tmpl, err := template.New("table_name").Parse(r.cfg.TableNamingPattern)
+	if err != nil {
+		return nil, fmt.Errorf("parse table naming pattern: %w", err)
+	}
+
+	params := struct {
+		CloudName  string
+		FolderID   string
+		LogGroupID string
+	}{
+		CloudName:  folder.CloudName,
+		FolderID:   request.folderId,
+		LogGroupID: logGroupId,
+	}
+
+	var buf strings.Builder
+
+	if err := tmpl.Execute(&buf, params); err != nil {
+		return nil, fmt.Errorf("render table name from template `%s`: %w", r.cfg.TableNamingPattern, err)
+	}
 
 	return &resolveResponse{
 		sources: []*ydbSource{
 			{
 				endpoint:     endpoint,
-				tableName:    tableName,
+				tableName:    buf.String(),
 				databaseName: databaseName,
+				credentials:  request.credentials,
 			},
 		},
 	}, nil

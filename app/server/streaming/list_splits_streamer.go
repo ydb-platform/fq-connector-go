@@ -2,8 +2,10 @@ package streaming
 
 import (
 	"fmt"
+	"sync"
 
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -22,21 +24,36 @@ type ListSplitsStreamer[T paging.Acceptor] struct {
 }
 
 func (s *ListSplitsStreamer[T]) Run() error {
-	results, err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct)
-	if err != nil {
-		return fmt.Errorf("list splits: %w", err)
-	}
+	var (
+		resultChan = make(chan *datasource.ListSplitResult, 32)
+		errChan    = make(chan error, 1)
+	)
+
+	var wg sync.WaitGroup
+	defer wg.Wait()
+
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+
+		err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct, resultChan)
+		if err != nil {
+			errChan <- fmt.Errorf("list splits: %w", err)
+		} else {
+			errChan <- nil
+		}
+	}()
 
 	for {
 		select {
-		case result, ok := <-results:
-			if !ok {
-				return nil
-			}
-
+		case result := <-resultChan:
 			if err := s.sendResultToStream(result); err != nil {
 				return fmt.Errorf("send result to stream: %w", err)
 			}
+		case err := <-errChan:
+			// could be nil
+			return err
 		case <-s.stream.Context().Done():
 			return s.stream.Context().Err()
 		}
@@ -44,15 +61,25 @@ func (s *ListSplitsStreamer[T]) Run() error {
 }
 
 func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitResult) error {
-	if result.Error != nil {
-		return fmt.Errorf("result error: %w", result.Error)
+	var (
+		description []byte
+		err         error
+	)
+
+	if result.Description != nil {
+		description, err = protojson.Marshal(result.Description)
+		if err != nil {
+			return fmt.Errorf("marshal description to JSON: %w", err)
+		}
+	} else {
+		description = []byte{}
 	}
 
 	s.logger.Debug(
-		"Got split",
+		"determined table split",
 		zap.Int("id", s.splitCounter),
-		zap.Any("select", result.Slct),
-		zap.ByteString("description", result.Description),
+		zap.String("table", result.Slct.From.Table),
+		zap.ByteString("description", description),
 	)
 
 	// For the sake of simplicity, we make a distinct message for each split.
@@ -63,7 +90,7 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 			{
 				Select: result.Slct,
 				Payload: &api_service_protos.TSplit_Description{
-					Description: result.Description,
+					Description: description,
 				},
 			},
 		},
@@ -86,7 +113,7 @@ func NewListSplitsStreamer[T paging.Acceptor](
 	return &ListSplitsStreamer[T]{
 		stream:     stream,
 		dataSource: dataSource,
-		logger:     logger,
+		logger:     common.AnnotateLoggerWithDataSourceInstance(logger, slct.DataSourceInstance),
 		request:    request,
 		slct:       slct,
 	}

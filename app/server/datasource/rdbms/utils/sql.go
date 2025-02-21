@@ -95,5 +95,8 @@ type SplitProvider interface {
 		conn Connection,
 		request *api_service_protos.TListSplitsRequest,
 		slct *api_service_protos.TSelect,
-	) (<-chan *datasource.ListSplitResult, error)
+		// Interface implementations should not close this channel, just return from the function
+		// when the data is over.
+		resultChan chan<- *datasource.ListSplitResult,
+	) error
 }
