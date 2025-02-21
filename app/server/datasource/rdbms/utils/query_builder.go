@@ -7,15 +7,16 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type ReadSplitsQuery struct {
 	QueryParams
 	// Types of the columns that will be returned by the query in terms of YDB type system.
-	YDBTypes []*Ydb.Type
+	YdbTypes []*Ydb.Type
 }
 
 func MakeReadSplitsQuery(
@@ -72,6 +73,6 @@ func MakeReadSplitsQuery(
 			QueryText: queryText,
 			QueryArgs: queryArgs,
 		},
-		YDBTypes: ydbTypes,
+		YdbTypes: ydbTypes,
 	}, nil
 }
