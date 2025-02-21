@@ -60,6 +60,11 @@ func readTable(cmd *cobra.Command, _ []string) error {
 	}
 
 	logger := common.NewDefaultLogger()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			fmt.Println("failed to sync logger", err)
+		}
+	}()
 
 	flag.Parse()
 
@@ -70,6 +75,8 @@ func readTable(cmd *cobra.Command, _ []string) error {
 
 	// override credentials if IAM-token provided
 	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
+
+	logger = common.AnnotateLoggerWithDataSourceInstance(logger, cfg.DataSourceInstance)
 
 	if err := doReadTable(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
 		return fmt.Errorf("call server: %w", err)
@@ -107,6 +114,8 @@ func doReadTable(
 		if err != nil {
 			return fmt.Errorf("prepare splits: %w", err)
 		}
+
+		logger.Info("got splits", zap.Int("total", len(splits)))
 	default:
 		return fmt.Errorf("unexpected data source kind %v", cfg.DataSourceInstance.Kind)
 	}
@@ -127,12 +136,12 @@ func describeTableAndListSplits(
 	tableName string,
 	metainfo requestMetadata,
 ) ([]*api_service_protos.TSplit, error) {
-	logger.Debug("Describing table", zap.String("data_source_instance", dsi.String()))
-
 	md := metadata.New(map[string]string{"user_id": metainfo.userID, "session_id": metainfo.sessionID})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
 	// DescribeTable
+	logger.Debug("describing table")
+
 	describeTableResponse, err := cl.DescribeTable(ctx, dsi, typeMappingSettings, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("describe table: %w", err)
@@ -142,7 +151,7 @@ func describeTableAndListSplits(
 		return nil, fmt.Errorf("describe table: %v", describeTableResponse.Error)
 	}
 
-	logger.Info("Table scheme", zap.String("result", describeTableResponse.Schema.String()))
+	logger.Info("got table schema", zap.String("result", describeTableResponse.Schema.String()))
 
 	// ListSplits - we want to SELECT *
 	slct := &api_service_protos.TSelect{
@@ -153,14 +162,14 @@ func describeTableAndListSplits(
 		},
 	}
 
-	logger.Debug("Listing splits", zap.String("select", slct.String()))
+	logger.Debug("listing splits", zap.String("select", slct.String()))
 
 	listSplitsResponse, err := cl.ListSplits(ctx, slct)
 	if err != nil {
 		return nil, fmt.Errorf("list splits: %w", err)
 	}
 
-	logger.Info("Splits list", zap.Any("splits", listSplitsResponse))
+	logger.Info("got ListSplits responses", zap.Int("total_responses", len(listSplitsResponse)))
 
 	return common.ListSplitsResponsesToSplits(listSplitsResponse), nil
 }
@@ -171,8 +180,6 @@ func readSplits(
 	splits []*api_service_protos.TSplit,
 	metainfo requestMetadata,
 ) error {
-	logger.Debug("Reading splits")
-
 	md := metadata.New(map[string]string{"user_id": metainfo.userID, "session_id": metainfo.sessionID})
 	ctx := metadata.NewOutgoingContext(context.Background(), md)
 
@@ -185,7 +192,7 @@ func readSplits(
 		return fmt.Errorf("extract error from read responses: %w", err)
 	}
 
-	logger.Debug("Obtained read splits responses", zap.Int("count", len(readSplitsResponses)))
+	logger.Info("got ReadSplits responses", zap.Int("total_responses", len(readSplitsResponses)))
 
 	records, err := common.ReadResponsesToArrowRecords(readSplitsResponses)
 	if err != nil {
@@ -201,7 +208,14 @@ func dumpReadResponses(
 	logger *zap.Logger,
 	records []arrow.Record,
 ) {
-	for _, record := range records {
+	for i, record := range records {
+		logger.Info(
+			"dumping record",
+			zap.Int("id", i),
+			zap.Int("num_columns", int(record.NumCols())),
+			zap.Int("num_rows", int(record.NumRows())),
+		)
+
 		for i, column := range record.Columns() {
 			logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
 		}

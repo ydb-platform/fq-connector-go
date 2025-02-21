@@ -70,6 +70,10 @@ func ReadResponsesToArrowRecords(responses []*api_service_protos.TReadSplitsResp
 		reader.Release()
 	}
 
+	for i, record := range out {
+		fmt.Println("CRAB B", i, record.NumCols())
+	}
+
 	return out, nil
 }
 

@@ -5,6 +5,5 @@ package NYql.Connector.App.Server.DataSource.RDBMS.Logging;
 option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging/";
 
 message TSplitDescription {
-    // In YDB column shards it
-    repeated uint64 tablet_ids = 1;
+    repeated uint64 shard_ids = 1;
 }

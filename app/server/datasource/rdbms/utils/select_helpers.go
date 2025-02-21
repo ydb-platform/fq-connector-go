@@ -40,20 +40,12 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 	}
 }
 
-func formatSelectHead(
+func formatSelectClause(
 	formatter SQLFormatter,
 	selectWhat *api_service_protos.TSelect_TWhat,
-	databaseName, tableName string,
 	fakeZeroOnEmptyColumnsSet bool,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
-	// SELECT $columns FROM $from
-	if tableName == "" {
-		return "", nil, common.ErrEmptyTableName
-	}
-
 	var sb strings.Builder
-
-	sb.WriteString("SELECT ")
 
 	columns, err := selectWhatToYDBColumns(selectWhat)
 	if err != nil {
@@ -86,11 +78,22 @@ func formatSelectHead(
 		newSelectWhat = selectWhat
 	}
 
-	sb.WriteString(" FROM ")
-
-	from := formatter.FormatFrom(databaseName, tableName)
-
-	sb.WriteString(from)
-
 	return sb.String(), newSelectWhat, nil
+}
+
+// DefaultSelectQueryRender doesn't take into account splitting
+func DefaultSelectQueryRender(parts *SelectQueryParts, _ *api_service_protos.TSplit) (string, error) {
+	var sb strings.Builder
+
+	sb.WriteString("SELECT ")
+	sb.WriteString(parts.SelectClause)
+	sb.WriteString(" FROM ")
+	sb.WriteString(parts.FromClause)
+
+	if parts.WhereClause != "" {
+		sb.WriteString(" WHERE ")
+		sb.WriteString(parts.WhereClause)
+	}
+
+	return sb.String(), nil
 }

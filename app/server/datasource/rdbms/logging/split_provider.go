@@ -38,6 +38,7 @@ func (s *splitProviderImpl) ListSplits(
 		return nil
 	}
 
+	// Otherwise ask database for table shards
 	if err := s.doListSplits(ctx, logger, conn, slct, resultChan); err != nil {
 		return fmt.Errorf("do list splits: %w", err)
 	}
@@ -95,7 +96,7 @@ func (splitProviderImpl) doListSplits(
 				}
 
 				description := &TSplitDescription{
-					TabletIds: []uint64{tabletId},
+					ShardIds: []uint64{tabletId},
 				}
 
 				// TODO: rewrite it

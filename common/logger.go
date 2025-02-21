@@ -55,12 +55,6 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGeneri
 	return l.With(fields...)
 }
 
-func AnnotateLogger(l *zap.Logger, dsi *api_common.TGenericDataSourceInstance) *zap.Logger {
-	l = AnnotateLoggerWithDataSourceInstance(l, dsi)
-
-	return l
-}
-
 func LogCloserError(logger *zap.Logger, closer io.Closer, msg string) {
 	if err := closer.Close(); err != nil {
 		logger.Error(msg, zap.Error(err))
@@ -105,6 +99,7 @@ func newDefaultLoggerConfig() zap.Config {
 	loggerCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	loggerCfg.Level = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	loggerCfg.DisableStacktrace = true
+	loggerCfg.Sampling = nil
 
 	return loggerCfg
 }
