@@ -95,7 +95,8 @@ func (splitProviderImpl) doListSplits(
 				}
 
 				description := &TSplitDescription{
-					TabletIds: []uint64{tabletId},
+					// Now we want only one shard per ids
+					ShardIds: []uint64{tabletId},
 				}
 
 				// TODO: rewrite it

@@ -200,7 +200,7 @@ func NewDataSourceFactory(
 	}
 
 	dsf.logging = Preset{
-		SQLFormatter:      ydb.NewSQLFormatter(cfg.Logging.Ydb.Mode, cfg.Logging.Ydb.Pushdown),
+		SQLFormatter:      logging.NewSQLFormatter(cfg.Logging.Ydb.Mode, cfg.Logging.Ydb.Pushdown),
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        ydbTypeMapper,
 		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
