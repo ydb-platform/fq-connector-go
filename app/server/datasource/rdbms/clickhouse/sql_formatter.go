@@ -91,6 +91,13 @@ func (f sqlFormatter) FormatFrom(_, tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 
+func (sqlFormatter) RenderSelectQueryText(
+	parts *rdbms_utils.SelectQueryParts,
+	split *api_service_protos.TSplit,
+) (string, error) {
+	return rdbms_utils.DefaultSelectQueryRender(parts, split)
+}
+
 func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
 	return sqlFormatter{cfg: cfg}
 }

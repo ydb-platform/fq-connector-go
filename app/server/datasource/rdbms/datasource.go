@@ -195,11 +195,11 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 ) error {
 	databaseName, tableName := conn.From()
 
-	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+	readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 		ctx,
 		logger,
 		ds.sqlFormatter,
-		split.Select,
+		split,
 		request.Filtering,
 		databaseName,
 		tableName,

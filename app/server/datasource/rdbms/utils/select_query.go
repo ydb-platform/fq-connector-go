@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"go.uber.org/zap"
 
@@ -13,60 +12,56 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type ReadSplitsQuery struct {
+type SelectQuery struct {
 	QueryParams
 	// Types of the columns that will be returned by the query in terms of YDB type system.
 	YdbTypes []*Ydb.Type
 }
 
-func MakeReadSplitsQuery(
+func MakeSelectQuery(
 	ctx context.Context,
 	logger *zap.Logger,
 	formatter SQLFormatter,
-	slct *api_service_protos.TSelect,
+	split *api_service_protos.TSplit,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
 	databaseName, tableName string,
-) (*ReadSplitsQuery, error) {
-	selectPart, newSelectWhat, err := formatSelectHead(
-		formatter,
-		slct.GetWhat(),
-		databaseName,
-		tableName,
-		true,
+) (*SelectQuery, error) {
+	var (
+		parts        SelectQueryParts
+		modifiedWhat *api_service_protos.TSelect_TWhat
+		err          error
 	)
 
+	// Render SELECT clause
+	parts.SelectClause, modifiedWhat, err = formatSelectClause(formatter, split.Select.What, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to format select statement: %w", err)
 	}
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(newSelectWhat)
+	ydbTypes, err := common.SelectWhatToYDBTypes(modifiedWhat)
 	if err != nil {
 		return nil, fmt.Errorf("convert Select.What to Ydb types: %w", err)
 	}
 
-	var (
-		sb        strings.Builder
-		queryArgs *QueryArgs
-	)
+	// Render FROM clause
+	parts.FromClause = formatter.FormatFrom(databaseName, tableName)
 
-	sb.WriteString(selectPart)
-
-	if slct.Where != nil {
-		var clause string
-
-		clause, queryArgs, err = formatWhereClause(logger, filtering, formatter, slct.Where)
+	// Render WHERE clause
+	var queryArgs *QueryArgs
+	if split.Select.Where != nil {
+		parts.WhereClause, queryArgs, err = formatWhereClause(logger, filtering, formatter, split.Select.Where)
 		if err != nil {
 			return nil, fmt.Errorf("format where clause: %w", err)
 		}
-
-		if len(clause) != 0 {
-			sb.WriteString(" WHERE " + clause)
-		}
 	}
 
-	queryText := sb.String()
+	// Render whole query
+	queryText, err := formatter.RenderSelectQueryText(&parts, split)
+	if err != nil {
+		return nil, fmt.Errorf("render query text: %w", err)
+	}
 
-	return &ReadSplitsQuery{
+	return &SelectQuery{
 		QueryParams: QueryParams{
 			Ctx:       ctx,
 			Logger:    logger,

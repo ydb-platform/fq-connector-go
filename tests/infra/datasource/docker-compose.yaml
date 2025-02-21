@@ -28,6 +28,8 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
       PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: 'UTC'
+      PGTZ: 'UTC'
     volumes:
       - ./postgresql/init:/docker-entrypoint-initdb.d
 

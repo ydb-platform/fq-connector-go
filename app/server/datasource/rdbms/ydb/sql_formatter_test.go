@@ -422,11 +422,11 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
-			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+			readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 				context.Background(),
 				logger,
 				formatter,
-				tc.selectReq,
+				&api_service_protos.TSplit{Select: tc.selectReq},
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
 				"",
 				tc.selectReq.From.Table,
