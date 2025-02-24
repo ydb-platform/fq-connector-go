@@ -47,32 +47,8 @@ func SelectWhatToArrowSchema(selectWhat *api_service_protos.TSelect_TWhat) (*arr
 			return nil, fmt.Errorf("item #%d (%v) is not a column", i, item)
 		}
 
-		ydbType := column.GetType()
-
-		var (
-			field arrow.Field
-			err   error
-		)
-
-		// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
-		switch t := ydbType.Type.(type) {
-		// Primitive types
-		case *Ydb.Type_TypeId:
-			field, err = ydbTypeToArrowField(t.TypeId, column)
-			if err != nil {
-				return nil, fmt.Errorf("primitive YDB type to arrow field: %w", err)
-			}
-		case *Ydb.Type_OptionalType:
-			field, err = ydbTypeToArrowField(t.OptionalType.Item.GetTypeId(), column)
-			if err != nil {
-				return nil, fmt.Errorf("optional YDB type to arrow field: %w", err)
-			}
-		default:
-			err := fmt.Errorf(
-				"only primitive and optional types are supported, got '%T' instead: %w",
-				t, ErrDataTypeNotSupported,
-			)
-
+		field, err := ydbTypeToArrowField(column.GetType(), column)
+		if err != nil {
 			return nil, err
 		}
 
@@ -92,24 +68,8 @@ func YdbTypesToArrowBuilders(ydbTypes []*Ydb.Type, arrowAllocator memory.Allocat
 	)
 
 	for _, ydbType := range ydbTypes {
-		switch t := ydbType.Type.(type) {
-		// Primitive types
-		case *Ydb.Type_TypeId:
-			builder, err = ydbTypeToArrowBuilder(t.TypeId, arrowAllocator)
-			if err != nil {
-				return nil, fmt.Errorf("primitive YDB type to Arrow builder: %w", err)
-			}
-		case *Ydb.Type_OptionalType:
-			builder, err = ydbTypeToArrowBuilder(t.OptionalType.Item.GetTypeId(), arrowAllocator)
-			if err != nil {
-				return nil, fmt.Errorf("optional YDB type to Arrow builder: %w", err)
-			}
-		default:
-			err := fmt.Errorf(
-				"only primitive and optional types are supported, got '%T' instead: %w",
-				t, ErrDataTypeNotSupported,
-			)
-
+		builder, err = ydbTypeToArrowBuilder(ydbType, arrowAllocator)
+		if err != nil {
 			return nil, err
 		}
 
@@ -119,8 +79,42 @@ func YdbTypesToArrowBuilders(ydbTypes []*Ydb.Type, arrowAllocator memory.Allocat
 	return builders, nil
 }
 
+func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (array.Builder, error) {
+	var (
+		builder array.Builder
+		err     error
+	)
+
+	switch t := ydbType.Type.(type) {
+	case *Ydb.Type_TypeId:
+		builder, err = ydbTypeIdToArrowBuilder(t.TypeId, arrowAllocator)
+		if err != nil {
+			return nil, fmt.Errorf("primitive YDB type to Arrow builder: %w", err)
+		}
+	case *Ydb.Type_OptionalType:
+		builder, err = ydbTypeToArrowBuilder(t.OptionalType.Item, arrowAllocator)
+		if err != nil {
+			return nil, fmt.Errorf("optional YDB type to Arrow builder: %w", err)
+		}
+	case *Ydb.Type_TaggedType:
+		builder, err = ydbTypeToArrowBuilder(t.TaggedType.Type, arrowAllocator)
+		if err != nil {
+			return nil, fmt.Errorf("tagged YDB type to Arrow builder: %w", err)
+		}
+	default:
+		err := fmt.Errorf(
+			"only primitive, optional and tagged types are supported, got '%T' instead: %w",
+			t, ErrDataTypeNotSupported,
+		)
+
+		return nil, err
+	}
+
+	return builder, nil
+}
+
 //nolint:gocyclo
-func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memory.Allocator) (array.Builder, error) {
+func ydbTypeIdToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memory.Allocator) (array.Builder, error) {
 	var builder array.Builder
 
 	switch typeID {
@@ -183,7 +177,43 @@ func ydbTypeToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memor
 }
 
 //nolint:gocyclo
-func ydbTypeToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (arrow.Field, error) {
+func ydbTypeToArrowField(ydbType *Ydb.Type, column *Ydb.Column) (arrow.Field, error) {
+	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
+	var (
+		field arrow.Field
+		err   error
+	)
+
+	switch t := ydbType.Type.(type) {
+	case *Ydb.Type_TypeId:
+		field, err = ydbTypeIdToArrowField(t.TypeId, column)
+		if err != nil {
+			return arrow.Field{}, fmt.Errorf("primitive YDB type to arrow field: %w", err)
+		}
+	case *Ydb.Type_OptionalType:
+		field, err = ydbTypeToArrowField(t.OptionalType.Item, column)
+		if err != nil {
+			return arrow.Field{}, fmt.Errorf("optional YDB type to arrow field: %w", err)
+		}
+	case *Ydb.Type_TaggedType:
+		field, err = ydbTypeToArrowField(t.TaggedType.Type, column)
+		if err != nil {
+			return arrow.Field{}, fmt.Errorf("tagged YDB type to arrow field: %w", err)
+		}
+	default:
+		err := fmt.Errorf(
+			"only primitive, optional and tagged types are supported, got '%T' instead: %w",
+			t, ErrDataTypeNotSupported,
+		)
+
+		return arrow.Field{}, err
+	}
+
+	return field, nil
+}
+
+//nolint:gocyclo
+func ydbTypeIdToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (arrow.Field, error) {
 	var field arrow.Field
 
 	switch typeID {

@@ -308,7 +308,7 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 |Double|Double|DOUBLE|
 |Binary|String|BINARY|
 |String|Utf8|STRING|
-|Object|Json / Struct|STRUCT|
+|Object|Json|STRING|
 |Array|List\<T\>|LIST|
 |Decimal128 |Decimal|DECIMAL128|
 |ObjectId (12 bytes)|Tagged("ObjectId", String)|BINARY|

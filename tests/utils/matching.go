@@ -19,7 +19,7 @@ import (
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
-	*array.Int64Builder | *array.Int32Builder | *array.StringBuilder
+	*array.Int64Builder | *array.Int32Builder
 	Append(ID)
 	NewArray() arrow.Array
 	Release()
@@ -43,7 +43,7 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 	idArrBuilder IDBUILDER) {
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	recordWithRowsSorted := sortTableByID[ID, IDBUILDER](recordWithColumnOrderFixed, idArrBuilder)
+	recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed, idArrBuilder)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
 		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
@@ -133,14 +133,12 @@ func newTableIDColumn[ID TableIDTypes](arr arrow.Array) arrowIDCol[ID] {
 	return arrowIDCol[ID]{arr}
 }
 
-func (c arrowIDCol[ID]) innerValue(i int) any {
+func (c arrowIDCol[ID]) mustValue(i int) ID {
 	switch col := c.idCol.(type) {
 	case *array.Int32:
-		return col.Value(i)
+		return ID(col.Value(i))
 	case *array.Int64:
-		return col.Value(i)
-	case *array.String:
-		return col.Value(i)
+		return ID(col.Value(i))
 	default:
 		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
 	}
@@ -192,7 +190,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 
 	for i := int64(0); i < table.NumRows(); i++ {
 		records[i] = tableRow[ID]{
-			ID:   idCol.innerValue(int(i)).(ID),
+			ID:   idCol.mustValue(int(i)),
 			Rest: restCols[i],
 		}
 	}

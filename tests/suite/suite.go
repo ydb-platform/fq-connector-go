@@ -149,41 +149,6 @@ func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
 	}
 }
 
-func (b *Base[ID, IDBUILDER]) ValidateTableMetadata(
-	ds *datasource.DataSource,
-	table *test_utils.Table[ID, IDBUILDER],
-	customOptions ...ValidateTableOption,
-) {
-	for _, dsi := range ds.Instances {
-		b.doValidateTableMetadata(table, dsi, customOptions...)
-	}
-}
-
-func (b *Base[ID, IDBUILDER]) doValidateTableMetadata(
-	table *test_utils.Table[ID, IDBUILDER],
-	dsi *api_common.TGenericDataSourceInstance,
-	customOptions ...ValidateTableOption,
-) {
-	options := newDefaultValidateTableOptions()
-	for _, option := range customOptions {
-		option.apply(options)
-	}
-
-	b.Require().NotEmpty(table.Name)
-
-	ctx, cancel := context.WithTimeout(test_utils.NewContextWithTestName(), 60*time.Second)
-	defer cancel()
-
-	// describe table
-	describeTableResponse, err := b.Connector.ClientBuffering().DescribeTable(ctx, dsi, options.typeMappingSettings, table.Name)
-	b.Require().NoError(err)
-	b.Require().Equal(Ydb.StatusIds_SUCCESS, describeTableResponse.Error.Status, describeTableResponse.Error.String())
-
-	// verify schema
-	schema := describeTableResponse.Schema
-	table.MatchSchema(b.T(), schema)
-}
-
 func (b *Base[ID, IDBUILDER]) ValidateTable(
 	ds *datasource.DataSource,
 	table *test_utils.Table[ID, IDBUILDER],

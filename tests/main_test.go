@@ -91,5 +91,5 @@ func TestMsSqlServer(t *testing.T) {
 
 func TestMongoDB(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
-	testify_suite.Run(t, mongodb.NewSuite(suite.NewBase[string, *array.StringBuilder](t, state, "MongoDB")))
+	testify_suite.Run(t, mongodb.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MongoDB")))
 }

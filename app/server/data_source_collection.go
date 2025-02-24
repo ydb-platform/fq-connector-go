@@ -23,10 +23,11 @@ import (
 )
 
 type DataSourceCollection struct {
-	rdbms              datasource.Factory[any]
-	memoryAllocator    memory.Allocator
-	readLimiterFactory *paging.ReadLimiterFactory
-	cfg                *config.TServerConfig
+	rdbms               datasource.Factory[any]
+	memoryAllocator     memory.Allocator
+	readLimiterFactory  *paging.ReadLimiterFactory
+	converterCollection conversion.Collection
+	cfg                 *config.TServerConfig
 }
 
 func (dsc *DataSourceCollection) DescribeTable(
@@ -53,10 +54,14 @@ func (dsc *DataSourceCollection) DescribeTable(
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
-		ds := mongodb.NewDataSource(&retry.RetrierSet{
-			MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
-			Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
-		}, mongoDbCfg)
+		ds := mongodb.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			dsc.converterCollection,
+			mongoDbCfg,
+		)
 
 		return ds.DescribeTable(ctx, logger, request)
 	default:
@@ -87,8 +92,23 @@ func (dsc *DataSourceCollection) ListSplits(
 			if err := streamer.Run(); err != nil {
 				return fmt.Errorf("run streamer: %w", err)
 			}
+		case api_common.EGenericDataSourceKind_MONGO_DB:
+			mongoDbCfg := dsc.cfg.Datasources.Mongodb
+			ds := mongodb.NewDataSource(
+				&retry.RetrierSet{
+					MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+					Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+				},
+				dsc.converterCollection,
+				mongoDbCfg,
+			)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
 		default:
-			// FIXME: support MongoDB
 			return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 		}
 	}
@@ -119,12 +139,16 @@ func (dsc *DataSourceCollection) ReadSplit(
 		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
-		ds := mongodb.NewDataSource(&retry.RetrierSet{
-			MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
-			Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
-		}, mongoDbCfg)
+		ds := mongodb.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(mongoDbCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			dsc.converterCollection,
+			mongoDbCfg,
+		)
 
-		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -200,9 +224,10 @@ func NewDataSourceCollection(
 	}
 
 	return &DataSourceCollection{
-		rdbms:              rdbmsFactory,
-		memoryAllocator:    memoryAllocator,
-		readLimiterFactory: readLimiterFactory,
-		cfg:                cfg,
+		rdbms:               rdbmsFactory,
+		memoryAllocator:     memoryAllocator,
+		readLimiterFactory:  readLimiterFactory,
+		converterCollection: converterCollection,
+		cfg:                 cfg,
 	}, nil
 }

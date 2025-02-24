@@ -16,11 +16,19 @@ const (
 	password     = "password"
 )
 
-var defaultMongoDbOptions *api_common.TMongoDbDataSourceOptions = &api_common.TMongoDbDataSourceOptions{
-	ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
-	UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT,
-	UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL,
-}
+var defaultMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptions{
+	MongodbOptions: &api_common.TMongoDbDataSourceOptions{
+		ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
+		UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT,
+		UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_STRING,
+	}}
+
+var stringifyMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptions{
+	MongodbOptions: &api_common.TMongoDbDataSourceOptions{
+		ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
+		UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_AS_STRING,
+		UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_STRING,
+	}}
 
 func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*datasource.DataSource, error) {
 	dsi := &api_common.TGenericDataSourceInstance{
@@ -36,9 +44,7 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 		},
 		Protocol: api_common.EGenericProtocol_NATIVE,
 		UseTls:   false,
-		Options: &api_common.TGenericDataSourceInstance_MongodbOptions{
-			MongodbOptions: defaultMongoDbOptions,
-		},
+		Options:  defaultMongoDbOptions,
 	}
 
 	var err error
