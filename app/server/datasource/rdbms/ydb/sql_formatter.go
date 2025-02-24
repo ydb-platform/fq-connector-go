@@ -100,12 +100,19 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", ident)
 }
 
-func (f sqlFormatter) FormatFrom(_, tableName string) string {
+func (f sqlFormatter) FormatFrom(tableName string) string {
 	// Trim leading slash, otherwise TablePathPrefix won't work.
 	// See https://ydb.tech/docs/ru/yql/reference/syntax/pragma#table-path-prefix
 	tableName = strings.TrimPrefix(tableName, "/")
 
 	return f.SanitiseIdentifier(tableName)
+}
+
+func (sqlFormatter) RenderSelectQueryText(
+	parts *rdbms_utils.SelectQueryParts,
+	split *api_service_protos.TSplit,
+) (string, error) {
+	return rdbms_utils.DefaultSelectQueryRender(parts, split)
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {

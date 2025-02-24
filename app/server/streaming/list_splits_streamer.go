@@ -36,24 +36,26 @@ func (s *ListSplitsStreamer[T]) Run() error {
 
 	go func() {
 		defer wg.Done()
+		defer close(resultChan)
 
-		err := s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct, resultChan)
-		if err != nil {
-			errChan <- fmt.Errorf("list splits: %w", err)
-		} else {
-			errChan <- nil
-		}
+		errChan <- s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct, resultChan)
 	}()
 
 	for {
 		select {
-		case result := <-resultChan:
+		case result, ok := <-resultChan:
+			if !ok {
+				// correct exit
+				return nil
+			}
+
 			if err := s.sendResultToStream(result); err != nil {
 				return fmt.Errorf("send result to stream: %w", err)
 			}
 		case err := <-errChan:
-			// could be nil
-			return err
+			if err != nil {
+				return err
+			}
 		case <-s.stream.Context().Done():
 			return s.stream.Context().Err()
 		}

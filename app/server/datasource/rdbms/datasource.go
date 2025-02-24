@@ -193,15 +193,14 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	sink paging.Sink[any],
 	conn rdbms_utils.Connection,
 ) error {
-	databaseName, tableName := conn.From()
+	_, tableName := conn.From()
 
-	readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+	readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 		ctx,
 		logger,
 		ds.sqlFormatter,
-		split.Select,
+		split,
 		request.Filtering,
-		databaseName,
 		tableName,
 	)
 
@@ -231,12 +230,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(readSplitsQuery.What)
-	if err != nil {
-		return fmt.Errorf("convert Select.What to Ydb types: %w", err)
-	}
-
-	transformer, err := rows.MakeTransformer(ydbTypes, ds.converterCollection)
+	transformer, err := rows.MakeTransformer(readSplitsQuery.YdbTypes, ds.converterCollection)
 	if err != nil {
 		return fmt.Errorf("make transformer: %w", err)
 	}

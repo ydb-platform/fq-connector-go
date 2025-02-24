@@ -13,14 +13,14 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func TestMakeReadSplitsQuery(t *testing.T) {
+func TestMakeSelectQuery(t *testing.T) {
 	type testCase struct {
-		testName         string
-		selectReq        *api_service_protos.TSelect
-		outputQuery      string
-		outputArgs       []any
-		outputSelectWhat *api_service_protos.TSelect_TWhat
-		err              error
+		testName       string
+		selectReq      *api_service_protos.TSelect
+		outputQuery    string
+		outputArgs     []any
+		outputYdbTypes []*ydb.Type
+		err            error
 	}
 
 	logger := common.NewTestLogger(t)
@@ -35,10 +35,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery:      "",
-			outputArgs:       nil,
-			outputSelectWhat: nil,
-			err:              common.ErrEmptyTableName,
+			outputQuery:    "",
+			outputArgs:     nil,
+			outputYdbTypes: nil,
+			err:            common.ErrEmptyTableName,
 		},
 		{
 			testName: "empty_no columns",
@@ -48,10 +48,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery:      `SELECT 0 FROM "tab"`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewEmptyColumnWhat(),
-			err:              nil,
+			outputQuery:    `SELECT 0 FROM "tab"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT64)}, // special case for empty select
+			err:            nil,
 		},
 		{
 			testName: "select_col",
@@ -72,21 +72,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "col" FROM "tab"`,
-			outputArgs:  []any{},
-			outputSelectWhat: &api_service_protos.TSelect_TWhat{
-				Items: []*api_service_protos.TSelect_TWhat_TItem{
-					{
-						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-							Column: &ydb.Column{
-								Name: "col",
-								Type: common.MakePrimitiveType(ydb.Type_INT32),
-							},
-						},
-					},
-				},
-			},
-			err: nil,
+			outputQuery:    `SELECT "col" FROM "tab"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32)},
+			err:            nil,
 		},
 		{
 			testName: "is_null",
@@ -105,10 +94,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col1" IS NULL)`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ("col1" IS NULL)`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "is_not_null",
@@ -127,10 +116,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col2" IS NOT NULL)`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ("col2" IS NOT NULL)`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "bool_column",
@@ -149,10 +138,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE "col2"`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE "col2"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "complex_filter",
@@ -211,10 +200,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= $1)) OR (("col1" <> $2) AND ("col3" IS NULL)))`,
-			outputArgs:       []any{int32(42), int64(0)},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= $1)) OR (("col1" <> $2) AND ("col3" IS NULL)))`,
+			outputArgs:     []any{int32(42), int64(0)},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "unsupported_predicate",
@@ -235,10 +224,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "unsupported_type",
@@ -259,10 +248,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "partial_filter_removes_and",
@@ -301,10 +290,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ("col1" = $1)`,
-			outputArgs:       []any{int32(32)},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ("col1" = $1)`,
+			outputArgs:     []any{int32(32)},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "partial_filter",
@@ -357,10 +346,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE (("col1" = $1) AND ("col3" IS NULL) AND ("col4" IS NOT NULL))`,
-			outputArgs:       []any{int32(32)},
-			outputSelectWhat: rdbms_utils.NewDefaultWhat(),
-			err:              nil,
+			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE (("col1" = $1) AND ("col3" IS NULL) AND ("col4" IS NOT NULL))`,
+			outputArgs:     []any{int32(32)},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:            nil,
 		},
 		{
 			testName: "negative_sql_injection_by_table",
@@ -370,10 +359,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 				},
 				What: &api_service_protos.TSelect_TWhat{},
 			},
-			outputQuery:      `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
-			outputArgs:       []any{},
-			outputSelectWhat: rdbms_utils.NewEmptyColumnWhat(),
-			err:              nil,
+			outputQuery:    `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT64)}, // special case for empty select
+			err:            nil,
 		},
 		{
 			testName: "negative_sql_injection_by_col",
@@ -394,21 +383,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "0; DROP TABLE information_schema.columns" FROM "tab"`,
-			outputArgs:  []any{},
-			outputSelectWhat: &api_service_protos.TSelect_TWhat{
-				Items: []*api_service_protos.TSelect_TWhat_TItem{
-					{
-						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-							Column: &ydb.Column{
-								Name: `0; DROP TABLE information_schema.columns`,
-								Type: common.MakePrimitiveType(ydb.Type_INT32),
-							},
-						},
-					},
-				},
-			},
-			err: nil,
+			outputQuery:    `SELECT "0; DROP TABLE information_schema.columns" FROM "tab"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32)},
+			err:            nil,
 		},
 		{
 			testName: "negative_sql_injection_fake_quotes",
@@ -429,21 +407,10 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: `SELECT "0""; DROP TABLE information_schema.columns;" FROM "tab"`,
-			outputArgs:  []any{},
-			outputSelectWhat: &api_service_protos.TSelect_TWhat{
-				Items: []*api_service_protos.TSelect_TWhat_TItem{
-					{
-						Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-							Column: &ydb.Column{
-								Name: `0"; DROP TABLE information_schema.columns;`,
-								Type: common.MakePrimitiveType(ydb.Type_INT32),
-							},
-						},
-					},
-				},
-			},
-			err: nil,
+			outputQuery:    `SELECT "0""; DROP TABLE information_schema.columns;" FROM "tab"`,
+			outputArgs:     []any{},
+			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32)},
+			err:            nil,
 		},
 	}
 
@@ -451,23 +418,23 @@ func TestMakeReadSplitsQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
-			readSplitsQuery, err := rdbms_utils.MakeReadSplitsQuery(
+			readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 				context.Background(),
 				logger,
 				formatter,
-				tc.selectReq,
+				&api_service_protos.TSplit{Select: tc.selectReq},
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
-				"",
 				tc.selectReq.From.Table,
 			)
+
 			if tc.err != nil {
-				require.True(t, errors.Is(err, tc.err))
+				require.True(t, errors.Is(err, tc.err), err, tc.err)
 				return
 			}
 
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
 			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
-			require.Equal(t, tc.outputSelectWhat, readSplitsQuery.What)
+			require.Equal(t, tc.outputYdbTypes, readSplitsQuery.YdbTypes)
 		})
 	}
 }

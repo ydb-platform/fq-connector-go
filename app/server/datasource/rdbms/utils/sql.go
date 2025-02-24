@@ -64,6 +64,12 @@ type ConnectionManagerBase struct {
 	QueryLoggerFactory common.QueryLoggerFactory
 }
 
+type SelectQueryParts struct {
+	SelectClause string
+	FromClause   string
+	WhereClause  string
+}
+
 type SQLFormatter interface {
 	// Get placeholder for n'th argument (starting from 0) for prepared statement
 	GetPlaceholder(n int) string
@@ -76,7 +82,11 @@ type SQLFormatter interface {
 
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
-	FormatFrom(databaseName, tableName string) string
+	FormatFrom(tableName string) string
+
+	// RenderSelectQueryText composes final query text from the given clauses.
+	// Particular implementation may mix-in some additional parts into the query.
+	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)
 }
 
 type SchemaProvider interface {
