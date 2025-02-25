@@ -12,21 +12,23 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ datasource.DataSource[string] = (*dataSource)(nil)
+var _ datasource.DataSource[any] = (*dataSource)(nil)
 
 type dataSource struct {
 	retrierSet *retry.RetrierSet
+	cc         conversion.Collection
 	cfg        *config.TMongoDbConfig
 }
 
-func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TMongoDbConfig) datasource.DataSource[string] {
-	return &dataSource{retrierSet: retrierSet, cfg: cfg}
+func NewDataSource(retrierSet *retry.RetrierSet, cc conversion.Collection, cfg *config.TMongoDbConfig) datasource.DataSource[any] {
+	return &dataSource{retrierSet: retrierSet, cc: cc, cfg: cfg}
 }
 
 func (ds *dataSource) DescribeTable(
@@ -45,54 +47,28 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("TMongoDbDataSourceOptions not provided")
 	}
 
+	if mongoDbOptions.ReadingMode != api_common.TMongoDbDataSourceOptions_TABLE {
+		return nil, fmt.Errorf("unsupported reading_mode: %s", mongoDbOptions.ReadingMode.String())
+	}
+
 	var conn *mongo.Client
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
-			var makeConnErr error
+			var err error
+			conn, err = ds.makeConnection(ctx, logger, dsi)
 
-			uri := fmt.Sprintf(
-				"mongodb://%s:%s@%s:%d/%s?%v&authSource=admin",
-				dsi.Credentials.GetBasic().Username,
-				dsi.Credentials.GetBasic().Password,
-				dsi.Endpoint.Host,
-				dsi.Endpoint.Port,
-				dsi.Database,
-				fmt.Sprintf("tls=%v", dsi.UseTls),
-			)
-
-			openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(ds.cfg.OpenConnectionTimeout))
-			defer openCtxCancel()
-
-			conn, makeConnErr = mongo.Connect(openCtx, options.Client().ApplyURI(uri))
-			if makeConnErr != nil {
-				return fmt.Errorf("mongo.Connect: %w", makeConnErr)
-			}
-
-			pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(ds.cfg.PingConnectionTimeout))
-			defer pingCtxCancel()
-
-			if makeConnErr = conn.Ping(pingCtx, nil); makeConnErr != nil {
-				if err := conn.Disconnect(ctx); err != nil {
-					logger.Fatal(fmt.Sprintf("conn.Disconnect: %v", err))
-				}
-
-				return fmt.Errorf("conn.Ping: %w", makeConnErr)
-			}
-
-			logger.Debug("Connected to MongoDB!")
-
-			return nil
+			return err
 		},
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("retry: %w", err)
+		return nil, fmt.Errorf("make connection: %w", err)
 	}
 
 	defer func() {
 		if err = conn.Disconnect(ctx); err != nil {
-			logger.Fatal(fmt.Sprintf("conn.Disconnect: %v", err))
+			logger.Error(fmt.Sprintf("disconnect: %v", err))
 		}
 	}()
 
@@ -100,12 +76,12 @@ func (ds *dataSource) DescribeTable(
 
 	cursor, err := collection.Find(ctx, bson.D{}, options.Find().SetLimit(int64(ds.cfg.GetCountDocsToDeduceSchema())))
 	if err != nil {
-		return nil, fmt.Errorf("colection.Find: %w", err)
+		return nil, fmt.Errorf("find in collection: %w", err)
 	}
 
 	defer func() {
 		if err = cursor.Close(ctx); err != nil {
-			logger.Fatal(fmt.Sprintf("cursor.Close: %v", err))
+			logger.Error(fmt.Sprintf("cursor close: %v", err))
 		}
 	}()
 
@@ -115,7 +91,7 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	if err = cursor.Err(); err != nil {
-		return nil, fmt.Errorf("cursor.Err(): %w", err)
+		return nil, fmt.Errorf("cursor: %w", err)
 	}
 
 	omitUnsupported :=
@@ -130,19 +106,185 @@ func (ds *dataSource) DescribeTable(
 }
 
 func (*dataSource) ListSplits(
-	_ context.Context,
+	ctx context.Context,
 	_ *zap.Logger,
 	_ *api_service_protos.TListSplitsRequest,
-	_ *api_service_protos.TSelect,
-	_ chan<- *datasource.ListSplitResult) error {
-	return fmt.Errorf("unimplemented")
+	slct *api_service_protos.TSelect,
+	resultChan chan<- *datasource.ListSplitResult) error {
+	// By default we deny table splitting
+	select {
+	case resultChan <- &datasource.ListSplitResult{Slct: slct, Description: nil}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	return nil
 }
 
-func (*dataSource) ReadSplit(
-	_ context.Context,
-	_ *zap.Logger,
+func (ds *dataSource) ReadSplit(
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TReadSplitsRequest,
+	split *api_service_protos.TSplit,
+	sinkFactory paging.SinkFactory[any]) error {
+	dsi := split.Select.DataSourceInstance
+
+	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
+		return fmt.Errorf("cannot run MongoDb connection with protocol '%v'", dsi.Protocol)
+	}
+
+	mongoDbOptions := dsi.GetMongodbOptions()
+	if mongoDbOptions == nil {
+		return fmt.Errorf("TMongoDbDataSourceOptions not provided")
+	}
+
+	if mongoDbOptions.ReadingMode != api_common.TMongoDbDataSourceOptions_TABLE {
+		return fmt.Errorf("unsupported reading_mode: %s", mongoDbOptions.ReadingMode.String())
+	}
+
+	var conn *mongo.Client
+
+	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
+		func() error {
+			var connErr error
+			conn, connErr = ds.makeConnection(ctx, logger, dsi)
+
+			return connErr
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("make connection: %w", err)
+	}
+
+	defer func() {
+		if err = conn.Disconnect(ctx); err != nil {
+			logger.Error(fmt.Sprintf("disconnect: %v", err))
+		}
+	}()
+
+	sinks, err := sinkFactory.MakeSinks(1)
+	if err != nil {
+		return fmt.Errorf("make sinks: %w", err)
+	}
+
+	return ds.doReadSplitSingleConn(ctx, logger, dsi, mongoDbOptions, request, split, sinks[0], conn)
+}
+
+func (ds *dataSource) makeConnection(
+	ctx context.Context,
+	logger *zap.Logger,
+	dsi *api_common.TGenericDataSourceInstance,
+) (*mongo.Client, error) {
+	var makeConnErr error
+
+	uri := fmt.Sprintf(
+		"mongodb://%s:%s@%s:%d/%s?%v&authSource=admin",
+		dsi.Credentials.GetBasic().Username,
+		dsi.Credentials.GetBasic().Password,
+		dsi.Endpoint.Host,
+		dsi.Endpoint.Port,
+		dsi.Database,
+		fmt.Sprintf("tls=%v", dsi.UseTls),
+	)
+
+	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(ds.cfg.OpenConnectionTimeout))
+	defer openCtxCancel()
+
+	conn, makeConnErr := mongo.Connect(openCtx, options.Client().ApplyURI(uri))
+	if makeConnErr != nil {
+		return nil, fmt.Errorf("connect: %w", makeConnErr)
+	}
+
+	pingCtx, pingCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(ds.cfg.PingConnectionTimeout))
+	defer pingCtxCancel()
+
+	if makeConnErr = conn.Ping(pingCtx, nil); makeConnErr != nil {
+		if err := conn.Disconnect(ctx); err != nil {
+			logger.Error(fmt.Sprintf("disconnect: %v", err))
+		}
+
+		return nil, fmt.Errorf("ping: %w", makeConnErr)
+	}
+
+	logger.Debug("Connected to MongoDB!")
+
+	return conn, nil
+}
+
+func (ds *dataSource) doReadSplitSingleConn(
+	ctx context.Context,
+	logger *zap.Logger,
+	dsi *api_common.TGenericDataSourceInstance,
+	mongoDbOptions *api_common.TMongoDbDataSourceOptions,
 	_ *api_service_protos.TReadSplitsRequest,
-	_ *api_service_protos.TSplit,
-	_ paging.SinkFactory[string]) error {
-	return fmt.Errorf("unimplemented")
+	split *api_service_protos.TSplit,
+	sink paging.Sink[any],
+	conn *mongo.Client,
+) error {
+	collection := conn.Database(dsi.Database).Collection(split.Select.From.Table)
+
+	filter := bson.D{}
+	opts := options.Find()
+
+	var cursor *mongo.Cursor
+
+	err := ds.retrierSet.Query.Run(
+		ctx,
+		logger,
+		func() error {
+			var queryErr error
+
+			cursor, queryErr = collection.Find(ctx, filter, opts)
+			if queryErr != nil {
+				return fmt.Errorf("find in collection: %w", queryErr)
+			}
+
+			return nil
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	defer cursor.Close(ctx)
+
+	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
+	if err != nil {
+		return fmt.Errorf("select what to Arrow schema: %w", err)
+	}
+
+	ydbSchema, err := common.SelectWhatToYDBTypes(split.Select.What)
+	if err != nil {
+		return fmt.Errorf("select what to YDB schema: %w", err)
+	}
+
+	reader, err := makeDocumentReader(mongoDbOptions.ReadingMode, mongoDbOptions.UnexpectedTypeDisplayMode, arrowSchema, ydbSchema, ds.cc)
+	if err != nil {
+		return fmt.Errorf("make document reader: %w", err)
+	}
+
+	for cursor.Next(ctx) {
+		var doc bson.M
+
+		if err = cursor.Decode(&doc); err != nil {
+			return fmt.Errorf("decode: %w", err)
+		}
+
+		if err = reader.accept(logger, doc); err != nil {
+			return fmt.Errorf("accept document: %w", err)
+		}
+
+		if err = sink.AddRow(reader.transformer); err != nil {
+			return fmt.Errorf("add row to sink: %w", err)
+		}
+	}
+
+	if err = cursor.Err(); err != nil {
+		return fmt.Errorf("cursor: %w", err)
+	}
+
+	sink.Finish()
+
+	return nil
 }

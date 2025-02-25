@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgtype"
+	bson_primitive "go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -107,6 +108,8 @@ func sizeOfValueReflection(v any) (uint64, acceptorKind, error) {
 		return 16, fixedSize, nil
 	case []byte:
 		return uint64(len(t)), variableSize, nil
+	case bson_primitive.Binary:
+		return uint64(len(t.Data)), variableSize, nil
 	case string:
 		return uint64(len(t)), variableSize, nil
 	case pgtype.Bool:
@@ -127,6 +130,9 @@ func sizeOfValueReflection(v any) (uint64, acceptorKind, error) {
 		return 16, fixedSize, nil
 	case pgtype.Timestamp:
 		return 16, fixedSize, nil
+	// https://www.mongodb.com/docs/manual/reference/bson-types/#objectid
+	case bson_primitive.ObjectID:
+		return 12, fixedSize, nil
 	default:
 		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
 	}
@@ -134,7 +140,7 @@ func sizeOfValueReflection(v any) (uint64, acceptorKind, error) {
 
 // TODO: take money for empty []byte and string? at least 24 bytes
 //
-//nolint:gocyclo
+//nolint:funlen,gocyclo
 func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 	switch t := v.(type) {
 	case bool, *bool, **bool:
@@ -172,6 +178,18 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 		}
 
 		return uint64(len(**t)), variableSize, nil
+	case *bson_primitive.Binary:
+		if t == nil {
+			return 0, variableSize, nil
+		}
+
+		return uint64(len((*t).Data)), variableSize, nil
+	case **bson_primitive.Binary:
+		if t == nil || *t == nil {
+			return 0, variableSize, nil
+		}
+
+		return uint64(len((**t).Data)), variableSize, nil
 	case string:
 		return uint64(len(t)), variableSize, nil
 	case *string:
@@ -206,6 +224,9 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 		return 16, fixedSize, nil
 	case **uuid.UUID:
 		return 16, fixedSize, nil
+	// https://www.mongodb.com/docs/manual/reference/bson-types/#objectid
+	case bson_primitive.ObjectID, *bson_primitive.ObjectID, **bson_primitive.ObjectID:
+		return 12, fixedSize, nil
 	default:
 		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
 	}

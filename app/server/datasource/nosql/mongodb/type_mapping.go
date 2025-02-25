@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -17,7 +18,9 @@ var errNull = errors.New("can't determine field type for null")
 const idColumn string = "_id"
 const objectIdTag string = "ObjectId"
 
-func typeMap(logger *zap.Logger, v bson.RawValue, omitUnsupported bool) (*Ydb.Type, error) {
+type readingMode = api_common.TMongoDbDataSourceOptions_EReadingMode
+
+func typeMap(logger *zap.Logger, v bson.RawValue) (*Ydb.Type, error) {
 	switch v.Type {
 	case bson.TypeInt32:
 		return common.MakePrimitiveType(Ydb.Type_INT32), nil
@@ -33,18 +36,6 @@ func typeMap(logger *zap.Logger, v bson.RawValue, omitUnsupported bool) (*Ydb.Ty
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
 	case bson.TypeObjectID:
 		return common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING)), nil
-	case bson.TypeDateTime:
-		return common.MakePrimitiveType(Ydb.Type_INTERVAL), nil
-	case bson.TypeArray:
-		elements, err := v.Array().Elements()
-		if err != nil {
-			return nil, fmt.Errorf("v.Array().Elements: %w", err)
-		}
-
-		return typeMapArray(logger, elements, omitUnsupported)
-
-	case bson.TypeEmbeddedDocument:
-		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	case bson.TypeNull:
 		return nil, errNull
 	default:
@@ -52,36 +43,6 @@ func typeMap(logger *zap.Logger, v bson.RawValue, omitUnsupported bool) (*Ydb.Ty
 	}
 
 	return nil, common.ErrDataTypeNotSupported
-}
-
-func typeMapArray(logger *zap.Logger, elements []bson.RawElement, omitUnsupported bool) (*Ydb.Type, error) {
-	var innerType *Ydb.Type
-
-	for _, elem := range elements {
-		newInnerType, err := typeMap(logger, elem.Value(), omitUnsupported)
-		if !omitUnsupported && errors.Is(err, common.ErrDataTypeNotSupported) {
-			return common.MakeListType(common.MakePrimitiveType(Ydb.Type_UTF8)), nil
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("typeMap inner value for array: %w", err)
-		}
-
-		if innerType == nil {
-			innerType = newInnerType
-			continue
-		}
-
-		if !common.TypesEqual(newInnerType, innerType) {
-			return common.MakeListType(common.MakePrimitiveType(Ydb.Type_UTF8)), nil
-		}
-	}
-
-	if innerType == nil {
-		return nil, errEmptyArray
-	}
-
-	return common.MakeListType(innerType), nil
 }
 
 func bsonToYqlColumn(
@@ -98,7 +59,7 @@ func bsonToYqlColumn(
 
 	prevType, prevTypeExists := deducedTypes[key]
 
-	t, err := typeMap(logger, elem.Value(), omitUnsupported)
+	t, err := typeMap(logger, elem.Value())
 	if err != nil {
 		if errors.Is(err, errNull) {
 			ambiguousFields[key] = struct{}{}
@@ -160,7 +121,7 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported bool) ([]*Yd
 	for _, doc := range docs {
 		elements, err := doc.Elements()
 		if err != nil {
-			return nil, fmt.Errorf("doc.Elements: %w", err)
+			return nil, fmt.Errorf("document elements: %w", err)
 		}
 
 		for _, elem := range elements {
