@@ -24,7 +24,7 @@ require (
 	github.com/pingcap/errors v0.11.5-0.20201126102027-b0a155152ca3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.16.0
-	github.com/prometheus/client_model v0.4.0
+	github.com/prometheus/client_model v0.5.0
 	github.com/prometheus/common v0.44.0
 	github.com/prometheus/procfs v0.11.1
 	github.com/sijms/go-ora/v2 v2.8.19
@@ -33,7 +33,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/wI2L/jsondiff v0.4.0
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20241112172322-ea1f63298f77
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.99.10
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.100.0
 	github.com/ydb-platform/ydb-go-yc v0.11.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/atomic v1.11.0
@@ -41,7 +41,7 @@ require (
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/sync v0.10.0
 	golang.org/x/time v0.5.0
-	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2
+	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
 	google.golang.org/grpc v1.63.2
 	google.golang.org/protobuf v1.34.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -113,8 +113,4 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20240227224415-6ceb2ff114de // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-)
-
-replace (
-	github.com/ydb-platform/ydb-go-sdk/v3 => /home/vitalyisaev/projects/ydb-go-sdk
 )
