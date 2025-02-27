@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -108,11 +109,72 @@ func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 
-func (sqlFormatter) RenderSelectQueryText(
+func (f sqlFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
 ) (string, error) {
-	return rdbms_utils.DefaultSelectQueryRender(parts, split)
+	// Deserialize split description
+	var (
+		splitDescription TSplitDescription
+		err              error
+	)
+
+	if err = protojson.Unmarshal(split.GetDescription(), &splitDescription); err != nil {
+		return "", fmt.Errorf("unmarshal split description: %w", err)
+	}
+
+	var queryText string
+
+	switch splitDescription.GetShard().(type) {
+	case *TSplitDescription_ColumnShard_:
+		queryText, err = f.renderSelectQueryTextForColumnShard(parts, split, splitDescription.GetColumnShard())
+		if err != nil {
+			return "", fmt.Errorf("render select query text for column shard: %w", err)
+		}
+	case *TSplitDescription_DataShard_:
+		queryText, err = f.renderSelectQueryTextForDataShard(parts, split, splitDescription.GetDataShard())
+		if err != nil {
+			return "", fmt.Errorf("render select query text for column shard: %w", err)
+		}
+	}
+
+	return queryText, nil
+}
+
+func (sqlFormatter) renderSelectQueryTextForColumnShard(
+	parts *rdbms_utils.SelectQueryParts,
+	split *api_service_protos.TSplit,
+	columnShardDescription *TSplitDescription_ColumnShard,
+) (string, error) {
+	// WITH(ShardId="72075186224054918")
+	head, err := rdbms_utils.DefaultSelectQueryRender(parts, split)
+	if err != nil {
+		return "", fmt.Errorf("default select query render: %w", err)
+	}
+
+	if len(columnShardDescription.ShardIds) != 1 {
+		return "", fmt.Errorf(
+			"column shard split description must contain exactly 1 shard id, have %d instead",
+			len(columnShardDescription.ShardIds),
+		)
+	}
+
+	result := head + fmt.Sprintf(" WITH (ShardId=\"%d\")", columnShardDescription.ShardIds[0])
+
+	return result, nil
+}
+
+func (sqlFormatter) renderSelectQueryTextForDataShard(
+	parts *rdbms_utils.SelectQueryParts,
+	split *api_service_protos.TSplit,
+	_ *TSplitDescription_DataShard,
+) (string, error) {
+	queryText, err := rdbms_utils.DefaultSelectQueryRender(parts, split)
+	if err != nil {
+		return "", fmt.Errorf("default select query render: %w", err)
+	}
+
+	return queryText, nil
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {

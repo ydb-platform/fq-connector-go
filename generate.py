@@ -303,11 +303,11 @@ def main():
         )
         # Generate split description files
         run_protoc(
-            connector_github_root.joinpath("app/server/datasource/rdbms/logging").rglob(
+            connector_github_root.joinpath("app/server/datasource/rdbms/ydb").rglob(
                 "*.proto"
             ),
-            connector_github_root.joinpath("app/server/datasource/rdbms/logging"),
-            "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging",
+            connector_github_root.joinpath("app/server/datasource/rdbms/ydb"),
+            "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb",
             [connector_github_root, protobuf_includes],
             False,
         )

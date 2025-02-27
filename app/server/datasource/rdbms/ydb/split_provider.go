@@ -1,4 +1,4 @@
-package logging
+package ydb
 
 import (
 	"context"
@@ -10,11 +10,12 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table"
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
@@ -38,22 +39,76 @@ func (s *splitProviderImpl) ListSplits(
 		return nil
 	}
 
-	// Otherwise ask database for table shards
-	if err := s.doListSplits(ctx, logger, conn, slct, resultChan); err != nil {
+	// Find out the type of a table
+	storeType, err := s.getTableStoreType(ctx, logger, conn)
+	if err != nil {
+		return fmt.Errorf("get table store type: %w", err)
+	}
+
+	switch storeType {
+	case options.StoreTypeColumn:
+		if err = s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
+			return fmt.Errorf("list splits column shard: %w", err)
+		}
+	case options.StoreTypeRow:
+		if err = s.listSplitsDataShard(ctx, logger, conn, slct, resultChan); err != nil {
+			return fmt.Errorf("list splits data shard: %w", err)
+		}
+	default:
+		return errors.New("unsupported table store type")
+	}
+
+	if err := s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
 		return fmt.Errorf("do list splits: %w", err)
 	}
 
 	return nil
 }
 
-func (splitProviderImpl) doListSplits(
+func (s *splitProviderImpl) getTableStoreType(
+	ctx context.Context,
+	logger *zap.Logger,
+	conn rdbms_utils.Connection,
+) (options.StoreType, error) {
+	databaseName, tableName := conn.From()
+
+	var (
+		driver = conn.(Connection).Driver()
+		prefix = path.Join(databaseName, tableName)
+		desc   options.Description
+	)
+
+	logger.Debug("obtaining table store type", zap.String("prefix", prefix))
+
+	err := driver.Table().Do(
+		ctx,
+		func(ctx context.Context, s table.Session) error {
+			var errInner error
+
+			desc, errInner = s.DescribeTable(ctx, prefix)
+			if errInner != nil {
+				return fmt.Errorf("describe table: %w", errInner)
+			}
+
+			return nil
+		},
+		table.WithIdempotent(),
+	)
+	if err != nil {
+		return options.StoreTypeUnspecified, fmt.Errorf("get table description: %w", err)
+	}
+
+	return desc.StoreType, nil
+}
+
+func (splitProviderImpl) listSplitsColumnShard(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,
 ) error {
-	driver := conn.(ydb.Connection).Driver()
+	driver := conn.(Connection).Driver()
 	databaseName, tableName := conn.From()
 	prefix := path.Join(databaseName, tableName)
 
@@ -96,7 +151,11 @@ func (splitProviderImpl) doListSplits(
 				}
 
 				description := &TSplitDescription{
-					ShardIds: []uint64{tabletId},
+					Shard: &TSplitDescription_ColumnShard_{
+						ColumnShard: &TSplitDescription_ColumnShard{
+							ShardIds: []uint64{tabletId},
+						},
+					},
 				}
 
 				// TODO: rewrite it
@@ -116,6 +175,28 @@ func (splitProviderImpl) doListSplits(
 	})
 	if err != nil {
 		return fmt.Errorf("querying table shard ids: %w", err)
+	}
+
+	return nil
+}
+
+func (splitProviderImpl) listSplitsDataShard(
+	ctx context.Context,
+	_ *zap.Logger,
+	_ rdbms_utils.Connection,
+	slct *api_service_protos.TSelect,
+	resultChan chan<- *datasource.ListSplitResult,
+) error {
+	// Data shard splitting is not supported yet
+	splitDescription := &TSplitDescription{
+		Shard: &TSplitDescription_DataShard_{
+			DataShard: &TSplitDescription_DataShard{},
+		},
+	}
+
+	select {
+	case resultChan <- makeSplit(slct, splitDescription):
+	case <-ctx.Done():
 	}
 
 	return nil

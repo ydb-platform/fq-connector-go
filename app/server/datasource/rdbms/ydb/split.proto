@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package NYql.Connector.App.Server.DataSource.RDBMS.Ydb;
+
+option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/";
+
+message TSplitDescription {
+    message DataShard {
+    }
+
+    message ColumnShard {
+        repeated uint64 shard_ids = 1;
+    }
+
+    oneof shard {
+        DataShard data_shard = 1;
+        ColumnShard column_shard = 2;
+    }
+}

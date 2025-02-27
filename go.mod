@@ -114,3 +114,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace (
+	github.com/ydb-platform/ydb-go-sdk/v3 => /home/vitalyisaev/projects/ydb-go-sdk
+)
