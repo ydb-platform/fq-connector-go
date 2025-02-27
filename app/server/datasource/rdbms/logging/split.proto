@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package NYql.Connector.App.Server.DataSource.RDBMS.Logging;
-
-option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging/";
-
-message TSplitDescription {
-    repeated uint64 shard_ids = 1;
-}
