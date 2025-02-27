@@ -200,6 +200,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 
 	listSplitsResponses, err := b.Connector.ClientBuffering().ListSplits(ctx, slct)
 	b.Require().NoError(err)
+
 	for _, listSplitsResponse := range listSplitsResponses {
 		b.Require().True(common.IsSuccess(listSplitsResponse.Error), listSplitsResponse.Error.String())
 	}
