@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"io"
 	"path"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	table_options "github.com/ydb-platform/ydb-go-sdk/v3/table/options"
@@ -88,6 +91,13 @@ func (s *splitProviderImpl) getTableStoreType(
 
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
+				// UNAVAILABLE error code causes endless retry in Go SDK,
+				// so we have to make this error indistinguishable for SDK.
+				if ydb.IsOperationError(errInner, Ydb.StatusIds_UNAVAILABLE) &&
+					strings.Contains(errInner.Error(), "Schemeshard not available") {
+					return fmt.Errorf("Schemeshard not available")
+				}
+
 				return fmt.Errorf("describe table: %w", errInner)
 			}
 
