@@ -11,7 +11,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+	table_options "github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
@@ -46,11 +46,11 @@ func (s *splitProviderImpl) ListSplits(
 	}
 
 	switch storeType {
-	case options.StoreTypeColumn:
+	case table_options.StoreTypeColumn:
 		if err = s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list splits column shard: %w", err)
 		}
-	case options.StoreTypeRow:
+	case table_options.StoreTypeRow:
 		if err = s.listSplitsDataShard(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list splits data shard: %w", err)
 		}
@@ -69,13 +69,13 @@ func (s *splitProviderImpl) getTableStoreType(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
-) (options.StoreType, error) {
+) (table_options.StoreType, error) {
 	databaseName, tableName := conn.From()
 
 	var (
 		driver = conn.(Connection).Driver()
 		prefix = path.Join(databaseName, tableName)
-		desc   options.Description
+		desc   table_options.Description
 	)
 
 	logger.Debug("obtaining table store type", zap.String("prefix", prefix))
@@ -95,7 +95,7 @@ func (s *splitProviderImpl) getTableStoreType(
 		table.WithIdempotent(),
 	)
 	if err != nil {
-		return options.StoreTypeUnspecified, fmt.Errorf("get table description: %w", err)
+		return table_options.StoreTypeUnspecified, fmt.Errorf("get table description: %w", err)
 	}
 
 	return desc.StoreType, nil
@@ -172,7 +172,10 @@ func (splitProviderImpl) listSplitsColumnShard(
 		logger.Info("discovered column table shards", zap.Int("total", totalShards))
 
 		return nil
-	})
+	},
+		query.WithIdempotent(),
+	)
+
 	if err != nil {
 		return fmt.Errorf("querying table shard ids: %w", err)
 	}
