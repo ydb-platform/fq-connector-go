@@ -1,0 +1,33 @@
+{
+    "tableName": "example_table",
+    "schemaName": "default",
+    "key": {
+        "dataFormat": "raw",
+        "fields": [
+            {
+                "name": "id",
+                "type": "varchar"
+            }
+        ]
+    },
+    "value": {
+        "dataFormat": "hash",
+        "fields": [
+            {
+                "name": "field1",
+                "type": "varchar",
+                "mapping": "field1"
+            },
+            {
+                "name": "field2",
+                "type": "varchar",
+                "mapping": "field2"
+            },
+            {
+                "name": "field3",
+                "type": "varchar",
+                "mapping": "field3"
+            }
+        ]
+    }
+}
