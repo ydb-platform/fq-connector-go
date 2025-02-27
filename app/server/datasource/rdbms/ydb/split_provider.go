@@ -58,12 +58,15 @@ func (s *splitProviderImpl) ListSplits(
 		if err = s.listSplitsDataShard(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list splits data shard: %w", err)
 		}
-	default:
-		return errors.New("unsupported table store type")
-	}
+	case table_options.StoreTypeUnspecified:
+		// Observed at: 24.3.11.13
+		logger.Warn("table store type is unspecified, fallback to data shard")
 
-	if err := s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
-		return fmt.Errorf("do list splits: %w", err)
+		if err = s.listSplitsDataShard(ctx, logger, conn, slct, resultChan); err != nil {
+			return fmt.Errorf("list splits data shard: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported table store type: %v", storeType)
 	}
 
 	return nil
