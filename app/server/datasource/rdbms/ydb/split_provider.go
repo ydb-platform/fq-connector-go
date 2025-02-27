@@ -117,21 +117,19 @@ func (splitProviderImpl) listSplitsColumnShard(
 
 	var totalShards int
 
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
 		queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
 
-		// FIXME: timeouts are needed only to prevent endless retry loop for retriable errors.
-		// If SDK could return the error immediately, there wouldn't be need for retry.
-		queryCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-
-		result, err := s.Query(queryCtx, queryText)
+		result, err := s.Query(ctx, queryText)
 		if err != nil {
 			return fmt.Errorf("query: %w", err)
 		}
 
 		for {
-			resultSet, err := result.NextResultSet(queryCtx)
+			resultSet, err := result.NextResultSet(ctx)
 			if err != nil {
 				if errors.Is(err, io.EOF) {
 					break
@@ -143,7 +141,7 @@ func (splitProviderImpl) listSplitsColumnShard(
 			var tabletId uint64
 
 			for {
-				r, err := resultSet.NextRow(queryCtx)
+				r, err := resultSet.NextRow(ctx)
 				if err != nil {
 					if errors.Is(err, io.EOF) {
 						break
