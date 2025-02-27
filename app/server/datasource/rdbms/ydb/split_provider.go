@@ -69,7 +69,7 @@ func (s *splitProviderImpl) ListSplits(
 	return nil
 }
 
-func (s *splitProviderImpl) getTableStoreType(
+func (splitProviderImpl) getTableStoreType(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -95,7 +95,7 @@ func (s *splitProviderImpl) getTableStoreType(
 				// so we have to make this error indistinguishable for SDK.
 				if ydb.IsOperationError(errInner, Ydb.StatusIds_UNAVAILABLE) &&
 					strings.Contains(errInner.Error(), "Schemeshard not available") {
-					return fmt.Errorf("Schemeshard not available")
+					return errors.New("schemeshard not available")
 				}
 
 				return fmt.Errorf("describe table: %w", errInner)
@@ -214,6 +214,7 @@ func (splitProviderImpl) listSplitsDataShard(
 	select {
 	case resultChan <- makeSplit(slct, splitDescription):
 	case <-ctx.Done():
+		return ctx.Err()
 	}
 
 	return nil
