@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -422,11 +423,25 @@ func TestMakeSelectQuery(t *testing.T) {
 		tc := tc
 
 		t.Run(tc.testName, func(t *testing.T) {
+			splitDescription := &TSplitDescription{
+				Shard: &TSplitDescription_DataShard_{
+					DataShard: &TSplitDescription_DataShard{},
+				},
+			}
+
+			splitDescriptionBytes, err := protojson.Marshal(splitDescription)
+			require.NoError(t, err)
+
 			readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 				context.Background(),
 				logger,
 				formatter,
-				&api_service_protos.TSplit{Select: tc.selectReq},
+				&api_service_protos.TSplit{
+					Select: tc.selectReq,
+					Payload: &api_service_protos.TSplit_Description{
+						Description: splitDescriptionBytes,
+					},
+				},
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
 				tc.selectReq.From.Table,
 			)
