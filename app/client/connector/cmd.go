@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/ydb-platform/fq-connector-go/app/client/utils"
 )
 
 var Cmd = &cobra.Command{
@@ -34,28 +36,20 @@ var listSplitsCmd = &cobra.Command{
 	},
 }
 
-const (
-	configFlag         = "config"
-	tableFlag          = "table"
-	dateTimeFormatFlag = "date-time-format"
-	userIDFlag         = "user-id"
-	sessionIDFlag      = "session"
-)
-
 func init() {
 	Cmd.AddCommand(readTableCmd)
 	Cmd.AddCommand(listSplitsCmd)
 
-	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
+	Cmd.Flags().StringP(utils.ConfigFlag, "c", "", "path to client config file")
 
-	if err := Cmd.MarkFlagRequired(configFlag); err != nil {
+	if err := Cmd.MarkFlagRequired(utils.ConfigFlag); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	Cmd.Flags().StringP(tableFlag, "t", "", "table to read")
+	Cmd.Flags().StringP(utils.TableFlag, "t", "", "table to read")
 
-	if err := Cmd.MarkFlagRequired(tableFlag); err != nil {
+	if err := Cmd.MarkFlagRequired(utils.TableFlag); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -64,7 +58,7 @@ func init() {
 	readTableCmd.Flags().AddFlagSet(Cmd.Flags())
 	listSplitsCmd.Flags().AddFlagSet(Cmd.Flags())
 
-	readTableCmd.Flags().StringP(userIDFlag, "u", "", "user-id")
-	readTableCmd.Flags().StringP(sessionIDFlag, "s", "", "flag-id")
-	readTableCmd.Flags().StringP(dateTimeFormatFlag, "", "YQL_FORMAT", "date-time-format")
+	readTableCmd.Flags().StringP(utils.UserIDFlag, "u", "", "user-id")
+	readTableCmd.Flags().StringP(utils.SessionIDFlag, "s", "", "flag-id")
+	readTableCmd.Flags().StringP(utils.DateTimeFormatFlag, "", "YQL_FORMAT", "date-time-format")
 }

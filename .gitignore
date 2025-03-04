@@ -9,3 +9,5 @@ scripts/bench/ydb
 __pycache__
 *.test
 .vscode
+
+.ipynb_checkpoints

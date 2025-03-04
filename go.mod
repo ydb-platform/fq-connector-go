@@ -42,6 +42,7 @@ require (
 	golang.org/x/sync v0.10.0
 	golang.org/x/time v0.5.0
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028
+	gonum.org/v1/gonum v0.14.0
 	google.golang.org/grpc v1.63.2
 	google.golang.org/protobuf v1.34.1
 	gopkg.in/yaml.v3 v3.0.1

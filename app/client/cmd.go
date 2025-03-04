@@ -5,6 +5,7 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/app/client/connector"
 	"github.com/ydb-platform/fq-connector-go/app/client/metrics"
+	"github.com/ydb-platform/fq-connector-go/app/client/ydb"
 )
 
 var Cmd = &cobra.Command{
@@ -15,4 +16,5 @@ var Cmd = &cobra.Command{
 func init() {
 	Cmd.AddCommand(connector.Cmd)
 	Cmd.AddCommand(metrics.Cmd)
+	Cmd.AddCommand(ydb.Cmd)
 }

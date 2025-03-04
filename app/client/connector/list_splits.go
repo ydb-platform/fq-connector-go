@@ -2,59 +2,43 @@ package connector
 
 import (
 	"context"
-	"flag"
 	"fmt"
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/client/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 func listSplits(cmd *cobra.Command, _ []string) error {
-	configPath, err := cmd.Flags().GetString(configFlag)
+	preset, err := utils.MakePreset(cmd)
 	if err != nil {
-		return fmt.Errorf("get config flag: %v", err)
+		return fmt.Errorf("make preset: %w", err)
 	}
 
-	tableName, err := cmd.Flags().GetString(tableFlag)
-	if err != nil {
-		return fmt.Errorf("get table flag: %v", err)
-	}
+	defer preset.Close()
 
-	var cfg config.TClientConfig
-
-	if err = common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
-		return fmt.Errorf("unknown instance: %w", err)
-	}
-
-	logger := common.NewDefaultLogger()
-
-	flag.Parse()
-
-	// override credentials if IAM-token provided
-	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
-
-	cl, err := common.NewClientBufferingFromClientConfig(logger, &cfg)
+	client, err := common.NewClientBufferingFromClientConfig(preset.Logger, preset.Cfg)
 	if err != nil {
 		return fmt.Errorf("new client buffering from client config: %w", err)
 	}
 
-	defer cl.Close()
+	defer client.Close()
 
 	// ListSplits - we want to SELECT *
 	slct := &api_service_protos.TSelect{
-		DataSourceInstance: cfg.DataSourceInstance,
+		DataSourceInstance: preset.Cfg.DataSourceInstance,
 		From: &api_service_protos.TSelect_TFrom{
-			Table: tableName,
+			Table: preset.TableName,
 		},
 	}
 
+	logger := preset.Logger
 	logger.Debug("Listing splits", zap.String("select", slct.String()))
 
-	listSplitsResponse, err := cl.ListSplits(context.Background(), slct)
+	listSplitsResponse, err := client.ListSplits(context.Background(), slct)
 	if err != nil {
 		return fmt.Errorf("list splits: %w", err)
 	}
