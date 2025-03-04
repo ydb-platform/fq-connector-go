@@ -2,7 +2,6 @@ package connector
 
 import (
 	"context"
-	"flag"
 	"fmt"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -12,6 +11,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/client/utils"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -23,17 +23,7 @@ type requestMetadata struct {
 }
 
 func readTable(cmd *cobra.Command, _ []string) error {
-	configPath, err := cmd.Flags().GetString(configFlag)
-	if err != nil {
-		return fmt.Errorf("get config flag: %v", err)
-	}
-
-	tableName, err := cmd.Flags().GetString(tableFlag)
-	if err != nil {
-		return fmt.Errorf("get table flag: %v", err)
-	}
-
-	dateTimeFormatStr, err := cmd.Flags().GetString(dateTimeFormatFlag)
+	dateTimeFormatStr, err := cmd.Flags().GetString(utils.DateTimeFormatFlag)
 	if err != nil {
 		return fmt.Errorf("get date-time-format flag: %v", err)
 	}
@@ -43,42 +33,41 @@ func readTable(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("unknown date-time-format: %s", dateTimeFormatStr)
 	}
 
-	userID, err := cmd.Flags().GetString(userIDFlag)
+	userID, err := cmd.Flags().GetString(utils.UserIDFlag)
 	if err != nil {
 		return fmt.Errorf("get user flag: %v", err)
 	}
 
-	sessionID, err := cmd.Flags().GetString(sessionIDFlag)
+	sessionID, err := cmd.Flags().GetString(utils.SessionIDFlag)
 	if err != nil {
 		return fmt.Errorf("get session flag: %v", err)
 	}
 
-	var cfg config.TClientConfig
-
-	if err := common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
-		return fmt.Errorf("unknown instance: %w", err)
+	preset, err := utils.MakePreset(cmd)
+	if err != nil {
+		return fmt.Errorf("make preset: %w", err)
 	}
 
-	logger := common.NewDefaultLogger()
-	defer func() {
-		if err := logger.Sync(); err != nil {
-			fmt.Println("failed to sync logger", err)
-		}
-	}()
+	defer preset.Close()
 
-	flag.Parse()
+	client, err := common.NewClientBufferingFromClientConfig(preset.Logger, preset.Cfg)
+	if err != nil {
+		return fmt.Errorf("new client buffering from client config: %w", err)
+	}
+
+	defer client.Close()
 
 	md := requestMetadata{
 		userID:    userID,
 		sessionID: sessionID,
 	}
 
-	// override credentials if IAM-token provided
-	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
-
-	logger = common.AnnotateLoggerWithDataSourceInstance(logger, cfg.DataSourceInstance)
-
-	if err := doReadTable(logger, &cfg, tableName, api_service_protos.EDateTimeFormat(dateTimeFormat), md); err != nil {
+	if err := doReadTable(
+		preset.Logger,
+		preset.Cfg,
+		preset.TableName,
+		api_service_protos.EDateTimeFormat(dateTimeFormat),
+		md); err != nil {
 		return fmt.Errorf("call server: %w", err)
 	}
 

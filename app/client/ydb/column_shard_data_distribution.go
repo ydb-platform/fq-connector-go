@@ -12,55 +12,28 @@ import (
 	"go.uber.org/zap"
 	"gonum.org/v1/gonum/stat"
 
-	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/client/utils"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
-	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 //nolint:gocyclo
 func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
-	configPath, err := cmd.Flags().GetString(configFlag)
+	preset, err := utils.MakePreset(cmd)
 	if err != nil {
-		return fmt.Errorf("get config flag: %v", err)
+		return fmt.Errorf("make preset: %w", err)
 	}
 
-	tableName, err := cmd.Flags().GetString(tableFlag)
-	if err != nil {
-		return fmt.Errorf("get table flag: %v", err)
-	}
+	defer preset.Close()
 
-	var cfg config.TClientConfig
-
-	if err = common.NewConfigFromPrototextFile[*config.TClientConfig](configPath, &cfg); err != nil {
-		return fmt.Errorf("unknown instance: %w", err)
-	}
-
-	logger := common.NewDefaultLogger()
-	defer func() {
-		if err = logger.Sync(); err != nil {
-			fmt.Println("failed to sync logger", err)
-		}
-	}()
-
-	// override credentials if IAM-token provided
-	common.MaybeInjectTokenToDataSourceInstance(cfg.DataSourceInstance)
-
-	logger = common.AnnotateLoggerWithDataSourceInstance(logger, cfg.DataSourceInstance)
-
+	logger := preset.Logger
 	ctx := context.Background()
-
-	ydbConfig := &config.TYdbConfig{
-		Mode:                  config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE,
-		OpenConnectionTimeout: "5s",
-		PingConnectionTimeout: "5s",
-	}
 
 	connManager := ydb.NewConnectionManager(ydbConfig, rdbms_utils.ConnectionManagerBase{})
 	cs, err := connManager.Make(&rdbms_utils.ConnectionParams{
 		Ctx:                ctx,
-		Logger:             logger,
-		DataSourceInstance: cfg.DataSourceInstance,
+		Logger:             preset.Logger,
+		DataSourceInstance: preset.Cfg.DataSourceInstance,
 		MaxConnections:     1,
 	})
 
@@ -68,57 +41,15 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("make connection: %v", err)
 	}
 
-	defer connManager.Release(ctx, logger, cs)
+	defer connManager.Release(ctx, preset.Logger, cs)
 
 	databaseName, _ := cs[0].From()
-	prefix := path.Join(databaseName, tableName)
+	prefix := path.Join(databaseName, preset.TableName)
 	driver := cs[0].(ydb.Connection).Driver()
 
-	var shardIDs []uint64
-
-	err = driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
-		queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
-
-		result, errInner := s.Query(ctx, queryText)
-		if errInner != nil {
-			return fmt.Errorf("query: %w", errInner)
-		}
-
-		for {
-			resultSet, errInner := result.NextResultSet(ctx)
-			if errInner != nil {
-				if errors.Is(errInner, io.EOF) {
-					break
-				}
-
-				return fmt.Errorf("next result set: %w", errInner)
-			}
-
-			var tabletId uint64
-
-			for {
-				r, errInner := resultSet.NextRow(ctx)
-				if errInner != nil {
-					if errors.Is(errInner, io.EOF) {
-						break
-					}
-
-					return fmt.Errorf("next result set: %w", errInner)
-				}
-
-				if errInner := r.Scan(&tabletId); errInner != nil {
-					return fmt.Errorf("row scan: %w", errInner)
-				}
-
-				shardIDs = append(shardIDs, tabletId)
-			}
-		}
-
-		return nil
-	})
-
+	shardIDs, err := getColumnShardIds(ctx, driver, prefix)
 	if err != nil {
-		return fmt.Errorf("query: %v", err)
+		return fmt.Errorf("get column shard ids: %w", err)
 	}
 
 	type rowsCountResult struct {
@@ -129,6 +60,7 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 
 	resultChan := make(chan rowsCountResult, len(shardIDs))
 
+	// Get the number of rows in each shard
 	for _, shardId := range shardIDs {
 		go func(shardId uint64) {
 			err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
@@ -180,7 +112,7 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 		}(shardId)
 	}
 
-	// how many totalRowsPerShard in each shard
+	// how many rows are there in each shard
 	var totalRowsPerShard []float64
 
 	for range shardIDs {

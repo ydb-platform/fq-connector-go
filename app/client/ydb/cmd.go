@@ -23,6 +23,17 @@ var columnShardsDataDistributionCmd = &cobra.Command{
 	},
 }
 
+var columnShardBenchmarkSelectCmd = &cobra.Command{
+	Use:   "cs_benchmark_select",
+	Short: "Benchmark speed of a `SELECT * from table` query with columnar table",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := columnShardBenchmarkSelect(cmd, args); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
 const (
 	configFlag = "config"
 	tableFlag  = "table"
@@ -30,6 +41,7 @@ const (
 
 func init() {
 	Cmd.AddCommand(columnShardsDataDistributionCmd)
+	Cmd.AddCommand(columnShardBenchmarkSelectCmd)
 
 	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
 
@@ -47,4 +59,5 @@ func init() {
 
 	// inherit parent flags
 	columnShardsDataDistributionCmd.Flags().AddFlagSet(Cmd.Flags())
+	columnShardBenchmarkSelectCmd.Flags().AddFlagSet(Cmd.Flags())
 }
