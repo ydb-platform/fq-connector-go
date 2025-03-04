@@ -47,7 +47,7 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 	prefix := path.Join(databaseName, preset.TableName)
 	driver := cs[0].(ydb.Connection).Driver()
 
-	shardIDs, err := getColumnShardIds(ctx, driver, prefix)
+	shardIDs, err := getColumnShardIDs(ctx, driver, prefix)
 	if err != nil {
 		return fmt.Errorf("get column shard ids: %w", err)
 	}

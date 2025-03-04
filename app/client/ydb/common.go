@@ -18,7 +18,7 @@ var ydbConfig = &config.TYdbConfig{
 	PingConnectionTimeout: "5s",
 }
 
-func getColumnShardIds(ctx context.Context, driver *ydb.Driver, prefix string) ([]uint64, error) {
+func getColumnShardIDs(ctx context.Context, driver *ydb.Driver, prefix string) ([]uint64, error) {
 	var shardIDs []uint64
 
 	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {

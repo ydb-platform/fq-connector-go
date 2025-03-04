@@ -53,24 +53,32 @@ func columnShardBenchmarkSelect(cmd *cobra.Command, _ []string) error {
 	prefix := path.Join(databaseName, preset.TableName)
 	driver := cs[0].(rdbms_ydb.Connection).Driver()
 
-	shardIDs, err := getColumnShardIds(ctx, driver, prefix)
+	shardIDs, err := getColumnShardIDs(ctx, driver, prefix)
 	if err != nil {
 		return fmt.Errorf("get column shard ids: %w", err)
 	}
 
 	var results []*columnShardBenchmarkSelectResult
+
 	logger := preset.Logger
 
-	for _, shardID := range shardIDs {
-		logger.Debug("Started column shard benchmarking", zap.Uint64("shard_id", shardID))
+	for i, shardID := range shardIDs {
+		logger.Debug(
+			"column shard benchmarking started",
+			zap.Int("shard_index", i),
+			zap.Int("shards_total", len(shardIDs)),
+			zap.Uint64("shard_id", shardID),
+		)
 
-		result, err := columnShardBenchmarkSelectSingleShard(ctx, preset.Logger, driver, prefix, shardID)
+		result, err := columnShardBenchmarkSelectSingleShard(ctx, driver, prefix, shardID)
 		if err != nil {
 			return fmt.Errorf("benchmark single shard: %w", err)
 		}
 
 		logger.Debug(
-			"Finished column shard benchmarking",
+			"column shard benchmarking finished",
+			zap.Int("shard_index", i),
+			zap.Int("shards_total", len(shardIDs)),
 			zap.Uint64("shard_id", shardID),
 			zap.Duration("elapsed_time", result.elapsedTime),
 			zap.Uint64("rows", result.rows),
@@ -93,12 +101,10 @@ func columnShardBenchmarkSelect(cmd *cobra.Command, _ []string) error {
 
 func columnShardBenchmarkSelectSingleShard(
 	ctx context.Context,
-	logger *zap.Logger,
 	driver *ydb.Driver,
 	tablePrefix string,
 	shardID uint64,
 ) (*columnShardBenchmarkSelectResult, error) {
-
 	var benchResult columnShardBenchmarkSelectResult
 
 	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
