@@ -46,7 +46,7 @@ func init() {
 	Cmd.AddCommand(readTableCmd)
 	Cmd.AddCommand(listSplitsCmd)
 
-	Cmd.Flags().StringP(configFlag, "c", "", "path to server config file")
+	Cmd.Flags().StringP(configFlag, "c", "", "path to client config file")
 
 	if err := Cmd.MarkFlagRequired(configFlag); err != nil {
 		fmt.Println(err)
