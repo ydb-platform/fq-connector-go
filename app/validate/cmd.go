@@ -3,13 +3,17 @@ package validate
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/ydb-platform/fq-connector-go/app/server/config"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
+
+	"github.com/ydb-platform/fq-connector-go/app/server/config"
+	"github.com/ydb-platform/fq-connector-go/common"
+
+	sigs_yaml "sigs.k8s.io/yaml"
 )
 
 var Cmd = &cobra.Command{
@@ -76,12 +80,17 @@ func validateHelmConfigurationFile(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("create temp file: %v", err)
 	}
 
+	logger := common.NewDefaultLogger()
+
 	defer func() {
-		tempFile.Close()
-		os.Remove(tempFile.Name())
+		common.LogCloserError(logger, tempFile, "close temp file")
+
+		if errInner := os.Remove(tempFile.Name()); errInner != nil {
+			logger.Error("remove temp file", zap.Error(errInner))
+		}
 	}()
 
-	if err := ioutil.WriteFile(tempFile.Name(), []byte(keyPart.(string)), 0644); err != nil {
+	if err = ioutil.WriteFile(tempFile.Name(), []byte(keyPart.(string)), 0644); err != nil {
 		return fmt.Errorf("write temp file: %v", err)
 	}
 
@@ -91,22 +100,29 @@ func validateHelmConfigurationFile(cmd *cobra.Command, _ []string) error {
 	}
 
 	marshaler := protojson.MarshalOptions{
-		Multiline: true,
-		Indent:    "  ",
+		Multiline:       true,
+		Indent:          "  ",
+		EmitUnpopulated: true,
+		UseProtoNames:   true,
 	}
 
 	prettyJSON, err := marshaler.Marshal(cfg)
 	if err != nil {
-		log.Fatalf("Failed to marshal proto message: %v", err)
+		return fmt.Errorf("marshal config to JSON: %v", err)
 	}
 
-	fmt.Println(string(prettyJSON))
+	prettyYAML, err := sigs_yaml.JSONToYAML(prettyJSON)
+	if err != nil {
+		return fmt.Errorf("convert JSON to YAML: %v", err)
+	}
+
+	fmt.Println(string(prettyYAML))
 
 	return nil
 }
 
 // parseYAMLFile will read a YAML file and decode it into a map
-func parseYAMLFile(filename string) (map[string]interface{}, error) {
+func parseYAMLFile(filename string) (map[string]any, error) {
 	file, err := os.Open(filename)
 	if err != nil {
 		return nil, err
@@ -117,7 +133,7 @@ func parseYAMLFile(filename string) (map[string]interface{}, error) {
 	decoder := yaml.NewDecoder(file)
 
 	// Use an interface to hold the YAML content
-	var data map[string]interface{}
+	var data map[string]any
 
 	// Decode YAML data into interface map
 	err = decoder.Decode(&data)

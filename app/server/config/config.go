@@ -575,19 +575,6 @@ func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
 	return nil
 }
 
-func fileMustExist(path string) error {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("path '%s' does not exist", path)
-	}
-
-	if info.IsDir() {
-		return fmt.Errorf("path '%s' is a directory", path)
-	}
-
-	return nil
-}
-
 func newConfigFromPrototextFile(configPath string) (*config.TServerConfig, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
