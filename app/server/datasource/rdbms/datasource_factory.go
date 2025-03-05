@@ -128,7 +128,7 @@ func NewDataSourceFactory(
 			},
 		},
 		ydb: Preset{
-			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode, cfg.Clickhouse.Pushdown),
+			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode, cfg.Ydb.Pushdown),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),

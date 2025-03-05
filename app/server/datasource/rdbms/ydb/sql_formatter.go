@@ -20,7 +20,7 @@ type sqlFormatter struct {
 }
 
 //nolint:gocyclo
-func (f *sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (f sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -57,7 +57,7 @@ func (f *sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) 
 	}
 }
 
-func (f *sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
+func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	switch v := t.Type.(type) {
 	case *Ydb.Type_TypeId:
 		return f.supportsTypeForPushdown(v.TypeId)

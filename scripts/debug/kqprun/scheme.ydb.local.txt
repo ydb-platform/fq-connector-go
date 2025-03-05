@@ -1,11 +1,10 @@
 CREATE OBJECT ydb_local_password (TYPE SECRET) WITH (value = password);
 
-CREATE EXTERNAL DATA SOURCE mr_nvme_testing_01_ydb_native WITH (
+CREATE EXTERNAL DATA SOURCE external_datasource WITH (
     SOURCE_TYPE="Ydb",
     LOCATION="localhost:2136",
     AUTH_METHOD="BASIC",
     LOGIN="admin",
     DATABASE_NAME="local",
-    PASSWORD_SECRET_NAME="ydb_local_password",
-    PROTOCOL="NATIVE"
+    PASSWORD_SECRET_NAME="ydb_local_password"
 );
