@@ -263,6 +263,14 @@ message TYdbConfig {
     // if service_account_key_file_credentials is set.
     NYql.TGenericEndpoint iam_endpoint = 6;
 
+    // TSplitting contains various setting for the process of table splitting
+    message TSplitting {
+        // Enables splitting for OLAP tables
+        bool enabled_on_column_shards = 1;
+    }
+
+    TSplitting splitting = 7;
+
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;
 }
