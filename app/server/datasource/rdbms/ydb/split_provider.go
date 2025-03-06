@@ -60,6 +60,7 @@ func (s *splitProviderImpl) ListSplits(
 		} else {
 			logger.Warn(
 				"splitting is disabled in config, fallback to default (single split per table)")
+
 			if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
 				return fmt.Errorf("list single split: %w", err)
 			}
