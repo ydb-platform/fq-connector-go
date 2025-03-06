@@ -94,6 +94,19 @@ set -x
     VALUES (1, Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123456Z"));
     COMMIT;
 
+    CREATE TABLE datetime_optionals (
+        id Int32 NOT NULL,
+        col_01_date Date,
+        col_02_datetime Datetime,
+        col_03_timestamp Timestamp,
+        PRIMARY KEY (id)
+    );
+    COMMIT;
+    INSERT INTO
+    datetime (id, col_01_date, col_02_datetime, col_03_timestamp)
+    VALUES (1, Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123456Z"));
+    COMMIT;
+
     CREATE TABLE pushdown (
         id Int32 NOT NULL,
         col_01_int Int32,
