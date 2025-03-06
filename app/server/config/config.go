@@ -296,12 +296,12 @@ func validateServerTLSConfig(c *config.TServerTLSConfig) error {
 		return nil
 	}
 
-	if err := fileMustExist(c.Key); err != nil {
-		return fmt.Errorf("invalid value of field `key`: %w", err)
+	if c.Key == "" {
+		return fmt.Errorf("invalid value of field `key`: %v", c.Key)
 	}
 
-	if err := fileMustExist(c.Cert); err != nil {
-		return fmt.Errorf("invalid value of field `cert`: %w", err)
+	if c.Cert == "" {
+		return fmt.Errorf("invalid value of field `cert`: %v", c.Cert)
 	}
 
 	return nil
@@ -449,10 +449,6 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 	}
 
 	if c.ServiceAccountKeyFileCredentials != "" {
-		if err := fileMustExist(c.ServiceAccountKeyFileCredentials); err != nil {
-			return fmt.Errorf("invalid value of field `service_account_key_file_credentials`: %w", err)
-		}
-
 		if c.IamEndpoint == nil {
 			return fmt.Errorf("you must set `iam_endpoint` if `service_account_key_file_credentials` is set")
 		}
@@ -579,19 +575,6 @@ func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
 	return nil
 }
 
-func fileMustExist(path string) error {
-	info, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return fmt.Errorf("path '%s' does not exist", path)
-	}
-
-	if info.IsDir() {
-		return fmt.Errorf("path '%s' is a directory", path)
-	}
-
-	return nil
-}
-
 func newConfigFromPrototextFile(configPath string) (*config.TServerConfig, error) {
 	data, err := os.ReadFile(configPath)
 	if err != nil {
@@ -619,7 +602,6 @@ func newConfigFromYAMLFile(configPath string) (*config.TServerConfig, error) {
 	}
 
 	// convert YAML to JSON
-
 	dataJSON, err := yaml.YAMLToJSON(dataYAML)
 	if err != nil {
 		return nil, fmt.Errorf("convert YAML to JSON: %w", err)

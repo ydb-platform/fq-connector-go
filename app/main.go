@@ -9,6 +9,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/bench"
 	"github.com/ydb-platform/fq-connector-go/app/client"
 	"github.com/ydb-platform/fq-connector-go/app/server"
+	"github.com/ydb-platform/fq-connector-go/app/validate"
 	"github.com/ydb-platform/fq-connector-go/app/version"
 )
 
@@ -21,6 +22,7 @@ func init() {
 	rootCmd.AddCommand(bench.Cmd)
 	rootCmd.AddCommand(client.Cmd)
 	rootCmd.AddCommand(server.Cmd)
+	rootCmd.AddCommand(validate.Cmd)
 	rootCmd.AddCommand(version.Cmd)
 }
 
