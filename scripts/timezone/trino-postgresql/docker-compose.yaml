@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  trino:
+    image: trinodb/trino:latest
+    ports:
+      - "8080:8080" 
+    volumes:
+      - ./catalog:/etc/trino/catalog 
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgresql/init:/docker-entrypoint-initdb.d
