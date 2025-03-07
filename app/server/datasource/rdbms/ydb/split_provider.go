@@ -68,7 +68,7 @@ func (s *splitProviderImpl) ListSplits(
 	case table_options.StoreTypeRow:
 		logger.Info("data shard table discovered")
 
-		if err = s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
+		if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list splits column shard: %w", err)
 		}
 	case table_options.StoreTypeUnspecified:
