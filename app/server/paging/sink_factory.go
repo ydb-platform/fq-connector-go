@@ -110,7 +110,7 @@ func (f *sinkFactoryImpl[T]) sinkTerminationHandler(terminateChan <-chan struct{
 		case <-terminateChan:
 			terminatedSinks++
 
-			f.logger.Debug(
+			f.logger.Info(
 				"sink terminated",
 				zap.Int("total_sinks", f.totalSinks),
 				zap.Int("terminated_sinks", terminatedSinks),

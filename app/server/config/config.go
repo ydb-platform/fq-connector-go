@@ -228,6 +228,12 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 			}
 		}
 	}
+
+	if c.Splitting == nil {
+		c.Splitting = &config.TYdbConfig_TSplitting{
+			EnabledOnColumnShards: false,
+		}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {
@@ -460,6 +466,10 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 		if c.IamEndpoint.Port == 0 {
 			return fmt.Errorf("invalid value of field `iam_endpoint.port`: %v", c.IamEndpoint.Port)
 		}
+	}
+
+	if c.Splitting == nil {
+		return fmt.Errorf("you must set `splitting` section")
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {

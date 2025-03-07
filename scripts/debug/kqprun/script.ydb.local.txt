@@ -1,2 +1,2 @@
-SELECT * FROM external_datasource.`datetime` WHERE col_03_timestamp = Timestamp("1988-11-20T12:55:28.123456Z");
+SELECT * FROM external_datasource.`datetime_optionals` WHERE col_03_timestamp = Timestamp("1988-11-20T12:55:28.123456Z");
 

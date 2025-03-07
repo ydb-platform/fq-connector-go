@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -27,10 +28,16 @@ var Cmd = &cobra.Command{
 }
 
 const (
-	configFlag    = "config"
-	connectorPort = "connector-port"
-	metricsPort   = "metrics-port"
-	pprofPort     = "pprof-port"
+	configFlag                = "config"
+	connectorPort             = "connector-port"
+	metricsPort               = "metrics-port"
+	pprofPort                 = "pprof-port"
+	logLevelFlag              = "log-level"
+	enableSQLQueryLoggingFlag = "enable-sql-query-logging"
+)
+
+var (
+	enableSQLQueryLogging bool
 )
 
 func init() {
@@ -38,6 +45,9 @@ func init() {
 	Cmd.Flags().Uint32(connectorPort, 2130, "Connector GRPC server port")
 	Cmd.Flags().Uint32(metricsPort, 8766, "Metrics HTTP server port")
 	Cmd.Flags().Uint32(pprofPort, 6060, "Go pprof HTTP server port")
+	Cmd.Flags().StringP(logLevelFlag, "l", "DEBUG", "Log level")
+	Cmd.Flags().BoolVar(&enableSQLQueryLogging, enableSQLQueryLoggingFlag, false,
+		"Enable user SQL query logging (may dump private information in logs)")
 
 	if err := Cmd.MarkFlagRequired(configFlag); err != nil {
 		fmt.Println(err)
@@ -72,6 +82,26 @@ func overrideConfigWithFlags(cfg *app_config.TServerConfig, flags *pflag.FlagSet
 			}
 
 			flagToPort(f, &cfg.PprofServer.Endpoint.Port, &errs)
+		case logLevelFlag:
+			val, ok := app_config.ELogLevel_value[f.Value.String()]
+			if !ok {
+				var buf strings.Builder
+				for k := range app_config.ELogLevel_value {
+					buf.WriteString(fmt.Sprintf("\"%s\"", k))
+					buf.WriteString(" ")
+				}
+
+				errs = append(
+					errs,
+					fmt.Errorf("unknown log level '%s', valid levels are: %s", f.Value.String(), buf.String()),
+				)
+
+				return
+			}
+
+			cfg.Logger.LogLevel = app_config.ELogLevel(val)
+		case enableSQLQueryLoggingFlag:
+			cfg.Logger.EnableSqlQueryLogging = enableSQLQueryLogging
 		}
 	})
 
@@ -89,13 +119,13 @@ func runFromCLI(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("new config: %w", err)
 	}
 
+	if err = overrideConfigWithFlags(cfg, cmd.Flags()); err != nil {
+		return fmt.Errorf("override config with flags: %w", err)
+	}
+
 	logger, err := common.NewLoggerFromConfig(cfg.Logger)
 	if err != nil {
 		return fmt.Errorf("new logger from config: %w", err)
-	}
-
-	if err = overrideConfigWithFlags(cfg, cmd.Flags()); err != nil {
-		return fmt.Errorf("override config with flags: %w", err)
 	}
 
 	l, err := NewLauncher(logger, cfg)

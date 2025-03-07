@@ -6,25 +6,25 @@ import (
 	"fmt"
 	"io"
 	"path"
-	"strings"
 	"time"
 
 	"go.uber.org/zap"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table"
 	table_options "github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
 
-type splitProviderImpl struct{}
+type splitProviderImpl struct {
+	cfg *config.TYdbConfig_TSplitting
+}
 
 func (s *splitProviderImpl) ListSplits(
 	ctx context.Context,
@@ -51,19 +51,32 @@ func (s *splitProviderImpl) ListSplits(
 
 	switch storeType {
 	case table_options.StoreTypeColumn:
-		if err = s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
-			return fmt.Errorf("list splits column shard: %w", err)
+		logger.Info("column shard table discovered")
+
+		if s.cfg.EnabledOnColumnShards {
+			if err = s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
+				return fmt.Errorf("list splits column shard: %w", err)
+			}
+		} else {
+			logger.Warn(
+				"splitting is disabled in config, fallback to default (single split per table)")
+
+			if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+				return fmt.Errorf("list single split: %w", err)
+			}
 		}
 	case table_options.StoreTypeRow:
-		if err = s.listSplitsDataShard(ctx, logger, conn, slct, resultChan); err != nil {
-			return fmt.Errorf("list splits data shard: %w", err)
+		logger.Info("data shard table discovered")
+
+		if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+			return fmt.Errorf("list splits column shard: %w", err)
 		}
 	case table_options.StoreTypeUnspecified:
-		// Observed at: 24.3.11.13
-		logger.Warn("table store type is unspecified, fallback to data shard")
+		// Observed with OLTP tables at: 24.3.11.13
+		logger.Warn("table store type is unspecified, fallback to default (single split per table)")
 
-		if err = s.listSplitsDataShard(ctx, logger, conn, slct, resultChan); err != nil {
-			return fmt.Errorf("list splits data shard: %w", err)
+		if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+			return fmt.Errorf("list single split: %w", err)
 		}
 	default:
 		return fmt.Errorf("unsupported table store type: %v", storeType)
@@ -94,13 +107,6 @@ func (splitProviderImpl) getTableStoreType(
 
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
-				// UNAVAILABLE error code causes endless retry in Go SDK,
-				// so we have to make this error indistinguishable for SDK.
-				if ydb.IsOperationError(errInner, Ydb.StatusIds_UNAVAILABLE) &&
-					strings.Contains(errInner.Error(), "Schemeshard not available") {
-					return errors.New("schemeshard not available")
-				}
-
 				return fmt.Errorf("describe table: %w", errInner)
 			}
 
@@ -200,7 +206,7 @@ func (splitProviderImpl) listSplitsColumnShard(
 	return nil
 }
 
-func (splitProviderImpl) listSplitsDataShard(
+func (splitProviderImpl) listSingleSplit(
 	ctx context.Context,
 	_ *zap.Logger,
 	_ rdbms_utils.Connection,
@@ -233,6 +239,8 @@ func makeSplit(
 	}
 }
 
-func NewSplitProvider() rdbms_utils.SplitProvider {
-	return &splitProviderImpl{}
+func NewSplitProvider(cfg *config.TYdbConfig_TSplitting) rdbms_utils.SplitProvider {
+	return &splitProviderImpl{
+		cfg: cfg,
+	}
 }
