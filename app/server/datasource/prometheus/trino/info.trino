@@ -1,0 +1,5 @@
+use prometheus.default;
+describe up;
+show tables like 'go_mem%';
+select count(*) from up;
+select * from up limit 10;
