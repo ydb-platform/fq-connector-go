@@ -69,50 +69,22 @@ trino:default> describe up;
  value     | double                      |       |         
 (3 rows)
 
-Query 20250308_092856_00003_kv462, FINISHED, 1 node
-Splits: 19 total, 19 done (100.00%)
-0.17 [3 rows, 198B] [17 rows/s, 1.12KiB/s]
-
 trino:default> show tables like 'go_mem%';
               Table               
 ----------------------------------
  go_memstats_alloc_bytes          
- go_memstats_alloc_bytes_total    
- go_memstats_buck_hash_sys_bytes  
- go_memstats_frees_total          
- go_memstats_gc_sys_bytes         
- go_memstats_heap_alloc_bytes     
- go_memstats_heap_idle_bytes      
- go_memstats_heap_inuse_bytes     
- go_memstats_heap_objects         
- go_memstats_heap_released_bytes  
- go_memstats_heap_sys_bytes       
- go_memstats_last_gc_time_seconds 
- go_memstats_mallocs_total        
- go_memstats_mcache_inuse_bytes   
- go_memstats_mcache_sys_bytes     
- go_memstats_mspan_inuse_bytes    
- go_memstats_mspan_sys_bytes      
- go_memstats_next_gc_bytes        
- go_memstats_other_sys_bytes      
+ go_memstats_alloc_bytes_total     
+ ...       
  go_memstats_stack_inuse_bytes    
  go_memstats_stack_sys_bytes      
  go_memstats_sys_bytes            
 (22 rows)
-
-Query 20250308_092904_00004_kv462, FINISHED, 1 node
-Splits: 19 total, 19 done (100.00%)
-0.10 [57 rows, 2.4KiB] [575 rows/s, 24.3KiB/s]
 
 trino:default> select count(*) from up;
  _col0 
 -------
    440 
 (1 row)
-
-Query 20250308_092918_00005_kv462, FINISHED, 1 node
-Splits: 38 total, 38 done (100.00%)
-0.22 [440 rows, 9.26KiB] [2K rows/s, 42.1KiB/s]
 
 trino:default> select * from up limit 10;
                         labels                         |          timestamp          | value 
@@ -128,10 +100,6 @@ trino:default> select * from up limit 10;
  {instance=echo-ping:8081, __name__=up, job=echo-ping} | 2025-03-08 09:25:46.748 UTC |   1.0 
  {instance=echo-ping:8081, __name__=up, job=echo-ping} | 2025-03-08 09:25:47.742 UTC |   1.0 
 (10 rows)
-
-Query 20250308_092922_00006_kv462, FINISHED, 1 node
-Splits: 38 total, 38 done (100.00%)
-0.17 [448 rows, 9.42KiB] [2.67K rows/s, 56.1KiB/s]
 ```
 
 ## Postgres
