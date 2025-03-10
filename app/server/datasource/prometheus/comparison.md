@@ -125,11 +125,10 @@ trino:default> select * from up limit 10;
 Минимум:
 - `SELECT * FROM ... ` для конкретной метрики и парсинг всех `label` в отдельный столбец
 - Поддержка маппинга типов данных, описанного ниже
-- `LIMIT`, `OFFSET` - на стороне коннектора
-- Пушдаун фильтров: операторов сравнения, логических операторов, матчинг `label` с `LIKE`, `ORDER BY`
+- Пушдаун фильтров: операторов сравнения (по времени в том числе), логических операторов, матчинг `label` с `LIKE`, `ORDER BY`
 
 Продвинутая реализация
-- `LIMIT`, `OFFSET` - на стороне Prometheus, если значение задано временем (например, `LIMIT 5m OFFSET 1w`)
+- `LIMIT`, `OFFSET` - на стороне Prometheus или на стороне коннектора, если значение задано временем (например, `LIMIT 5m OFFSET 1w`)
 - Добавление функций над временными рядами в YDB, чтобы выполнять сложные функции на стороне Prometheus
 
 ### Схема таблицы
@@ -138,7 +137,7 @@ trino:default> select * from up limit 10;
 
 | Тип метрики | Название метрики (`__name__`) | ...      | Лэйблы (`label`) | ...      | Время (`timestamp`) | Значение (`value`)                                                                                  |
 |-------------|-------------------------------|----------|------------------|----------|---------------------|-----------------------------------------------------------------------------------------------------|
-| `String`    | `String`                      | `String` | `String`         | `String` | `Timestamp`         | `Decimal` \| `List<Decimal>` \| `Dict<Decimal, Uint64 \| Decimal \| List<Uint64> \| List<Decimal>>` |
+| `String`    | `String`                      | `String` | `String`         | `String` | `Timestamp`         | `Double` \| `List<Double>` \| `Dict<Double, Uint64 \| Double \| List<Uint64> \| List<Double>>` |
 
 **Колонка "Значение (`value`)" может содержать разные типы данных, зависимость описана в разделе ниже**
 
@@ -148,11 +147,11 @@ trino:default> select * from up limit 10;
 
 | Тип метрики Prometheus | Тип данных Prometheus | Пример запроса Prometheus              | YDB                           | Комментарий                                                                                                         |
 |------------------------|-----------------------|----------------------------------------|-------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `counter`              | `Instant vector`      | `echo_requests_total`                  | `Decimal`                     | `echo_requests_total` - `counter` метрика                                                                           |
-| `counter`              | `Range vector`        | `echo_requests_total[10s]`             | `List<Decimal>`               | `List<10 значений метрики из предыдущих 10 секунд>`                                                                 |
-| `gauge`                | `Instant vector`      | `go_memstats_sys_bytes`                | `Decimal`                     | `go_memstats_sys_bytes` - `gauge` метрика                                                                           |
-| `gauge`                | `Range vector`        | `go_memstats_sys_bytes[10s]`           | `List<Decimal>`               | `List<10 значений метрики из предыдущих 10 секунд>`                                                                 |
-| `histogram`            | `Instant vector`      | `echo_response_size_bytes_bucket`      | `Dict<Decimal, Uint64>`       | `echo_response_size_bytes_bucket` - `histogram` метрика; <br/><br/> `Dict<значение le (<=), кол-во значений <= le>` |
-| `histogram`            | `Range vector`        | `echo_response_size_bytes_bucket[10s]` | `Dict<Decimal, List<Uint64>>` | `Dict<значение le (<=), List<10 значений кол-ва предыдущих 10 секунд>>`                                             |
-| `summary`              | `Instant vector`      | `go_gc_duration_seconds`               | `Dict<Float, Decimal>`        | `go_gc_duration_seconds` - `summary` метрика; <br/><br/> `Dict<уровень quantile (от 0 до 1), значение quantile>`    |
-| `summary`              | `Range vector`        | `go_gc_duration_seconds[10s]`          | `Dict<Float, List<Decimal>>`  | `Dict<уровень quantile (от 0 до 1), List<значения 10 квантилей предыдущих 10 секунд>>`                              |
+| `counter`              | `Instant vector`      | `echo_requests_total`                  | `Double`                     | `echo_requests_total` - `counter` метрика                                                                           |
+| `counter`              | `Range vector`        | `echo_requests_total[10s]`             | `List<Double>`               | `List<10 значений метрики из предыдущих 10 секунд>`                                                                 |
+| `gauge`                | `Instant vector`      | `go_memstats_sys_bytes`                | `Double`                     | `go_memstats_sys_bytes` - `gauge` метрика                                                                           |
+| `gauge`                | `Range vector`        | `go_memstats_sys_bytes[10s]`           | `List<Double>`               | `List<10 значений метрики из предыдущих 10 секунд>`                                                                 |
+| `histogram`            | `Instant vector`      | `echo_response_size_bytes_bucket`      | `Dict<Double, Uint64>`       | `echo_response_size_bytes_bucket` - `histogram` метрика; <br/><br/> `Dict<значение le (<=), кол-во значений <= le>` |
+| `histogram`            | `Range vector`        | `echo_response_size_bytes_bucket[10s]` | `Dict<Double, List<Uint64>>` | `Dict<значение le (<=), List<10 значений кол-ва предыдущих 10 секунд>>`                                             |
+| `summary`              | `Instant vector`      | `go_gc_duration_seconds`               | `Dict<Float, Double>`        | `go_gc_duration_seconds` - `summary` метрика; <br/><br/> `Dict<уровень quantile (от 0 до 1), значение quantile>`    |
+| `summary`              | `Range vector`        | `go_gc_duration_seconds[10s]`          | `Dict<Float, List<Double>>`  | `Dict<уровень quantile (от 0 до 1), List<значения 10 квантилей предыдущих 10 секунд>>`                              |
