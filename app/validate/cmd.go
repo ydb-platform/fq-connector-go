@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/encoding/protojson"
 	"gopkg.in/yaml.v3"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/config"
@@ -99,14 +98,7 @@ func validateHelmConfigurationFile(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("new config from YAML data: %v", err)
 	}
 
-	marshaler := protojson.MarshalOptions{
-		Multiline:       true,
-		Indent:          "  ",
-		EmitUnpopulated: true,
-		UseProtoNames:   true,
-	}
-
-	prettyJSON, err := marshaler.Marshal(cfg)
+	prettyJSON, err := common.ProtobufToJSON(cfg, true, "  ")
 	if err != nil {
 		return fmt.Errorf("marshal config to JSON: %v", err)
 	}

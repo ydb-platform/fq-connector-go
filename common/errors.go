@@ -406,3 +406,21 @@ func AllStreamResponsesSuccessfull[T StreamResponse](responses []T) bool {
 
 	return true
 }
+
+type ErrorMatcher struct {
+	errors []error
+}
+
+func (m *ErrorMatcher) Match(err error) bool {
+	for _, e := range m.errors {
+		if errors.Is(err, e) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func NewErrorMatcher(errs ...error) *ErrorMatcher {
+	return &ErrorMatcher{errs}
+}

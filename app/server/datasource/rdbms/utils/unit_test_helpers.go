@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"fmt"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -166,4 +169,43 @@ func (DataConverter) rowGroupToColumnBlock(input [][]any, totalColumns, start, e
 	}
 
 	return columnarData
+}
+
+func makeTSelectFromLoggerOutput(
+	from, what, where string,
+) (*api_service_protos.TSelect, error) {
+	var (
+		dstFrom  api_service_protos.TSelect_TFrom
+		dstWhat  api_service_protos.TSelect_TWhat
+		dstWhere api_service_protos.TSelect_TWhere
+	)
+
+	if err := protojson.Unmarshal([]byte(from), &dstFrom); err != nil {
+		return nil, fmt.Errorf("unmarshal protobuf: %w", err)
+	}
+
+	if err := protojson.Unmarshal([]byte(what), &dstWhat); err != nil {
+		return nil, fmt.Errorf("unmarshal protobuf: %w", err)
+	}
+
+	if err := protojson.Unmarshal([]byte(where), &dstWhere); err != nil {
+		return nil, fmt.Errorf("unmarshal protobuf: %w", err)
+	}
+
+	return &api_service_protos.TSelect{
+		From:  &dstFrom,
+		What:  &dstWhat,
+		Where: &dstWhere,
+	}, nil
+}
+
+func MustTSelectFromLoggerOutput(
+	from, what, where string,
+) *api_service_protos.TSelect {
+	slct, err := makeTSelectFromLoggerOutput(from, what, where)
+	if err != nil {
+		panic(err)
+	}
+
+	return slct
 }

@@ -137,6 +137,10 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				placeholder := c.formatter.GetPlaceholder(i)
 
 				switch t := arg.(type) {
+				case bool:
+					paramsBuilder = paramsBuilder.Param(placeholder).Bool(t)
+				case *bool:
+					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bool(t).EndOptional()
 				case int8:
 					paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
 				case *int8:

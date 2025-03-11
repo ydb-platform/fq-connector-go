@@ -3,7 +3,9 @@ package ydb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -15,6 +17,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+//nolint:lll
 func TestMakeSelectQuery(t *testing.T) {
 	type testCase struct {
 		testName       string
@@ -26,7 +29,12 @@ func TestMakeSelectQuery(t *testing.T) {
 	}
 
 	logger := common.NewTestLogger(t)
-	formatter := NewSQLFormatter(config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES, nil)
+	formatter := NewSQLFormatter(
+		config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES,
+		&config.TPushdownConfig{
+			EnableTimestampPushdown: true,
+		},
+	)
 
 	tcs := []testCase{
 		{
@@ -417,6 +425,22 @@ func TestMakeSelectQuery(t *testing.T) {
 			outputYdbTypes: []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32)},
 			err:            nil,
 		},
+		//nolint:revive
+		{
+			testName: "pushdown_coalesce",
+			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
+				"{\"table\":\"pushdown_coalesce\",\"object_key\":\"\"}",
+				"{\"items\":[{\"column\":{\"name\":\"col_01_timestamp\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"TIMESTAMP\"}}}}},{\"column\":{\"name\":\"id\",\"type\":{\"type_id\":\"INT32\"}}}]}",
+				"{\"filter_typed\":{\"conjunction\":{\"operands\":[{\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"GE\",\"left_value\":{\"column\":\"col_01_timestamp\"},\"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"TIMESTAMP\"},\"value\":{\"int64_value\":\"1609459200000000\",\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}},{\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"},\"value\":{\"bool_value\":false,\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}}]}},{\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"LE\",\"left_value\":{\"column\":\"col_01_timestamp\"},\"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"TIMESTAMP\"},\"value\":{\"int64_value\":\"1704067200000000\",\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}},{\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"},\"value\":{\"bool_value\":false,\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}}]}}]}},\"filter_raw\":null}",
+			),
+			outputQuery: "SELECT `col_01_timestamp`, `id` FROM `pushdown_coalesce` WHERE (COALESCE((`col_01_timestamp` >= ?), ?) AND COALESCE((`col_01_timestamp` <= ?), ?))",
+			outputArgs:  []any{time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), false, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), false},
+			outputYdbTypes: []*ydb.Type{
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_TIMESTAMP)),
+				common.MakePrimitiveType(ydb.Type_INT32),
+			},
+			err: nil,
+		},
 	}
 
 	for _, tc := range tcs {
@@ -453,7 +477,13 @@ func TestMakeSelectQuery(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
 			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
-			require.Equal(t, tc.outputYdbTypes, readSplitsQuery.YdbTypes)
+
+			for i, ydbType := range tc.outputYdbTypes {
+				require.Equal(
+					t, ydbType, readSplitsQuery.YdbTypes[i],
+					fmt.Sprintf("unequal types at index %d: expected=%v, actual=%v", i, ydbType, readSplitsQuery.YdbTypes[i]),
+				)
+			}
 		})
 	}
 }
