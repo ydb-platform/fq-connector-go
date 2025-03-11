@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -48,7 +47,8 @@ func (pb *predicateBuilder) formatPrimitiveValue(value *Ydb.TypedValue) (string,
 			pb.args.AddTyped(value.Type, v.Int64Value)
 			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		case Ydb.Type_TIMESTAMP:
-			pb.args.AddTyped(value.Type, time.UnixMicro(v.Int64Value))
+			// YQL Timestamp is always UTC
+			pb.args.AddTyped(value.Type, time.UnixMicro(v.Int64Value).UTC())
 			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		default:
 			return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
@@ -412,6 +412,32 @@ func (pb *predicateBuilder) formatIsNotNull(
 	return fmt.Sprintf("(%s IS NOT NULL)", statement), nil
 }
 
+func (pb *predicateBuilder) formatCoalesce(
+	coalesce *api_service_protos.TPredicate_TCoalesce,
+) (string, error) {
+	var sb strings.Builder
+
+	sb.WriteString("COALESCE(")
+
+	for i, op := range coalesce.Operands {
+		statement, err := pb.formatPredicate(op, false)
+		if err != nil {
+			return "", fmt.Errorf("format expression: %w", err)
+		}
+
+		sb.WriteString(statement)
+
+		if i < len(coalesce.Operands)-1 {
+			sb.WriteString(", ")
+		}
+	}
+
+	sb.WriteString(")")
+
+	return sb.String(), nil
+}
+
+//nolint:gocyclo
 func (pb *predicateBuilder) formatPredicate(
 	predicate *api_service_protos.TPredicate,
 	topLevel bool,
@@ -457,6 +483,11 @@ func (pb *predicateBuilder) formatPredicate(
 		if err != nil {
 			return "", fmt.Errorf("format expression: %w", err)
 		}
+	case *api_service_protos.TPredicate_Coalesce:
+		result, err = pb.formatCoalesce(p.Coalesce)
+		if err != nil {
+			return "", fmt.Errorf("format coalesce: %w", err)
+		}
 	default:
 		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
 	}
@@ -464,11 +495,11 @@ func (pb *predicateBuilder) formatPredicate(
 	return result, nil
 }
 
-var optionalFilteringAcceptableErrors = []error{
+var acceptableErrors = common.NewErrorMatcher(
 	common.ErrUnsupportedExpression,
 	common.ErrUnimplementedPredicateType,
 	common.ErrUnimplementedTypedValue,
-}
+)
 
 func formatWhereClause(
 	logger *zap.Logger,
@@ -489,14 +520,12 @@ func formatWhereClause(
 		// Pushdown error is suppressed in this mode.
 		// Connector will return more data than necessary, so YDB must perform the appropriate filtering on its side.
 		for _, conjunctionErr := range pb.conjunctionErrors {
-			logger.Warn("Failed to pushdown some parts of WHERE clause", zap.Error(conjunctionErr))
+			logger.Warn("failed to pushdown some parts of WHERE clause", zap.Error(conjunctionErr))
 		}
 
-		for _, acceptableError := range optionalFilteringAcceptableErrors {
-			if errors.Is(err, acceptableError) {
-				logger.Warn("Failed to pushdown some parts of WHERE clause", zap.Error(err))
-				return clause, pb.args, nil
-			}
+		if acceptableErrors.Match(err) {
+			logger.Info("considering pushdown error as acceptable", zap.Error(err))
+			return clause, pb.args, nil
 		}
 
 		return clause, pb.args, err

@@ -53,7 +53,7 @@ func listSplits(cmd *cobra.Command, _ []string) error {
 				"Table split",
 				zap.Int("response_id", responseId),
 				zap.Int("split_id", splitId),
-				zap.Any("split", split),
+				zap.String("split", common.MustProtobufToJSONString(split, false, "  ")),
 			)
 		}
 	}
