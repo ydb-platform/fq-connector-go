@@ -1,8 +1,0 @@
-#!/bin/bash
-
-set -ex
-
-/ydb config profile create tests-ydb-client --endpoint grpc://localhost:2136 --database /local
-
-/bin/bash ./01_basic.sh
-/bin/bash ./02_large.sh
