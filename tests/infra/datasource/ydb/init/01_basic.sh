@@ -80,7 +80,6 @@ set -x
         (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
     COMMIT;
 
-
     CREATE TABLE datetime (
         id Int32 NOT NULL,
         col_01_date Date NOT NULL,
@@ -137,10 +136,8 @@ set -x
       (4, "d"),
       (5, "e");
     COMMIT;
-  '
 
-# YQ-3494
-/ydb -p tests-ydb-client yql -s "
+    -- YQ-3494
     CREATE TABLE json_document (
         id INT32 NOT NULL,
         data JsonDocument NOT NULL,
@@ -151,4 +148,19 @@ set -x
       (1, JsonDocument('{\"key1\": \"value1\"}')),
       (2, JsonDocument('{\"key2\": \"value2\"}'));
     COMMIT;
-" 
+
+    -- YQ-4089
+    CREATE TABLE pushdown_coalesce (
+        id Int32 NOT NULL,
+        col_01_timestamp, 
+        PRIMARY KEY (id) 
+    );
+    COMMIT;
+    INSERT INTO pushdown (id, col_01_timestamp) VALUES
+        (1, Timestamp("2021-01-01T00:00:00Z")),
+        (2, Timestamp("2022-01-01T00:00:00Z")),
+        (3, Timestamp("2023-01-01T00:00:00Z")),
+        (4, Timestamp("2024-01-01T00:00:00Z")),
+        (5, NULL);
+    COMMIT;
+'
