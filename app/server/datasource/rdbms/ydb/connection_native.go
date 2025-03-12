@@ -99,6 +99,7 @@ func (r *rowsNative) Err() error {
 }
 
 func (r *rowsNative) Close() error {
+	fmt.Println("ROWS NATIVE CLOSE", r.ctx.Err())
 	if err := r.streamResult.Close(r.ctx); err != nil {
 		return fmt.Errorf("stream result close: %w", err)
 	}
@@ -119,11 +120,13 @@ type connectionNative struct {
 
 // nolint: gocyclo
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+	fmt.Println("QUERY 1")
 	rowsChan := make(chan rdbms_utils.Rows, 1)
 
 	finalErr := c.driver.Query().Do(
 		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
+			fmt.Println("QUERY 1 A")
 			// modify query with args
 			queryRewritten, err := c.rewriteQuery(params)
 			if err != nil {
@@ -216,6 +219,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				queryRewritten,
 				ydb_sdk_query.WithParameters(paramsBuilder.Build()))
 			if err != nil {
+				fmt.Println("QUERY 1 B", err)
 				return fmt.Errorf("session query: %w", err)
 			}
 
@@ -223,7 +227,8 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			// to create type transformers
 			resultSet, err := streamResult.NextResultSet(ctx)
 			if err != nil {
-				if closeErr := streamResult.Close(ctx); closeErr != nil {
+				fmt.Println("QUERY 1 C", err, ctx.Err())
+				if closeErr := streamResult.Close(context.Background()); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
 
@@ -238,11 +243,13 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 
 			select {
 			case rowsChan <- rows:
+				fmt.Println("QUERY 1 D")
 				return nil
 			case <-ctx.Done():
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
+				fmt.Println("QUERY 1 E", ctx.Err())
 
 				return ctx.Err()
 			}
@@ -251,13 +258,16 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	)
 
 	if finalErr != nil {
+		fmt.Println("QUERY 2", finalErr)
 		return nil, fmt.Errorf("query do: %w", finalErr)
 	}
 
 	select {
 	case rows := <-rowsChan:
+		fmt.Println("QUERY 3")
 		return rows, nil
 	case <-params.Ctx.Done():
+		fmt.Println("QUERY 4", params.Ctx.Err())
 		return nil, params.Ctx.Err()
 	}
 }
