@@ -163,8 +163,15 @@ func (ds *dataSourceImpl) ReadSplit(
 
 	defer ds.connectionManager.Release(ctx, logger, cs)
 
+	sinkParams := make([]*paging.SinkParams, len(cs))
+	for i, conn := range cs {
+		sinkParams[i] = &paging.SinkParams{
+			Logger: conn.Logger(),
+		}
+	}
+
 	// Prepare sinks that will accept the data from the connections.
-	sinks, err := sinkFactory.MakeSinks(len(cs))
+	sinks, err := sinkFactory.MakeSinks(sinkParams)
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}

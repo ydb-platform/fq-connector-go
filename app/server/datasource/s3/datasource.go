@@ -54,7 +54,7 @@ func (ds *dataSource) ReadSplit(
 
 func (*dataSource) doReadSplit(
 	ctx context.Context,
-	_ *zap.Logger,
+	logger *zap.Logger,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[string]) error {
 	conn := makeConnection()
@@ -86,7 +86,7 @@ func (*dataSource) doReadSplit(
 
 	csvReader := csv.NewReader(response.Body)
 
-	sinks, err := sinkFactory.MakeSinks(1)
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}

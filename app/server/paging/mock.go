@@ -2,6 +2,7 @@ package paging
 
 import (
 	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
@@ -30,14 +31,18 @@ func (m *SinkMock) ResultQueue() <-chan *ReadResult[any] {
 	return m.Called().Get(0).(chan *ReadResult[any])
 }
 
+func (m *SinkMock) Logger() *zap.Logger {
+	return m.Called().Get(0).(*zap.Logger)
+}
+
 var _ SinkFactory[any] = (*SinkFactoryMock)(nil)
 
 type SinkFactoryMock struct {
 	mock.Mock
 }
 
-func (m *SinkFactoryMock) MakeSinks(totalSinks int) ([]Sink[any], error) {
-	args := m.Called(totalSinks)
+func (m *SinkFactoryMock) MakeSinks(params []*SinkParams) ([]Sink[any], error) {
+	args := m.Called(params)
 
 	return args.Get(0).([]Sink[any]), args.Error(1)
 }
