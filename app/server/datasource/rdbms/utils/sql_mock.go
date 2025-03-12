@@ -35,6 +35,10 @@ func (m *ConnectionMock) From() (databaseName, tableName string) {
 	return args.String(0), args.String(1)
 }
 
+func (m *ConnectionMock) Logger() *zap.Logger {
+	return m.Called().Get(0).(*zap.Logger)
+}
+
 type ConnectionManagerMock struct {
 	mock.Mock
 }

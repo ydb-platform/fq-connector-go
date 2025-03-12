@@ -29,6 +29,9 @@ type Connection interface {
 	// However, in certain kinds of data sources it's necessary
 	// to override database / table names specified by the user request.
 	From() (database, table string)
+	// Annotated logger that should be used to log all the events related
+	// to the particular data source instance.
+	Logger() *zap.Logger
 	// Close terminates network connections.
 	Close() error
 }

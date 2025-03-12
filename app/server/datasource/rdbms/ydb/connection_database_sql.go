@@ -46,13 +46,13 @@ var _ rdbms_utils.Connection = (*connectionDatabaseSQL)(nil)
 type connectionDatabaseSQL struct {
 	*sql.DB
 	driver        *ydb_sdk.Driver
-	logger        common.QueryLogger
+	queryLogger   common.QueryLogger
 	dataabaseName string
 	tableName     string
 }
 
 func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
+	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.DB.QueryContext(
 		ydb_sdk.WithQueryMode(params.Ctx, ydb_sdk.ScanQueryMode),
@@ -65,7 +65,7 @@ func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_ut
 	if err := out.Err(); err != nil {
 		defer func() {
 			if err = out.Close(); err != nil {
-				c.logger.Error("close rows", zap.Error(err))
+				c.queryLogger.Error("close rows", zap.Error(err))
 			}
 		}()
 
@@ -96,6 +96,10 @@ func (c *connectionDatabaseSQL) Close() error {
 	}
 
 	return nil
+}
+
+func (c *connectionDatabaseSQL) Logger() *zap.Logger {
+	return c.queryLogger.Logger
 }
 
 func newConnectionDatabaseSQL(
@@ -130,5 +134,5 @@ func newConnectionDatabaseSQL(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionDatabaseSQL{DB: conn, driver: ydbDriver, logger: queryLogger, dataabaseName: dsi.Database, tableName: tableName}, nil
+	return &connectionDatabaseSQL{DB: conn, driver: ydbDriver, queryLogger: queryLogger, dataabaseName: dsi.Database, tableName: tableName}, nil
 }

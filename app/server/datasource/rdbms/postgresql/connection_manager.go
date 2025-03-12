@@ -46,7 +46,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 
 type connection struct {
 	*pgx.Conn
-	logger       common.QueryLogger
+	queryLogger  common.QueryLogger
 	databaseName string
 	tableName    string
 }
@@ -56,7 +56,7 @@ func (c *connection) Close() error {
 }
 
 func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
+	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
 	if err != nil {
@@ -68,6 +68,10 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 
 func (c *connection) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
+}
+
+func (c *connection) Logger() *zap.Logger {
+	return c.queryLogger.Logger
 }
 
 var _ rdbms_utils.ConnectionManager = (*connectionManager)(nil)

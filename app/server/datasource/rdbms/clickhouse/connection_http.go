@@ -21,7 +21,7 @@ import (
 
 type connectionHTTP struct {
 	*sql.DB
-	logger       common.QueryLogger
+	queryLogger  common.QueryLogger
 	databaseName string
 	tableName    string
 }
@@ -52,7 +52,7 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 }
 
 func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
+	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.DB.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
 	if err != nil {
@@ -62,7 +62,7 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 	if err := out.Err(); err != nil {
 		defer func() {
 			if closeErr := out.Close(); closeErr != nil {
-				c.logger.Error("close rows", zap.Error(closeErr))
+				c.queryLogger.Error("close rows", zap.Error(closeErr))
 			}
 		}()
 
@@ -74,6 +74,10 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 
 func (c *connectionHTTP) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
+}
+
+func (c *connectionHTTP) Logger() *zap.Logger {
+	return c.queryLogger.Logger
 }
 
 func makeConnectionHTTP(
@@ -129,5 +133,5 @@ func makeConnectionHTTP(
 	conn.SetMaxOpenConns(maxOpenConns)
 	conn.SetConnMaxLifetime(connMaxLifetime)
 
-	return &connectionHTTP{DB: conn, logger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
+	return &connectionHTTP{DB: conn, queryLogger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
 }
