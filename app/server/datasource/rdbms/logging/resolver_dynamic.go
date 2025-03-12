@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
@@ -16,7 +17,7 @@ import (
 type dynamicResolver struct {
 	client api_logging.LogGroupServiceClient
 	conn   *grpc.ClientConn
-	ydbCfg *config.TYdbConfig
+	cfg    *config.TLoggingConfig
 }
 
 func (r *dynamicResolver) resolve(
@@ -40,14 +41,25 @@ func (r *dynamicResolver) resolve(
 
 	var sources []*ydbSource
 
+LOOP:
 	for _, table := range response.GetTables() {
 		endpoint, err := common.StringToEndpoint(table.GetDbEndpoint())
 		if err != nil {
 			return nil, fmt.Errorf("string '%s' to endpoint: %w", table.GetDbEndpoint(), err)
 		}
 
-		if r.ydbCfg.UseUnderlayNetworkForDedicatedDatabases {
+		// Use underlay network if necessary
+		if r.cfg.Ydb.UseUnderlayNetworkForDedicatedDatabases {
 			endpoint.Host = "u-" + endpoint.Host
+		}
+
+		// due to the troubles like KIKIMR-22852
+		for _, blacklistedDbName := range r.cfg.GetDynamic().DatabaseBlacklist {
+			if table.DbName == blacklistedDbName {
+				request.logger.Warn("skipping blacklisted database", zap.String("database", table.DbName))
+
+				continue LOOP
+			}
 		}
 
 		sources = append(sources, &ydbSource{
@@ -79,6 +91,6 @@ func newResolverDynamic(cfg *config.TLoggingConfig) (Resolver, error) {
 	return &dynamicResolver{
 		client: api_logging.NewLogGroupServiceClient(grpcConn),
 		conn:   grpcConn,
-		ydbCfg: cfg.Ydb,
+		cfg:    cfg,
 	}, nil
 }

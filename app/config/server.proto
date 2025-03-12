@@ -285,6 +285,10 @@ message TLoggingConfig {
     // via calls to Cloud Logging API
     message TDynamicResolving {
         NYql.TGenericEndpoint logging_endpoint = 1;
+
+        // List of the databases that will be ignored in the Cloud Logging API response.
+        // No data will be returned from these databases.
+        repeated string database_blacklist = 2;
     }
 
     // But for the tests it is useful to set all the YDB endpoints manually.
