@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	go_ora "github.com/sijms/go-ora/v2"
+	"go.uber.org/zap"
 
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -14,7 +15,7 @@ var _ rdbms_utils.Connection = (*connection)(nil)
 
 type connection struct {
 	conn         *go_ora.Connection
-	logger       common.QueryLogger
+	queryLogger  common.QueryLogger
 	databaseName string
 	tableName    string
 }
@@ -24,7 +25,7 @@ func (c *connection) Close() error {
 }
 
 func (c *connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(queryParams.QueryText, queryParams.QueryArgs.Values()...)
+	c.queryLogger.Dump(queryParams.QueryText, queryParams.QueryArgs.Values()...)
 
 	valueArgs := make([]driver.NamedValue, queryParams.QueryArgs.Count())
 	for i := 0; i < len(queryParams.QueryArgs.Values()); i++ {
@@ -49,4 +50,8 @@ func (c *connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Ro
 
 func (c *connection) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
+}
+
+func (c *connection) Logger() *zap.Logger {
+	return c.queryLogger.Logger
 }

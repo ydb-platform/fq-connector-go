@@ -22,7 +22,7 @@ var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
 	driver.Conn
-	logger       common.QueryLogger
+	queryLogger  common.QueryLogger
 	databaseName string
 	tableName    string
 }
@@ -54,7 +54,7 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 }
 
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
+	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
 	if err != nil {
@@ -64,7 +64,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	if err := out.Err(); err != nil {
 		defer func() {
 			if closeErr := out.Close(); closeErr != nil {
-				c.logger.Error("close rows", zap.Error(closeErr))
+				c.queryLogger.Error("close rows", zap.Error(closeErr))
 			}
 		}()
 
@@ -76,6 +76,10 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 
 func (c *connectionNative) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
+}
+
+func (c *connectionNative) Logger() *zap.Logger {
+	return c.queryLogger.Logger
 }
 
 func makeConnectionNative(
@@ -124,5 +128,5 @@ func makeConnectionNative(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionNative{Conn: conn, logger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
+	return &connectionNative{Conn: conn, queryLogger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
 }

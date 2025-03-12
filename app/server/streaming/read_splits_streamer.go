@@ -75,7 +75,7 @@ func (s *ReadSplitsStreamer[T]) sendResultToStream(result *paging.ReadResult[T])
 		resp.Error = common.NewSuccess()
 	}
 
-	dumpReadSplitsResponse(s.logger, resp)
+	dumpReadSplitsResponse(result.Logger, resp)
 
 	if err := s.stream.Send(resp); err != nil {
 		return fmt.Errorf("stream send: %w", err)

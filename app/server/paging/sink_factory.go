@@ -38,19 +38,19 @@ type sinkFactoryImpl[T Acceptor] struct {
 
 // MakeSinks is used to generate Sink objects, one per each data source connection.
 // This method can be called only once.
-func (f *sinkFactoryImpl[T]) MakeSinks(totalSinks int) ([]Sink[T], error) {
+func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) {
 	if f.state != sinkFactoryIdle {
 		return nil, fmt.Errorf("sink factory is already in use")
 	}
 
-	f.totalSinks = totalSinks
+	f.totalSinks = len(params)
 
-	result := make([]Sink[T], 0, totalSinks)
+	result := make([]Sink[T], 0, f.totalSinks)
 
 	// Children sinks will use this channel to notify factory when the read is completed.
-	terminateChan := make(chan struct{}, totalSinks)
+	terminateChan := make(chan Sink[T], f.totalSinks)
 
-	for i := 0; i < totalSinks; i++ {
+	for i := 0; i < f.totalSinks; i++ {
 		buffer, err := f.bufferFactory.MakeBuffer()
 		if err != nil {
 			f.state = sinkFactoryFailed
@@ -68,7 +68,7 @@ func (f *sinkFactoryImpl[T]) MakeSinks(totalSinks int) ([]Sink[T], error) {
 			terminateChan:  terminateChan,
 			trafficTracker: trafficTracker,
 			currBuffer:     buffer,
-			logger:         f.logger,
+			logger:         params[i].Logger,
 			state:          sinkOperational,
 			ctx:            f.ctx,
 		}
@@ -102,15 +102,15 @@ func (f *sinkFactoryImpl[T]) FinalStats() *api_service_protos.TReadSplitsRespons
 	return overallStats
 }
 
-func (f *sinkFactoryImpl[T]) sinkTerminationHandler(terminateChan <-chan struct{}) {
+func (f *sinkFactoryImpl[T]) sinkTerminationHandler(terminateChan <-chan Sink[T]) {
 	terminatedSinks := 0
 
 	for {
 		select {
-		case <-terminateChan:
+		case sink := <-terminateChan:
 			terminatedSinks++
 
-			f.logger.Info(
+			sink.Logger().Info(
 				"sink terminated",
 				zap.Int("total_sinks", f.totalSinks),
 				zap.Int("terminated_sinks", terminatedSinks),

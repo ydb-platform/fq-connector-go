@@ -163,7 +163,7 @@ func (ds *dataSource) ReadSplit(
 		}
 	}()
 
-	sinks, err := sinkFactory.MakeSinks(1)
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}

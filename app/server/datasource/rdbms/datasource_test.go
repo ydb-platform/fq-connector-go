@@ -68,6 +68,7 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
+		connection.On("Logger").Return(logger)
 		connection.On("From").Return("", "example_1").Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
@@ -103,7 +104,7 @@ func TestReadSplit(t *testing.T) {
 		sink.On("Finish").Return().Once()
 
 		sinkFactory := &paging.SinkFactoryMock{}
-		sinkFactory.On("MakeSinks", 1).Return([]paging.Sink[any]{sink}, nil).Once()
+		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		dataSource := NewDataSource(logger, preset, converterCollection)
 
@@ -124,6 +125,7 @@ func TestReadSplit(t *testing.T) {
 		}
 
 		connection := &rdbms_utils.ConnectionMock{}
+		connection.On("Logger").Return(logger)
 		connection.On("From").Return("", "example_1").Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
@@ -161,7 +163,7 @@ func TestReadSplit(t *testing.T) {
 		sink.On("AddRow", transformer).Return(nil).Once()
 
 		sinkFactory := &paging.SinkFactoryMock{}
-		sinkFactory.On("MakeSinks", 1).Return([]paging.Sink[any]{sink}, nil).Once()
+		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		datasource := NewDataSource(logger, preset, converterCollection)
 

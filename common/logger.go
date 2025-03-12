@@ -52,6 +52,10 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGeneri
 		fields = append(fields, zap.String("schema", dsi.GetPgOptions().GetSchema()))
 	}
 
+	if dsi.GetLoggingOptions() != nil {
+		fields = append(fields, zap.String("folder_id", dsi.GetLoggingOptions().GetFolderId()))
+	}
+
 	return l.With(fields...)
 }
 

@@ -316,6 +316,10 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 	return buf.String(), nil
 }
 
+func (c *connectionNative) Logger() *zap.Logger {
+	return c.queryLogger.Logger
+}
+
 func newConnectionNative(
 	ctx context.Context,
 	queryLogger common.QueryLogger,

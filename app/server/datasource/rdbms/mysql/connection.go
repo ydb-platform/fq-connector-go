@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/mysql"
+	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
@@ -16,7 +17,7 @@ import (
 var _ rdbms_utils.Connection = (*connection)(nil)
 
 type connection struct {
-	logger       common.QueryLogger
+	queryLogger  common.QueryLogger
 	conn         *client.Conn
 	cfg          *config.TMySQLConfig
 	databaseName string
@@ -45,7 +46,7 @@ func transformArgs(src *rdbms_utils.QueryArgs) []any {
 }
 
 func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	c.logger.Dump(params.QueryText, params.QueryArgs.Values()...)
+	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	results := make(chan rowData, c.cfg.ResultChanCapacity)
 	result := &mysql.Result{}
@@ -112,4 +113,8 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 
 func (c *connection) From() (databaseName, tableName string) {
 	return c.databaseName, c.tableName
+}
+
+func (c *connection) Logger() *zap.Logger {
+	return c.queryLogger.Logger
 }

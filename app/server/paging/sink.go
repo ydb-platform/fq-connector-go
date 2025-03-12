@@ -25,7 +25,7 @@ var _ Sink[string] = (*sinkImpl[string])(nil)
 type sinkImpl[T Acceptor] struct {
 	currBuffer     ColumnarBuffer[T]        // accumulates incoming rows
 	resultQueue    chan *ReadResult[T]      // outgoing buffer queue
-	terminateChan  chan<- struct{}          // notify factory when the data reading is finished
+	terminateChan  chan<- Sink[T]           // notify factory when the data reading is finished
 	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
 	trafficTracker *trafficTracker[T]       // tracks the amount of data passed through the sink
 	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request
@@ -114,7 +114,7 @@ func (s *sinkImpl[T]) Finish() {
 
 	// notify factory about the end of data
 	select {
-	case s.terminateChan <- struct{}{}:
+	case s.terminateChan <- s:
 	case <-s.ctx.Done():
 	}
 }
@@ -124,8 +124,16 @@ func (s *sinkImpl[T]) respondWith(
 	stats *api_service_protos.TReadSplitsResponse_TStats,
 	err error,
 	isTerminalMessage bool) {
+	result := &ReadResult[T]{
+		ColumnarBuffer:    buf,
+		Stats:             stats,
+		Error:             err,
+		IsTerminalMessage: isTerminalMessage,
+		Logger:            s.logger,
+	}
+
 	select {
-	case s.resultQueue <- &ReadResult[T]{ColumnarBuffer: buf, Stats: stats, Error: err, IsTerminalMessage: isTerminalMessage}:
+	case s.resultQueue <- result:
 	case <-s.ctx.Done():
 	}
 }
@@ -134,4 +142,8 @@ func (s *sinkImpl[T]) unexpectedState(expected ...sinkState) error {
 	return fmt.Errorf(
 		"unexpected state '%v' (expected are '%v'): %w",
 		s.state, expected, common.ErrInvariantViolation)
+}
+
+func (s *sinkImpl[T]) Logger() *zap.Logger {
+	return s.logger
 }
