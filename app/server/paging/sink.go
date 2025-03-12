@@ -124,8 +124,17 @@ func (s *sinkImpl[T]) respondWith(
 	stats *api_service_protos.TReadSplitsResponse_TStats,
 	err error,
 	isTerminalMessage bool) {
+
+	result := &ReadResult[T]{
+		ColumnarBuffer:    buf,
+		Stats:             stats,
+		Error:             err,
+		IsTerminalMessage: isTerminalMessage,
+		Logger:            s.logger,
+	}
+
 	select {
-	case s.resultQueue <- &ReadResult[T]{ColumnarBuffer: buf, Stats: stats, Error: err, IsTerminalMessage: isTerminalMessage}:
+	case s.resultQueue <- result:
 	case <-s.ctx.Done():
 	}
 }

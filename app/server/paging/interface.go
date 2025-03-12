@@ -31,6 +31,7 @@ type ReadResult[T Acceptor] struct {
 	Stats             *api_service_protos.TReadSplitsResponse_TStats
 	Error             error
 	IsTerminalMessage bool
+	Logger            *zap.Logger // logger annotated with the data source instance description
 }
 
 // Sink is a destination for a data stream that is read out of an external data source connection.
