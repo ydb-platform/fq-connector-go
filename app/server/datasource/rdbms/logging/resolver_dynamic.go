@@ -16,6 +16,7 @@ import (
 type dynamicResolver struct {
 	client api_logging.LogGroupServiceClient
 	conn   *grpc.ClientConn
+	ydbCfg *config.TYdbConfig
 }
 
 func (r *dynamicResolver) resolve(
@@ -43,6 +44,10 @@ func (r *dynamicResolver) resolve(
 		endpoint, err := common.StringToEndpoint(table.GetDbEndpoint())
 		if err != nil {
 			return nil, fmt.Errorf("string '%s' to endpoint: %w", table.GetDbEndpoint(), err)
+		}
+
+		if r.ydbCfg.UseUnderlayNetworkForDedicatedDatabases {
+			endpoint.Host = "u-" + endpoint.Host
 		}
 
 		sources = append(sources, &ydbSource{
@@ -74,5 +79,6 @@ func newResolverDynamic(cfg *config.TLoggingConfig) (Resolver, error) {
 	return &dynamicResolver{
 		client: api_logging.NewLogGroupServiceClient(grpcConn),
 		conn:   grpcConn,
+		ydbCfg: cfg.Ydb,
 	}, nil
 }
