@@ -177,19 +177,27 @@ func (ds *dataSourceImpl) ReadSplit(
 	}
 
 	// Read data from every connection in a distinct goroutine.
-	// TODO: check if it's OK to override context
-	group, ctx := errgroup.WithContext(ctx)
+	group := errgroup.Group{}
 
 	for i, conn := range cs {
 		conn := conn
 		sink := sinks[i]
 
 		group.Go(func() error {
-			return ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
+			err := ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
+			if err != nil {
+				return fmt.Errorf("do read split single conn: %w", err)
+			}
+
+			return nil
 		})
 	}
 
-	return group.Wait()
+	if err := group.Wait(); err != nil {
+		return fmt.Errorf("group wait: %w", err)
+	}
+
+	return nil
 }
 
 func (ds *dataSourceImpl) doReadSplitSingleConn(
@@ -210,7 +218,6 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		request.Filtering,
 		tableName,
 	)
-
 	if err != nil {
 		return fmt.Errorf("make read split query: %w", err)
 	}
@@ -235,7 +242,9 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		return fmt.Errorf("query: %w", err)
 	}
 
-	defer func() { common.LogCloserError(logger, rows, "close rows") }()
+	defer func() {
+		common.LogCloserError(logger, rows, "close rows")
+	}()
 
 	transformer, err := rows.MakeTransformer(readSplitsQuery.YdbTypes, ds.converterCollection)
 	if err != nil {
@@ -258,7 +267,8 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		return fmt.Errorf("rows error: %w", err)
 	}
 
-	// Notify parent that there will be no more data from this connection.
+	// Notify sink that there will be no more data from this connection.
+	// Hours lost in attempts to move this call into defer: 2
 	sink.Finish()
 
 	return nil

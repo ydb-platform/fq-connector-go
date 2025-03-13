@@ -39,7 +39,9 @@ type Sink[T Acceptor] interface {
 	// AddRow saves the row obtained from a stream incoming from an external data source.
 	AddRow(rowTransformer RowTransformer[T]) error
 
-	// Finish reports the successful completion of data stream reading.
+	// Finish reports the successful (!) completion of data stream reading.
+	// Never call this method if the request has failed.
+	// This method can be called only once.
 	Finish()
 
 	// Annotated logger that should be used to track all the activities related to sink

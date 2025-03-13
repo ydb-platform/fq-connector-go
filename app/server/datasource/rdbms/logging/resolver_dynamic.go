@@ -30,6 +30,12 @@ func (r *dynamicResolver) resolve(
 	md := metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", request.credentials.GetToken().GetValue()))
 	ctx := metadata.NewOutgoingContext(request.ctx, md)
 
+	request.logger.Debug(
+		"resolving folder and log group into reading endpoints",
+		zap.String("folder_id", request.folderId),
+		zap.String("log_group", request.logGroupName),
+	)
+
 	response, err := r.client.GetReadingEndpoint(ctx, &api_logging.GetReadingEndpointRequest{
 		FolderId:  request.folderId,
 		GroupName: request.logGroupName,
@@ -43,6 +49,15 @@ func (r *dynamicResolver) resolve(
 
 LOOP:
 	for _, table := range response.GetTables() {
+		request.logger.Debug(
+			"got reading endpoint",
+			zap.String("folder_id", request.folderId),
+			zap.String("log_group", request.logGroupName),
+			zap.String("table_name", table.GetTableName()),
+			zap.String("db_name", table.GetDbName()),
+			zap.String("db_endpoint", table.GetDbEndpoint()),
+		)
+
 		endpoint, err := common.StringToEndpoint(table.GetDbEndpoint())
 		if err != nil {
 			return nil, fmt.Errorf("string '%s' to endpoint: %w", table.GetDbEndpoint(), err)
@@ -66,6 +81,7 @@ LOOP:
 			endpoint:     endpoint,
 			databaseName: table.DbName,
 			tableName:    table.TableName,
+			credentials:  request.credentials,
 		})
 	}
 
