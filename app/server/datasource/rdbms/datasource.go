@@ -184,23 +184,14 @@ func (ds *dataSourceImpl) ReadSplit(
 		sink := sinks[i]
 
 		group.Go(func() error {
-			db, _ := conn.From()
-			fmt.Println("SVALKO A", db)
-
 			// Notify parent that there will be no more data from this connection.
-			defer func() {
-				fmt.Println("SVALKO D", db)
-				sink.Finish()
-				fmt.Println("SVALKO E", db)
-			}()
+			defer sink.Finish()
 
 			err := ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
 			if err != nil {
-				fmt.Println("SVALKO B", db, err)
 				return fmt.Errorf("do read split single conn: %w", err)
 			}
 
-			fmt.Println("SVALKO C", db)
 			return nil
 		})
 	}
@@ -220,9 +211,6 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	sink paging.Sink[any],
 	conn rdbms_utils.Connection,
 ) error {
-	db, _ := conn.From()
-	fmt.Println("HERE A", db)
-
 	_, tableName := conn.From()
 
 	readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
@@ -234,75 +222,54 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		tableName,
 	)
 	if err != nil {
-		fmt.Println("HERE B", db)
 		return fmt.Errorf("make read split query: %w", err)
 	}
 
 	var rows rdbms_utils.Rows
 
-	fmt.Println("HERE C", db)
 	err = ds.retrierSet.Query.Run(
 		ctx,
 		logger,
 		func() error {
-
-			fmt.Println("HERE RETRY 1", db)
-
 			var queryErr error
 
 			if rows, queryErr = conn.Query(&readSplitsQuery.QueryParams); queryErr != nil {
-				fmt.Println("HERE RETRY 2", db)
 				return fmt.Errorf("query '%s' error: %w", readSplitsQuery.QueryText, queryErr)
 			}
-
-			fmt.Println("HERE RETRY 3", db)
 
 			return nil
 		},
 	)
 
-	fmt.Println("HERE D", db)
-
 	if err != nil {
-		fmt.Println("HERE E", db)
 		return fmt.Errorf("query: %w", err)
 	}
 
-	fmt.Println("HERE G", db)
-
 	defer func() {
-		fmt.Println("HERE H1", db)
 		common.LogCloserError(logger, rows, "close rows")
-		fmt.Println("HERE H2", db)
 	}()
 
-	fmt.Println("HERE I", db)
 	transformer, err := rows.MakeTransformer(readSplitsQuery.YdbTypes, ds.converterCollection)
 	if err != nil {
-		fmt.Println("HERE J", db)
 		return fmt.Errorf("make transformer: %w", err)
 	}
 
 	for cont := true; cont; cont = rows.NextResultSet() {
 		for rows.Next() {
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
-				fmt.Println("HERE K", db)
 				return fmt.Errorf("rows scan: %w", err)
 			}
 
 			if err := sink.AddRow(transformer); err != nil {
-				fmt.Println("HERE L", db)
 				return fmt.Errorf("add row to paging writer: %w", err)
 			}
 		}
 	}
 
 	if err := rows.Err(); err != nil {
-		fmt.Println("HERE M", db, err)
 		return fmt.Errorf("rows error: %w", err)
 	}
 
-	fmt.Println("HERE O", db)
 	return nil
 }
 
