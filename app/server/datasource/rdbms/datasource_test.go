@@ -161,7 +161,6 @@ func TestReadSplit(t *testing.T) {
 
 		sink := &paging.SinkMock{}
 		sink.On("AddRow", transformer).Return(nil).Once()
-		sink.On("Finish").Return().Once()
 
 		sinkFactory := &paging.SinkFactoryMock{}
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
