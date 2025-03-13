@@ -223,7 +223,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			// to create type transformers
 			resultSet, err := streamResult.NextResultSet(ctx)
 			if err != nil {
-				if closeErr := streamResult.Close(context.Background()); closeErr != nil {
+				if closeErr := streamResult.Close(ctx); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
 
