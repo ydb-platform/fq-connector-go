@@ -174,8 +174,8 @@ func (splitProviderImpl) listSplitsColumnShard(
 				}
 
 				description := &TSplitDescription{
-					Shard: &TSplitDescription_ColumnShard_{
-						ColumnShard: &TSplitDescription_ColumnShard{
+					Shard: &TSplitDescription_ColumnShard{
+						ColumnShard: &TSplitDescription_TColumnShard{
 							ShardIds: []uint64{tabletId},
 						},
 					},
@@ -215,8 +215,8 @@ func (splitProviderImpl) listSingleSplit(
 ) error {
 	// Data shard splitting is not supported yet
 	splitDescription := &TSplitDescription{
-		Shard: &TSplitDescription_DataShard_{
-			DataShard: &TSplitDescription_DataShard{},
+		Shard: &TSplitDescription_DataShard{
+			DataShard: &TSplitDescription_TDataShard{},
 		},
 	}
 

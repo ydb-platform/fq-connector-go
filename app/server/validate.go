@@ -33,6 +33,28 @@ func ValidateListSplitsRequest(logger *zap.Logger, request *api_service_protos.T
 		}
 	}
 
+	if request.MaxSplitCount != 0 {
+		for _, slct := range request.Selects {
+			switch slct.DataSourceInstance.Kind {
+			case api_common.EGenericDataSourceKind_LOGGING:
+				if request.MaxSplitCount != 3 {
+					return fmt.Errorf("invalid max split count: %d", request.MaxSplitCount)
+				}
+			case api_common.EGenericDataSourceKind_YDB:
+			default:
+				return fmt.Errorf("unsupported data source kind: %s", slct.DataSourceInstance.Kind)
+			}
+		}
+	}
+
+	if request.SplitNumberLimit != 0 {
+		return fmt.Errorf("split number limit is currently unsupported: %w", common.ErrInvalidRequest)
+	}
+
+	if request.SplitSize != 0 {
+		return fmt.Errorf("split size is currently unsupported: %w", common.ErrInvalidRequest)
+	}
+
 	return nil
 }
 
