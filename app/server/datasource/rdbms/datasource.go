@@ -184,9 +184,6 @@ func (ds *dataSourceImpl) ReadSplit(
 		sink := sinks[i]
 
 		group.Go(func() error {
-			// Notify parent that there will be no more data from this connection.
-			defer sink.Finish()
-
 			err := ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
 			if err != nil {
 				return fmt.Errorf("do read split single conn: %w", err)
@@ -269,6 +266,10 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("rows error: %w", err)
 	}
+
+	// Notify sink that there will be no more data from this connection.
+	// Hours lost in attempts to move this call into defer: 2
+	sink.Finish()
 
 	return nil
 }
