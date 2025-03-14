@@ -1,13 +1,10 @@
 package logging
 
 import (
-	"context"
 	"fmt"
 
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
@@ -17,31 +14,26 @@ type splitProviderImpl struct {
 }
 
 func (s *splitProviderImpl) ListSplits(
-	ctx context.Context,
-	logger *zap.Logger,
-	conn rdbms_utils.Connection,
-	request *api_service_protos.TListSplitsRequest,
-	slct *api_service_protos.TSelect,
-	resultChan chan<- *datasource.ListSplitResult,
+	params *rdbms_utils.ListSplitsParams,
 ) error {
 	// Turn log group name into physical YDB endpoints
 	// via static config or Cloud Logging API call.
-	params := &resolveParams{
-		ctx:          ctx,
-		logger:       logger,
-		folderId:     slct.DataSourceInstance.GetLoggingOptions().GetFolderId(),
-		logGroupName: slct.From.Table,
-		credentials:  slct.DataSourceInstance.GetCredentials(),
+	request := &resolveRequest{
+		ctx:          params.Ctx,
+		logger:       params.Logger,
+		folderId:     params.Select.DataSourceInstance.GetLoggingOptions().GetFolderId(),
+		logGroupName: params.Select.From.Table,
+		credentials:  params.Select.DataSourceInstance.GetCredentials(),
 	}
 
-	response, err := s.resolver.resolve(params)
+	response, err := s.resolver.resolve(request)
 	if err != nil {
 		return fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
 	for _, src := range response.sources {
 		split := &datasource.ListSplitResult{
-			Slct: slct,
+			Slct: params.Select,
 			Description: &TSplitDescription{
 				Payload: &TSplitDescription_Ydb{
 					Ydb: &TSplitDescription_TYdb{
@@ -54,9 +46,9 @@ func (s *splitProviderImpl) ListSplits(
 		}
 
 		select {
-		case resultChan <- split:
-		case <-ctx.Done():
-			return ctx.Err()
+		case params.ResultChan <- split:
+		case <-params.Ctx.Done():
+			return params.Ctx.Err()
 		}
 	}
 

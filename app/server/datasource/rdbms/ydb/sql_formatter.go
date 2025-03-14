@@ -125,7 +125,7 @@ func (f sqlFormatter) RenderSelectQueryText(
 
 	var queryText string
 
-	switch splitDescription.GetShard().(type) {
+	switch splitDescription.GetPayload().(type) {
 	case *TSplitDescription_ColumnShard:
 		queryText, err = f.renderSelectQueryTextForColumnShard(parts, split, splitDescription.GetColumnShard())
 		if err != nil {

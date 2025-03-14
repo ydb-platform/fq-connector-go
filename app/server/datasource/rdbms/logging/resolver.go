@@ -11,10 +11,10 @@ import (
 )
 
 type Resolver interface {
-	resolve(request *resolveParams) (*resolveResponse, error)
+	resolve(request *resolveRequest) (*resolveResponse, error)
 	Close() error
 }
-type resolveParams struct {
+type resolveRequest struct {
 	ctx          context.Context
 	logger       *zap.Logger
 	folderId     string

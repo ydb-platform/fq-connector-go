@@ -448,7 +448,7 @@ func TestMakeSelectQuery(t *testing.T) {
 
 		t.Run(tc.testName, func(t *testing.T) {
 			splitDescription := &TSplitDescription{
-				Shard: &TSplitDescription_DataShard{
+				Payload: &TSplitDescription_DataShard{
 					DataShard: &TSplitDescription_TDataShard{},
 				},
 			}

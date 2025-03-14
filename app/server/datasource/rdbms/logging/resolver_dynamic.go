@@ -21,7 +21,7 @@ type dynamicResolver struct {
 }
 
 func (r *dynamicResolver) resolve(
-	request *resolveParams,
+	request *resolveRequest,
 ) (*resolveResponse, error) {
 	if request.credentials.GetToken().GetValue() == "" {
 		return nil, fmt.Errorf("IAM token is missing")

@@ -12,7 +12,7 @@ message TSplitDescription {
         repeated uint64 tablet_ids = 1;
     }
 
-    oneof shard {
+    oneof payload {
         TDataShard data_shard = 1;
         TColumnShard column_shard = 2;
     }
