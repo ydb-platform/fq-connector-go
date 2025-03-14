@@ -11,6 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -50,6 +51,10 @@ type ConnectionParams struct {
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
 	TableName          string                                 // mandatory
+
+	// Split field may be filled when making a connection for the ReadSplits request,
+	// because different table splits can require to connect different database instances.
+	Split *api_service_protos.TSplit // optional
 
 	// MaxConnections is the maximum number of connections to make.
 	// Even if there are a plenty of physical instances of a data source,
@@ -101,15 +106,19 @@ type SchemaProvider interface {
 	) (*api_service_protos.TSchema, error)
 }
 
+type ListSplitsParams struct {
+	Ctx                   context.Context
+	Logger                *zap.Logger
+	MakeConnectionRetrier retry.Retrier
+	ConnectionManager     ConnectionManager
+	Request               *api_service_protos.TListSplitsRequest
+	Select                *api_service_protos.TSelect
+	// Interface implementations should not close this channel, just return from the function
+	// when the data is over.
+	ResultChan chan<- *datasource.ListSplitResult
+}
+
+// SplitProvider generates stream of splits - the description of the parts of a large external table
 type SplitProvider interface {
-	ListSplits(
-		ctx context.Context,
-		logger *zap.Logger,
-		conn Connection,
-		request *api_service_protos.TListSplitsRequest,
-		slct *api_service_protos.TSelect,
-		// Interface implementations should not close this channel, just return from the function
-		// when the data is over.
-		resultChan chan<- *datasource.ListSplitResult,
-	) error
+	ListSplits(*ListSplitsParams) error
 }

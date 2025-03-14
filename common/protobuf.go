@@ -11,7 +11,7 @@ func ProtobufToJSON(m proto.Message, multiline bool, indent string) ([]byte, err
 	marshaler := protojson.MarshalOptions{
 		Multiline:       multiline,
 		Indent:          indent,
-		EmitUnpopulated: true,
+		EmitUnpopulated: false,
 		UseProtoNames:   true,
 	}
 

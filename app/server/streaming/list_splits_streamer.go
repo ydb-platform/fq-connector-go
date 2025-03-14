@@ -46,6 +46,8 @@ func (s *ListSplitsStreamer[T]) Run() error {
 		case result, ok := <-resultChan:
 			if !ok {
 				// correct exit
+				s.logger.Info("all splits responded", zap.Int("total", s.splitCounter))
+
 				return nil
 			}
 
@@ -69,7 +71,12 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 	)
 
 	if result.Description != nil {
-		description, err = protojson.Marshal(result.Description)
+		description, err = protojson.MarshalOptions{
+			Multiline:       false,
+			UseProtoNames:   true,
+			EmitUnpopulated: false,
+		}.Marshal(result.Description)
+
 		if err != nil {
 			return fmt.Errorf("marshal description to JSON: %w", err)
 		}
@@ -101,6 +108,8 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 	if err := s.stream.Send(response); err != nil {
 		return fmt.Errorf("stream send: %w", err)
 	}
+
+	s.splitCounter++
 
 	return nil
 }

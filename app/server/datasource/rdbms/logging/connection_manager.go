@@ -3,9 +3,9 @@ package logging
 import (
 	"context"
 	"fmt"
-	"sync"
+	"math/rand"
 
-	"golang.org/x/sync/errgroup"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -18,16 +18,44 @@ import (
 
 type connectionManager struct {
 	rdbms_utils.Connection
-	resolver             Resolver
 	ydbConnectionManager rdbms_utils.ConnectionManager
+	resolver             Resolver
 }
 
 func (cm *connectionManager) Make(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
+	// This method is called in two different contexts:
+	// 1. When YDB wants to get a table description (DescribeTable phase).
+	if params.Split == nil && params.MaxConnections == 1 {
+		cs, err := cm.makeConnectionToDescribeTable(params)
+		if err != nil {
+			return nil, fmt.Errorf("make connection to describe table: %w", err)
+		}
+
+		return cs, nil
+	}
+
+	// 2. When YDB wants to get data from the particular database
+	// according to the split description (ReadSplits phase).
+	if params.Split != nil {
+		cs, err := cm.makeConnectionToReadSplit(params)
+		if err != nil {
+			return nil, fmt.Errorf("make connection to read split: %w", err)
+		}
+
+		return cs, nil
+	}
+
+	return nil, fmt.Errorf("unknown connection making strategy")
+}
+
+func (cm *connectionManager) makeConnectionToDescribeTable(
+	params *rdbms_utils.ConnectionParams,
+) ([]rdbms_utils.Connection, error) {
 	// Turn log group name into physical YDB endpoints
-	// via static config or Logging API call.
-	request := &resolveParams{
+	// via static config or Cloud Logging API call.
+	request := &resolveRequest{
 		ctx:          params.Ctx,
 		logger:       params.Logger,
 		folderId:     params.DataSourceInstance.GetLoggingOptions().GetFolderId(),
@@ -40,62 +68,17 @@ func (cm *connectionManager) Make(
 		return nil, fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
-	// Determine how much connections we need to create
-	// taking into account optional limit.
-	totalConnections := len(response.sources)
-	if params.MaxConnections > 0 && params.MaxConnections < totalConnections {
-		totalConnections = params.MaxConnections
-	}
+	// Get exactly one
+	rand.Shuffle(len(response.sources), func(i, j int) {
+		response.sources[i], response.sources[j] = response.sources[j], response.sources[i]
+	})
 
-	var (
-		group errgroup.Group
-		cs    = make([]rdbms_utils.Connection, 0, totalConnections)
-		mutex sync.Mutex
-	)
+	src := response.sources[0]
 
-	for i, src := range response.sources {
-		// If connection limit is set, create only requested number of connections.
-		if i >= totalConnections {
-			break
-		}
-
-		src := src
-
-		group.Go(func() error {
-			conn, err := cm.makeConnectionFromYDBSource(params, src)
-			if err != nil {
-				return fmt.Errorf("make connection from YDB source: %w", err)
-			}
-
-			mutex.Lock()
-			cs = append(cs, conn)
-			mutex.Unlock()
-
-			return nil
-		})
-	}
-
-	if err := group.Wait(); err != nil {
-		for _, conn := range cs {
-			if conn != nil {
-				common.LogCloserError(params.Logger, conn, "close connection")
-			}
-		}
-
-		return nil, fmt.Errorf("group wait: %w", err)
-	}
-
-	return cs, nil
-}
-
-func (cm *connectionManager) makeConnectionFromYDBSource(
-	params *rdbms_utils.ConnectionParams,
-	src *ydbSource,
-) (rdbms_utils.Connection, error) {
 	params.Logger.Debug("resolved log group into YDB endpoint", src.ToZapFields()...)
 
 	// prepare new data source instance describing the underlying YDB database
-	ydbDataSourceInstance := &api_common.TGenericDataSourceInstance{
+	dsi := &api_common.TGenericDataSourceInstance{
 		Kind:        api_common.EGenericDataSourceKind_YDB,
 		Endpoint:    src.endpoint,
 		Database:    src.databaseName,
@@ -103,24 +86,71 @@ func (cm *connectionManager) makeConnectionFromYDBSource(
 		UseTls:      true,
 	}
 
-	// reannotate logger with new data source instance
-	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, ydbDataSourceInstance)
+	cs, err := cm.makeConnectionFromDataSourceInstance(params, dsi, src.tableName)
+	if err != nil {
+		return nil, fmt.Errorf("make connection from data source instance: %w", err)
+	}
 
-	conn, err := cm.ydbConnectionManager.Make(&rdbms_utils.ConnectionParams{
+	return cs, nil
+}
+
+func (cm *connectionManager) makeConnectionToReadSplit(
+	params *rdbms_utils.ConnectionParams,
+) ([]rdbms_utils.Connection, error) {
+	// Deserialize split description
+	var (
+		splitDescription TSplitDescription
+		err              error
+	)
+
+	if err = protojson.Unmarshal(params.Split.GetDescription(), &splitDescription); err != nil {
+		return nil, fmt.Errorf("unmarshal split description: %w", err)
+	}
+
+	// currently OLAP YDB is the only backend
+	src := splitDescription.GetYdb()
+
+	// prepare new data source instance describing the underlying YDB database
+	dsi := &api_common.TGenericDataSourceInstance{
+		Kind:     api_common.EGenericDataSourceKind_YDB,
+		Endpoint: src.Endpoint,
+		Database: src.DatabaseName,
+		// No need to fill credentials because special SA auth file will be used by connection manager.
+		Credentials: nil,
+		UseTls:      true,
+	}
+
+	cs, err := cm.makeConnectionFromDataSourceInstance(params, dsi, src.TableName)
+	if err != nil {
+		return nil, fmt.Errorf("make connection from data source instance: %w", err)
+	}
+
+	return cs, nil
+}
+
+func (cm *connectionManager) makeConnectionFromDataSourceInstance(
+	params *rdbms_utils.ConnectionParams,
+	dsi *api_common.TGenericDataSourceInstance,
+	tableName string,
+) ([]rdbms_utils.Connection, error) {
+	// reannotate logger with new data source instance
+	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, dsi)
+
+	cs, err := cm.ydbConnectionManager.Make(&rdbms_utils.ConnectionParams{
 		Ctx:                params.Ctx,
 		Logger:             ydbLogger,
-		DataSourceInstance: ydbDataSourceInstance, // use resolved YDB database
-		TableName:          src.tableName,         // use resolved YDB table
+		DataSourceInstance: dsi,
+		TableName:          tableName,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("make YDB connection: %w", err)
 	}
 
-	if len(conn) != 1 {
-		return nil, fmt.Errorf("invalid number of YDB connections: %d", len(conn))
+	if len(cs) != 1 {
+		return nil, fmt.Errorf("invalid number of YDB connections: %d", len(cs))
 	}
 
-	return conn[0], nil
+	return cs, nil
 }
 
 func (cm *connectionManager) Release(ctx context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {

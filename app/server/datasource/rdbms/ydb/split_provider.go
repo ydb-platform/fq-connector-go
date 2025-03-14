@@ -27,12 +27,10 @@ type splitProviderImpl struct {
 }
 
 func (s *splitProviderImpl) ListSplits(
-	ctx context.Context,
-	logger *zap.Logger,
-	conn rdbms_utils.Connection,
-	request *api_service_protos.TListSplitsRequest,
-	slct *api_service_protos.TSelect,
-	resultChan chan<- *datasource.ListSplitResult) error {
+	params *rdbms_utils.ListSplitsParams,
+) error {
+	request, resultChan, slct, ctx, logger := params.Request, params.ResultChan, params.Select, params.Ctx, params.Logger
+
 	// If client refused to split the table, return just one split containing the whole table.
 	if request.MaxSplitCount == 1 {
 		select {
@@ -42,6 +40,38 @@ func (s *splitProviderImpl) ListSplits(
 
 		return nil
 	}
+
+	// Otherwise connect YDB to get some table metadata
+	var cs []rdbms_utils.Connection
+
+	err := params.MakeConnectionRetrier.Run(ctx, logger,
+		func() error {
+			var makeConnErr error
+
+			makeConnectionParams := &rdbms_utils.ConnectionParams{
+				Ctx:                ctx,
+				Logger:             logger,
+				DataSourceInstance: slct.GetDataSourceInstance(),
+				TableName:          slct.GetFrom().GetTable(),
+				MaxConnections:     1, // single connection is enough to get metadata
+			}
+
+			cs, makeConnErr = params.ConnectionManager.Make(makeConnectionParams)
+			if makeConnErr != nil {
+				return fmt.Errorf("make connection: %w", makeConnErr)
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("retry: %w", err)
+	}
+
+	defer params.ConnectionManager.Release(ctx, logger, cs)
+
+	conn := cs[0]
 
 	// Find out the type of a table
 	storeType, err := s.getTableStoreType(ctx, logger, conn)
@@ -174,14 +204,13 @@ func (splitProviderImpl) listSplitsColumnShard(
 				}
 
 				description := &TSplitDescription{
-					Shard: &TSplitDescription_ColumnShard_{
-						ColumnShard: &TSplitDescription_ColumnShard{
-							ShardIds: []uint64{tabletId},
+					Payload: &TSplitDescription_ColumnShard{
+						ColumnShard: &TSplitDescription_TColumnShard{
+							TabletIds: []uint64{tabletId},
 						},
 					},
 				}
 
-				// TODO: rewrite it
 				select {
 				case resultChan <- makeSplit(slct, description):
 				case <-ctx.Done():
@@ -215,8 +244,8 @@ func (splitProviderImpl) listSingleSplit(
 ) error {
 	// Data shard splitting is not supported yet
 	splitDescription := &TSplitDescription{
-		Shard: &TSplitDescription_DataShard_{
-			DataShard: &TSplitDescription_DataShard{},
+		Payload: &TSplitDescription_DataShard{
+			DataShard: &TSplitDescription_TDataShard{},
 		},
 	}
 

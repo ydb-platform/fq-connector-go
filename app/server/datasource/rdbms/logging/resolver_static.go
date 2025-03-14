@@ -13,7 +13,7 @@ type staticResolver struct {
 	cfg *config.TLoggingConfig_TStaticResolving
 }
 
-func (r *staticResolver) resolve(request *resolveParams) (*resolveResponse, error) {
+func (r *staticResolver) resolve(request *resolveRequest) (*resolveResponse, error) {
 	if len(r.cfg.Databases) == 0 {
 		return nil, fmt.Errorf("no YDB endpoints provided")
 	}
