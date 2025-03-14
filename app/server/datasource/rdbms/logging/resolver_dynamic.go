@@ -31,8 +31,7 @@ func (r *dynamicResolver) resolve(
 	ctx := metadata.NewOutgoingContext(request.ctx, md)
 
 	request.logger.Debug(
-		"resolving folder and log group into reading endpoints",
-		zap.String("folder_id", request.folderId),
+		"resolving log group into reading endpoints",
 		zap.String("log_group", request.logGroupName),
 	)
 
