@@ -69,7 +69,12 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 	)
 
 	if result.Description != nil {
-		description, err = protojson.Marshal(result.Description)
+		description, err = protojson.MarshalOptions{
+			Multiline:       false,
+			UseProtoNames:   true,
+			EmitUnpopulated: false,
+		}.Marshal(result.Description)
+
 		if err != nil {
 			return fmt.Errorf("marshal description to JSON: %w", err)
 		}

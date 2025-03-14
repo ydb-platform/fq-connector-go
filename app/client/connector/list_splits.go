@@ -53,8 +53,12 @@ func listSplits(cmd *cobra.Command, _ []string) error {
 				"Table split",
 				zap.Int("response_id", responseId),
 				zap.Int("split_id", splitId),
-				zap.String("split", common.MustProtobufToJSONString(split, false, "  ")),
 			)
+
+			fmt.Println("Split select: ", string(common.MustProtobufToJSONString(split.Select, false, "")))
+			// fq-connector-go serializes split descriptions to JSON, so they're always human-readable
+			fmt.Println("Split description: ", string(split.GetDescription()))
+			fmt.Println("\n")
 		}
 	}
 
