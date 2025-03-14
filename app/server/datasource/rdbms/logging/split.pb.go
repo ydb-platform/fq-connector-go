@@ -88,7 +88,7 @@ type TSplitDescription_Ydb struct {
 
 func (*TSplitDescription_Ydb) isTSplitDescription_Payload() {}
 
-// TYdb is used to describe the shard of YDB database that is used
+// TYdb is used to describe the shard of the YDB database that is used
 // as an underlying storage for Cloud Logging.
 type TSplitDescription_TYdb struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`

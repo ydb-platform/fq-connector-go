@@ -176,12 +176,11 @@ func (splitProviderImpl) listSplitsColumnShard(
 				description := &TSplitDescription{
 					Shard: &TSplitDescription_ColumnShard{
 						ColumnShard: &TSplitDescription_TColumnShard{
-							ShardIds: []uint64{tabletId},
+							TabletIds: []uint64{tabletId},
 						},
 					},
 				}
 
-				// TODO: rewrite it
 				select {
 				case resultChan <- makeSplit(slct, description):
 				case <-ctx.Done():
