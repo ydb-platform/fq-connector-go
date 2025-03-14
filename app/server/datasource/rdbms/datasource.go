@@ -89,7 +89,6 @@ func (ds *dataSourceImpl) ListSplits(
 	request *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult) error {
-
 	params := &rdbms_utils.ListSplitsParams{
 		Ctx:                   ctx,
 		Logger:                logger,
