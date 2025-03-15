@@ -155,3 +155,49 @@ trino:default> select * from up limit 10;
 | `histogram`            | `Range vector`        | `echo_response_size_bytes_bucket[10s]` | `Dict<Double, List<Uint64>>` | `Dict<значение le (<=), List<10 значений кол-ва предыдущих 10 секунд>>`                                             |
 | `summary`              | `Instant vector`      | `go_gc_duration_seconds`               | `Dict<Float, Double>`        | `go_gc_duration_seconds` - `summary` метрика; <br/><br/> `Dict<уровень quantile (от 0 до 1), значение quantile>`    |
 | `summary`              | `Range vector`        | `go_gc_duration_seconds[10s]`          | `Dict<Float, List<Double>>`  | `Dict<уровень quantile (от 0 до 1), List<значения 10 квантилей предыдущих 10 секунд>>`                              |
+
+### API Prometheus
+
+Общение с Prometheus ведется только по HTTP бинарными данными, сжатыми в snappy формат (гугловский формат сжатия).
+С 2019 года есть возможность читать чанками (поддержка стриминга данных _[chunked remote read](https://prometheus.io/blog/2019/10/10/remote-read-meets-streaming/)_).
+
+#### Замеры chunked remote read API
+
+_Вводная информация:_
+- Локальный Docker с Prometheus
+- 100 замеров для каждого кол-ва метрик
+
+_Результат:_
+
+- С использованием кастомного транспорта с дополнительным копированием `body` для вычисления его длины:
+    ```
+    Metrics count: 915059
+    Size: 2732.057 KB
+    Avg time: 0.02297 s
+    Throughput: 118923.236 KB/s; 116.136 MB/s; 0.113 GB/s
+    ```
+    ```
+    Metrics count: 1694841
+    Size: 5050.544 KB
+    Avg time: 0.04039 s
+    Throughput: 125042.169 KB/s; 122.111 MB/s; 0.119 GB/s
+    ```
+
+- С использованием дефолтного транспорта, т.е. самый приближенный вариант (значения размера и пропускной способности подставил и вычислил руками по описанной выше причине):
+    ```
+    Metrics count: 915059
+    Size: 2732.057 KB
+    Avg time: 0.01794 s
+    Throughput: 153400.168 KB/s; 149.805 MB/s; 0,146 GB/s
+    ```
+
+    ```
+    Metrics count: 1748696
+    Size: 5050.544 KB
+    Avg time: 0.03309 s
+    Throughput: 152630.523 KB/s; 149.053 MB/s; 0.146 GB/s
+   ```
+
+_1) Вероятнее всего, пропускная способность еще немного возрастет с увеличением кол-ва метрик (после чего достигнет около константного значения)_
+
+_2) Код замеров находится в `bench/client.go`_
