@@ -11,15 +11,6 @@ services:
       - '--storage.tsdb.retention.time=12h'
       - '--storage.tsdb.wal-compression'
 
-  echo-ping:
-    image: go_env:latest
-    container_name: echo-ping
-    ports:
-      - "8081:8081"
-    depends_on:
-      - prometheus
-    entrypoint: ["/bin/sh", "-c", "go run servers/echo/core.go"]
-
   fasthttp-ping:
     image: go_env:latest
     container_name: fasthttp-ping
