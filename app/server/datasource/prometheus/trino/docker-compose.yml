@@ -1,0 +1,32 @@
+services:
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=12h'
+      - '--storage.tsdb.wal-compression'
+
+  fasthttp-ping:
+    image: go_env:latest
+    container_name: fasthttp-ping
+    ports:
+      - "8082:8081"
+    depends_on:
+      - prometheus
+    entrypoint: ["/bin/sh", "-c", "go run servers/fasthttp/core.go"]
+
+  trino:
+    image: trinodb/trino:latest
+    container_name: trino
+    ports:
+      - "8084:8080"
+    depends_on:
+      - prometheus
+    volumes:
+      - ./catalog/prometheus.properties:/etc/trino/catalog/prometheus.properties
+      - ./info.trino:/etc/trino/info.trino
