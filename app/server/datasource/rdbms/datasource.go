@@ -89,36 +89,17 @@ func (ds *dataSourceImpl) ListSplits(
 	request *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult) error {
-	var cs []rdbms_utils.Connection
-
-	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
-		func() error {
-			var makeConnErr error
-
-			params := &rdbms_utils.ConnectionParams{
-				Ctx:                ctx,
-				Logger:             logger,
-				DataSourceInstance: slct.GetDataSourceInstance(),
-				TableName:          slct.GetFrom().GetTable(),
-				MaxConnections:     1, // single connection is enough to get metadata
-			}
-
-			cs, makeConnErr = ds.connectionManager.Make(params)
-			if makeConnErr != nil {
-				return fmt.Errorf("make connection: %w", makeConnErr)
-			}
-
-			return nil
-		},
-	)
-
-	if err != nil {
-		return fmt.Errorf("retry: %w", err)
+	params := &rdbms_utils.ListSplitsParams{
+		Ctx:                   ctx,
+		Logger:                logger,
+		MakeConnectionRetrier: ds.retrierSet.MakeConnection,
+		ConnectionManager:     ds.connectionManager,
+		Request:               request,
+		Select:                slct,
+		ResultChan:            resultChan,
 	}
 
-	defer ds.connectionManager.Release(ctx, logger, cs)
-
-	if err := ds.splitProvider.ListSplits(ctx, logger, cs[0], request, slct, resultChan); err != nil {
+	if err := ds.splitProvider.ListSplits(params); err != nil {
 		return fmt.Errorf("list splits: %w", err)
 	}
 
@@ -146,6 +127,7 @@ func (ds *dataSourceImpl) ReadSplit(
 				Logger:             logger,
 				DataSourceInstance: split.Select.DataSourceInstance,
 				TableName:          split.Select.From.Table,
+				Split:              split,
 			}
 
 			cs, makeConnErr = ds.connectionManager.Make(params)

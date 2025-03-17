@@ -10,7 +10,11 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 )
 
-type resolveParams struct {
+type Resolver interface {
+	resolve(request *resolveRequest) (*resolveResponse, error)
+	Close() error
+}
+type resolveRequest struct {
 	ctx          context.Context
 	logger       *zap.Logger
 	folderId     string
@@ -37,11 +41,6 @@ func (r *ydbSource) ToZapFields() []zap.Field {
 
 type resolveResponse struct {
 	sources []*ydbSource
-}
-
-type Resolver interface {
-	resolve(request *resolveParams) (*resolveResponse, error)
-	Close() error
 }
 
 func NewResolver(cfg *config.TLoggingConfig) (Resolver, error) {

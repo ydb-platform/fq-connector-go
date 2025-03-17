@@ -125,13 +125,13 @@ func (f sqlFormatter) RenderSelectQueryText(
 
 	var queryText string
 
-	switch splitDescription.GetShard().(type) {
-	case *TSplitDescription_ColumnShard_:
+	switch splitDescription.GetPayload().(type) {
+	case *TSplitDescription_ColumnShard:
 		queryText, err = f.renderSelectQueryTextForColumnShard(parts, split, splitDescription.GetColumnShard())
 		if err != nil {
 			return "", fmt.Errorf("render select query text for column shard: %w", err)
 		}
-	case *TSplitDescription_DataShard_:
+	case *TSplitDescription_DataShard:
 		queryText, err = f.renderSelectQueryTextForDataShard(parts, split, splitDescription.GetDataShard())
 		if err != nil {
 			return "", fmt.Errorf("render select query text for column shard: %w", err)
@@ -144,22 +144,22 @@ func (f sqlFormatter) RenderSelectQueryText(
 func (sqlFormatter) renderSelectQueryTextForColumnShard(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
-	columnShardDescription *TSplitDescription_ColumnShard,
+	columnShardDescription *TSplitDescription_TColumnShard,
 ) (string, error) {
-	// WITH(ShardId="72075186224054918")
+	// WITH TabletId='72075186224054918'
 	head, err := rdbms_utils.DefaultSelectQueryRender(parts, split)
 	if err != nil {
 		return "", fmt.Errorf("default select query render: %w", err)
 	}
 
-	if len(columnShardDescription.ShardIds) != 1 {
+	if len(columnShardDescription.TabletIds) != 1 {
 		return "", fmt.Errorf(
 			"column shard split description must contain exactly 1 shard id, have %d instead",
-			len(columnShardDescription.ShardIds),
+			len(columnShardDescription.TabletIds),
 		)
 	}
 
-	result := head + fmt.Sprintf(" WITH (ShardId=\"%d\")", columnShardDescription.ShardIds[0])
+	result := head + fmt.Sprintf(" WITH TabletId='%d')", columnShardDescription.TabletIds[0])
 
 	return result, nil
 }
@@ -167,7 +167,7 @@ func (sqlFormatter) renderSelectQueryTextForColumnShard(
 func (sqlFormatter) renderSelectQueryTextForDataShard(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
-	_ *TSplitDescription_DataShard,
+	_ *TSplitDescription_TDataShard,
 ) (string, error) {
 	queryText, err := rdbms_utils.DefaultSelectQueryRender(parts, split)
 	if err != nil {
