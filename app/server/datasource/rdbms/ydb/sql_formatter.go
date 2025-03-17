@@ -159,7 +159,7 @@ func (sqlFormatter) renderSelectQueryTextForColumnShard(
 		)
 	}
 
-	result := head + fmt.Sprintf(" WITH TabletId='%d')", columnShardDescription.TabletIds[0])
+	result := head + fmt.Sprintf(" WITH TabletId='%d'", columnShardDescription.TabletIds[0])
 
 	return result, nil
 }
