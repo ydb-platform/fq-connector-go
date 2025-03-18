@@ -173,6 +173,7 @@ func (DataConverter) rowGroupToColumnBlock(input [][]any, totalColumns, start, e
 
 func makeTSelectFromLoggerOutput(
 	from, what, where string,
+	kind api_common.EGenericDataSourceKind,
 ) (*api_service_protos.TSelect, error) {
 	var (
 		dstFrom  api_service_protos.TSelect_TFrom
@@ -193,16 +194,18 @@ func makeTSelectFromLoggerOutput(
 	}
 
 	return &api_service_protos.TSelect{
-		From:  &dstFrom,
-		What:  &dstWhat,
-		Where: &dstWhere,
+		From:               &dstFrom,
+		What:               &dstWhat,
+		Where:              &dstWhere,
+		DataSourceInstance: &api_common.TGenericDataSourceInstance{Kind: kind},
 	}, nil
 }
 
 func MustTSelectFromLoggerOutput(
 	from, what, where string,
+	kind api_common.EGenericDataSourceKind,
 ) *api_service_protos.TSelect {
-	slct, err := makeTSelectFromLoggerOutput(from, what, where)
+	slct, err := makeTSelectFromLoggerOutput(from, what, where, kind)
 	if err != nil {
 		panic(err)
 	}

@@ -9,6 +9,7 @@ import (
 
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -35,6 +36,9 @@ func TestMakeSelectQuery(t *testing.T) {
 					Table: "",
 				},
 				What: &api_service_protos.TSelect_TWhat{},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    "",
 			outputArgs:     nil,
@@ -48,6 +52,9 @@ func TestMakeSelectQuery(t *testing.T) {
 					Table: "tab",
 				},
 				What: &api_service_protos.TSelect_TWhat{},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT 0 FROM "tab"`,
 			outputArgs:     []any{},
@@ -72,6 +79,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT "col" FROM "tab"`,
 			outputArgs:     []any{},
@@ -93,6 +103,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
 				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ("col1" IS NULL)`,
@@ -116,6 +129,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ("col2" IS NOT NULL)`,
 			outputArgs:     []any{},
@@ -137,6 +153,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
 				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE "col2"`,
@@ -200,6 +219,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= ?)) OR (("col1" <> ?) AND ("col3" IS NULL)))`,
 			outputArgs:     []any{int32(42), uint64(0)},
@@ -224,6 +246,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab"`,
 			outputArgs:     []any{},
@@ -247,6 +272,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
 				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab"`,
@@ -289,6 +317,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
 				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE ("col1" = ?)`,
@@ -346,6 +377,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT "col0", "col1" FROM "tab" WHERE (("col1" = ?) AND ("col3" IS NULL) AND ("col4" IS NOT NULL))`,
 			outputArgs:     []any{int32(32)},
@@ -359,6 +393,9 @@ func TestMakeSelectQuery(t *testing.T) {
 					Table: `information_schema.columns; DROP TABLE information_schema.columns`,
 				},
 				What: &api_service_protos.TSelect_TWhat{},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT 0 FROM "information_schema.columns; DROP TABLE information_schema.columns"`,
 			outputArgs:     []any{},
@@ -383,6 +420,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
+				},
 			},
 			outputQuery:    `SELECT "0; DROP TABLE information_schema.columns" FROM "tab"`,
 			outputArgs:     []any{},
@@ -406,6 +446,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_CLICKHOUSE,
 				},
 			},
 			outputQuery:    `SELECT "0""; DROP TABLE information_schema.columns;" FROM "tab"`,

@@ -11,6 +11,7 @@ import (
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
@@ -44,6 +45,9 @@ func TestMakeSelectQuery(t *testing.T) {
 					Table: "",
 				},
 				What: &api_service_protos.TSelect_TWhat{},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "",
 			outputArgs:     nil,
@@ -57,6 +61,9 @@ func TestMakeSelectQuery(t *testing.T) {
 					Table: "tab",
 				},
 				What: &api_service_protos.TSelect_TWhat{},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT 0 FROM `tab`",
 			outputArgs:     []any{},
@@ -81,6 +88,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT `col` FROM `tab`",
 			outputArgs:     []any{},
@@ -102,6 +112,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
 				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab` WHERE (`col1` IS NULL)",
@@ -125,6 +138,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab` WHERE (`col2` IS NOT NULL)",
 			outputArgs:     []any{},
@@ -146,6 +162,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
 				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab` WHERE `col2`",
@@ -209,6 +228,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab` WHERE ((NOT (`col2` <= ?)) OR ((`col1` <> ?) AND (`col3` IS NULL)))",
 			outputArgs:     []any{int32(42), int64(0)},
@@ -232,6 +254,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
 				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab`",
@@ -257,6 +282,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
 				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab`",
@@ -300,6 +328,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
 				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab` WHERE (`col1` = ?)",
@@ -358,6 +389,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT `col0`, `col1` FROM `tab` WHERE ((`col1` = ?) AND (`col3` IS NULL) AND (`col4` IS NOT NULL))",
 			outputArgs:     []any{int32(32)},
@@ -371,6 +405,9 @@ func TestMakeSelectQuery(t *testing.T) {
 					Table: `information_schema.columns; DROP TABLE information_schema.columns`,
 				},
 				What: &api_service_protos.TSelect_TWhat{},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT 0 FROM `information_schema.columns; DROP TABLE information_schema.columns`",
 			outputArgs:     []any{},
@@ -394,6 +431,9 @@ func TestMakeSelectQuery(t *testing.T) {
 							},
 						},
 					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
 				},
 			},
 			outputQuery:    "SELECT `0; DROP TABLE information_schema.columns` FROM `tab`",
@@ -419,6 +459,9 @@ func TestMakeSelectQuery(t *testing.T) {
 						},
 					},
 				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_YDB,
+				},
 			},
 			outputQuery:    "SELECT `0`; DROP TABLE information_schema.columns;` FROM `tab`",
 			outputArgs:     []any{},
@@ -432,6 +475,7 @@ func TestMakeSelectQuery(t *testing.T) {
 				"{\"table\":\"pushdown_coalesce\",\"object_key\":\"\"}",
 				"{\"items\":[{\"column\":{\"name\":\"col_01_timestamp\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"TIMESTAMP\"}}}}},{\"column\":{\"name\":\"id\",\"type\":{\"type_id\":\"INT32\"}}}]}",
 				"{\"filter_typed\":{\"conjunction\":{\"operands\":[{\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"GE\",\"left_value\":{\"column\":\"col_01_timestamp\"},\"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"TIMESTAMP\"},\"value\":{\"int64_value\":\"1609459200000000\",\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}},{\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"},\"value\":{\"bool_value\":false,\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}}]}},{\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"LE\",\"left_value\":{\"column\":\"col_01_timestamp\"},\"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"TIMESTAMP\"},\"value\":{\"int64_value\":\"1704067200000000\",\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}},{\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"},\"value\":{\"bool_value\":false,\"items\":[],\"pairs\":[],\"variant_index\":0,\"high_128\":\"0\"}}}}}]}}]}},\"filter_raw\":null}",
+				api_common.EGenericDataSourceKind_YDB,
 			),
 			outputQuery: "SELECT `col_01_timestamp`, `id` FROM `pushdown_coalesce` WHERE (COALESCE((`col_01_timestamp` >= ?), ?) AND COALESCE((`col_01_timestamp` <= ?), ?))",
 			outputArgs:  []any{time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC), false, time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), false},
