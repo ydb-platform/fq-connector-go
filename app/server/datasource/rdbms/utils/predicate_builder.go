@@ -8,6 +8,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -20,20 +21,41 @@ type predicateBuilder struct {
 	// In some filtering modes it's possible to suppress errors occurred during
 	// conjunction predicate construction.
 	conjunctionErrors []error
+
+	// Abstraction leaked a bit.
+	// Remove this field after YQ-4191, KIKIMR-22852 is fixed.
+	dataSourceKind api_common.EGenericDataSourceKind
 }
 
-func (pb *predicateBuilder) formatValue(value *Ydb.TypedValue) (string, error) {
+func (pb *predicateBuilder) formatValue(
+	value *Ydb.TypedValue,
+	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
+) (string, error) {
 	if value.Type.GetOptionalType() != nil {
 		return pb.formatOptionalValue(value)
 	}
 
-	return pb.formatPrimitiveValue(value)
+	return pb.formatPrimitiveValue(value, embedBool)
 }
 
-func (pb *predicateBuilder) formatPrimitiveValue(value *Ydb.TypedValue) (string, error) {
+//nolint:gocyclo
+func (pb *predicateBuilder) formatPrimitiveValue(
+	value *Ydb.TypedValue,
+	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
+) (string, error) {
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
+		// This is a workaround for troubles with COALESCE pushdown in Cloud Logging
+		if embedBool {
+			if value.Value.GetBoolValue() {
+				return "true", nil
+			}
+
+			return "false", nil
+		}
+
 		pb.args.AddTyped(value.Type, v.BoolValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int32Value:
 		pb.args.AddTyped(value.Type, v.Int32Value)
@@ -180,6 +202,7 @@ func (*predicateBuilder) formatNull(_ *api_service_protos.TExpression_TNull) (st
 
 func (pb *predicateBuilder) formatArithmeticalExpression(
 	expression *api_service_protos.TExpression_TArithmeticalExpression,
+	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
 	var operation string
 
@@ -200,12 +223,12 @@ func (pb *predicateBuilder) formatArithmeticalExpression(
 		return "", fmt.Errorf("operation %d: %w", op, common.ErrUnimplementedArithmeticalExpression)
 	}
 
-	left, err := pb.formatExpression(expression.LeftValue)
+	left, err := pb.formatExpression(expression.LeftValue, embedBool)
 	if err != nil {
 		return "", fmt.Errorf("format left expression %v: %w", expression.LeftValue, err)
 	}
 
-	right, err := pb.formatExpression(expression.RightValue)
+	right, err := pb.formatExpression(expression.RightValue, embedBool)
 	if err != nil {
 		return "", fmt.Errorf("format right expression %v: %w", expression.RightValue, err)
 	}
@@ -213,7 +236,10 @@ func (pb *predicateBuilder) formatArithmeticalExpression(
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil
 }
 
-func (pb *predicateBuilder) formatExpression(expression *api_service_protos.TExpression) (string, error) {
+func (pb *predicateBuilder) formatExpression(
+	expression *api_service_protos.TExpression,
+	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
+) (string, error) {
 	if !pb.formatter.SupportsPushdownExpression(expression) {
 		return "", common.ErrUnsupportedExpression
 	}
@@ -227,12 +253,12 @@ func (pb *predicateBuilder) formatExpression(expression *api_service_protos.TExp
 	case *api_service_protos.TExpression_Column:
 		result = pb.formatColumn(e.Column)
 	case *api_service_protos.TExpression_TypedValue:
-		result, err = pb.formatValue(e.TypedValue)
+		result, err = pb.formatValue(e.TypedValue, embedBool)
 		if err != nil {
 			return result, fmt.Errorf("format value: %w", err)
 		}
 	case *api_service_protos.TExpression_ArithmeticalExpression:
-		result, err = pb.formatArithmeticalExpression(e.ArithmeticalExpression)
+		result, err = pb.formatArithmeticalExpression(e.ArithmeticalExpression, embedBool)
 		if err != nil {
 			return result, fmt.Errorf("format arithmetical expression: %w", err)
 		}
@@ -250,6 +276,7 @@ func (pb *predicateBuilder) formatExpression(expression *api_service_protos.TExp
 
 func (pb *predicateBuilder) formatComparison(
 	comparison *api_service_protos.TPredicate_TComparison,
+	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
 	var operation string
 
@@ -270,12 +297,12 @@ func (pb *predicateBuilder) formatComparison(
 		return "", fmt.Errorf("%w, op: %d", common.ErrUnimplementedOperation, op)
 	}
 
-	left, err := pb.formatExpression(comparison.LeftValue)
+	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
 	if err != nil {
 		return "", fmt.Errorf("format left expression: %v: %w", comparison.LeftValue, err)
 	}
 
-	right, err := pb.formatExpression(comparison.RightValue)
+	right, err := pb.formatExpression(comparison.RightValue, embedBool)
 	if err != nil {
 		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
 	}
@@ -285,7 +312,7 @@ func (pb *predicateBuilder) formatComparison(
 
 func (pb *predicateBuilder) formatNegation(
 	negation *api_service_protos.TPredicate_TNegation) (string, error) {
-	pred, err := pb.formatPredicate(negation.Operand, false)
+	pred, err := pb.formatPredicate(negation.Operand, false, false)
 	if err != nil {
 		return "", fmt.Errorf("format predicate: %w", err)
 	}
@@ -306,7 +333,7 @@ func (pb *predicateBuilder) formatConjunction(
 	)
 
 	for _, predicate := range conjunction.Operands {
-		statement, err = pb.formatPredicate(predicate, false)
+		statement, err = pb.formatPredicate(predicate, false, false)
 
 		if err != nil {
 			if !topLevel {
@@ -357,7 +384,7 @@ func (pb *predicateBuilder) formatDisjunction(
 	)
 
 	for _, predicate := range disjunction.Operands {
-		statement, err = pb.formatPredicate(predicate, false)
+		statement, err = pb.formatPredicate(predicate, false, true)
 		if err != nil {
 			return "", fmt.Errorf("format predicate: %w", err)
 		}
@@ -393,7 +420,7 @@ func (pb *predicateBuilder) formatDisjunction(
 func (pb *predicateBuilder) formatIsNull(
 	isNull *api_service_protos.TPredicate_TIsNull,
 ) (string, error) {
-	statement, err := pb.formatExpression(isNull.Value)
+	statement, err := pb.formatExpression(isNull.Value, false)
 	if err != nil {
 		return "", fmt.Errorf("format expression: %w", err)
 	}
@@ -404,7 +431,7 @@ func (pb *predicateBuilder) formatIsNull(
 func (pb *predicateBuilder) formatIsNotNull(
 	isNotNull *api_service_protos.TPredicate_TIsNotNull,
 ) (string, error) {
-	statement, err := pb.formatExpression(isNotNull.Value)
+	statement, err := pb.formatExpression(isNotNull.Value, false)
 	if err != nil {
 		return "", fmt.Errorf("format expression: %w", err)
 	}
@@ -415,12 +442,16 @@ func (pb *predicateBuilder) formatIsNotNull(
 func (pb *predicateBuilder) formatCoalesce(
 	coalesce *api_service_protos.TPredicate_TCoalesce,
 ) (string, error) {
+	// Abstraction leaked a bit.
+	// Remove this field after YQ-4191, KIKIMR-22852 is fixed.
+	embedBool := pb.dataSourceKind == api_common.EGenericDataSourceKind_LOGGING
+
 	var sb strings.Builder
 
 	sb.WriteString("COALESCE(")
 
 	for i, op := range coalesce.Operands {
-		statement, err := pb.formatPredicate(op, false)
+		statement, err := pb.formatPredicate(op, false, embedBool)
 		if err != nil {
 			return "", fmt.Errorf("format expression: %w", err)
 		}
@@ -441,6 +472,7 @@ func (pb *predicateBuilder) formatCoalesce(
 func (pb *predicateBuilder) formatPredicate(
 	predicate *api_service_protos.TPredicate,
 	topLevel bool,
+	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
 	var (
 		result string
@@ -474,12 +506,12 @@ func (pb *predicateBuilder) formatPredicate(
 			return "", fmt.Errorf("format is not null: %w", err)
 		}
 	case *api_service_protos.TPredicate_Comparison:
-		result, err = pb.formatComparison(p.Comparison)
+		result, err = pb.formatComparison(p.Comparison, embedBool)
 		if err != nil {
 			return "", fmt.Errorf("format comparison: %w", err)
 		}
 	case *api_service_protos.TPredicate_BoolExpression:
-		result, err = pb.formatExpression(p.BoolExpression.Value)
+		result, err = pb.formatExpression(p.BoolExpression.Value, embedBool)
 		if err != nil {
 			return "", fmt.Errorf("format expression: %w", err)
 		}
@@ -506,14 +538,15 @@ func formatWhereClause(
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
 	formatter SQLFormatter,
 	where *api_service_protos.TSelect_TWhere,
+	dataSourceKind api_common.EGenericDataSourceKind, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, *QueryArgs, error) {
 	if where.FilterTyped == nil {
 		return "", nil, fmt.Errorf("unexpected nil filter: %w", common.ErrInvalidRequest)
 	}
 
-	pb := &predicateBuilder{formatter: formatter, args: &QueryArgs{}}
+	pb := &predicateBuilder{formatter: formatter, args: &QueryArgs{}, dataSourceKind: dataSourceKind}
 
-	clause, err := pb.formatPredicate(where.FilterTyped, true)
+	clause, err := pb.formatPredicate(where.FilterTyped, true, false)
 
 	switch filtering {
 	case api_service_protos.TReadSplitsRequest_FILTERING_UNSPECIFIED, api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:

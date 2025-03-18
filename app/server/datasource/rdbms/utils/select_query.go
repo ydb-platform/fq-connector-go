@@ -53,7 +53,14 @@ func MakeSelectQuery(
 	// Render WHERE clause
 	var queryArgs *QueryArgs
 	if split.Select.Where != nil {
-		parts.WhereClause, queryArgs, err = formatWhereClause(logger, filtering, formatter, split.Select.Where)
+		parts.WhereClause, queryArgs, err = formatWhereClause(
+			logger,
+			filtering,
+			formatter,
+			split.Select.Where,
+			split.Select.DataSourceInstance.Kind,
+		)
+
 		if err != nil {
 			return nil, fmt.Errorf("format where clause: %w", err)
 		}
