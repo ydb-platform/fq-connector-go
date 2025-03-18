@@ -65,6 +65,13 @@ func MakeSelectQuery(
 		return nil, fmt.Errorf("render query text: %w", err)
 	}
 
+	// FIXME: remove after debugging
+	queryText =
+		"SELECT `index`, `ingested_at`, `json_payload`, `level`, `message`, `offset`, `partition`, `request_id`, `resource_id`, `resource_type`, `saved_at`, `stream_name`, `timestamp` " +
+			"FROM `logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3731rdp83d8gd8fjcv` " +
+			"WHERE (COALESCE((`timestamp` >= Timestamp('2025-03-17T18:00:00Z')), false) AND COALESCE((`timestamp` <= Timestamp('2025-03-17T18:00:00Z')), false))"
+	queryArgs = nil
+
 	return &SelectQuery{
 		QueryParams: QueryParams{
 			Ctx:       ctx,
