@@ -198,11 +198,13 @@ func doReadSplit[T paging.Acceptor](
 
 	readStats := sinkFactory.FinalStats()
 
-	logger.Debug(
-		"split reading finished",
+	fields := common.SelectToFields(split.Select)
+	fields = append(fields,
 		zap.Uint64("total_bytes", readStats.GetBytes()),
 		zap.Uint64("total_rows", readStats.GetRows()),
 	)
+
+	logger.Debug("split reading finished", fields...)
 
 	return nil
 }
