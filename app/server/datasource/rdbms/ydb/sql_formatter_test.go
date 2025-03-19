@@ -485,6 +485,23 @@ func TestMakeSelectQuery(t *testing.T) {
 			},
 			err: nil,
 		},
+		//nolint:revive
+		{
+			testName: "YQ-4194",
+			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
+				"{\"table\":\"db\", \"object_key\":\"\"}",
+				"{\"items\":[{\"column\":{\"name\":\"a\", \"type\":{\"type_id\":\"INT32\"}}}, {\"column\":{\"name\":\"b\", \"type\":{\"type_id\":\"STRING\"}}}, {\"column\":{\"name\":\"c\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}}, {\"column\":{\"name\":\"d\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}}, {\"column\":{\"name\":\"e\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}}, {\"column\":{\"name\":\"f\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}}]}",
+				"{\"filter_typed\":{\"disjunction\":{\"operands\":[{\"conjunction\":{\"operands\":[{\"comparison\":{\"operation\":\"EQ\", \"left_value\":{\"column\":\"a\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"INT32\"}, \"value\":{\"int32_value\":7, \"items\":[], \"pairs\":[], \"variant_index\":0, \"high_128\":\"0\"}}}}}, {\"comparison\":{\"operation\":\"EQ\", \"left_value\":{\"column\":\"b\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"STRING\"}, \"value\":{\"bytes_value\":\"OA==\", \"items\":[], \"pairs\":[], \"variant_index\":0, \"high_128\":\"0\"}}}}}]}}, {\"conjunction\":{\"operands\":[{\"comparison\":{\"operation\":\"EQ\", \"left_value\":{\"column\":\"a\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"INT32\"}, \"value\":{\"int32_value\":1, \"items\":[], \"pairs\":[], \"variant_index\":0, \"high_128\":\"0\"}}}}}, {\"comparison\":{\"operation\":\"EQ\", \"left_value\":{\"column\":\"b\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"STRING\"}, \"value\":{\"bytes_value\":\"Mg==\", \"items\":[], \"pairs\":[], \"variant_index\":0, \"high_128\":\"0\"}}}}}]}}, {\"conjunction\":{\"operands\":[{\"comparison\":{\"operation\":\"EQ\", \"left_value\":{\"column\":\"a\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"INT32\"}, \"value\":{\"int32_value\":2, \"items\":[], \"pairs\":[], \"variant_index\":0, \"high_128\":\"0\"}}}}}, {\"comparison\":{\"operation\":\"EQ\", \"left_value\":{\"column\":\"b\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"STRING\"}, \"value\":{\"bytes_value\":\"MQ==\", \"items\":[], \"pairs\":[], \"variant_index\":0, \"high_128\":\"0\"}}}}}]}}]}}, \"filter_raw\":null}",
+				api_common.EGenericDataSourceKind_YDB,
+			),
+			outputQuery: "SELECT `a`, `b`, `c`, `d`, `e`, `f` FROM `db` WHERE (((`a` = ?) AND (`b` = ?)) OR ((`a` = ?) AND (`b` = ?)) OR ((`a` = ?) AND (`b` = ?)))",
+			outputArgs:  []any{int32(7), []byte("8"), int32(1), []byte("2"), int32(2), []byte("1")},
+			outputYdbTypes: []*ydb.Type{
+				common.MakePrimitiveType(ydb.Type_INT32),
+				common.MakePrimitiveType(ydb.Type_STRING),
+			},
+			err: nil,
+		},
 	}
 
 	for _, tc := range tcs {
