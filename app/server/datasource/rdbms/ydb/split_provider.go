@@ -29,17 +29,7 @@ type splitProviderImpl struct {
 func (s *splitProviderImpl) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
-	request, resultChan, slct, ctx, logger := params.Request, params.ResultChan, params.Select, params.Ctx, params.Logger
-
-	// If client refused to split the table, return just one split containing the whole table.
-	if request.MaxSplitCount == 1 {
-		select {
-		case resultChan <- makeSplit(slct, nil):
-		case <-ctx.Done():
-		}
-
-		return nil
-	}
+	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
 
 	// Otherwise connect YDB to get some table metadata
 	var cs []rdbms_utils.Connection
@@ -137,7 +127,7 @@ func (splitProviderImpl) getTableStoreType(
 
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
-				return fmt.Errorf("describe table: %w", errInner)
+				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
 			return nil
@@ -147,6 +137,8 @@ func (splitProviderImpl) getTableStoreType(
 	if err != nil {
 		return table_options.StoreTypeUnspecified, fmt.Errorf("get table description: %w", err)
 	}
+
+	logger.Info("determined table store type", zap.Any("store_type", desc.StoreType))
 
 	return desc.StoreType, nil
 }
@@ -235,6 +227,7 @@ func (splitProviderImpl) listSplitsColumnShard(
 	return nil
 }
 
+// TODO: check request.MaxSplitCount (SLJ always wants a single split)
 func (splitProviderImpl) listSingleSplit(
 	ctx context.Context,
 	_ *zap.Logger,

@@ -125,7 +125,7 @@ func (f sqlFormatter) RenderSelectQueryText(
 
 	var queryText string
 
-	switch splitDescription.GetPayload().(type) {
+	switch t := splitDescription.GetPayload().(type) {
 	case *TSplitDescription_ColumnShard:
 		queryText, err = f.renderSelectQueryTextForColumnShard(parts, split, splitDescription.GetColumnShard())
 		if err != nil {
@@ -136,6 +136,8 @@ func (f sqlFormatter) RenderSelectQueryText(
 		if err != nil {
 			return "", fmt.Errorf("render select query text for column shard: %w", err)
 		}
+	default:
+		return "", fmt.Errorf("unknown split description type: %T (%v)", t, t)
 	}
 
 	return queryText, nil

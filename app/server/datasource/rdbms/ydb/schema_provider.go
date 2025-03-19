@@ -43,7 +43,7 @@ func (f *schemaProvider) GetSchema(
 
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
-				return fmt.Errorf("describe table: %w", errInner)
+				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
 			return nil
