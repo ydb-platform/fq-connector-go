@@ -53,6 +53,12 @@ datasources:
     <<: *data_source_default_var
     count_docs_to_deduce_schema: 5
 
+  redis:
+    <<: *data_source_default_var
+    count_docs_to_deduce_schema: 5
+    pushdown:
+      enable_timestamp_pushdown: false
+
   ydb:
     <<: *data_source_default_var
     use_underlay_network_for_dedicated_databases: false

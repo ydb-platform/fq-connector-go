@@ -1,4 +1,5 @@
 projectPath = $(shell pwd)
+suiteName = Redis
 serverConfig ?= ./app/server/config/config.debug.yaml
 
 build:

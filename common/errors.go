@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"regexp"
 	"strconv"
 	"strings"
@@ -293,6 +294,33 @@ func newAPIErrorFromMongoDbError(err error) *api_service_protos.TError {
 	}
 }
 
+func newAPIErrorFromRedisError(err error) *api_service_protos.TError {
+	if err == nil {
+		return nil
+	}
+
+	var status ydb_proto.StatusIds_StatusCode
+
+	// Если ошибка равна redis.Nil, то, возможно, ключ не найден.
+	if errors.Is(err, redis.Nil) {
+		status = ydb_proto.StatusIds_NOT_FOUND
+	} else if strings.Contains(err.Error(), "NOAUTH") || strings.Contains(err.Error(), "WRONGPASS") {
+		// Ошибка аутентификации
+		status = ydb_proto.StatusIds_UNAUTHORIZED
+	} else if strings.Contains(err.Error(), "LOADING") {
+		// Redis может возвращать ошибку LOADING, если данные загружаются из диска.
+		status = ydb_proto.StatusIds_UNAVAILABLE
+	} else {
+		// По умолчанию считаем, что это внутренняя ошибка.
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: err.Error(),
+	}
+}
+
 //nolint:gocyclo
 func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	var status ydb_proto.StatusIds_StatusCode
@@ -365,6 +393,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EGenericDataSourceKind) 
 		apiError = newAPIErrorFromYdbError(err)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		apiError = newAPIErrorFromMongoDbError(err)
+	case api_common.EGenericDataSourceKind_REDIS:
+		apiError = newAPIErrorFromRedisError(err)
 	default:
 		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EGenericDataSourceKind_name[int32(kind)]))
 	}

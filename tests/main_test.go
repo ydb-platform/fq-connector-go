@@ -3,6 +3,7 @@ package tests
 import (
 	"flag"
 	"fmt"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"
 	"log"
 	"testing"
 
@@ -92,4 +93,9 @@ func TestMsSqlServer(t *testing.T) {
 func TestMongoDB(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, mongodb.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MongoDB")))
+}
+
+func TestRedis(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
+	testify_suite.Run(t, redis.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "Redis")))
 }

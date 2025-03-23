@@ -1,0 +1,28 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
+}
+
+data_source_instance {
+    kind: REDIS
+    endpoint {
+        host: "localhost"
+        port: 6379
+    }
+    database: "connector"
+    credentials {
+        basic {
+            username: "default"
+            password: ""
+        }
+    }
+    protocol: NATIVE
+    redis_options {
+
+    }
+}

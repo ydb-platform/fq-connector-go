@@ -81,7 +81,7 @@ services:
     environment:
       ACCEPT_EULA: Y
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "false"
-      LANG: ru_RU.UTF-8 
+      LANG: ru_RU.UTF-8
       SA_PASSWORD: "Qwerty12345!"
   
   oracle:
@@ -112,3 +112,9 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     volumes:
       - ./mongodb/init/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+
+  redis:
+    image: valkey/valkey:8.0.1
+    container_name: ${USER}-fq-connector-go-tests-redis
+    ports:
+      - "6379:6379"

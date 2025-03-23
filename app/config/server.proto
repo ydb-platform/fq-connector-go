@@ -11,7 +11,7 @@ message TServerConfig {
     TServerTLSConfig tls = 2 [deprecated=true];
 
     // TConnectorServerConfig contains configuration of the main GRPC server
-    TConnectorServerConfig connector_server = 5; 
+    TConnectorServerConfig connector_server = 5;
     // This is a rough restriction for YQ memory consumption until
     // https://st.yandex-team.ru/YQ-2057 is implemented.
     // Leave it empty if you want to avoid any memory limits.
@@ -105,9 +105,9 @@ message TPagingConfig {
     uint64 bytes_per_page = 2;
 
     // Connector service can read ahead some data from the data source before returning it to the client.
-    // This setting configures the number of pages that may reside in the service's address space 
+    // This setting configures the number of pages that may reside in the service's address space
     // waiting for the client readiness for the data consumption.
-    // Tune this carefully cause this may cause service OOMs. 
+    // Tune this carefully cause this may cause service OOMs.
     uint32 prefetch_queue_capacity = 3;
 }
 
@@ -147,7 +147,7 @@ message TPushdownConfig {
 message TClickHouseConfig {
     // Timeout for ClickHouse connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
+    string open_connection_timeout = 1;
     // Timeout for ClickHouse connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2;
@@ -160,7 +160,7 @@ message TClickHouseConfig {
 message TGreenplumConfig {
     // Timeout for Greenplum connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
+    string open_connection_timeout = 1;
 
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;
@@ -170,7 +170,7 @@ message TGreenplumConfig {
 message TMsSQLServerConfig {
     // Timeout for ClickHouse connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 2; 
+    string open_connection_timeout = 2;
     // Timeout for MsSQLServer connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 1;
@@ -185,7 +185,7 @@ message TMySQLConfig {
 
     // Timeout for MySQL connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 2; 
+    string open_connection_timeout = 2;
 
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;
@@ -195,7 +195,7 @@ message TMySQLConfig {
 message TOracleConfig {
     // Timeout for Oracle connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
+    string open_connection_timeout = 1;
     // Timeout for Oracle connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2;
@@ -208,7 +208,7 @@ message TOracleConfig {
 message TMongoDbConfig {
     // Timeout for MongoDB connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
+    string open_connection_timeout = 1;
     // Timeout for MongoDB connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2;
@@ -230,13 +230,15 @@ message TRedisConfig {
     uint32 count_docs_to_deduce_schema = 3;
 
     TExponentialBackoffConfig exponential_backoff = 10;
+
+    TPushdownConfig pushdown = 11;
 }
 
 // TPostgreSQLConfig contains settings specific for PostgreSQL data source
 message TPostgreSQLConfig {
     // Timeout for PostgreSQL connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
+    string open_connection_timeout = 1;
 
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;
@@ -246,7 +248,7 @@ message TPostgreSQLConfig {
 message TYdbConfig {
     // Timeout for YDB connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string open_connection_timeout = 1; 
+    string open_connection_timeout = 1;
     // Timeout for YDB connection pinging.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string ping_connection_timeout = 2;
@@ -262,14 +264,14 @@ message TYdbConfig {
         // In MODE_QUERY_SERVICE_NATIVE the YDB connector uses YDB's Query Service
         // via native YDB interface.
         MODE_QUERY_SERVICE_NATIVE = 2;
-    } 
+    }
 
     // Mode parametrizes the way YDB connector interacts with YDB servers.
     // MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES is the default mode.
     Mode mode = 4;
 
     // Path to JSON file with static SA credentials.
-    // If this file is provided, the YDB connector will use 
+    // If this file is provided, the YDB connector will use
     // this credentials to access the database.
     string service_account_key_file_credentials = 5;
 
@@ -291,11 +293,11 @@ message TYdbConfig {
 
 // TLoggingConfig contains settings specific for Logging external datasource
 message TLoggingConfig {
-    // Under the hood the Logging connector goes to YDB, 
+    // Under the hood the Logging connector goes to YDB,
     // so all YDB settings can be applied to this connector as well.
     TYdbConfig ydb = 1;
 
-    // Logging connector can resolve the underlying YDB endpoints 
+    // Logging connector can resolve the underlying YDB endpoints
     // via calls to Cloud Logging API
     message TDynamicResolving {
         NYql.TGenericEndpoint logging_endpoint = 1;
@@ -311,7 +313,7 @@ message TLoggingConfig {
             // network address
             NYql.TGenericEndpoint endpoint = 1;
             // database name
-            string name = 2; 
+            string name = 2;
         }
 
         // The connector will iterate through this list while making the connections.
@@ -330,7 +332,7 @@ message TLoggingConfig {
         // used for YDB table names construction.
         map<string, TFolder> folders = 2;
 
-        // Template that will be used to construct YDB table names 
+        // Template that will be used to construct YDB table names
         // in the format Go `text/template` format, for example:
         // "logs/origin/{{.CloudName}}/{{.FolderID}}/{{.LogGroupID}}"
         string table_naming_pattern = 3;
