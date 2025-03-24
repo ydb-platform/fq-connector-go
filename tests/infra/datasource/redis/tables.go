@@ -12,84 +12,87 @@ import (
 
 var memPool memory.Allocator = memory.NewGoAllocator()
 
-// Таблица для кейса, когда в Redis присутствуют только строковые ключи.
-// Ожидаемая схема: колонки "key_" и "string_values".
+// Table for the case when only string keys are present in Redis.
+// Expected schema: columns "key_" and "string_values".
 var stringOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "stringOnly",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
-			redis.KeyColumnName:    common.MakePrimitiveType(Ydb.Type_STRING),
-			redis.StringColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
+			// key column is required
+			redis.KeyColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
+			// string_values column is optional
+			redis.StringColumnName: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		},
 	},
 	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
 }
 
-// Таблица для кейса, когда в Redis присутствуют только hash-ключи.
-// Ожидаемая схема: колонки "key_" и "hash_values" (StructType, где набор полей – объединение всех полей из hash).
+// Table for the case when only hash keys are present in Redis.
+// Expected schema: columns "key_" and "hash_values", where hash_values is an OptionalType wrapping a StructType
+// with members being the union of all hash fields.
 var hashOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "hashOnly",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
 			redis.KeyColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
-			redis.HashColumnName: {
+			redis.HashColumnName: common.MakeOptionalType(&Ydb.Type{
 				Type: &Ydb.Type_StructType{
 					StructType: &Ydb.StructType{
 						Members: []*Ydb.StructMember{
 							{
 								Name: "field1",
-								Type: common.MakePrimitiveType(Ydb.Type_STRING),
+								Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 							},
 							{
 								Name: "field2",
-								Type: common.MakePrimitiveType(Ydb.Type_STRING),
+								Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 							},
 							{
 								Name: "field3",
-								Type: common.MakePrimitiveType(Ydb.Type_STRING),
+								Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 							},
 						},
 					},
 				},
-			},
+			}),
 		},
 	},
 	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
 }
 
-// Таблица для кейса, когда в Redis присутствуют и строковые, и hash-значения.
-// Ожидаемая схема: колонки "key_", "string_values" и "hash_values".
+// Table for the case when both string and hash keys are present in Redis.
+// Expected schema: columns "key_", "string_values" and "hash_values" (OptionalType wrapping a StructType).
 var mixedTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "mixed",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
 			redis.KeyColumnName:    common.MakePrimitiveType(Ydb.Type_STRING),
-			redis.StringColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
-			redis.HashColumnName: {
+			redis.StringColumnName: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+			redis.HashColumnName: common.MakeOptionalType(&Ydb.Type{
 				Type: &Ydb.Type_StructType{
 					StructType: &Ydb.StructType{
 						Members: []*Ydb.StructMember{
 							{
 								Name: "hashField1",
-								Type: common.MakePrimitiveType(Ydb.Type_STRING),
+								Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 							},
 							{
 								Name: "hashField2",
-								Type: common.MakePrimitiveType(Ydb.Type_STRING),
+								Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 							},
 						},
 					},
 				},
-			},
+			}),
 		},
 	},
 	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
 }
 
-// Таблица для кейса пустой базы – ожидается пустая схема (без колонок).
+// Table for the case of an empty database – expected schema: no columns.
 var emptyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "empty",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),

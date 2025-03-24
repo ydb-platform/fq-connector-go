@@ -74,7 +74,7 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	// Scan up to 'count' keys from Redis.
-	keys, _, err := client.Scan(ctx, 0, request.Table, int64(count)).Result()
+	keys, _, err := client.Scan(ctx, 0, "*", int64(count)).Result()
 	if err != nil {
 		return nil, fmt.Errorf("scan keys: %w", err)
 	}
@@ -128,7 +128,7 @@ func (ds *dataSource) DescribeTable(
 	// If string values exist, add the "stringValues" column.
 	if stringExists {
 		stringColumn := &Ydb.Column{
-			Name: "stringValues",
+			Name: StringColumnName,
 			Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		}
 		columns = append(columns, stringColumn)
