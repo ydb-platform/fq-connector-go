@@ -19,9 +19,7 @@ var stringOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
-			// key column is required
-			redis.KeyColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
-			// string_values column is optional
+			redis.KeyColumnName:    common.MakePrimitiveType(Ydb.Type_STRING),
 			redis.StringColumnName: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		},
 	},

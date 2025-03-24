@@ -69,18 +69,29 @@ func (ds *dataSource) DescribeTable(
 
 	count := ds.cfg.GetCountDocsToDeduceSchema()
 
-	if request == nil || (request != nil && request.Table == "") {
+	if request.Table == "" {
 		return nil, common.ErrEmptyTableName
 	}
 
-	// Scan up to 'count' keys from Redis.
-	keys, _, err := client.Scan(ctx, 0, "*", int64(count)).Result()
-	if err != nil {
-		return nil, fmt.Errorf("scan keys: %w", err)
+	// Accumulate keys using SCAN until we collect at least 'count' keys or SCAN is finished.
+	var (
+		allKeys []string
+		cursor  uint64 = 0
+	)
+	pattern := fmt.Sprintf("%s:*", request.Table)
+	for {
+		keys, newCursor, err := client.Scan(ctx, cursor, pattern, int64(count)).Result()
+		if err != nil {
+			return nil, fmt.Errorf("scan keys: %w", err)
+		}
+		allKeys = append(allKeys, keys...)
+		cursor = newCursor
+		if len(allKeys) >= int(count) || cursor == 0 {
+			break
+		}
 	}
-
 	// If there are no keys, return an empty schema.
-	if len(keys) == 0 {
+	if len(allKeys) == 0 {
 		return &api_service_protos.TDescribeTableResponse{
 			Schema: &api_service_protos.TSchema{Columns: nil},
 		}, nil
@@ -91,7 +102,7 @@ func (ds *dataSource) DescribeTable(
 	unionHashFields := make(map[string]struct{})
 
 	// Iterate over the obtained keys.
-	for _, key := range keys {
+	for _, key := range allKeys {
 		typ, err := client.Type(ctx, key).Result()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get type for key %s: %w", key, err)
@@ -195,123 +206,6 @@ func (ds *dataSource) ReadSplit(
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
 ) error {
-	dsi := split.Select.DataSourceInstance
-
-	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
-		return fmt.Errorf("cannot run Redis connection with protocol '%v'", dsi.Protocol)
-	}
-
-	var client *redis.Client
-
-	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
-		var err error
-		client, err = ds.makeConnection(ctx, logger, dsi)
-		return err
-	})
-	if err != nil {
-		common.LogCloserError(logger, client, "make connection")
-		return fmt.Errorf("make connection: %w", err)
-	}
-
-	defer func() {
-		if err = client.Close(); err != nil {
-			logger.Error("close connection", zap.Error(err))
-		}
-	}()
-
-	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
-	if err != nil {
-		return fmt.Errorf("make sinks: %w", err)
-	}
-
-	sink := sinks[0]
-
-	// Get schemas (Arrow and YDB) from the SELECT query.
-	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
-	if err != nil {
-		return fmt.Errorf("select what to Arrow schema: %w", err)
-	}
-
-	ydbSchema, err := common.SelectWhatToYDBTypes(split.Select.What)
-	if err != nil {
-		return fmt.Errorf("select what to YDB schema: %w", err)
-	}
-
-	reader, err := makeRedisRowReader(arrowSchema, ydbSchema, ds.cc)
-	if err != nil {
-		return fmt.Errorf("make redis row reader: %w", err)
-	}
-
-	// If a pattern is specified in select.From.Table, use it; otherwise, return error.
-	if split.Select.From == nil || (split.Select.From != nil && split.Select.From.Table == "") {
-		return common.ErrEmptyTableName
-	}
-
-	var cursor uint64
-
-	rowData := make(map[string]any)
-	// Use SCAN to iterate over keys.
-	for {
-		keys, newCursor, err := client.Scan(ctx, cursor, split.Select.From.Table, scanBatchSize).Result()
-		if err != nil {
-			return fmt.Errorf("scan keys: %w", err)
-		}
-
-		cursor = newCursor
-
-		for _, key := range keys {
-			typ, err := client.Type(ctx, key).Result()
-			if err != nil {
-				return fmt.Errorf("failed to get type for key %s: %w", key, err)
-			}
-
-			// Build raw row data as a map, where keys are column names.
-			clear(rowData)
-			rowData[KeyColumnName] = key
-
-			switch typ {
-			case "string":
-				val, err := client.Get(ctx, key).Result()
-				if err != nil {
-					logger.Error("get key value", zap.String(KeyColumnName, key), zap.Error(err))
-					rowData[StringColumnName] = nil
-				} else {
-					rowData[StringColumnName] = val
-				}
-				// For string key, hashValues column remains nil.
-				rowData[HashColumnName] = nil
-			case "hash":
-				hashMap, err := client.HGetAll(ctx, key).Result()
-				if err != nil {
-					logger.Error("get hash value", zap.String(KeyColumnName, key), zap.Error(err))
-					rowData[HashColumnName] = nil
-				} else {
-					rowData[HashColumnName] = hashMap
-				}
-				// For hash key, stringValues column remains nil.
-				rowData[StringColumnName] = nil
-			default:
-				// If type is not supported, skip the key.
-				continue
-			}
-
-			// Convert raw row data into a set of acceptors matching the selected schema.
-			if err := reader.accept(logger, rowData); err != nil {
-				return fmt.Errorf("accept row: %w", err)
-			}
-
-			if err := sink.AddRow(reader.transformer); err != nil {
-				return fmt.Errorf("add row to sink: %w", err)
-			}
-		}
-
-		if cursor == 0 {
-			break
-		}
-	}
-
-	sink.Finish()
-
 	return nil
 }
 

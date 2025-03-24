@@ -1,20 +1,18 @@
 #!/bin/bash
 set -e
 
-# Для кейса stringOnly: добавляем ключи с простыми строковыми значениями.
+# For the "stringOnly" case: add keys with simple string values.
 redis-cli FLUSHALL
-redis-cli SET stringKey1 "value1"
-redis-cli SET stringKey2 "value2"
+redis-cli SET stringOnly:stringKey1 "value1"
+redis-cli SET stringOnly:stringKey2 "value2"
 
-# Для кейса hashOnly: добавляем hash-ключи.
-redis-cli FLUSHALL
-redis-cli HSET hashKey1 field1 "hashValue1" field2 "hashValue2"
-redis-cli HSET hashKey2 field1 "hashValue3" field2 "hashValue4" field3 "hashValue5"
+# For the "hashOnly" case: add hash keys.
+redis-cli HSET hashOnly:hashKey1 field1 "hashValue1" field2 "hashValue2"
+redis-cli HSET hashOnly:hashKey2 field1 "hashValue3" field2 "hashValue4" field3 "hashValue5"
 
-# Для кейса mixed: один ключ со строковым значением и один с hash-значением.
-redis-cli FLUSHALL
-redis-cli SET mixedKey1 "mixedString"
-redis-cli HSET mixedKey2 hashField1 "mixedHash1" hashField2 "mixedHash2"
+# For the "mixed" case: one key with a string value and one with a hash value.
+redis-cli SET mixed:stringKey1 "mixedString"
+redis-cli HSET mixed:hashKey2 hashField1 "mixedHash1" hashField2 "mixedHash2"
 
-# Для пустой базы (empty) не добавляем никаких ключей.
+# For the empty case, do not add any keys.
 redis-cli FLUSHALL
