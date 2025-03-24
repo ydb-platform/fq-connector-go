@@ -24,6 +24,7 @@ var bodySize = int64(0)
 
 func main() {
 	runtime.GOMAXPROCS(1)
+
 	ctx := context.Background()
 
 	readClient, err := remote.NewReadClient("remote-read-test", &remote.ClientConfig{
@@ -55,6 +56,7 @@ func main() {
 	measureCount := 1.0
 	measureCountInt := int64(measureCount)
 	start := time.Now()
+
 	for range measureCountInt {
 		timeseries, err := readClient.Read(ctx, pbQuery, false)
 		if err != nil {
@@ -62,6 +64,7 @@ func main() {
 		}
 
 		var it chunkenc.Iterator
+
 		for timeseries.Next() {
 			s := timeseries.At()
 			it := s.Iterator(it)
@@ -69,6 +72,7 @@ func main() {
 			//l := s.Labels().String()
 			for vt := it.Next(); vt != chunkenc.ValNone; vt = it.Next() {
 				atomic.AddInt64(&metricsCount, 1)
+
 				switch vt {
 				case chunkenc.ValFloat:
 					ts, v := it.At()
@@ -86,6 +90,7 @@ func main() {
 					panic("unreachable")
 				}
 			}
+
 			if err := timeseries.Err(); err != nil {
 				log.Fatal(err)
 			}
@@ -107,6 +112,7 @@ func mustParseURL(raw string) *url.URL {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return u
 }
 
@@ -124,6 +130,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	atomic.AddInt64(&bodySize, int64(len(body)))
 
 	res.Body = io.NopCloser(bytes.NewBuffer(body))

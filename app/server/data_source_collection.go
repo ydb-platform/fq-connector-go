@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/prometheus"
+
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"go.uber.org/zap"
 
@@ -64,6 +66,9 @@ func (dsc *DataSourceCollection) DescribeTable(
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EGenericDataSourceKind_PROMETHEUS:
+		ds := prometheus.NewDataSource()
+		return ds.DescribeTable(ctx, logger, request)
 	default:
 		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -108,6 +113,9 @@ func (dsc *DataSourceCollection) ListSplits(
 			if err := streamer.Run(); err != nil {
 				return fmt.Errorf("run streamer: %w", err)
 			}
+		//case api_common.EGenericDataSourceKind_PROMETHEUS:
+		//	ds := prometheus.NewDataSource()
+		//	return ds.ListSplits(context.TODO(), logger, request, slct, make(chan<- *datasource.ListSplitResult))
 		default:
 			return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 		}
