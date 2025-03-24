@@ -4,10 +4,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/redis/go-redis/v9"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/redis/go-redis/v9"
 
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"

@@ -223,15 +223,10 @@ message TRedisConfig {
     // Timeout for Redis connection opening.
     // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
     string open_connection_timeout = 1;
-    // Timeout for Redis connection pinging.
-    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-    string ping_connection_timeout = 2;
     // Number of values to process in DescribeTable method to deduce table schema
     uint32 count_docs_to_deduce_schema = 3;
 
     TExponentialBackoffConfig exponential_backoff = 10;
-
-    TPushdownConfig pushdown = 11;
 }
 
 // TPostgreSQLConfig contains settings specific for PostgreSQL data source

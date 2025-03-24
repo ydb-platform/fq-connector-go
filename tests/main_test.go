@@ -3,9 +3,10 @@ package tests
 import (
 	"flag"
 	"fmt"
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"
 	"log"
 	"testing"
+
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	testify_suite "github.com/stretchr/testify/suite"

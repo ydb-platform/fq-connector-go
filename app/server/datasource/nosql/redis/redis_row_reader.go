@@ -2,14 +2,16 @@ package redis
 
 import (
 	"fmt"
+
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
-	"github.com/ydb-platform/fq-connector-go/app/server/paging"
-	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
+	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 )
 
 // redisRowReader преобразует сырые данные Redis в набор acceptors для RowTransformer.
@@ -26,6 +28,7 @@ func makeRedisRowReader(arrowSchema *arrow.Schema, ydbTypes []*Ydb.Type, cc conv
 	if err != nil {
 		return nil, err
 	}
+
 	return &redisRowReader{
 		transformer: transformer,
 		arrowSchema: arrowSchema,
@@ -41,29 +44,31 @@ func (r *redisRowReader) accept(logger *zap.Logger, rowData map[string]any) erro
 
 	for i, field := range r.arrowSchema.Fields() {
 		switch field.Name {
-		case "key", "stringValues":
+		case KeyColumnName, StringColumnName:
 			if v, ok := rowData[field.Name]; ok {
 				acceptors[i] = v
 			} else {
 				acceptors[i] = nil
 			}
-		case "hashValues":
+		case HashColumnName:
 			// Для колонки hashValues ожидаем, что rowData содержит map[string]string.
-			if v, ok := rowData["hashValues"].(map[string]string); ok {
+			if v, ok := rowData[HashColumnName].(map[string]string); ok {
 				// Из ydbTypes[i] извлекаем информацию о структуре.
 				st, ok := r.ydbTypes[i].Type.(*Ydb.Type_StructType)
 				if !ok {
 					return fmt.Errorf("expected struct type for column 'hashValues'")
 				}
+
 				structVal := make(map[string]*string)
+
 				for _, member := range st.StructType.Members {
 					if s, exists := v[member.Name]; exists {
-						copyStr := s
-						structVal[member.Name] = &copyStr
+						structVal[member.Name] = &s
 					} else {
 						structVal[member.Name] = nil
 					}
 				}
+
 				acceptors[i] = structVal
 			} else {
 				acceptors[i] = nil
@@ -78,6 +83,7 @@ func (r *redisRowReader) accept(logger *zap.Logger, rowData map[string]any) erro
 	}
 
 	r.transformer.SetAcceptors(acceptors)
+
 	return nil
 }
 

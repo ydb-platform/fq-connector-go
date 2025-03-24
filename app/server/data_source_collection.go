@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 
 	"github.com/apache/arrow/go/v13/arrow/memory"

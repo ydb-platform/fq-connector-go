@@ -1279,13 +1279,9 @@ type TRedisConfig struct {
 	// Timeout for Redis connection opening.
 	// Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
 	OpenConnectionTimeout string `protobuf:"bytes,1,opt,name=open_connection_timeout,json=openConnectionTimeout,proto3" json:"open_connection_timeout,omitempty"`
-	// Timeout for Redis connection pinging.
-	// Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
-	PingConnectionTimeout string `protobuf:"bytes,2,opt,name=ping_connection_timeout,json=pingConnectionTimeout,proto3" json:"ping_connection_timeout,omitempty"`
 	// Number of values to process in DescribeTable method to deduce table schema
 	CountDocsToDeduceSchema uint32                     `protobuf:"varint,3,opt,name=count_docs_to_deduce_schema,json=countDocsToDeduceSchema,proto3" json:"count_docs_to_deduce_schema,omitempty"`
 	ExponentialBackoff      *TExponentialBackoffConfig `protobuf:"bytes,10,opt,name=exponential_backoff,json=exponentialBackoff,proto3" json:"exponential_backoff,omitempty"`
-	Pushdown                *TPushdownConfig           `protobuf:"bytes,11,opt,name=pushdown,proto3" json:"pushdown,omitempty"`
 	unknownFields           protoimpl.UnknownFields
 	sizeCache               protoimpl.SizeCache
 }
@@ -1327,13 +1323,6 @@ func (x *TRedisConfig) GetOpenConnectionTimeout() string {
 	return ""
 }
 
-func (x *TRedisConfig) GetPingConnectionTimeout() string {
-	if x != nil {
-		return x.PingConnectionTimeout
-	}
-	return ""
-}
-
 func (x *TRedisConfig) GetCountDocsToDeduceSchema() uint32 {
 	if x != nil {
 		return x.CountDocsToDeduceSchema
@@ -1344,13 +1333,6 @@ func (x *TRedisConfig) GetCountDocsToDeduceSchema() uint32 {
 func (x *TRedisConfig) GetExponentialBackoff() *TExponentialBackoffConfig {
 	if x != nil {
 		return x.ExponentialBackoff
-	}
-	return nil
-}
-
-func (x *TRedisConfig) GetPushdown() *TPushdownConfig {
-	if x != nil {
-		return x.Pushdown
 	}
 	return nil
 }
@@ -2275,29 +2257,21 @@ var file_app_config_server_proto_rawDesc = []byte{
 	0x66, 0x69, 0x67, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c,
 	0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x12, 0x65,
 	0x78, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66,
-	0x66, 0x22, 0xeb, 0x02, 0x0a, 0x0c, 0x54, 0x52, 0x65, 0x64, 0x69, 0x73, 0x43, 0x6f, 0x6e, 0x66,
+	0x66, 0x22, 0xeb, 0x01, 0x0a, 0x0c, 0x54, 0x52, 0x65, 0x64, 0x69, 0x73, 0x43, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x12, 0x36, 0x0a, 0x17, 0x6f, 0x70, 0x65, 0x6e, 0x5f, 0x63, 0x6f, 0x6e, 0x6e, 0x65,
 	0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x09, 0x52, 0x15, 0x6f, 0x70, 0x65, 0x6e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74,
-	0x69, 0x6f, 0x6e, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x12, 0x36, 0x0a, 0x17, 0x70, 0x69,
-	0x6e, 0x67, 0x5f, 0x63, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x74, 0x69,
-	0x6d, 0x65, 0x6f, 0x75, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x15, 0x70, 0x69, 0x6e,
-	0x67, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x54, 0x69, 0x6d, 0x65, 0x6f,
-	0x75, 0x74, 0x12, 0x3c, 0x0a, 0x1b, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x5f, 0x64, 0x6f, 0x63, 0x73,
-	0x5f, 0x74, 0x6f, 0x5f, 0x64, 0x65, 0x64, 0x75, 0x63, 0x65, 0x5f, 0x73, 0x63, 0x68, 0x65, 0x6d,
-	0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x17, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x44, 0x6f,
-	0x63, 0x73, 0x54, 0x6f, 0x44, 0x65, 0x64, 0x75, 0x63, 0x65, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61,
-	0x12, 0x65, 0x0a, 0x13, 0x65, 0x78, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x5f,
-	0x62, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x34, 0x2e,
-	0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x41,
-	0x70, 0x70, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x6f, 0x6e,
-	0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x43, 0x6f, 0x6e,
-	0x66, 0x69, 0x67, 0x52, 0x12, 0x65, 0x78, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c,
-	0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x12, 0x46, 0x0a, 0x08, 0x70, 0x75, 0x73, 0x68, 0x64,
-	0x6f, 0x77, 0x6e, 0x18, 0x0b, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x4e, 0x59, 0x71, 0x6c,
-	0x2e, 0x43, 0x6f, 0x6e, 0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2e, 0x54, 0x50, 0x75, 0x73, 0x68, 0x64, 0x6f, 0x77, 0x6e, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x08, 0x70, 0x75, 0x73, 0x68, 0x64, 0x6f, 0x77, 0x6e, 0x22,
+	0x69, 0x6f, 0x6e, 0x54, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74, 0x12, 0x3c, 0x0a, 0x1b, 0x63, 0x6f,
+	0x75, 0x6e, 0x74, 0x5f, 0x64, 0x6f, 0x63, 0x73, 0x5f, 0x74, 0x6f, 0x5f, 0x64, 0x65, 0x64, 0x75,
+	0x63, 0x65, 0x5f, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52,
+	0x17, 0x63, 0x6f, 0x75, 0x6e, 0x74, 0x44, 0x6f, 0x63, 0x73, 0x54, 0x6f, 0x44, 0x65, 0x64, 0x75,
+	0x63, 0x65, 0x53, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x12, 0x65, 0x0a, 0x13, 0x65, 0x78, 0x70, 0x6f,
+	0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x5f, 0x62, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x18,
+	0x0a, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x34, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x43, 0x6f, 0x6e,
+	0x6e, 0x65, 0x63, 0x74, 0x6f, 0x72, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x43, 0x6f, 0x6e, 0x66, 0x69,
+	0x67, 0x2e, 0x54, 0x45, 0x78, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x42, 0x61,
+	0x63, 0x6b, 0x6f, 0x66, 0x66, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x52, 0x12, 0x65, 0x78, 0x70,
+	0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x69, 0x61, 0x6c, 0x42, 0x61, 0x63, 0x6b, 0x6f, 0x66, 0x66, 0x22,
 	0xfa, 0x01, 0x0a, 0x11, 0x54, 0x50, 0x6f, 0x73, 0x74, 0x67, 0x72, 0x65, 0x53, 0x51, 0x4c, 0x43,
 	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12, 0x36, 0x0a, 0x17, 0x6f, 0x70, 0x65, 0x6e, 0x5f, 0x63, 0x6f,
 	0x6e, 0x6e, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x6f, 0x75, 0x74,
@@ -2571,38 +2545,37 @@ var file_app_config_server_proto_depIdxs = []int32{
 	12, // 26: NYql.Connector.App.Config.TOracleConfig.pushdown:type_name -> NYql.Connector.App.Config.TPushdownConfig
 	11, // 27: NYql.Connector.App.Config.TMongoDbConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
 	11, // 28: NYql.Connector.App.Config.TRedisConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
-	12, // 29: NYql.Connector.App.Config.TRedisConfig.pushdown:type_name -> NYql.Connector.App.Config.TPushdownConfig
-	11, // 30: NYql.Connector.App.Config.TPostgreSQLConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
-	12, // 31: NYql.Connector.App.Config.TPostgreSQLConfig.pushdown:type_name -> NYql.Connector.App.Config.TPushdownConfig
-	1,  // 32: NYql.Connector.App.Config.TYdbConfig.mode:type_name -> NYql.Connector.App.Config.TYdbConfig.Mode
-	31, // 33: NYql.Connector.App.Config.TYdbConfig.iam_endpoint:type_name -> NYql.TGenericEndpoint
-	24, // 34: NYql.Connector.App.Config.TYdbConfig.splitting:type_name -> NYql.Connector.App.Config.TYdbConfig.TSplitting
-	11, // 35: NYql.Connector.App.Config.TYdbConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
-	12, // 36: NYql.Connector.App.Config.TYdbConfig.pushdown:type_name -> NYql.Connector.App.Config.TPushdownConfig
-	21, // 37: NYql.Connector.App.Config.TLoggingConfig.ydb:type_name -> NYql.Connector.App.Config.TYdbConfig
-	25, // 38: NYql.Connector.App.Config.TLoggingConfig.dynamic:type_name -> NYql.Connector.App.Config.TLoggingConfig.TDynamicResolving
-	26, // 39: NYql.Connector.App.Config.TLoggingConfig.static:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving
-	21, // 40: NYql.Connector.App.Config.TDatasourcesConfig.ydb:type_name -> NYql.Connector.App.Config.TYdbConfig
-	16, // 41: NYql.Connector.App.Config.TDatasourcesConfig.mysql:type_name -> NYql.Connector.App.Config.TMySQLConfig
-	13, // 42: NYql.Connector.App.Config.TDatasourcesConfig.clickhouse:type_name -> NYql.Connector.App.Config.TClickHouseConfig
-	15, // 43: NYql.Connector.App.Config.TDatasourcesConfig.ms_sql_server:type_name -> NYql.Connector.App.Config.TMsSQLServerConfig
-	20, // 44: NYql.Connector.App.Config.TDatasourcesConfig.postgresql:type_name -> NYql.Connector.App.Config.TPostgreSQLConfig
-	14, // 45: NYql.Connector.App.Config.TDatasourcesConfig.greenplum:type_name -> NYql.Connector.App.Config.TGreenplumConfig
-	17, // 46: NYql.Connector.App.Config.TDatasourcesConfig.oracle:type_name -> NYql.Connector.App.Config.TOracleConfig
-	22, // 47: NYql.Connector.App.Config.TDatasourcesConfig.logging:type_name -> NYql.Connector.App.Config.TLoggingConfig
-	18, // 48: NYql.Connector.App.Config.TDatasourcesConfig.mongodb:type_name -> NYql.Connector.App.Config.TMongoDbConfig
-	19, // 49: NYql.Connector.App.Config.TDatasourcesConfig.redis:type_name -> NYql.Connector.App.Config.TRedisConfig
-	31, // 50: NYql.Connector.App.Config.TLoggingConfig.TDynamicResolving.logging_endpoint:type_name -> NYql.TGenericEndpoint
-	27, // 51: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.databases:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TDatabase
-	29, // 52: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.folders:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.FoldersEntry
-	31, // 53: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TDatabase.endpoint:type_name -> NYql.TGenericEndpoint
-	30, // 54: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TFolder.log_groups:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TFolder.LogGroupsEntry
-	28, // 55: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.FoldersEntry.value:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TFolder
-	56, // [56:56] is the sub-list for method output_type
-	56, // [56:56] is the sub-list for method input_type
-	56, // [56:56] is the sub-list for extension type_name
-	56, // [56:56] is the sub-list for extension extendee
-	0,  // [0:56] is the sub-list for field type_name
+	11, // 29: NYql.Connector.App.Config.TPostgreSQLConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
+	12, // 30: NYql.Connector.App.Config.TPostgreSQLConfig.pushdown:type_name -> NYql.Connector.App.Config.TPushdownConfig
+	1,  // 31: NYql.Connector.App.Config.TYdbConfig.mode:type_name -> NYql.Connector.App.Config.TYdbConfig.Mode
+	31, // 32: NYql.Connector.App.Config.TYdbConfig.iam_endpoint:type_name -> NYql.TGenericEndpoint
+	24, // 33: NYql.Connector.App.Config.TYdbConfig.splitting:type_name -> NYql.Connector.App.Config.TYdbConfig.TSplitting
+	11, // 34: NYql.Connector.App.Config.TYdbConfig.exponential_backoff:type_name -> NYql.Connector.App.Config.TExponentialBackoffConfig
+	12, // 35: NYql.Connector.App.Config.TYdbConfig.pushdown:type_name -> NYql.Connector.App.Config.TPushdownConfig
+	21, // 36: NYql.Connector.App.Config.TLoggingConfig.ydb:type_name -> NYql.Connector.App.Config.TYdbConfig
+	25, // 37: NYql.Connector.App.Config.TLoggingConfig.dynamic:type_name -> NYql.Connector.App.Config.TLoggingConfig.TDynamicResolving
+	26, // 38: NYql.Connector.App.Config.TLoggingConfig.static:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving
+	21, // 39: NYql.Connector.App.Config.TDatasourcesConfig.ydb:type_name -> NYql.Connector.App.Config.TYdbConfig
+	16, // 40: NYql.Connector.App.Config.TDatasourcesConfig.mysql:type_name -> NYql.Connector.App.Config.TMySQLConfig
+	13, // 41: NYql.Connector.App.Config.TDatasourcesConfig.clickhouse:type_name -> NYql.Connector.App.Config.TClickHouseConfig
+	15, // 42: NYql.Connector.App.Config.TDatasourcesConfig.ms_sql_server:type_name -> NYql.Connector.App.Config.TMsSQLServerConfig
+	20, // 43: NYql.Connector.App.Config.TDatasourcesConfig.postgresql:type_name -> NYql.Connector.App.Config.TPostgreSQLConfig
+	14, // 44: NYql.Connector.App.Config.TDatasourcesConfig.greenplum:type_name -> NYql.Connector.App.Config.TGreenplumConfig
+	17, // 45: NYql.Connector.App.Config.TDatasourcesConfig.oracle:type_name -> NYql.Connector.App.Config.TOracleConfig
+	22, // 46: NYql.Connector.App.Config.TDatasourcesConfig.logging:type_name -> NYql.Connector.App.Config.TLoggingConfig
+	18, // 47: NYql.Connector.App.Config.TDatasourcesConfig.mongodb:type_name -> NYql.Connector.App.Config.TMongoDbConfig
+	19, // 48: NYql.Connector.App.Config.TDatasourcesConfig.redis:type_name -> NYql.Connector.App.Config.TRedisConfig
+	31, // 49: NYql.Connector.App.Config.TLoggingConfig.TDynamicResolving.logging_endpoint:type_name -> NYql.TGenericEndpoint
+	27, // 50: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.databases:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TDatabase
+	29, // 51: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.folders:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.FoldersEntry
+	31, // 52: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TDatabase.endpoint:type_name -> NYql.TGenericEndpoint
+	30, // 53: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TFolder.log_groups:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TFolder.LogGroupsEntry
+	28, // 54: NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.FoldersEntry.value:type_name -> NYql.Connector.App.Config.TLoggingConfig.TStaticResolving.TFolder
+	55, // [55:55] is the sub-list for method output_type
+	55, // [55:55] is the sub-list for method input_type
+	55, // [55:55] is the sub-list for extension type_name
+	55, // [55:55] is the sub-list for extension extendee
+	0,  // [0:55] is the sub-list for field type_name
 }
 
 func init() { file_app_config_server_proto_init() }

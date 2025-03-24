@@ -3,6 +3,7 @@ package redis
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -11,32 +12,29 @@ import (
 
 var memPool memory.Allocator = memory.NewGoAllocator()
 
-// Пример использования Tagged типа для идентификатора (если требуется)
-var idType = common.MakeTaggedType("ObjectId", common.MakePrimitiveType(Ydb.Type_STRING))
-
 // Таблица для кейса, когда в Redis присутствуют только строковые ключи.
-// Ожидаемая схема: колонки "key" и "stringValues".
+// Ожидаемая схема: колонки "key_" и "string_values".
 var stringOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "stringOnly",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
-			"key":          common.MakePrimitiveType(Ydb.Type_STRING),
-			"stringValues": common.MakePrimitiveType(Ydb.Type_STRING),
+			redis.KeyColumnName:    common.MakePrimitiveType(Ydb.Type_STRING),
+			redis.StringColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
 		},
 	},
 	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
 }
 
 // Таблица для кейса, когда в Redis присутствуют только hash-ключи.
-// Ожидаемая схема: колонки "key" и "hashValues" (StructType, где набор полей – объединение всех полей из hash).
+// Ожидаемая схема: колонки "key_" и "hash_values" (StructType, где набор полей – объединение всех полей из hash).
 var hashOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "hashOnly",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
-			"key": common.MakePrimitiveType(Ydb.Type_STRING),
-			"hashValues": &Ydb.Type{
+			redis.KeyColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
+			redis.HashColumnName: {
 				Type: &Ydb.Type_StructType{
 					StructType: &Ydb.StructType{
 						Members: []*Ydb.StructMember{
@@ -62,15 +60,15 @@ var hashOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 }
 
 // Таблица для кейса, когда в Redis присутствуют и строковые, и hash-значения.
-// Ожидаемая схема: колонки "key", "stringValues" и "hashValues".
+// Ожидаемая схема: колонки "key_", "string_values" и "hash_values".
 var mixedTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "mixed",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
 		Columns: map[string]*Ydb.Type{
-			"key":          common.MakePrimitiveType(Ydb.Type_STRING),
-			"stringValues": common.MakePrimitiveType(Ydb.Type_STRING),
-			"hashValues": &Ydb.Type{
+			redis.KeyColumnName:    common.MakePrimitiveType(Ydb.Type_STRING),
+			redis.StringColumnName: common.MakePrimitiveType(Ydb.Type_STRING),
+			redis.HashColumnName: {
 				Type: &Ydb.Type_StructType{
 					StructType: &Ydb.StructType{
 						Members: []*Ydb.StructMember{
@@ -96,9 +94,9 @@ var emptyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "empty",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 	Schema: &test_utils.TableSchema{
-		Columns: map[string]*Ydb.Type{},
+		Columns: make(map[string]*Ydb.Type, 0),
 	},
-	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
+	Records: make([]*test_utils.Record[int32, *array.Int32Builder], 0),
 }
 
 var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
