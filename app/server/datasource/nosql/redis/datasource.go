@@ -54,6 +54,7 @@ func (ds *dataSource) DescribeTable(
 		func() error {
 			var err error
 			client, err = ds.makeConnection(ctx, logger, dsi)
+
 			return err
 		},
 	)
@@ -76,17 +77,21 @@ func (ds *dataSource) DescribeTable(
 	// Accumulate keys using SCAN until we collect at least 'count' keys or SCAN is finished.
 	var (
 		allKeys []string
-		cursor  uint64 = 0
+		cursor  uint64
 	)
+
 	pattern := fmt.Sprintf("%s:*", request.Table)
+
 	for {
 		keys, newCursor, err := client.Scan(ctx, cursor, pattern, int64(count)).Result()
 		if err != nil {
 			return nil, fmt.Errorf("scan keys: %w", err)
 		}
+
 		allKeys = append(allKeys, keys...)
 		cursor = newCursor
-		if len(allKeys) >= int(count) || cursor == 0 {
+
+		if cursor == 0 || len(allKeys) >= int(count) {
 			break
 		}
 	}
@@ -98,7 +103,9 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	var stringExists bool
+
 	var hashExists bool
+
 	unionHashFields := make(map[string]struct{})
 
 	// Iterate over the obtained keys.
@@ -153,6 +160,7 @@ func (ds *dataSource) DescribeTable(
 		for field := range unionHashFields {
 			fields = append(fields, field)
 		}
+
 		sort.Strings(fields)
 
 		for _, field := range fields {

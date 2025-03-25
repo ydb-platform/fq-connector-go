@@ -12,6 +12,4 @@ const (
 	KeyColumnName    = "key_"
 	StringColumnName = "string_values"
 	HashColumnName   = "hash_values"
-
-	scanBatchSize = 100
 )

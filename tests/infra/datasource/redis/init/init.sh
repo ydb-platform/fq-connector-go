@@ -13,6 +13,3 @@ redis-cli HSET hashOnly:hashKey2 field1 "hashValue3" field2 "hashValue4" field3 
 # For the "mixed" case: one key with a string value and one with a hash value.
 redis-cli SET mixed:stringKey1 "mixedString"
 redis-cli HSET mixed:hashKey2 hashField1 "mixedHash1" hashField2 "mixedHash2"
-
-# For the empty case, do not add any keys.
-redis-cli FLUSHALL
