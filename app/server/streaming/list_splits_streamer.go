@@ -101,6 +101,7 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 				Payload: &api_service_protos.TSplit_Description{
 					Description: description,
 				},
+				Id: uint64(s.splitCounter),
 			},
 		},
 	}
