@@ -19,11 +19,11 @@ func PopulateTestData(ctx context.Context, client *redis.Client, caseName string
 	case "stringOnly":
 		// Insert keys for stringOnly case.
 		if err := client.Set(ctx, "stringOnly:stringKey1", "value1", 0).Err(); err != nil {
-			return fmt.Errorf("failed to set stringOnly:stringKey1: %w", err)
+			return fmt.Errorf("set stringOnly:stringKey1: %w", err)
 		}
 
 		if err := client.Set(ctx, "stringOnly:stringKey2", "value2", 0).Err(); err != nil {
-			return fmt.Errorf("failed to set stringOnly:stringKey2: %w", err)
+			return fmt.Errorf("set stringOnly:stringKey2: %w", err)
 		}
 
 	case "hashOnly":
@@ -32,7 +32,7 @@ func PopulateTestData(ctx context.Context, client *redis.Client, caseName string
 			"field1": "hashValue1",
 			"field2": "hashValue2",
 		}).Err(); err != nil {
-			return fmt.Errorf("failed to HSET hashOnly:hashKey1: %w", err)
+			return fmt.Errorf("HSET hashOnly:hashKey1: %w", err)
 		}
 
 		if err := client.HSet(ctx, "hashOnly:hashKey2", map[string]any{
@@ -40,20 +40,20 @@ func PopulateTestData(ctx context.Context, client *redis.Client, caseName string
 			"field2": "hashValue4",
 			"field3": "hashValue5",
 		}).Err(); err != nil {
-			return fmt.Errorf("failed to HSET hashOnly:hashKey2: %w", err)
+			return fmt.Errorf("HSET hashOnly:hashKey2: %w", err)
 		}
 
 	case "mixed":
 		// Insert one string key and one hash key for mixed case.
 		if err := client.Set(ctx, "mixed:stringKey1", "mixedString", 0).Err(); err != nil {
-			return fmt.Errorf("failed to set mixed:stringKey1: %w", err)
+			return fmt.Errorf("set mixed:stringKey1: %w", err)
 		}
 
 		if err := client.HSet(ctx, "mixed:hashKey2", map[string]any{
 			"hashField1": "mixedHash1",
 			"hashField2": "mixedHash2",
 		}).Err(); err != nil {
-			return fmt.Errorf("failed to HSET mixed:hashKey2: %w", err)
+			return fmt.Errorf("HSET mixed:hashKey2: %w", err)
 		}
 
 	case "empty":

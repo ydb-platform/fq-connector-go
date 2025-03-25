@@ -6,8 +6,6 @@ import (
 	"log"
 	"testing"
 
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"
-
 	"github.com/apache/arrow/go/v13/arrow/array"
 	testify_suite "github.com/stretchr/testify/suite"
 
@@ -20,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ydb"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )

@@ -165,7 +165,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Redis == nil {
 		c.Datasources.Redis = &config.TRedisConfig{
-			OpenConnectionTimeout:   "5s",
+			PingConnectionTimeout:   "5s",
 			CountDocsToDeduceSchema: 5,
 		}
 	}

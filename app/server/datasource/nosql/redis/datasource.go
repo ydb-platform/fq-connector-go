@@ -2,7 +2,6 @@ package redis
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"sort"
 	"time"
@@ -23,11 +22,19 @@ import (
 
 var _ datasource.DataSource[any] = (*dataSource)(nil)
 
-type dataSource struct {
-	retrierSet *retry.RetrierSet
-	cfg        *config.TRedisConfig
-	cc         conversion.Collection
-}
+type (
+	dataSource struct {
+		retrierSet *retry.RetrierSet
+		cfg        *config.TRedisConfig
+		cc         conversion.Collection
+	}
+
+	analyzeKeysOut struct {
+		stringExists    bool
+		hashExists      bool
+		unionHashFields map[string]struct{}
+	}
+)
 
 func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TRedisConfig, cc conversion.Collection) datasource.DataSource[any] {
 	return &dataSource{
@@ -92,9 +99,7 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	defer func() {
-		if err = client.Close(); err != nil {
-			common.LogCloserError(logger, client, "close connection")
-		}
+		common.LogCloserError(logger, client, "close connection")
 	}()
 
 	count := ds.cfg.GetCountDocsToDeduceSchema()
@@ -107,7 +112,7 @@ func (ds *dataSource) DescribeTable(
 	allKeys, err := ds.accumulateKeys(ctx, client, pattern, int(count))
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("accumulate keys: %w", err)
 	}
 
 	// If no keys found, return an empty schema.
@@ -117,12 +122,12 @@ func (ds *dataSource) DescribeTable(
 		}, nil
 	}
 
-	stringExists, hashExists, unionHashFields, err := ds.analyzeKeys(ctx, client, allKeys, logger)
+	keysInfo, err := ds.analyzeKeys(ctx, logger, client, allKeys)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("analyze keys: %w", err)
 	}
 
-	columns := buildSchema(stringExists, hashExists, unionHashFields)
+	columns := buildSchema(keysInfo.stringExists, keysInfo.hashExists, keysInfo.unionHashFields)
 
 	return &api_service_protos.TDescribeTableResponse{
 		Schema: &api_service_protos.TSchema{Columns: columns},
@@ -159,38 +164,39 @@ func (*dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pat
 // sets flags for string and hash keys, and accumulates all hash fields.
 func (*dataSource) analyzeKeys(
 	ctx context.Context,
+	logger *zap.Logger,
 	client *redis.Client,
 	keys []string,
-	logger *zap.Logger,
-) (stringExists bool, hashExists bool, unionHashFields map[string]struct{}, err error) {
-	unionHashFields = make(map[string]struct{})
+) (analyzeKeysOut, error) {
+	var res analyzeKeysOut
+	res.unionHashFields = make(map[string]struct{})
 
 	for _, key := range keys {
 		typ, err := client.Type(ctx, key).Result()
 		if err != nil {
-			return false, false, nil, fmt.Errorf("failed to get type for key %s: %w", key, err)
+			return analyzeKeysOut{}, fmt.Errorf("failed to get type for key %s: %w", key, err)
 		}
 
 		switch typ {
 		case redisTypeString:
-			stringExists = true
+			res.stringExists = true
 		case redisTypeHash:
-			hashExists = true
+			res.hashExists = true
 			fields, err := client.HKeys(ctx, key).Result()
 
 			if err != nil {
-				return false, false, nil, fmt.Errorf("failed to get hash keys for key %s: %w", key, err)
+				return analyzeKeysOut{}, fmt.Errorf("failed to get hash keys for key %s: %w", key, err)
 			}
 
 			for _, field := range fields {
-				unionHashFields[field] = struct{}{}
+				res.unionHashFields[field] = struct{}{}
 			}
 		default:
-			logger.Info("DescribeTable skipped unsupported type", zap.String("value", typ))
+			logger.Warn("skipped unsupported type", zap.String("value", typ))
 		}
 	}
 
-	return stringExists, hashExists, unionHashFields, nil
+	return res, nil
 }
 
 // buildSchema creates the schema (list of columns) based on the presence of string and hash keys
@@ -258,7 +264,7 @@ func (ds *dataSource) makeConnection(
 	logger *zap.Logger,
 	dsi *api_common.TGenericDataSourceInstance,
 ) (*redis.Client, error) {
-	// Assume that dsi contains necessary fields: Endpoint, Credentials, UseTls.
+	// Assume that dsi contains necessary fields: Endpoint, Credentials.
 	addr := fmt.Sprintf("%s:%d", dsi.Endpoint.Host, dsi.Endpoint.Port)
 	options := &redis.Options{
 		Addr:     addr,
@@ -266,29 +272,25 @@ func (ds *dataSource) makeConnection(
 		Username: dsi.Credentials.GetBasic().Username, // use if required
 		DB:       0,                                   // can be extended if dsi.Database specifies a DB number
 	}
-	// Configure TLS if required.
-	if dsi.UseTls {
-		options.TLSConfig = &tls.Config{InsecureSkipVerify: true} // For production, a proper TLSConfig is required
-	}
 
 	client := redis.NewClient(options)
 
 	// Parse timeouts from configuration.
-	openTimeout, err := time.ParseDuration(ds.cfg.OpenConnectionTimeout)
+	pingTimeout, err := time.ParseDuration(ds.cfg.PingConnectionTimeout)
 	if err != nil {
-		openTimeout = 5 * time.Second
+		return nil, fmt.Errorf("parseDuration with PingConnectionTimeout: %w", err)
 	}
 	// Ping Redis using a context with timeout.
-	logger.Debug("trying to connect to Redis", zap.String("addr", addr))
+	logger.Debug("trying to connect to database", zap.String("addr", addr))
 
-	openCtx, cancel := context.WithTimeout(ctx, openTimeout)
+	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
 	defer cancel()
 
-	if err := client.Ping(openCtx).Err(); err != nil {
+	if err := client.Ping(pingCtx).Err(); err != nil {
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
-	logger.Info("successfully connected to Redis", zap.String("addr", addr))
+	logger.Info("successfully connected to database", zap.String("addr", addr))
 
 	return client, nil
 }

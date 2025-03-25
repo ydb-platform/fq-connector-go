@@ -9,7 +9,7 @@ const (
 	redisTypeZSet   = "zset"
 	redisTypeStream = "stream"
 
-	KeyColumnName    = "key_"
+	KeyColumnName    = "key"
 	StringColumnName = "string_values"
 	HashColumnName   = "hash_values"
 )

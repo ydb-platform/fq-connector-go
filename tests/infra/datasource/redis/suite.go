@@ -45,10 +45,10 @@ func connectRedisFromDS(ctx context.Context, ds *datasource.DataSource) (*redis.
 		openTimeout = 5 * time.Second
 	}
 
-	openCtx, cancel := context.WithTimeout(ctx, openTimeout)
+	pingCtx, cancel := context.WithTimeout(ctx, openTimeout)
 	defer cancel()
 
-	if err := client.Ping(openCtx).Err(); err != nil {
+	if err := client.Ping(pingCtx).Err(); err != nil {
 		return nil, fmt.Errorf("ping: %w", err)
 	}
 
