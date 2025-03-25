@@ -37,159 +37,6 @@ func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TRedisConfig, cc co
 	}
 }
 
-func (ds *dataSource) DescribeTable(
-	ctx context.Context,
-	logger *zap.Logger,
-	request *api_service_protos.TDescribeTableRequest,
-) (*api_service_protos.TDescribeTableResponse, error) {
-	dsi := request.DataSourceInstance
-
-	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
-		return nil, fmt.Errorf("cannot run Redis connection with protocol '%v'", dsi.Protocol)
-	}
-
-	var client *redis.Client
-
-	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
-		func() error {
-			var err error
-			client, err = ds.makeConnection(ctx, logger, dsi)
-
-			return err
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("make connection: %w", err)
-	}
-
-	defer func() {
-		if err = client.Close(); err != nil {
-			common.LogCloserError(logger, client, "close connection")
-		}
-	}()
-
-	count := ds.cfg.GetCountDocsToDeduceSchema()
-
-	if request.Table == "" {
-		return nil, common.ErrEmptyTableName
-	}
-
-	// Accumulate keys using SCAN until we collect at least 'count' keys or SCAN is finished.
-	var (
-		allKeys []string
-		cursor  uint64
-	)
-
-	pattern := fmt.Sprintf("%s:*", request.Table)
-
-	for {
-		keys, newCursor, err := client.Scan(ctx, cursor, pattern, int64(count)).Result()
-		if err != nil {
-			return nil, fmt.Errorf("scan keys: %w", err)
-		}
-
-		allKeys = append(allKeys, keys...)
-		cursor = newCursor
-
-		if cursor == 0 || len(allKeys) >= int(count) {
-			break
-		}
-	}
-	// If there are no keys, return an empty schema.
-	if len(allKeys) == 0 {
-		return &api_service_protos.TDescribeTableResponse{
-			Schema: &api_service_protos.TSchema{Columns: nil},
-		}, nil
-	}
-
-	var stringExists bool
-
-	var hashExists bool
-
-	unionHashFields := make(map[string]struct{})
-
-	// Iterate over the obtained keys.
-	for _, key := range allKeys {
-		typ, err := client.Type(ctx, key).Result()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get type for key %s: %w", key, err)
-		}
-
-		switch typ {
-		case redisTypeString:
-			stringExists = true
-		case redisTypeHash:
-			hashExists = true
-			// Get the list of fields for the hash key.
-			fields, err := client.HKeys(ctx, key).Result()
-			if err != nil {
-				return nil, fmt.Errorf("failed to get hash keys: %w", err)
-			}
-
-			for _, field := range fields {
-				unionHashFields[field] = struct{}{}
-			}
-		default:
-			logger.Info("DescribeTable found and skipped currently unsupported type", zap.String("value", typ))
-		}
-	}
-
-	var columns []*Ydb.Column
-
-	// Column "key" - always.
-	keyColumn := &Ydb.Column{
-		Name: KeyColumnName,
-		Type: common.MakePrimitiveType(Ydb.Type_STRING),
-	}
-	columns = append(columns, keyColumn)
-
-	// If string values exist, add the "stringValues" column.
-	if stringExists {
-		stringColumn := &Ydb.Column{
-			Name: StringColumnName,
-			Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-		}
-		columns = append(columns, stringColumn)
-	}
-
-	// If hash values exist, build the "hashValues" column.
-	if hashExists {
-		var structMembers []*Ydb.StructMember
-		// For consistency, sort the list of fields.
-		var fields []string
-		for field := range unionHashFields {
-			fields = append(fields, field)
-		}
-
-		sort.Strings(fields)
-
-		for _, field := range fields {
-			member := &Ydb.StructMember{
-				Name: field,
-				Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-			}
-			structMembers = append(structMembers, member)
-		}
-		// Build YDB StructType.
-		structType := &Ydb.Type{
-			Type: &Ydb.Type_StructType{
-				StructType: &Ydb.StructType{
-					Members: structMembers,
-				},
-			},
-		}
-		hashColumn := &Ydb.Column{
-			Name: HashColumnName,
-			Type: common.MakeOptionalType(structType),
-		}
-		columns = append(columns, hashColumn)
-	}
-
-	return &api_service_protos.TDescribeTableResponse{
-		Schema: &api_service_protos.TSchema{Columns: columns},
-	}, nil
-}
-
 func (ds *dataSource) ListSplits(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -215,6 +62,181 @@ func (ds *dataSource) ReadSplit(
 	sinkFactory paging.SinkFactory[any],
 ) error {
 	return nil
+}
+
+// DescribeTable retrieves table metadata by scanning Redis keys with a given prefix.
+// It accumulates keys until at least 'count' keys are collected or the scan finishes,
+// then analyzes key types and builds the schema.
+func (ds *dataSource) DescribeTable(
+	ctx context.Context,
+	logger *zap.Logger,
+	request *api_service_protos.TDescribeTableRequest,
+) (*api_service_protos.TDescribeTableResponse, error) {
+	dsi := request.DataSourceInstance
+
+	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
+		return nil, fmt.Errorf("cannot run Redis connection with protocol '%v'", dsi.Protocol)
+	}
+
+	var client *redis.Client
+
+	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
+		var err error
+		client, err = ds.makeConnection(ctx, logger, dsi)
+		return err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("make connection: %w", err)
+	}
+
+	defer func() {
+		if err = client.Close(); err != nil {
+			common.LogCloserError(logger, client, "close connection")
+		}
+	}()
+
+	count := ds.cfg.GetCountDocsToDeduceSchema()
+	if request.Table == "" {
+		return nil, common.ErrEmptyTableName
+	}
+
+	pattern := fmt.Sprintf("%s:*", request.Table)
+	allKeys, err := ds.accumulateKeys(ctx, client, pattern, int(count))
+
+	if err != nil {
+		return nil, err
+	}
+	// If no keys found, return an empty schema.
+	if len(allKeys) == 0 {
+		return &api_service_protos.TDescribeTableResponse{
+			Schema: &api_service_protos.TSchema{Columns: nil},
+		}, nil
+	}
+
+	stringExists, hashExists, unionHashFields, err := ds.analyzeKeys(ctx, client, allKeys, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	columns := buildSchema(stringExists, hashExists, unionHashFields)
+	return &api_service_protos.TDescribeTableResponse{
+		Schema: &api_service_protos.TSchema{Columns: columns},
+	}, nil
+}
+
+// accumulateKeys scans Redis keys matching the given pattern until at least 'count' keys are collected
+// or the scan is finished.
+func (ds *dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pattern string, count int) ([]string, error) {
+	var (
+		allKeys []string
+		cursor  uint64 = 0
+	)
+
+	for {
+		keys, newCursor, err := client.Scan(ctx, cursor, pattern, int64(count)).Result()
+		if err != nil {
+			return nil, fmt.Errorf("scan keys: %w", err)
+		}
+		allKeys = append(allKeys, keys...)
+		cursor = newCursor
+		if cursor == 0 || len(allKeys) >= count {
+			break
+		}
+	}
+	return allKeys, nil
+}
+
+// analyzeKeys iterates over all keys, determines each key's type,
+// sets flags for string and hash keys, and accumulates all hash fields.
+func (ds *dataSource) analyzeKeys(
+	ctx context.Context,
+	client *redis.Client,
+	keys []string,
+	logger *zap.Logger,
+) (bool, bool, map[string]struct{}, error) {
+	var stringExists, hashExists bool
+	unionHashFields := make(map[string]struct{})
+
+	for _, key := range keys {
+		typ, err := client.Type(ctx, key).Result()
+		if err != nil {
+			return false, false, nil, fmt.Errorf("failed to get type for key %s: %w", key, err)
+		}
+
+		switch typ {
+		case redisTypeString:
+			stringExists = true
+		case redisTypeHash:
+			hashExists = true
+			fields, err := client.HKeys(ctx, key).Result()
+
+			if err != nil {
+				return false, false, nil, fmt.Errorf("failed to get hash keys for key %s: %w", key, err)
+			}
+
+			for _, field := range fields {
+				unionHashFields[field] = struct{}{}
+			}
+		default:
+			logger.Info("DescribeTable skipped unsupported type", zap.String("value", typ))
+		}
+	}
+	return stringExists, hashExists, unionHashFields, nil
+}
+
+// buildSchema creates the schema (list of columns) based on the presence of string and hash keys
+// and the set of hash fields.
+func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struct{}) []*Ydb.Column {
+	var columns []*Ydb.Column
+
+	// Always add the "key" column.
+	keyColumn := &Ydb.Column{
+		Name: KeyColumnName,
+		Type: common.MakePrimitiveType(Ydb.Type_STRING),
+	}
+	columns = append(columns, keyColumn)
+
+	// Add "string_values" column if string keys exist.
+	if stringExists {
+		stringColumn := &Ydb.Column{
+			Name: StringColumnName,
+			Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+		}
+		columns = append(columns, stringColumn)
+	}
+
+	// Add "hash_values" column if hash keys exist.
+	if hashExists {
+		var structMembers []*Ydb.StructMember
+		var fields []string
+
+		for field := range unionHashFields {
+			fields = append(fields, field)
+		}
+
+		sort.Strings(fields)
+
+		for _, field := range fields {
+			member := &Ydb.StructMember{
+				Name: field,
+				Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+			}
+			structMembers = append(structMembers, member)
+		}
+		structType := &Ydb.Type{
+			Type: &Ydb.Type_StructType{
+				StructType: &Ydb.StructType{
+					Members: structMembers,
+				},
+			},
+		}
+		hashColumn := &Ydb.Column{
+			Name: HashColumnName,
+			Type: common.MakeOptionalType(structType),
+		}
+		columns = append(columns, hashColumn)
+	}
+	return columns
 }
 
 func (ds *dataSource) makeConnection(
