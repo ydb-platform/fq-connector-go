@@ -157,7 +157,7 @@ func (*dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pat
 
 // analyzeKeys iterates over all keys, determines each key's type,
 // sets flags for string and hash keys, and accumulates all hash fields.
-func (ds *dataSource) analyzeKeys(
+func (*dataSource) analyzeKeys(
 	ctx context.Context,
 	client *redis.Client,
 	keys []string,
