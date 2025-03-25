@@ -85,6 +85,7 @@ func (ds *dataSource) DescribeTable(
 		client, err = ds.makeConnection(ctx, logger, dsi)
 		return err
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf("make connection: %w", err)
 	}
@@ -106,6 +107,7 @@ func (ds *dataSource) DescribeTable(
 	if err != nil {
 		return nil, err
 	}
+
 	// If no keys found, return an empty schema.
 	if len(allKeys) == 0 {
 		return &api_service_protos.TDescribeTableResponse{
@@ -119,6 +121,7 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	columns := buildSchema(stringExists, hashExists, unionHashFields)
+
 	return &api_service_protos.TDescribeTableResponse{
 		Schema: &api_service_protos.TSchema{Columns: columns},
 	}, nil
@@ -139,6 +142,7 @@ func (ds *dataSource) accumulateKeys(ctx context.Context, client *redis.Client, 
 		}
 		allKeys = append(allKeys, keys...)
 		cursor = newCursor
+
 		if cursor == 0 || len(allKeys) >= count {
 			break
 		}

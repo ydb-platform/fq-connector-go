@@ -116,8 +116,5 @@ services:
   redis:
     image: valkey/valkey:8.0.1
     container_name: ${USER}-fq-connector-go-tests-redis
-    volumes:
-      - ./redis/init/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
-    entrypoint: [ "/bin/sh", "-c", "sleep 5 && sh /docker-entrypoint-initdb.d/init.sh && redis-server" ]
     ports:
       - "6379:6379"
