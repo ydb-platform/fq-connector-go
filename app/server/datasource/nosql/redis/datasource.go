@@ -162,10 +162,8 @@ func (*dataSource) analyzeKeys(
 	client *redis.Client,
 	keys []string,
 	logger *zap.Logger,
-) (bool, bool, map[string]struct{}, error) {
-	var stringExists, hashExists bool
-
-	unionHashFields := make(map[string]struct{})
+) (stringExists bool, hashExists bool, unionHashFields map[string]struct{}, err error) {
+	unionHashFields = make(map[string]struct{})
 
 	for _, key := range keys {
 		typ, err := client.Type(ctx, key).Result()
