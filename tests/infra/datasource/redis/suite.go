@@ -8,6 +8,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/redis/go-redis/v9"
+
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
@@ -21,14 +22,18 @@ func connectRedisFromDS(ctx context.Context, ds *datasource.DataSource) (*redis.
 	if len(ds.Instances) == 0 {
 		return nil, fmt.Errorf("no data source instances")
 	}
+
 	dsi := ds.Instances[0]
+
 	addr := fmt.Sprintf("%s:%d", dsi.Endpoint.Host, dsi.Endpoint.Port)
+
 	options := &redis.Options{
 		Addr:     addr,
 		Password: dsi.Credentials.GetBasic().Password,
 		Username: dsi.Credentials.GetBasic().Username,
 		DB:       0,
 	}
+
 	if dsi.UseTls {
 		options.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}

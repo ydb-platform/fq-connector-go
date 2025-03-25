@@ -83,6 +83,7 @@ func (ds *dataSource) DescribeTable(
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
 		var err error
 		client, err = ds.makeConnection(ctx, logger, dsi)
+
 		return err
 	})
 
@@ -97,6 +98,7 @@ func (ds *dataSource) DescribeTable(
 	}()
 
 	count := ds.cfg.GetCountDocsToDeduceSchema()
+
 	if request.Table == "" {
 		return nil, common.ErrEmptyTableName
 	}
@@ -132,7 +134,7 @@ func (ds *dataSource) DescribeTable(
 func (ds *dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pattern string, count int) ([]string, error) {
 	var (
 		allKeys []string
-		cursor  uint64 = 0
+		cursor  uint64
 	)
 
 	for {
@@ -140,13 +142,16 @@ func (ds *dataSource) accumulateKeys(ctx context.Context, client *redis.Client, 
 		if err != nil {
 			return nil, fmt.Errorf("scan keys: %w", err)
 		}
+
 		allKeys = append(allKeys, keys...)
+
 		cursor = newCursor
 
 		if cursor == 0 || len(allKeys) >= count {
 			break
 		}
 	}
+
 	return allKeys, nil
 }
 
@@ -159,6 +164,7 @@ func (ds *dataSource) analyzeKeys(
 	logger *zap.Logger,
 ) (bool, bool, map[string]struct{}, error) {
 	var stringExists, hashExists bool
+
 	unionHashFields := make(map[string]struct{})
 
 	for _, key := range keys {
@@ -185,6 +191,7 @@ func (ds *dataSource) analyzeKeys(
 			logger.Info("DescribeTable skipped unsupported type", zap.String("value", typ))
 		}
 	}
+
 	return stringExists, hashExists, unionHashFields, nil
 }
 
@@ -212,6 +219,7 @@ func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struc
 	// Add "hash_values" column if hash keys exist.
 	if hashExists {
 		var structMembers []*Ydb.StructMember
+
 		var fields []string
 
 		for field := range unionHashFields {
@@ -225,8 +233,10 @@ func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struc
 				Name: field,
 				Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 			}
+
 			structMembers = append(structMembers, member)
 		}
+
 		structType := &Ydb.Type{
 			Type: &Ydb.Type_StructType{
 				StructType: &Ydb.StructType{
@@ -234,12 +244,14 @@ func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struc
 				},
 			},
 		}
+
 		hashColumn := &Ydb.Column{
 			Name: HashColumnName,
 			Type: common.MakeOptionalType(structType),
 		}
 		columns = append(columns, hashColumn)
 	}
+
 	return columns
 }
 
