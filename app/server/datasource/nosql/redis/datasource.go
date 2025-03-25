@@ -37,10 +37,10 @@ func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TRedisConfig, cc co
 	}
 }
 
-func (ds *dataSource) ListSplits(
+func (*dataSource) ListSplits(
 	ctx context.Context,
-	logger *zap.Logger,
-	request *api_service_protos.TListSplitsRequest,
+	_ *zap.Logger,
+	_ *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,
 ) error {
@@ -54,12 +54,12 @@ func (ds *dataSource) ListSplits(
 	return nil
 }
 
-func (ds *dataSource) ReadSplit(
-	ctx context.Context,
-	logger *zap.Logger,
-	request *api_service_protos.TReadSplitsRequest,
-	split *api_service_protos.TSplit,
-	sinkFactory paging.SinkFactory[any],
+func (*dataSource) ReadSplit(
+	_ context.Context,
+	_ *zap.Logger,
+	_ *api_service_protos.TReadSplitsRequest,
+	_ *api_service_protos.TSplit,
+	_ paging.SinkFactory[any],
 ) error {
 	return nil
 }
@@ -131,7 +131,7 @@ func (ds *dataSource) DescribeTable(
 
 // accumulateKeys scans Redis keys matching the given pattern until at least 'count' keys are collected
 // or the scan is finished.
-func (ds *dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pattern string, count int) ([]string, error) {
+func (*dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pattern string, count int) ([]string, error) {
 	var (
 		allKeys []string
 		cursor  uint64
