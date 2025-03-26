@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
+
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"go.uber.org/zap"
 
@@ -64,6 +66,19 @@ func (dsc *DataSourceCollection) DescribeTable(
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EGenericDataSourceKind_REDIS:
+		redisCfg := dsc.cfg.Datasources.Redis
+		ds := redis.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(redisCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(redisCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			redisCfg,
+			dsc.converterCollection,
+		)
+
+		return ds.DescribeTable(ctx, logger, request)
+
 	default:
 		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -101,6 +116,22 @@ func (dsc *DataSourceCollection) ListSplits(
 				},
 				dsc.converterCollection,
 				mongoDbCfg,
+			)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+		case api_common.EGenericDataSourceKind_REDIS:
+			redisCfg := dsc.cfg.Datasources.Redis
+			ds := redis.NewDataSource(
+				&retry.RetrierSet{
+					MakeConnection: retry.NewRetrierFromConfig(redisCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+					Query:          retry.NewRetrierFromConfig(redisCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+				},
+				redisCfg,
+				dsc.converterCollection,
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -149,6 +180,20 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+
+	case api_common.EGenericDataSourceKind_REDIS:
+		redisCfg := dsc.cfg.Datasources.Redis
+		ds := redis.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(redisCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(redisCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			redisCfg,
+			dsc.converterCollection,
+		)
+
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}

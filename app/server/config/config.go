@@ -161,6 +161,19 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Mongodb.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	// Redis
+
+	if c.Datasources.Redis == nil {
+		c.Datasources.Redis = &config.TRedisConfig{
+			PingConnectionTimeout:   "5s",
+			CountDocsToDeduceSchema: 5,
+		}
+	}
+
+	if c.Datasources.Redis.ExponentialBackoff == nil {
+		c.Datasources.Redis.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
 	// PostgreSQL
 
 	if c.Datasources.Postgresql == nil {

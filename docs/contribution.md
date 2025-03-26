@@ -8,7 +8,7 @@
 
 В связи с этим было принято решение реализовать `Generic` провайдер - универсальную библиотеку, через которую YDB сможет работать с любыми источниками данных посредством обращений к внешниму микросервису - коннектору. 
 
-![Providers vs connector](./providers_vs_connector.png)
+![Providers vs connector](./providers_vs_connector.jpg)
 
 Благодаря этому архитектурному решению добавление новых источников значительно облегчается, а кодовая база YDB не распухает от новых зависимостей и остаётся относительно стабильной. Коннектор может быть реализован на любом языке программирования по имеющейся GRPC-спецификации.
 
@@ -65,13 +65,13 @@
 * Система типов Apache Arrow.
 * Система типов языка Go.
 
-![Type Mapping](./type_mapping.png)
+![Type Mapping](./type_mapping.jpg)
 
 Код, выполняющий *трансформацию* между этими системами типов, традиционно сконцентрирован в файлах `type_mapper.go` ([PG](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/postgresql/type_mapper.go), [CH](https://github.com/ydb-platform/fq-connector-go/blob/main/app/server/datasource/rdbms/clickhouse/type_mapper.go)). 
 
 Ещё один смысл, вкладываемый в термин *трансформации* данных - это  преобразование данных из строкового в колоночное представление. Логика перекладывания данных из элементов строки (row) в колоночные буфера реализована однократно для всех источников данных в функции [RowTransformerDefault.AppendToArrowBuilders](https://pkg.go.dev/github.com/ydb-platform/fq-connector-go@v0.2.6/app/server/paging#RowTransformerDefault.AppendToArrowBuilders).
 
-![Data transformation](./append_to_arrow_builders.png)
+![Data transformation](./append_to_arrow_builders.jpg)
 
 
 ## Пошаговая инструкция
