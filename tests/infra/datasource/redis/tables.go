@@ -14,7 +14,7 @@ import (
 var memPool memory.Allocator = memory.NewGoAllocator()
 
 // Table for the case when only string keys are present in Redis.
-// Expected schema: columns "key_" and "string_values".
+// Expected schema: columns "key" and "string_values".
 var stringOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "stringOnly",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
@@ -28,7 +28,7 @@ var stringOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 }
 
 // Table for the case when only hash keys are present in Redis.
-// Expected schema: columns "key_" and "hash_values", where hash_values is an OptionalType wrapping a StructType
+// Expected schema: columns "key" and "hash_values", where hash_values is an OptionalType wrapping a StructType
 // with members being the union of all hash fields.
 var hashOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "hashOnly",
@@ -62,7 +62,7 @@ var hashOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 }
 
 // Table for the case when both string and hash keys are present in Redis.
-// Expected schema: columns "key_", "string_values" and "hash_values" (OptionalType wrapping a StructType).
+// Expected schema: columns "key", "string_values" and "hash_values" (OptionalType wrapping a StructType).
 var mixedTable = &test_utils.Table[int32, *array.Int32Builder]{
 	Name:                  "mixed",
 	IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),

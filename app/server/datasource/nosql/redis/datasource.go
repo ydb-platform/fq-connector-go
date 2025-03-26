@@ -29,7 +29,7 @@ type (
 		cc         conversion.Collection
 	}
 
-	analyzeKeysOut struct {
+	keysSpec struct {
 		stringExists    bool
 		hashExists      bool
 		unionHashFields map[string]struct{}
@@ -127,7 +127,7 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("analyze keys: %w", err)
 	}
 
-	columns := buildSchema(keysInfo.stringExists, keysInfo.hashExists, keysInfo.unionHashFields)
+	columns := buildSchema(*keysInfo)
 
 	return &api_service_protos.TDescribeTableResponse{
 		Schema: &api_service_protos.TSchema{Columns: columns},
@@ -167,14 +167,14 @@ func (*dataSource) analyzeKeys(
 	logger *zap.Logger,
 	client *redis.Client,
 	keys []string,
-) (analyzeKeysOut, error) {
-	var res analyzeKeysOut
+) (*keysSpec, error) {
+	var res keysSpec
 	res.unionHashFields = make(map[string]struct{})
 
 	for _, key := range keys {
 		typ, err := client.Type(ctx, key).Result()
 		if err != nil {
-			return analyzeKeysOut{}, fmt.Errorf("failed to get type for key %s: %w", key, err)
+			return nil, fmt.Errorf("get type for key %s: %w", key, err)
 		}
 
 		switch typ {
@@ -185,7 +185,7 @@ func (*dataSource) analyzeKeys(
 			fields, err := client.HKeys(ctx, key).Result()
 
 			if err != nil {
-				return analyzeKeysOut{}, fmt.Errorf("failed to get hash keys for key %s: %w", key, err)
+				return nil, fmt.Errorf("get hash keys for key %s: %w", key, err)
 			}
 
 			for _, field := range fields {
@@ -196,12 +196,12 @@ func (*dataSource) analyzeKeys(
 		}
 	}
 
-	return res, nil
+	return &res, nil
 }
 
 // buildSchema creates the schema (list of columns) based on the presence of string and hash keys
 // and the set of hash fields.
-func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struct{}) []*Ydb.Column {
+func buildSchema(spec keysSpec) []*Ydb.Column {
 	var columns []*Ydb.Column
 
 	// Always add the "key" column.
@@ -212,7 +212,7 @@ func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struc
 	columns = append(columns, keyColumn)
 
 	// Add "string_values" column if string keys exist.
-	if stringExists {
+	if spec.stringExists {
 		stringColumn := &Ydb.Column{
 			Name: StringColumnName,
 			Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
@@ -221,12 +221,12 @@ func buildSchema(stringExists, hashExists bool, unionHashFields map[string]struc
 	}
 
 	// Add "hash_values" column if hash keys exist.
-	if hashExists {
+	if spec.hashExists {
 		var structMembers []*Ydb.StructMember
 
 		var fields []string
 
-		for field := range unionHashFields {
+		for field := range spec.unionHashFields {
 			fields = append(fields, field)
 		}
 

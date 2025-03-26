@@ -55,6 +55,24 @@ func connectRedisFromDS(ctx context.Context, ds *datasource.DataSource) (*redis.
 	return client, nil
 }
 
+// populateTestDataForCase creates a Redis client, populates test data for the given case,
+// and ensures the client and context are properly closed.
+func (s *Suite) populateTestDataForCase(caseName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	client, err := connectRedisFromDS(ctx, s.dataSource)
+	if err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+
+	defer func() {
+		s.Require().NoError(client.Close())
+	}()
+
+	return PopulateTestData(ctx, client, caseName)
+}
+
 // TestDescribeTable populates Redis with test data for each test case and validates the table metadata.
 func (s *Suite) TestDescribeTable() {
 	testCaseNames := []string{
@@ -64,16 +82,7 @@ func (s *Suite) TestDescribeTable() {
 		"empty",
 	}
 	for _, testCase := range testCaseNames {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		client, err := connectRedisFromDS(ctx, s.dataSource)
-		s.Require().NoError(err)
-
-		err = PopulateTestData(ctx, client, testCase)
-		s.Require().NoError(err)
-
-		client.Close()
-		cancel()
-
+		s.Require().NoError(s.populateTestDataForCase(testCase))
 		s.ValidateTableMetadata(s.dataSource, tables[testCase])
 	}
 }

@@ -8,14 +8,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/redis/go-redis/v9"
-
 	ch_proto "github.com/ClickHouse/ch-go/proto"
 	clickhouse_proto "github.com/ClickHouse/clickhouse-go/v2/lib/proto"
 	mssql "github.com/denisenkom/go-mssqldb"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/redis/go-redis/v9"
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"go.mongodb.org/mongo-driver/mongo"
