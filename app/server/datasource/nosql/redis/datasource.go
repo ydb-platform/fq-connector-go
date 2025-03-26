@@ -278,7 +278,7 @@ func (ds *dataSource) makeConnection(
 	// Parse timeouts from configuration.
 	pingTimeout, err := time.ParseDuration(ds.cfg.PingConnectionTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("parseDuration with PingConnectionTimeout: %w", err)
+		return nil, fmt.Errorf("parse duration value '%v': %w",  ds.cfg.PingConnectionTimeout, err)
 	}
 	// Ping Redis using a context with timeout.
 	logger.Debug("trying to connect to database", zap.String("addr", addr))
