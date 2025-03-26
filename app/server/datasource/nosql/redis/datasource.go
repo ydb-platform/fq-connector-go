@@ -108,8 +108,7 @@ func (ds *dataSource) DescribeTable(
 		return nil, common.ErrEmptyTableName
 	}
 
-	pattern := fmt.Sprintf("%s:*", request.Table)
-	allKeys, err := ds.accumulateKeys(ctx, client, pattern, int(count))
+	allKeys, err := ds.accumulateKeys(ctx, client, request.Table, int(count))
 
 	if err != nil {
 		return nil, fmt.Errorf("accumulate keys: %w", err)
