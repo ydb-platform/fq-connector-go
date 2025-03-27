@@ -6,6 +6,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
@@ -24,7 +25,12 @@ var stringOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 			redis.StringColumnName: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		},
 	},
-	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
+	Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+		Columns: map[string]any{
+			redis.KeyColumnName:    []string{"stringOnly:stringKey1", "stringOnly:stringKey2"},
+			redis.StringColumnName: []*string{ptr.String("value1"), ptr.String("value2")},
+		},
+	}},
 }
 
 // Table for the case when only hash keys are present in Redis.
@@ -58,7 +64,23 @@ var hashOnlyTable = &test_utils.Table[int32, *array.Int32Builder]{
 			}),
 		},
 	},
-	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
+	Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+		Columns: map[string]any{
+			redis.KeyColumnName: []string{"hashOnly:hashKey1", "hashOnly:hashKey2"},
+			redis.HashColumnName: []map[string]*string{
+				{
+					"field1": ptr.String("hashValue1"),
+					"field2": ptr.String("hashValue2"),
+					"field3": nil,
+				},
+				{
+					"field1": ptr.String("hashValue3"),
+					"field2": ptr.String("hashValue4"),
+					"field3": ptr.String("hashValue5"),
+				},
+			},
+		},
+	}},
 }
 
 // Table for the case when both string and hash keys are present in Redis.
@@ -88,7 +110,19 @@ var mixedTable = &test_utils.Table[int32, *array.Int32Builder]{
 			}),
 		},
 	},
-	Records: []*test_utils.Record[int32, *array.Int32Builder]{},
+	Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+		Columns: map[string]any{
+			redis.KeyColumnName:    []string{"mixed:stringKey1", "mixed:hashKey2"},
+			redis.StringColumnName: []*string{ptr.String("mixedString"), nil},
+			redis.HashColumnName: []map[string]*string{
+				nil,
+				{
+					"hashField1": ptr.String("mixedHash1"),
+					"hashField2": ptr.String("mixedHash2"),
+				},
+			},
+		},
+	}},
 }
 
 // Table for the case of an empty database – expected schema: no columns.

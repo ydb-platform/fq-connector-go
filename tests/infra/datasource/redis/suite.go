@@ -70,7 +70,69 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 		s.Require().NoError(client.Close())
 	}()
 
-	return PopulateTestData(ctx, client, caseName)
+	// Проверяем, что Redis пустой
+	keys, err := client.Keys(ctx, "*").Result()
+	if err != nil {
+		return fmt.Errorf("failed to get keys: %w", err)
+	}
+	fmt.Printf("\nBefore population: keys=%v\n", keys)
+
+	err = PopulateTestData(ctx, client, caseName)
+	if err != nil {
+		return err
+	}
+
+	// Проверяем, что данные добавились
+	keys, err = client.Keys(ctx, "*").Result()
+	if err != nil {
+		return fmt.Errorf("failed to get keys: %w", err)
+	}
+	fmt.Printf("After population: keys=%v\n", keys)
+
+	// Проверяем значения для каждого ключа
+	for _, key := range keys {
+		typ, err := client.Type(ctx, key).Result()
+		if err != nil {
+			return fmt.Errorf("failed to get type for key %s: %w", key, err)
+		}
+		fmt.Printf("Key %s: type=%s\n", key, typ)
+
+		switch typ {
+		case "string":
+			val, err := client.Get(ctx, key).Result()
+			if err != nil {
+				return fmt.Errorf("failed to get value for key %s: %w", key, err)
+			}
+			fmt.Printf("String value for %s: %s\n", key, val)
+		case "hash":
+			val, err := client.HGetAll(ctx, key).Result()
+			if err != nil {
+				return fmt.Errorf("failed to get hash for key %s: %w", key, err)
+			}
+			fmt.Printf("Hash value for %s: %v\n", key, val)
+		}
+	}
+
+	// Проверяем, что данные соответствуют ожидаемым
+	table := tables[caseName]
+	if table == nil {
+		return fmt.Errorf("unknown test case: %s", caseName)
+	}
+
+	fmt.Printf("\nExpected schema:\n")
+	for name, typ := range table.Schema.Columns {
+		fmt.Printf("Column %s: %v\n", name, typ)
+	}
+
+	fmt.Printf("\nExpected records:\n")
+	for i, record := range table.Records {
+		fmt.Printf("Record %d:\n", i)
+		for name, values := range record.Columns {
+			fmt.Printf("  %s: %v\n", name, values)
+		}
+	}
+
+	return nil
 }
 
 // TestDescribeTable populates Redis with test data for each test case and validates the table metadata.
@@ -86,6 +148,47 @@ func (s *Suite) TestDescribeTable() {
 		s.ValidateTableMetadata(s.dataSource, tables[testCase])
 	}
 }
+
+func (s *Suite) TestReadSplit() {
+	testCaseNames := []string{
+		"stringOnly",
+		"hashOnly",
+		"mixed",
+		"empty",
+	}
+	for _, testCase := range testCaseNames {
+		s.Require().NoError(s.populateTestDataForCase(testCase))
+		s.ValidateTable(s.dataSource, tables[testCase])
+	}
+}
+
+// func (s *Suite) TestPositiveStats() {
+// 	s.Require().NoError(s.populateTestDataForCase("mixed"))
+
+// 	// Получаем метрики до чтения
+// 	snapshot1, err := s.Connector.MetricsSnapshot()
+// 	s.Require().NoError(err)
+
+// 	// Читаем таблицу
+// 	s.ValidateTable(s.dataSource, tables["mixed"])
+
+// 	// Получаем метрики после чтения
+// 	snapshot2, err := s.Connector.MetricsSnapshot()
+// 	s.Require().NoError(err)
+
+// 	// Проверяем, что метрики успешных запросов увеличились
+// 	describeTableStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "DescribeTable", "status_total", "OK")
+// 	s.Require().NoError(err)
+// 	s.Require().Equal(float64(len(s.dataSource.Instances)), describeTableStatusOK)
+
+// 	listSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ListSplits", "stream_status_total", "OK")
+// 	s.Require().NoError(err)
+// 	s.Require().Equal(float64(len(s.dataSource.Instances)), listSplitsStatusOK)
+
+// 	readSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ReadSplits", "stream_status_total", "OK")
+// 	s.Require().NoError(err)
+// 	s.Require().Equal(float64(len(s.dataSource.Instances)), readSplitsStatusOK)
+// }
 
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
