@@ -206,7 +206,10 @@ func dumpReadResponses(
 		)
 
 		for i, column := range record.Columns() {
-			logger.Debug("column", zap.Int("id", i), zap.String("data", column.String()))
+			logger.Debug("column",
+				zap.Int("id", i),
+				zap.String("column_name", record.ColumnName(i)),
+				zap.String("data", column.String()))
 		}
 	}
 }

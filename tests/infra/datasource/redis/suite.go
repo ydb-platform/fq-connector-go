@@ -14,7 +14,7 @@ import (
 )
 
 type Suite struct {
-	*suite.Base[int32, *array.Int32Builder]
+	*suite.Base[[]byte, *array.BinaryBuilder]
 	dataSource *datasource.DataSource
 }
 
@@ -191,7 +191,7 @@ func (s *Suite) TestReadSplit() {
 // }
 
 func NewSuite(
-	baseSuite *suite.Base[int32, *array.Int32Builder],
+	baseSuite *suite.Base[[]byte, *array.BinaryBuilder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)
