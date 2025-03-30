@@ -75,7 +75,6 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get keys: %w", err)
 	}
-	fmt.Printf("\nBefore population: keys=%v\n", keys)
 
 	err = PopulateTestData(ctx, client, caseName)
 	if err != nil {
@@ -87,7 +86,6 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get keys: %w", err)
 	}
-	fmt.Printf("After population: keys=%v\n", keys)
 
 	// Проверяем значения для каждого ключа
 	for _, key := range keys {

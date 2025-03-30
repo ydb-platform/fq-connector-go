@@ -20,7 +20,7 @@ import (
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
-	*array.Int64Builder | *array.Int32Builder | *array.StringBuilder | *array.BinaryBuilder
+	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder
 	Append(ID)
 	NewArray() arrow.Array
 	Release()
@@ -42,23 +42,16 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 	receivedRecord arrow.Record,
 	receivedSchema *api_service_protos.TSchema,
 	idArrBuilder IDBUILDER) {
-	fmt.Printf("\nMatchRecord: receivedRecord=%v, receivedSchema=%v\n", receivedRecord, receivedSchema)
 	if receivedRecord == nil {
-		fmt.Printf("MatchRecord: receivedRecord is nil\n")
 		return
 	}
-	fmt.Printf("MatchRecord: record schema fields=%v\n", receivedRecord.Schema().Fields())
-	fmt.Printf("MatchRecord: record num columns=%d, num rows=%d\n", receivedRecord.NumCols(), receivedRecord.NumRows())
 
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
-	fmt.Printf("MatchRecord: after swapColumns record=%v, schema=%v\n", recordWithColumnOrderFixed, schemaWithColumnOrderFixed)
 	recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed, idArrBuilder)
-	fmt.Printf("MatchRecord: after sortTableByID record=%v\n", recordWithRowsSorted)
 
 	for i, arrowField := range recordWithRowsSorted.Schema().Fields() {
 		ydbType := schemaWithColumnOrderFixed.Columns[i].Type
-		fmt.Printf("MatchRecord: processing field %s with type %v\n", arrowField.Name, ydbType)
 
 		switch ydbType.GetType().(type) {
 		case *Ydb.Type_TypeId:
@@ -75,27 +68,19 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 // This is needed for further contract in the sortTableByID function,
 // where the column with the name `id` should always come first.
 func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.Record, *api_service_protos.TSchema) {
-	fmt.Printf("\nswapColumns: table=%v, schema=%v\n", table, schema)
 	if table == nil {
-		fmt.Printf("swapColumns: table is nil\n")
 		return nil, schema
 	}
 
-	fmt.Printf("swapColumns: table schema fields=%v\n", table.Schema().Fields())
-	fmt.Printf("swapColumns: table num columns=%d, num rows=%d\n", table.NumCols(), table.NumRows())
-
 	idIndex := -1
 	for i, field := range table.Schema().Fields() {
-		fmt.Printf("swapColumns: checking field %s at index %d\n", field.Name, i)
-		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" || field.Name == "_id" || field.Name == "key" || field.Name == "COL_00_KEY" {
+		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" || field.Name == "_id" || field.Name == "key" {
 			idIndex = i
 			break
 		}
 	}
-	fmt.Printf("swapColumns: found id index=%d\n", idIndex)
 
 	if idIndex == -1 {
-		fmt.Printf("swapColumns: no id column found, returning original table\n")
 		return table, schema
 	}
 
@@ -119,7 +104,6 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	newSchema := proto.Clone(schema).(*api_service_protos.TSchema)
 	newSchema.Columns[0], newSchema.Columns[idIndex] = newSchema.Columns[idIndex], newSchema.Columns[0]
 
-	fmt.Printf("swapColumns: returning new table with %d columns and %d rows\n", newTable.NumCols(), newTable.NumRows())
 	return newTable, newSchema
 }
 
@@ -207,7 +191,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 	records := make([]tableRow[ID], table.NumRows())
 
 	idCol := newTableIDColumn[ID](table.Column(0))
-	fmt.Println("tableColumns: ", table.Columns())
 	restCols := make([][]any, table.NumRows())
 
 	for colIdx := 1; colIdx < int(table.NumCols()); colIdx++ {
@@ -259,8 +242,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 							switch field := col.Field(fieldIdx).(type) {
 							case *array.Binary:
 								structData[fieldName] = field.Value(rowIdx)
-							case *array.String:
-								structData[fieldName] = field.Value(rowIdx)
 							default:
 								// По умолчанию сохраняем nil для неизвестных типов
 								structData[fieldName] = nil
@@ -282,13 +263,11 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			Rest: restCols[i],
 		}
 	}
-	fmt.Println("RECORDS: ", records[0], records[0].ID, records[0].Rest)
-	fmt.Printf("sortTableByID record=%v\n", records[0])
+
 	// Сортируем по значению ID, используя функции сравнения для разных типов
 	var idType ID
 	switch idCol.idCol.(type) {
 	case *array.Binary:
-		fmt.Println("sortTableByID: BINARY")
 		// Создаем индексную карту, чтобы правильно перестроить записи
 		indices := make([]int, table.NumRows())
 		for i := range indices {
@@ -311,7 +290,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 		// Заменяем исходный массив records отсортированным
 		records = sortedRecords
 	default:
-		fmt.Println("sortTableByID: DEFAULT")
 		// Для числовых типов сравнение можно делать напрямую
 		if _, ok := any(idType).(int32); ok {
 			sort.Slice(records, func(i, j int) bool {
@@ -321,18 +299,12 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			sort.Slice(records, func(i, j int) bool {
 				return any(records[i].ID).(int64) < any(records[j].ID).(int64)
 			})
-		} else if _, ok := any(idType).(string); ok {
-			sort.Slice(records, func(i, j int) bool {
-				return any(records[i].ID).(string) < any(records[j].ID).(string)
-			})
 		} else if _, ok := any(idType).([]byte); ok {
 			sort.Slice(records, func(i, j int) bool {
 				return bytes.Compare(any(records[i].ID).([]byte), any(records[j].ID).([]byte)) < 0
 			})
 		}
 	}
-
-	fmt.Println("RECORDS: ", records[0], records[0].ID, records[0].Rest)
 
 	pool := memory.NewGoAllocator()
 	restBuilders := make([]array.Builder, table.NumCols()-1)
@@ -437,12 +409,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 							} else {
 								fb.AppendNull()
 							}
-						case *array.StringBuilder:
-							if sval, ok := fieldValue.(string); ok {
-								fb.Append(sval)
-							} else {
-								fb.AppendNull()
-							}
 						default:
 							fieldBuilder.AppendNull()
 						}
@@ -504,28 +470,8 @@ func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arr
 			matchArrays[string, *array.String](t, arrowField.Name, expected, actual, optional)
 		}
 	case arrow.BINARY:
-		// Для Binary данных мы сравниваем их напрямую как бинарные данные
-		if strings.Contains(arrowField.Name, "json") {
-			// Только для JSON полей конвертируем в строки для использования JSONEq
-			binaryArray := actual.(*array.Binary)
-			stringArray := array.NewStringBuilder(memory.NewGoAllocator())
-			for i := 0; i < binaryArray.Len(); i++ {
-				if binaryArray.IsNull(i) {
-					stringArray.AppendNull()
-				} else {
-					stringArray.Append(string(binaryArray.Value(i)))
-				}
-			}
-			stringArrayResult := stringArray.NewArray()
-			defer stringArrayResult.Release()
-
-			matchJSONArrays(t, arrowField.Name, expected, stringArrayResult.(*array.String), optional)
-		} else {
-			// Все остальные бинарные данные сравниваем напрямую
-			matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional)
-		}
+		matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional)
 	case arrow.STRUCT:
-		// Обработка структурных типов
 		matchStructArrays(t, arrowField.Name, expected, actual.(*array.Struct), optional)
 	default:
 		require.FailNow(t, fmt.Sprintf("unexpected arrow type: %v", arrowField.Type.ID().String()))
@@ -581,59 +527,6 @@ func matchStructArrays(
 					// Проверяем значение в зависимости от типа поля
 					switch field := fieldArray.(type) {
 					case *array.Binary:
-						if !field.IsNull(i) {
-							require.Equal(t, *expectedFieldValue, field.Value(i),
-								fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
-						}
-					default:
-						// Другие типы полей можно добавить при необходимости
-						require.FailNow(t, fmt.Sprintf("unsupported field type for %s: %T", fieldName, field))
-					}
-				}
-			}
-		} else if expectedStructsString, ok := expectedRaw.([]map[string]*string); ok {
-			// Старый формат - []map[string]*string
-			require.Equal(t, len(expectedStructsString), actual.Len(),
-				fmt.Sprintf("struct column:  %v\nexpected length: %d\nactual length:  %d\n",
-					columnName, len(expectedStructsString), actual.Len()),
-			)
-
-			for i := 0; i < len(expectedStructsString); i++ {
-				// Если ожидается nil, проверяем что значение в Arrow тоже null
-				if expectedStructsString[i] == nil {
-					require.True(t, actual.IsNull(i),
-						fmt.Sprintf("struct column:  %v\nexpected NULL at index %d, got non-NULL\n", columnName, i))
-					continue
-				}
-
-				// Если ожидается не-nil, проверяем что значение в Arrow не null
-				require.False(t, actual.IsNull(i),
-					fmt.Sprintf("struct column:  %v\nexpected non-NULL at index %d, got NULL\n", columnName, i))
-
-				// Проверяем каждое поле структуры
-				expectedStruct := expectedStructsString[i]
-				for fieldIdx := 0; fieldIdx < actual.NumField(); fieldIdx++ {
-					fieldName := actual.DataType().(*arrow.StructType).Field(fieldIdx).Name
-					fieldArray := actual.Field(fieldIdx)
-
-					// Получаем ожидаемое значение для поля
-					expectedFieldValue, exists := expectedStruct[fieldName]
-
-					// Если поле не существует или null, проверяем что Arrow тоже null
-					if !exists || expectedFieldValue == nil {
-						require.True(t, fieldArray.IsNull(i),
-							fmt.Sprintf("struct field %s: expected NULL at row %d, got non-NULL", fieldName, i))
-						continue
-					}
-
-					// Проверяем значение в зависимости от типа поля
-					switch field := fieldArray.(type) {
-					case *array.Binary:
-						if !field.IsNull(i) {
-							require.Equal(t, []byte(*expectedFieldValue), field.Value(i),
-								fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
-						}
-					case *array.String:
 						if !field.IsNull(i) {
 							require.Equal(t, *expectedFieldValue, field.Value(i),
 								fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
