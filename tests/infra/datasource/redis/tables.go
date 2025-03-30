@@ -9,7 +9,6 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
-	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
@@ -30,8 +29,8 @@ var stringOnlyTable = &test_utils.Table[[]byte, *array.BinaryBuilder]{
 	},
 	Records: []*test_utils.Record[[]byte, *array.BinaryBuilder]{{
 		Columns: map[string]any{
-			redis.KeyColumnName:    []string{"stringOnly:stringKey1", "stringOnly:stringKey2"},
-			redis.StringColumnName: []*string{ptr.String("value1"), ptr.String("value2")},
+			redis.KeyColumnName:    [][]byte{[]byte("stringOnly:stringKey1"), []byte("stringOnly:stringKey2")},
+			redis.StringColumnName: []*[]byte{bytesPtr([]byte("value1")), bytesPtr([]byte("value2"))},
 		},
 	}},
 }
@@ -40,21 +39,21 @@ var stringOnlyTable = &test_utils.Table[[]byte, *array.BinaryBuilder]{
 // Expected schema: columns "key" and "hash_values", where hash_values is an OptionalType wrapping a StructType
 // with members being the union of all hash fields.
 var hashOnlyTable = func() *test_utils.Table[[]byte, *array.BinaryBuilder] {
-	field1Value1 := "hashValue1"
-	field2Value1 := "hashValue2"
-	var field3Value1 *string = nil
+	field1Value1 := []byte("hashValue1")
+	field2Value1 := []byte("hashValue2")
+	var field3Value1 *[]byte = nil
 
-	field1Value2 := "hashValue3"
-	field2Value2 := "hashValue4"
-	field3Value2 := "hashValue5"
+	field1Value2 := []byte("hashValue3")
+	field2Value2 := []byte("hashValue4")
+	field3Value2 := []byte("hashValue5")
 
-	hashRecord1 := map[string]*string{
+	hashRecord1 := map[string]*[]byte{
 		"field1": &field1Value1,
 		"field2": &field2Value1,
 		"field3": field3Value1,
 	}
 
-	hashRecord2 := map[string]*string{
+	hashRecord2 := map[string]*[]byte{
 		"field1": &field1Value2,
 		"field2": &field2Value2,
 		"field3": &field3Value2,
@@ -62,7 +61,7 @@ var hashOnlyTable = func() *test_utils.Table[[]byte, *array.BinaryBuilder] {
 
 	// Печатаем тип для дебага
 	fmt.Printf("DEBUG hashRecord1 type: %T, value: %v\n", hashRecord1, hashRecord1)
-	fmt.Printf("DEBUG []map[string]*string{hashRecord1, hashRecord2} type: %T\n", []map[string]*string{hashRecord1, hashRecord2})
+	fmt.Printf("DEBUG []map[string]*[]byte{hashRecord1, hashRecord2} type: %T\n", []map[string]*[]byte{hashRecord1, hashRecord2})
 
 	return &test_utils.Table[[]byte, *array.BinaryBuilder]{
 		Name:                  "hashOnly:*",
@@ -94,8 +93,8 @@ var hashOnlyTable = func() *test_utils.Table[[]byte, *array.BinaryBuilder] {
 		},
 		Records: []*test_utils.Record[[]byte, *array.BinaryBuilder]{{
 			Columns: map[string]any{
-				redis.KeyColumnName: []string{"hashOnly:hashKey1", "hashOnly:hashKey2"},
-				redis.HashColumnName: []map[string]*string{
+				redis.KeyColumnName: [][]byte{[]byte("hashOnly:hashKey1"), []byte("hashOnly:hashKey2")},
+				redis.HashColumnName: []map[string]*[]byte{
 					hashRecord1,
 					hashRecord2,
 				},
@@ -133,12 +132,12 @@ var mixedTable = &test_utils.Table[[]byte, *array.BinaryBuilder]{
 	},
 	Records: []*test_utils.Record[[]byte, *array.BinaryBuilder]{{
 		Columns: map[string]any{
-			redis.KeyColumnName:    []string{"mixed:hashKey2", "mixed:stringKey1"},
-			redis.StringColumnName: []*string{nil, ptr.String("mixedString")},
-			redis.HashColumnName: []map[string]*string{
+			redis.KeyColumnName:    [][]byte{[]byte("mixed:hashKey2"), []byte("mixed:stringKey1")},
+			redis.StringColumnName: []*[]byte{nil, bytesPtr([]byte("mixedString"))},
+			redis.HashColumnName: []map[string]*[]byte{
 				{
-					"hashField1": ptr.String("mixedHash1"),
-					"hashField2": ptr.String("mixedHash2"),
+					"hashField1": bytesPtr([]byte("mixedHash1")),
+					"hashField2": bytesPtr([]byte("mixedHash2")),
 				},
 				nil,
 			},
@@ -167,4 +166,9 @@ func newBinaryIDArrayBuilder(pool memory.Allocator) func() *array.BinaryBuilder 
 	return func() *array.BinaryBuilder {
 		return array.NewBinaryBuilder(pool, arrow.BinaryTypes.Binary)
 	}
+}
+
+// Вспомогательная функция для создания указателя на байты
+func bytesPtr(b []byte) *[]byte {
+	return &b
 }
