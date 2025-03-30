@@ -264,46 +264,19 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 		}
 	}
 
-	// Сортируем по значению ID, используя функции сравнения для разных типов
 	var idType ID
-	switch idCol.idCol.(type) {
-	case *array.Binary:
-		// Создаем индексную карту, чтобы правильно перестроить записи
-		indices := make([]int, table.NumRows())
-		for i := range indices {
-			indices[i] = i
-		}
-
-		// Сортируем индексы по значениям ключей
-		sort.Slice(indices, func(i, j int) bool {
-			valI := idCol.idCol.(*array.Binary).Value(indices[i])
-			valJ := idCol.idCol.(*array.Binary).Value(indices[j])
-			return bytes.Compare(valI, valJ) < 0
+	if _, ok := any(idType).(int32); ok {
+		sort.Slice(records, func(i, j int) bool {
+			return any(records[i].ID).(int32) < any(records[j].ID).(int32)
 		})
-
-		// Перестраиваем records на основе отсортированных индексов
-		sortedRecords := make([]tableRow[ID], len(records))
-		for newIdx, oldIdx := range indices {
-			sortedRecords[newIdx] = records[oldIdx]
-		}
-
-		// Заменяем исходный массив records отсортированным
-		records = sortedRecords
-	default:
-		// Для числовых типов сравнение можно делать напрямую
-		if _, ok := any(idType).(int32); ok {
-			sort.Slice(records, func(i, j int) bool {
-				return any(records[i].ID).(int32) < any(records[j].ID).(int32)
-			})
-		} else if _, ok := any(idType).(int64); ok {
-			sort.Slice(records, func(i, j int) bool {
-				return any(records[i].ID).(int64) < any(records[j].ID).(int64)
-			})
-		} else if _, ok := any(idType).([]byte); ok {
-			sort.Slice(records, func(i, j int) bool {
-				return bytes.Compare(any(records[i].ID).([]byte), any(records[j].ID).([]byte)) < 0
-			})
-		}
+	} else if _, ok := any(idType).(int64); ok {
+		sort.Slice(records, func(i, j int) bool {
+			return any(records[i].ID).(int64) < any(records[j].ID).(int64)
+		})
+	} else if _, ok := any(idType).([]byte); ok {
+		sort.Slice(records, func(i, j int) bool {
+			return bytes.Compare(any(records[i].ID).([]byte), any(records[j].ID).([]byte)) < 0
+		})
 	}
 
 	pool := memory.NewGoAllocator()
