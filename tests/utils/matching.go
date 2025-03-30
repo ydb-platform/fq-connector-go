@@ -42,9 +42,6 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 	receivedRecord arrow.Record,
 	receivedSchema *api_service_protos.TSchema,
 	idArrBuilder IDBUILDER) {
-	if receivedRecord == nil {
-		return
-	}
 
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
@@ -68,20 +65,12 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 // This is needed for further contract in the sortTableByID function,
 // where the column with the name `id` should always come first.
 func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.Record, *api_service_protos.TSchema) {
-	if table == nil {
-		return nil, schema
-	}
-
 	idIndex := -1
 	for i, field := range table.Schema().Fields() {
 		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" || field.Name == "_id" || field.Name == "key" {
 			idIndex = i
 			break
 		}
-	}
-
-	if idIndex == -1 {
-		return table, schema
 	}
 
 	// build new record with the correct order of columns
@@ -255,7 +244,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			panic(fmt.Sprintf("UNSUPPORTED TYPE: %T", table.Column(colIdx)))
 		}
 	}
-	fmt.Println("restCols: ", restCols)
 
 	for i := int64(0); i < table.NumRows(); i++ {
 		records[i] = tableRow[ID]{
@@ -402,9 +390,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 	}
 
 	cols := append([]arrow.Array{idArr}, restArrs...)
-	fmt.Println("cols: ", cols)
 	schema := table.Schema()
-	fmt.Println("schema: ", schema)
 	newTable := array.NewRecord(schema, cols, int64(idArr.Len()))
 
 	for idx := range restBuilders {
@@ -512,7 +498,7 @@ func matchStructArrays(
 			}
 		} else {
 			// Неподдерживаемый тип
-			require.FailNow(t, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*string or []map[string]*[]byte, got %T",
+			require.FailNow(t, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*[]byte, got %T",
 				columnName, expectedRaw))
 		}
 	} else {
