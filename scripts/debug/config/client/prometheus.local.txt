@@ -1,0 +1,18 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
+}
+
+data_source_instance {
+    kind: PROMETHEUS
+    endpoint {
+        host: "localhost"
+        port: 9090
+    }
+    protocol: HTTP
+}

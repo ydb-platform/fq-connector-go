@@ -81,7 +81,8 @@ func (dsc *DataSourceCollection) DescribeTable(
 
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EGenericDataSourceKind_PROMETHEUS:
-		ds := prometheus.NewDataSource()
+		ds := prometheus.NewDataSource(dsc.converterCollection)
+
 		return ds.DescribeTable(ctx, logger, request)
 
 	default:
@@ -144,9 +145,15 @@ func (dsc *DataSourceCollection) ListSplits(
 			if err := streamer.Run(); err != nil {
 				return fmt.Errorf("run streamer: %w", err)
 			}
-		//case api_common.EGenericDataSourceKind_PROMETHEUS:
-		//	ds := prometheus.NewDataSource()
-		//	return ds.ListSplits(context.TODO(), logger, request, slct, make(chan<- *datasource.ListSplitResult))
+		case api_common.EGenericDataSourceKind_PROMETHEUS:
+			ds := prometheus.NewDataSource(dsc.converterCollection)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+
 		default:
 			return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 		}
@@ -188,7 +195,6 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
-
 	case api_common.EGenericDataSourceKind_REDIS:
 		redisCfg := dsc.cfg.Datasources.Redis
 		ds := redis.NewDataSource(
@@ -199,6 +205,10 @@ func (dsc *DataSourceCollection) ReadSplit(
 			redisCfg,
 			dsc.converterCollection,
 		)
+
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+	case api_common.EGenericDataSourceKind_PROMETHEUS:
+		ds := prometheus.NewDataSource(dsc.converterCollection)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 
