@@ -158,10 +158,10 @@ func (s *serviceConnector) doReadSplits(
 		return logger, fmt.Errorf("validate read splits request: %w", err)
 	}
 
-	for i, split := range request.Splits {
+	for _, split := range request.Splits {
 		splitLogger := common.
 			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
-			With(zap.Int("split_id", i))
+			With(zap.Uint64("id", split.Id))
 
 		err := s.dataSourceCollection.ReadSplit(
 			splitLogger,
@@ -171,7 +171,7 @@ func (s *serviceConnector) doReadSplits(
 		)
 
 		if err != nil {
-			return splitLogger, fmt.Errorf("read split %d: %w", i, err)
+			return splitLogger, fmt.Errorf("read split %d: %w", split.Id, err)
 		}
 	}
 

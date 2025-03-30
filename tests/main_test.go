@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ydb"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
@@ -92,4 +93,9 @@ func TestMsSqlServer(t *testing.T) {
 func TestMongoDB(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, mongodb.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MongoDB")))
+}
+
+func TestRedis(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
+	testify_suite.Run(t, redis.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "Redis")))
 }

@@ -30,6 +30,7 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ConnectorClient interface {
+	// Deprecated: Do not use.
 	// ListTables returns the list of tables existing in a particular database.
 	ListTables(ctx context.Context, in *protos.TListTablesRequest, opts ...grpc.CallOption) (Connector_ListTablesClient, error)
 	// DescribeTable returns table's schema.
@@ -49,6 +50,7 @@ func NewConnectorClient(cc grpc.ClientConnInterface) ConnectorClient {
 	return &connectorClient{cc}
 }
 
+// Deprecated: Do not use.
 func (c *connectorClient) ListTables(ctx context.Context, in *protos.TListTablesRequest, opts ...grpc.CallOption) (Connector_ListTablesClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Connector_ServiceDesc.Streams[0], Connector_ListTables_FullMethodName, opts...)
 	if err != nil {
@@ -158,6 +160,7 @@ func (x *connectorReadSplitsClient) Recv() (*protos.TReadSplitsResponse, error) 
 // All implementations must embed UnimplementedConnectorServer
 // for forward compatibility
 type ConnectorServer interface {
+	// Deprecated: Do not use.
 	// ListTables returns the list of tables existing in a particular database.
 	ListTables(*protos.TListTablesRequest, Connector_ListTablesServer) error
 	// DescribeTable returns table's schema.
