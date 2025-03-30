@@ -133,14 +133,14 @@ var mixedTable = &test_utils.Table[[]byte, *array.BinaryBuilder]{
 	},
 	Records: []*test_utils.Record[[]byte, *array.BinaryBuilder]{{
 		Columns: map[string]any{
-			redis.KeyColumnName:    []string{"mixed:stringKey1", "mixed:hashKey2"},
-			redis.StringColumnName: []*string{ptr.String("mixedString"), nil},
+			redis.KeyColumnName:    []string{"mixed:hashKey2", "mixed:stringKey1"},
+			redis.StringColumnName: []*string{nil, ptr.String("mixedString")},
 			redis.HashColumnName: []map[string]*string{
-				nil,
 				{
 					"hashField1": ptr.String("mixedHash1"),
 					"hashField2": ptr.String("mixedHash2"),
 				},
+				nil,
 			},
 		},
 	}},

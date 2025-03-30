@@ -462,11 +462,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 		restArrs[idx] = builder.NewArray()
 	}
 
-	// Сохраняем оригинальные типы колонок
-	//fields := table.Schema().Fields()
-	//cols := append([]arrow.Array{table.Column(0)}, restArrs...)
-	//newTable := array.NewRecord(arrow.NewSchema(fields, nil), cols, int64(idArr.Len()))
-
 	cols := append([]arrow.Array{idArr}, restArrs...)
 	fmt.Println("cols: ", cols)
 	schema := table.Schema()
@@ -547,7 +542,7 @@ func matchStructArrays(
 ) {
 	// Для структурных типов мы проверяем каждое поле отдельно
 	if optional {
-		// Ожидаем, что expected это массив словарей строк
+		// Ожидаем, что expected это массив указателей на map[string]*string или nil
 		expectedStructs, ok := expectedRaw.([]map[string]*string)
 		require.True(
 			t, ok,
@@ -560,7 +555,14 @@ func matchStructArrays(
 		)
 
 		for i := 0; i < len(expectedStructs); i++ {
-			// Проверяем, что данная строка не null
+			// Если ожидается nil, проверяем что значение в Arrow тоже null
+			if expectedStructs[i] == nil {
+				require.True(t, actual.IsNull(i),
+					fmt.Sprintf("struct column:  %v\nexpected NULL at index %d, got non-NULL\n", columnName, i))
+				continue
+			}
+
+			// Если ожидается не-nil, проверяем что значение в Arrow не null
 			require.False(t, actual.IsNull(i),
 				fmt.Sprintf("struct column:  %v\nexpected non-NULL at index %d, got NULL\n", columnName, i))
 
