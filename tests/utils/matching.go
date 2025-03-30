@@ -504,26 +504,57 @@ func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arr
 			matchArrays[string, *array.String](t, arrowField.Name, expected, actual, optional)
 		}
 	case arrow.BINARY:
-		// Конвертируем бинарные данные в строки
+		// Для Binary, проверяем тип ожидаемых данных
 		binaryArray := actual.(*array.Binary)
-		stringArray := array.NewStringBuilder(memory.NewGoAllocator())
-		for i := 0; i < binaryArray.Len(); i++ {
-			if binaryArray.IsNull(i) {
-				stringArray.AppendNull()
-			} else {
-				stringArray.Append(string(binaryArray.Value(i)))
+
+		// Проверяем, является ли expected типом строк
+		_, isNonOptionalString := expected.([]string)
+		_, isOptionalString := expected.([]*string)
+
+		if strings.Contains(arrowField.Name, "json") {
+			// Для JSON полей конвертируем в строки и используем JSONEq для сравнения
+			stringArray := array.NewStringBuilder(memory.NewGoAllocator())
+			for i := 0; i < binaryArray.Len(); i++ {
+				if binaryArray.IsNull(i) {
+					stringArray.AppendNull()
+				} else {
+					stringArray.Append(string(binaryArray.Value(i)))
+				}
 			}
-		}
-		stringArrayResult := stringArray.NewArray()
-		defer stringArrayResult.Release()
+			stringArrayResult := stringArray.NewArray()
+			defer stringArrayResult.Release()
 
-		// Сортируем строки
-		if arrowField.Name == "key" {
-			expectedStrings := expected.([]string)
-			sort.Strings(expectedStrings)
-		}
+			matchJSONArrays(t, arrowField.Name, expected, stringArrayResult.(*array.String), optional)
+		} else if isNonOptionalString || isOptionalString ||
+			arrowField.Name == "key" || arrowField.Name == "string_values" {
+			// Конвертируем в строки если:
+			// 1. Ожидаемый тип - строки
+			// 2. Поле key или string_values (Redis)
+			// 3. Имя поля содержит "string"
+			stringArray := array.NewStringBuilder(memory.NewGoAllocator())
+			for i := 0; i < binaryArray.Len(); i++ {
+				if binaryArray.IsNull(i) {
+					stringArray.AppendNull()
+				} else {
+					stringArray.Append(string(binaryArray.Value(i)))
+				}
+			}
+			stringArrayResult := stringArray.NewArray()
+			defer stringArrayResult.Release()
 
-		matchArrays[string, *array.String](t, arrowField.Name, expected, stringArrayResult, optional)
+			// Сортируем строки в expected, если это ключи
+			if arrowField.Name == "key" {
+				if keyStrings, ok := expected.([]string); ok {
+					sort.Strings(keyStrings)
+				}
+			}
+
+			// Сравниваем как строки
+			matchArrays[string, *array.String](t, arrowField.Name, expected, stringArrayResult, optional)
+		} else {
+			// Для всех остальных бинарных полей сравниваем как []byte
+			matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional)
+		}
 	case arrow.STRUCT:
 		// Обработка структурных типов
 		matchStructArrays(t, arrowField.Name, expected, actual.(*array.Struct), optional)
