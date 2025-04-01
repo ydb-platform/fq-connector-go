@@ -25,9 +25,10 @@ var _ datasource.DataSource[any] = (*dataSource)(nil)
 
 type (
 	dataSource struct {
-		retrierSet *retry.RetrierSet
-		cfg        *config.TRedisConfig
-		cc         conversion.Collection
+		retrierSet  *retry.RetrierSet
+		cfg         *config.TRedisConfig
+		cc          conversion.Collection
+		queryLogger common.QueryLogger
 	}
 
 	keysSpec struct {
@@ -94,15 +95,13 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("make connection: %w", err)
 	}
 
-	defer func() {
-		common.LogCloserError(logger, client, "close connection")
-	}()
+	defer common.LogCloserError(logger, client, "close connection")
 
 	if split.Select.From.Table == "" {
 		return common.ErrEmptyTableName
 	}
 
-	logger.Info("read split", zap.String("what", split.Select.What.String()))
+	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
 
 	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
 	if err != nil {
@@ -111,12 +110,12 @@ func (ds *dataSource) ReadSplit(
 
 	sink := sinks[0]
 
-	// Получаем поля из схемы структуры
+	// Get fields from hash values of Redis records which were detected in DescribeTable previously
 	var hashFields []string
 	for _, item := range split.Select.What.GetItems() {
 		column := item.GetColumn()
 		if column == nil {
-			continue
+			return fmt.Errorf("select.what has nil column")
 		}
 		if column.Name == HashColumnName {
 			structType := column.Type.GetOptionalType().GetItem().GetStructType()
@@ -129,7 +128,7 @@ func (ds *dataSource) ReadSplit(
 
 	var cursor uint64
 	for {
-		keys, newCursor, err := client.Scan(ctx, cursor, split.Select.From.Table, 100).Result()
+		keys, newCursor, err := client.Scan(ctx, cursor, split.Select.From.Table, scanBatchSize).Result()
 		if err != nil {
 			return fmt.Errorf("scan keys: %w", err)
 		}
@@ -149,7 +148,7 @@ func (ds *dataSource) ReadSplit(
 			case redisTypeString:
 				value, err := client.Get(ctx, key).Result()
 				if err != nil {
-					return fmt.Errorf("get value for key %s: %w", key, err)
+					return fmt.Errorf("get string value for key %s: %w", key, err)
 				}
 				transformer.stringVal = &value
 
@@ -440,16 +439,16 @@ func (t *redisRowTransformer) AppendToArrowBuilders(builders []array.Builder) er
 	return nil
 }
 
-func (t *redisRowTransformer) appendKey(builder array.Builder) error {
-	if builder, ok := builder.(*array.BinaryBuilder); ok {
+func (t *redisRowTransformer) appendKey(builderIn array.Builder) error {
+	if builder, ok := builderIn.(*array.BinaryBuilder); ok {
 		builder.Append([]byte(t.key))
 		return nil
 	}
-	return fmt.Errorf("unexpected builder type for key: %T", builder)
+	return fmt.Errorf("unexpected builderIn type for key: %T", builderIn)
 }
 
-func (t *redisRowTransformer) appendStringValue(builder array.Builder) error {
-	if builder, ok := builder.(*array.BinaryBuilder); ok {
+func (t *redisRowTransformer) appendStringValue(builderIn array.Builder) error {
+	if builder, ok := builderIn.(*array.BinaryBuilder); ok {
 		if t.stringVal != nil {
 			builder.Append([]byte(*t.stringVal))
 		} else {
@@ -457,65 +456,61 @@ func (t *redisRowTransformer) appendStringValue(builder array.Builder) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("unexpected builder type for string value: %T", builder)
+	return fmt.Errorf("unexpected builderIn type for string value: %T", builderIn)
 }
 
-func (t *redisRowTransformer) appendHashValue(builder array.Builder) error {
-	if builder, ok := builder.(*array.StructBuilder); ok {
-		// Если это строка, а не хеш, то добавляем NULL
-		if t.stringVal != nil {
-			builder.AppendNull()
-			return nil
-		}
-
-		// Получаем поля в том же порядке, что и в схеме
-		fields := make([]string, 0, len(t.hashVal))
-		for _, item := range t.items {
-			column := item.GetColumn()
-			if column == nil {
-				continue
-			}
-			if column.Name == HashColumnName {
-				structType := column.Type.GetOptionalType().GetItem().GetStructType()
-				for _, member := range structType.Members {
-					fields = append(fields, member.Name)
-				}
-				break
-			}
-		}
-
-		// Получаем все field builders
-		fieldBuilders := make([]array.Builder, len(fields))
-		for i := range fields {
-			fieldBuilders[i] = builder.FieldBuilder(i)
-		}
-
-		// Заполняем значения
-		for i, fieldName := range fields {
-			if val, exists := t.hashVal[fieldName]; exists {
-				if binaryBuilder, ok := fieldBuilders[i].(*array.BinaryBuilder); ok {
-					binaryBuilder.Append([]byte(val))
-				} else {
-					return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, fieldBuilders[i])
-				}
-			} else {
-				fieldBuilders[i].AppendNull()
-			}
-		}
-
-		builder.Append(true)
+func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
+	builder, ok := builderIn.(*array.StructBuilder)
+	if !ok {
+		return fmt.Errorf("unexpected builder type for hash value: %T", builderIn)
+	}
+	// Если это строка, а не хеш, то добавляем NULL
+	if t.stringVal != nil {
+		builder.AppendNull()
 		return nil
 	}
-	return fmt.Errorf("unexpected builder type for hash value: %T", builder)
+
+	// Получаем поля в том же порядке, что и в схеме
+	fields := make([]string, 0, len(t.hashVal))
+	for _, item := range t.items {
+		column := item.GetColumn()
+
+		if column.Name == HashColumnName {
+			structType := column.Type.GetOptionalType().GetItem().GetStructType()
+			for _, member := range structType.Members {
+				fields = append(fields, member.Name)
+			}
+			break
+		}
+	}
+
+	// Получаем все field builders
+	fieldBuilders := make([]array.Builder, len(fields))
+	for i := range fields {
+		fieldBuilders[i] = builder.FieldBuilder(i)
+	}
+
+	// Заполняем значения
+	for i, fieldName := range fields {
+		if val, exists := t.hashVal[fieldName]; exists {
+			if binaryBuilder, ok := fieldBuilders[i].(*array.BinaryBuilder); ok {
+				binaryBuilder.Append([]byte(val))
+			} else {
+				return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, fieldBuilders[i])
+			}
+		} else {
+			fieldBuilders[i].AppendNull()
+		}
+	}
+
+	builder.Append(true)
+	return nil
 }
 
 func (t *redisRowTransformer) GetAcceptors() []any {
 	acceptors := make([]any, len(t.items))
 	for i, item := range t.items {
 		column := item.GetColumn()
-		if column == nil {
-			continue
-		}
 
 		switch column.Name {
 		case KeyColumnName:
@@ -532,9 +527,6 @@ func (t *redisRowTransformer) GetAcceptors() []any {
 func (t *redisRowTransformer) SetAcceptors(acceptors []any) {
 	for i, item := range t.items {
 		column := item.GetColumn()
-		if column == nil {
-			continue
-		}
 
 		switch column.Name {
 		case KeyColumnName:
