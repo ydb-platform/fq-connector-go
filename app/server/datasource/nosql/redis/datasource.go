@@ -38,12 +38,19 @@ type (
 	}
 
 	redisRowTransformer struct {
-		key       string
-		stringVal *string
-		hashVal   map[string]string
-		items     []*api_service_protos.TSelect_TWhat_TItem
+		key        string
+		stringVal  *string
+		hashVal    *map[string]string
+		items      []*api_service_protos.TSelect_TWhat_TItem
+		hashFields []string
 	}
 )
+
+func (t *redisRowTransformer) Clean() {
+	t.key = ""
+	t.stringVal = nil
+	t.hashVal = nil
+}
 
 func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TRedisConfig, cc conversion.Collection) datasource.DataSource[any] {
 	return &dataSource{
@@ -127,6 +134,25 @@ func (ds *dataSource) ReadSplit(
 	}
 
 	var cursor uint64
+	transformer := &redisRowTransformer{
+		items: split.Select.What.GetItems(),
+	}
+
+	// Заполняем поля хеша один раз при создании трансформера
+	for _, item := range split.Select.What.GetItems() {
+		column := item.GetColumn()
+		if column == nil {
+			return fmt.Errorf("select.what has nil column")
+		}
+		if column.Name == HashColumnName {
+			structType := column.Type.GetOptionalType().GetItem().GetStructType()
+			for _, member := range structType.Members {
+				transformer.hashFields = append(transformer.hashFields, member.Name)
+			}
+			break
+		}
+	}
+
 	for {
 		keys, newCursor, err := client.Scan(ctx, cursor, split.Select.From.Table, scanBatchSize).Result()
 		if err != nil {
@@ -139,10 +165,7 @@ func (ds *dataSource) ReadSplit(
 				return fmt.Errorf("get type for key %s: %w", key, err)
 			}
 
-			transformer := &redisRowTransformer{
-				key:   key,
-				items: split.Select.What.GetItems(),
-			}
+			transformer.key = key
 
 			switch typ {
 			case redisTypeString:
@@ -159,12 +182,13 @@ func (ds *dataSource) ReadSplit(
 						return fmt.Errorf("get hash values for key %s: %w", key, err)
 					}
 
-					transformer.hashVal = make(map[string]string)
+					hashMap := make(map[string]string)
 					for i, field := range hashFields {
 						if values[i] != nil {
-							transformer.hashVal[field] = values[i].(string)
+							hashMap[field] = values[i].(string)
 						}
 					}
+					transformer.hashVal = &hashMap
 				}
 
 			default:
@@ -174,6 +198,7 @@ func (ds *dataSource) ReadSplit(
 			if err := sink.AddRow(transformer); err != nil {
 				return fmt.Errorf("add row: %w", err)
 			}
+			transformer.Clean()
 		}
 
 		cursor = newCursor
@@ -464,42 +489,22 @@ func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
 	if !ok {
 		return fmt.Errorf("unexpected builder type for hash value: %T", builderIn)
 	}
-	// Если это строка, а не хеш, то добавляем NULL
-	if t.stringVal != nil {
+
+	if t.hashVal == nil {
 		builder.AppendNull()
 		return nil
 	}
 
-	// Получаем поля в том же порядке, что и в схеме
-	fields := make([]string, 0, len(t.hashVal))
-	for _, item := range t.items {
-		column := item.GetColumn()
-
-		if column.Name == HashColumnName {
-			structType := column.Type.GetOptionalType().GetItem().GetStructType()
-			for _, member := range structType.Members {
-				fields = append(fields, member.Name)
-			}
-			break
-		}
-	}
-
-	// Получаем все field builders
-	fieldBuilders := make([]array.Builder, len(fields))
-	for i := range fields {
-		fieldBuilders[i] = builder.FieldBuilder(i)
-	}
-
 	// Заполняем значения
-	for i, fieldName := range fields {
-		if val, exists := t.hashVal[fieldName]; exists {
-			if binaryBuilder, ok := fieldBuilders[i].(*array.BinaryBuilder); ok {
+	for i, fieldName := range t.hashFields {
+		if val, exists := (*t.hashVal)[fieldName]; exists {
+			if binaryBuilder, ok := builder.FieldBuilder(i).(*array.BinaryBuilder); ok {
 				binaryBuilder.Append([]byte(val))
 			} else {
-				return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, fieldBuilders[i])
+				return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, builder.FieldBuilder(i))
 			}
 		} else {
-			fieldBuilders[i].AppendNull()
+			builder.FieldBuilder(i).AppendNull()
 		}
 	}
 
@@ -538,7 +543,7 @@ func (t *redisRowTransformer) SetAcceptors(acceptors []any) {
 				t.stringVal = val
 			}
 		case HashColumnName:
-			if val, ok := acceptors[i].(map[string]string); ok {
+			if val, ok := acceptors[i].(*map[string]string); ok {
 				t.hashVal = val
 			}
 		}
