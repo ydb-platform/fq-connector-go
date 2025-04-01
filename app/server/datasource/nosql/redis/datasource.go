@@ -77,6 +77,90 @@ func (*dataSource) ListSplits(
 	return nil
 }
 
+// getHashFields извлекает поля хеша из схемы запроса
+func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, error) {
+	var hashFields []string
+	for _, item := range items {
+		column := item.GetColumn()
+		if column == nil {
+			return nil, fmt.Errorf("select.what has nil column")
+		}
+		if column.Name == HashColumnName {
+			structType := column.Type.GetOptionalType().GetItem().GetStructType()
+			for _, member := range structType.Members {
+				hashFields = append(hashFields, member.Name)
+			}
+			break
+		}
+	}
+	return hashFields, nil
+}
+
+// readKeys читает ключи из Redis и обрабатывает их значения
+func (ds *dataSource) readKeys(
+	ctx context.Context,
+	client *redis.Client,
+	pattern string,
+	transformer *redisRowTransformer,
+	sink paging.Sink[any],
+) error {
+	var cursor uint64
+	for {
+		keys, newCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
+		if err != nil {
+			return fmt.Errorf("scan keys: %w", err)
+		}
+
+		for _, key := range keys {
+			typ, err := client.Type(ctx, key).Result()
+			if err != nil {
+				return fmt.Errorf("get type for key %s: %w", key, err)
+			}
+
+			transformer.key = key
+
+			switch typ {
+			case redisTypeString:
+				value, err := client.Get(ctx, key).Result()
+				if err != nil {
+					return fmt.Errorf("get string value for key %s: %w", key, err)
+				}
+				transformer.stringVal = &value
+
+			case redisTypeHash:
+				if len(transformer.hashFields) > 0 {
+					values, err := client.HMGet(ctx, key, transformer.hashFields...).Result()
+					if err != nil {
+						return fmt.Errorf("get hash values for key %s: %w", key, err)
+					}
+
+					hashMap := make(map[string]string)
+					for i, field := range transformer.hashFields {
+						if values[i] != nil {
+							hashMap[field] = values[i].(string)
+						}
+					}
+					transformer.hashVal = &hashMap
+				}
+
+			default:
+				continue
+			}
+
+			if err := sink.AddRow(transformer); err != nil {
+				return fmt.Errorf("add row: %w", err)
+			}
+			transformer.Clean()
+		}
+
+		cursor = newCursor
+		if cursor == 0 {
+			break
+		}
+	}
+	return nil
+}
+
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -117,94 +201,18 @@ func (ds *dataSource) ReadSplit(
 
 	sink := sinks[0]
 
-	// Get fields from hash values of Redis records which were detected in DescribeTable previously
-	var hashFields []string
-	for _, item := range split.Select.What.GetItems() {
-		column := item.GetColumn()
-		if column == nil {
-			return fmt.Errorf("select.what has nil column")
-		}
-		if column.Name == HashColumnName {
-			structType := column.Type.GetOptionalType().GetItem().GetStructType()
-			for _, member := range structType.Members {
-				hashFields = append(hashFields, member.Name)
-			}
-			break
-		}
+	hashFields, err := getHashFields(split.Select.What.GetItems())
+	if err != nil {
+		return err
 	}
 
-	var cursor uint64
 	transformer := &redisRowTransformer{
-		items: split.Select.What.GetItems(),
+		items:      split.Select.What.GetItems(),
+		hashFields: hashFields,
 	}
 
-	// Заполняем поля хеша один раз при создании трансформера
-	for _, item := range split.Select.What.GetItems() {
-		column := item.GetColumn()
-		if column == nil {
-			return fmt.Errorf("select.what has nil column")
-		}
-		if column.Name == HashColumnName {
-			structType := column.Type.GetOptionalType().GetItem().GetStructType()
-			for _, member := range structType.Members {
-				transformer.hashFields = append(transformer.hashFields, member.Name)
-			}
-			break
-		}
-	}
-
-	for {
-		keys, newCursor, err := client.Scan(ctx, cursor, split.Select.From.Table, scanBatchSize).Result()
-		if err != nil {
-			return fmt.Errorf("scan keys: %w", err)
-		}
-
-		for _, key := range keys {
-			typ, err := client.Type(ctx, key).Result()
-			if err != nil {
-				return fmt.Errorf("get type for key %s: %w", key, err)
-			}
-
-			transformer.key = key
-
-			switch typ {
-			case redisTypeString:
-				value, err := client.Get(ctx, key).Result()
-				if err != nil {
-					return fmt.Errorf("get string value for key %s: %w", key, err)
-				}
-				transformer.stringVal = &value
-
-			case redisTypeHash:
-				if len(hashFields) > 0 {
-					values, err := client.HMGet(ctx, key, hashFields...).Result()
-					if err != nil {
-						return fmt.Errorf("get hash values for key %s: %w", key, err)
-					}
-
-					hashMap := make(map[string]string)
-					for i, field := range hashFields {
-						if values[i] != nil {
-							hashMap[field] = values[i].(string)
-						}
-					}
-					transformer.hashVal = &hashMap
-				}
-
-			default:
-				continue
-			}
-
-			if err := sink.AddRow(transformer); err != nil {
-				return fmt.Errorf("add row: %w", err)
-			}
-			transformer.Clean()
-		}
-
-		cursor = newCursor
-		if cursor == 0 {
-			break
-		}
+	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink); err != nil {
+		return err
 	}
 
 	sink.Finish()
