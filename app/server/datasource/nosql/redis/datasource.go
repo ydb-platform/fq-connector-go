@@ -46,7 +46,7 @@ type (
 	}
 )
 
-func (t *redisRowTransformer) Clean() {
+func (t *redisRowTransformer) clean() {
 	t.key = ""
 	t.stringVal = nil
 	t.hashVal = nil
@@ -131,7 +131,7 @@ func (ds *dataSource) readKeys(
 				if len(transformer.hashFields) > 0 {
 					values, err := client.HMGet(ctx, key, transformer.hashFields...).Result()
 					if err != nil {
-						return fmt.Errorf("get hash values for key %s: %w", key, err)
+						return fmt.Errorf("get hash value for key %s: %w", key, err)
 					}
 
 					hashMap := make(map[string]string)
@@ -150,7 +150,7 @@ func (ds *dataSource) readKeys(
 			if err := sink.AddRow(transformer); err != nil {
 				return fmt.Errorf("add row: %w", err)
 			}
-			transformer.Clean()
+			transformer.clean()
 		}
 
 		cursor = newCursor
@@ -539,22 +539,4 @@ func (t *redisRowTransformer) GetAcceptors() []any {
 
 func (t *redisRowTransformer) SetAcceptors(acceptors []any) {
 	panic("not implemented")
-	//for i, item := range t.items {
-	//	column := item.GetColumn()
-	//
-	//	switch column.Name {
-	//	case KeyColumnName:
-	//		if val, ok := acceptors[i].(*string); ok {
-	//			t.key = *val
-	//		}
-	//	case StringColumnName:
-	//		if val, ok := acceptors[i].(*string); ok {
-	//			t.stringVal = val
-	//		}
-	//	case HashColumnName:
-	//		if val, ok := acceptors[i].(*map[string]string); ok {
-	//			t.hashVal = val
-	//		}
-	//	}
-	//}
 }

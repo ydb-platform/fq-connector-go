@@ -332,8 +332,8 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 						fieldName := builder.Type().(*arrow.StructType).Field(fieldIdx).Name
 						fieldBuilder := builder.FieldBuilder(fieldIdx)
 
-						fieldValue, exists := structData[fieldName]
-						if !exists || fieldValue == nil {
+						fieldValue, _ := structData[fieldName]
+						if fieldValue == nil {
 							fieldBuilder.AppendNull()
 							continue
 						}
@@ -347,7 +347,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 								fb.AppendNull()
 							}
 						default:
-							fieldBuilder.AppendNull()
+							panic(fmt.Sprintf("Expected fieldBuilder to have *array.BinaryBuilder type but got %T", fb))
 						}
 					}
 				}
@@ -421,65 +421,64 @@ func matchStructArrays(
 	actual *array.Struct,
 	optional bool,
 ) {
-	// Для структурных типов мы проверяем каждое поле отдельно
-	if optional {
-		// Пробуем как map[string]*string (старый формат) или map[string]*[]byte (новый формат)
-		if expectedStructsBytes, ok := expectedRaw.([]map[string]*[]byte); ok {
-			// Новый формат - []map[string]*[]byte
-			require.Equal(t, len(expectedStructsBytes), actual.Len(),
-				fmt.Sprintf("struct column:  %v\nexpected length: %d\nactual length:  %d\n",
-					columnName, len(expectedStructsBytes), actual.Len()),
-			)
-
-			for i := 0; i < len(expectedStructsBytes); i++ {
-				// Если ожидается nil, проверяем что значение в Arrow тоже null
-				if expectedStructsBytes[i] == nil {
-					require.True(t, actual.IsNull(i),
-						fmt.Sprintf("struct column:  %v\nexpected NULL at index %d, got non-NULL\n", columnName, i))
-					continue
-				}
-
-				// Если ожидается не-nil, проверяем что значение в Arrow не null
-				require.False(t, actual.IsNull(i),
-					fmt.Sprintf("struct column:  %v\nexpected non-NULL at index %d, got NULL\n", columnName, i))
-
-				// Проверяем каждое поле структуры
-				expectedStruct := expectedStructsBytes[i]
-				for fieldIdx := 0; fieldIdx < actual.NumField(); fieldIdx++ {
-					fieldName := actual.DataType().(*arrow.StructType).Field(fieldIdx).Name
-					fieldArray := actual.Field(fieldIdx)
-
-					// Получаем ожидаемое значение для поля
-					expectedFieldValue, exists := expectedStruct[fieldName]
-
-					// Если поле не существует или null, проверяем что Arrow тоже null
-					if !exists || expectedFieldValue == nil {
-						require.True(t, fieldArray.IsNull(i),
-							fmt.Sprintf("struct field %s: expected NULL at row %d, got non-NULL", fieldName, i))
-						continue
-					}
-
-					// Проверяем значение в зависимости от типа поля
-					switch field := fieldArray.(type) {
-					case *array.Binary:
-						if !field.IsNull(i) {
-							require.Equal(t, *expectedFieldValue, field.Value(i),
-								fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
-						}
-					default:
-						// Другие типы полей можно добавить при необходимости
-						require.FailNow(t, fmt.Sprintf("unsupported field type for %s: %T", fieldName, field))
-					}
-				}
-			}
-		} else {
-			// Неподдерживаемый тип
-			require.FailNow(t, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*[]byte, got %T",
-				columnName, expectedRaw))
-		}
-	} else {
+	if !optional {
 		// Структуры всегда должны быть nullable в Arrow
 		require.FailNow(t, "Struct columns must be optional in Arrow")
+	}
+
+	// Для структурных типов мы проверяем каждое поле отдельно
+	expectedStructsBytes, ok := expectedRaw.([]map[string]*[]byte)
+	if !ok {
+		require.FailNow(t, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*[]byte, got %T",
+			columnName, expectedRaw))
+	}
+
+	// Новый формат - []map[string]*[]byte
+	require.Equal(t, len(expectedStructsBytes), actual.Len(),
+		fmt.Sprintf("struct column:  %v\nexpected length: %d\nactual length:  %d\n",
+			columnName, len(expectedStructsBytes), actual.Len()),
+	)
+
+	for i := 0; i < len(expectedStructsBytes); i++ {
+		// Если ожидается nil, проверяем что значение в Arrow тоже null
+		if expectedStructsBytes[i] == nil {
+			require.True(t, actual.IsNull(i),
+				fmt.Sprintf("struct column:  %v\nexpected NULL at index %d, got non-NULL\n", columnName, i))
+			continue
+		}
+
+		// Если ожидается не-nil, проверяем что значение в Arrow не null
+		require.False(t, actual.IsNull(i),
+			fmt.Sprintf("struct column:  %v\nexpected non-NULL at index %d, got NULL\n", columnName, i))
+
+		// Проверяем каждое поле структуры
+		expectedStruct := expectedStructsBytes[i]
+		for fieldIdx := 0; fieldIdx < actual.NumField(); fieldIdx++ {
+			fieldName := actual.DataType().(*arrow.StructType).Field(fieldIdx).Name
+			fieldArray := actual.Field(fieldIdx)
+
+			// Получаем ожидаемое значение для поля
+			expectedFieldValue, exists := expectedStruct[fieldName]
+
+			// Если поле не существует или null, проверяем что Arrow тоже null
+			if !exists || expectedFieldValue == nil {
+				require.True(t, fieldArray.IsNull(i),
+					fmt.Sprintf("struct field %s: expected NULL at row %d, got non-NULL", fieldName, i))
+				continue
+			}
+
+			// Проверяем значение в зависимости от типа поля
+			switch field := fieldArray.(type) {
+			case *array.Binary:
+				if !field.IsNull(i) {
+					require.Equal(t, *expectedFieldValue, field.Value(i),
+						fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+				}
+			default:
+				// Другие типы полей можно добавить при необходимости
+				require.FailNow(t, fmt.Sprintf("unsupported field type for %s: %T", fieldName, field))
+			}
+		}
 	}
 }
 
