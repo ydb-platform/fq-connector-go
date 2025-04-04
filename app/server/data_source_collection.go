@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
-
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/prometheus"
 
 	"github.com/apache/arrow/go/v13/arrow/memory"
@@ -18,6 +16,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/mongodb"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"

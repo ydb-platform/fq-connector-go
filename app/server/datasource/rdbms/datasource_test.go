@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"

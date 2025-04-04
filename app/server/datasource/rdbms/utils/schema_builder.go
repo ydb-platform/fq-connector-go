@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"

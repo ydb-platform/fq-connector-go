@@ -8,10 +8,11 @@ import (
 	"io"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
-	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"

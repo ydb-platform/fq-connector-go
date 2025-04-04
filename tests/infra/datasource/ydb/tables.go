@@ -3,10 +3,10 @@ package ydb
 import (
 	"time"
 
-	"golang.org/x/exp/constraints"
-
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
+	"golang.org/x/exp/constraints"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"

@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
