@@ -8,11 +8,10 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
+	sigs_yaml "sigs.k8s.io/yaml"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/config"
 	"github.com/ydb-platform/fq-connector-go/common"
-
-	sigs_yaml "sigs.k8s.io/yaml"
 )
 
 var Cmd = &cobra.Command{

@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"go.uber.org/zap"
-
 	go_ora "github.com/sijms/go-ora/v2"
+	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"

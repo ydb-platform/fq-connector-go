@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"

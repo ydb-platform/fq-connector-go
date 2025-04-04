@@ -4,9 +4,11 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
+
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 
 	"github.com/ydb-platform/fq-connector-go/common"

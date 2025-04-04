@@ -2,12 +2,12 @@ package oracle
 
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
-
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"

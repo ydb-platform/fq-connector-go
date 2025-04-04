@@ -7,16 +7,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"google.golang.org/protobuf/proto"
-
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/common"
-
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
