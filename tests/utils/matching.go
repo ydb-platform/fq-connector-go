@@ -208,8 +208,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 							case *array.Binary:
 								structData[fieldName] = field.Value(rowIdx)
 							default:
-								// По умолчанию сохраняем nil для неизвестных типов
-								structData[fieldName] = nil
+								panic(fmt.Sprintf("Expected fieldBuilder to have *array.BinaryBuilder type but got %T", field))
 							}
 						}
 					}
@@ -338,14 +337,14 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 							continue
 						}
 
-						// Добавляем значение в зависимости от типа
 						switch fb := fieldBuilder.(type) {
 						case *array.BinaryBuilder:
-							if bval, ok := fieldValue.([]byte); ok {
-								fb.Append(bval)
-							} else {
-								fb.AppendNull()
+							bval, ok := fieldValue.([]byte)
+							if !ok {
+								panic(fmt.Sprintf("Expected []byte but got %T", bval))
 							}
+
+							fb.Append(bval)
 						default:
 							panic(fmt.Sprintf("Expected fieldBuilder to have *array.BinaryBuilder type but got %T", fb))
 						}
