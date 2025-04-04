@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"github.com/prometheus/prometheus/model/labels"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 

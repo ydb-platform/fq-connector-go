@@ -6,8 +6,9 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/prometheus/prometheus/model/labels"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
