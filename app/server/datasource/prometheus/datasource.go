@@ -25,7 +25,7 @@ import (
 const (
 	prometheusClientName = "fq-connector-remote-read-client"
 
-	defaultConnectionTimeout = 10 * time.Second
+	defaultConnectionTimeoutSeconds = 10
 )
 
 type dataSource struct {
@@ -50,8 +50,6 @@ func (ds *dataSource) DescribeTable(
 	if dsi.Protocol != api_common.EGenericProtocol_HTTP {
 		return nil, fmt.Errorf("cannot create Prometheus client using '%v' protocol", dsi.Protocol)
 	}
-
-	// TODO: Get Prometheus options
 
 	client, err := makeConnection(dsi)
 	if err != nil {
@@ -117,8 +115,6 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("cannot create Prometheus client using '%v' protocol", dsi.Protocol)
 	}
 
-	// TODO: Get Prometheus options
-
 	client, err := makeConnection(dsi)
 	if err != nil {
 		return fmt.Errorf("make connection: %w", err)
@@ -130,44 +126,6 @@ func (ds *dataSource) ReadSplit(
 	}
 
 	return ds.doReadSplitSingleConn(ctx, logger, request, split, sinks[0], client)
-}
-
-func makeConnection(dsi *api_common.TGenericDataSourceInstance) (remote.ReadClient, error) {
-	readClient, err := remote.NewReadClient(prometheusClientName, &remote.ClientConfig{
-		URL: &config.URL{URL: &url.URL{
-			// TODO: Think about https
-			Scheme: "http",
-			Host:   common.EndpointToString(dsi.Endpoint),
-			Path:   "/api/v1/read",
-		}},
-		// TODO: Get timeout from options
-		Timeout: model.Duration(defaultConnectionTimeout),
-		HTTPClientConfig: config.HTTPClientConfig{
-			// TODO: TLS config
-			// TLSConfig:       config.TLSConfig{
-			//	CA:                 "",
-			//	Cert:               "",
-			//	Key:                "",
-			//	CAFile:             "",
-			//	CertFile:           "",
-			//	KeyFile:            "",
-			//	CARef:              "",
-			//	CertRef:            "",
-			//	KeyRef:             "",
-			//	ServerName:         "",
-			//	InsecureSkipVerify: false,
-			//	MinVersion:         0,
-			//	MaxVersion:         0,
-			// },
-		},
-		// TODO: Get limit from options
-		ChunkedReadLimit: cfg.DefaultChunkedReadLimit,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("new Prometheus remote read client: %w", err)
-	}
-
-	return readClient, nil
 }
 
 func (ds *dataSource) doReadSplitSingleConn(
@@ -186,10 +144,8 @@ func (ds *dataSource) doReadSplitSingleConn(
 	// TODO: Limit && Offset (<from> and <to> params)
 	// Now we read all metrics
 	pbQuery, err := remote.ToQuery(
-		// 0,
-		// int64(model.TimeFromUnixNano(time.Now().Add(time.Minute).UnixNano())),
-		int64(model.TimeFromUnixNano(time.Now().Add(-time.Minute).UnixNano())),
-		int64(model.TimeFromUnixNano(time.Now().UnixNano())),
+		0,
+		int64(model.TimeFromUnixNano(time.Now().Add(time.Minute).UnixNano())),
 		[]*labels.Matcher{fromMatcher},
 		nil,
 	)
@@ -246,4 +202,52 @@ func (ds *dataSource) doReadSplitSingleConn(
 	sink.Finish()
 
 	return nil
+}
+
+func makeConnection(dsi *api_common.TGenericDataSourceInstance) (remote.ReadClient, error) {
+	options := getPrometheusOptions(dsi)
+
+	readClient, err := remote.NewReadClient(prometheusClientName, &remote.ClientConfig{
+		URL: &config.URL{URL: &url.URL{
+			Scheme: options.GetSchema().String(),
+			Host:   common.EndpointToString(dsi.Endpoint),
+			Path:   "/api/v1/read",
+		}},
+		Timeout: model.Duration(time.Duration(options.GetConnectionTimeoutSeconds()) * time.Second),
+		// TODO: Check
+		HTTPClientConfig: config.HTTPClientConfig{
+			TLSConfig: config.TLSConfig{InsecureSkipVerify: dsi.GetUseTls()},
+		},
+		ChunkedReadLimit: options.GetChunkedReadLimit(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("new Prometheus remote read client: %w", err)
+	}
+
+	return readClient, nil
+}
+
+func getPrometheusOptions(dsi *api_common.TGenericDataSourceInstance) *api_common.TPrometheusDataSourceOptions {
+	options := &api_common.TPrometheusDataSourceOptions{
+		Schema:                   api_common.TPrometheusDataSourceOptions_HTTP,
+		ConnectionTimeoutSeconds: uint64(defaultConnectionTimeoutSeconds),
+		ChunkedReadLimit:         uint64(cfg.DefaultChunkedReadLimit),
+	}
+
+	dsiOptions := dsi.GetPrometheusOptions()
+	if dsiOptions != nil {
+		if dsiOptions.GetSchema() == api_common.TPrometheusDataSourceOptions_HTTPS {
+			options.Schema = dsiOptions.GetSchema()
+		}
+
+		if dsiOptions.GetConnectionTimeoutSeconds() > 0 {
+			options.ConnectionTimeoutSeconds = dsiOptions.GetConnectionTimeoutSeconds()
+		}
+
+		if dsiOptions.GetChunkedReadLimit() > 0 {
+			options.ChunkedReadLimit = dsiOptions.GetChunkedReadLimit()
+		}
+	}
+
+	return options
 }
