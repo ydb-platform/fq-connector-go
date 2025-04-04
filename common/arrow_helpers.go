@@ -106,7 +106,7 @@ func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (
 		for _, member := range t.StructType.Members {
 			field, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
 			if err != nil {
-				return nil, fmt.Errorf("struct member %s: %w", member.Name, err)
+				return nil, fmt.Errorf("map YDB type to Arrow field for struct member %s: %w", member.Name, err)
 			}
 			fields = append(fields, field)
 		}
@@ -216,7 +216,7 @@ func ydbTypeToArrowField(ydbType *Ydb.Type, column *Ydb.Column) (arrow.Field, er
 		for _, member := range t.StructType.Members {
 			field, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
 			if err != nil {
-				return arrow.Field{}, fmt.Errorf("struct member %s: %w", member.Name, err)
+				return arrow.Field{}, fmt.Errorf("map YDB type to Arrow field for struct member %s: %w", member.Name, err)
 			}
 			fields = append(fields, field)
 		}

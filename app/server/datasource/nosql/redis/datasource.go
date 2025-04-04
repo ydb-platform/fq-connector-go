@@ -203,7 +203,7 @@ func (ds *dataSource) ReadSplit(
 
 	hashFields, err := getHashFields(split.Select.What.GetItems())
 	if err != nil {
-		return err
+		return fmt.Errorf("getHashFields: %w", err)
 	}
 
 	transformer := &redisRowTransformer{
@@ -212,7 +212,7 @@ func (ds *dataSource) ReadSplit(
 	}
 
 	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink); err != nil {
-		return err
+		return fmt.Errorf("readKeys: %w", err)
 	}
 
 	sink.Finish()
@@ -538,22 +538,23 @@ func (t *redisRowTransformer) GetAcceptors() []any {
 }
 
 func (t *redisRowTransformer) SetAcceptors(acceptors []any) {
-	for i, item := range t.items {
-		column := item.GetColumn()
-
-		switch column.Name {
-		case KeyColumnName:
-			if val, ok := acceptors[i].(*string); ok {
-				t.key = *val
-			}
-		case StringColumnName:
-			if val, ok := acceptors[i].(*string); ok {
-				t.stringVal = val
-			}
-		case HashColumnName:
-			if val, ok := acceptors[i].(*map[string]string); ok {
-				t.hashVal = val
-			}
-		}
-	}
+	panic("not implemented")
+	//for i, item := range t.items {
+	//	column := item.GetColumn()
+	//
+	//	switch column.Name {
+	//	case KeyColumnName:
+	//		if val, ok := acceptors[i].(*string); ok {
+	//			t.key = *val
+	//		}
+	//	case StringColumnName:
+	//		if val, ok := acceptors[i].(*string); ok {
+	//			t.stringVal = val
+	//		}
+	//	case HashColumnName:
+	//		if val, ok := acceptors[i].(*map[string]string); ok {
+	//			t.hashVal = val
+	//		}
+	//	}
+	//}
 }

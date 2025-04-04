@@ -63,7 +63,7 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 
 	client, err := connectRedisFromDS(ctx, s.dataSource)
 	if err != nil {
-		return fmt.Errorf("failed to connect: %w", err)
+		return fmt.Errorf("connectRedisFromDS: %w", err)
 	}
 
 	defer func() {
@@ -73,41 +73,41 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 	// Проверяем, что Redis пустой
 	keys, err := client.Keys(ctx, "*").Result()
 	if err != nil {
-		return fmt.Errorf("failed to get keys: %w", err)
+		return fmt.Errorf("client.Keys: %w", err)
 	}
 
 	err = PopulateTestData(ctx, client, caseName)
 	if err != nil {
-		return err
+		return fmt.Errorf("PopulateTestData: %w", err)
 	}
 
 	// Проверяем, что данные добавились
 	keys, err = client.Keys(ctx, "*").Result()
 	if err != nil {
-		return fmt.Errorf("failed to get keys: %w", err)
+		return fmt.Errorf("client.Keys: %w", err)
 	}
 
 	// Проверяем значения для каждого ключа
 	for _, key := range keys {
 		typ, err := client.Type(ctx, key).Result()
 		if err != nil {
-			return fmt.Errorf("failed to get type for key %s: %w", key, err)
+			return fmt.Errorf("get type for key %s: %w", key, err)
 		}
-		fmt.Printf("Key %s: type=%s\n", key, typ)
+		s.T().Logf("Key %s: type=%s\n", key, typ)
 
 		switch typ {
 		case "string":
 			val, err := client.Get(ctx, key).Result()
 			if err != nil {
-				return fmt.Errorf("failed to get value for key %s: %w", key, err)
+				return fmt.Errorf("get value for key %s: %w", key, err)
 			}
-			fmt.Printf("String value for %s: %s\n", key, val)
+			s.T().Logf("String value for %s: %s\n", key, val)
 		case "hash":
 			val, err := client.HGetAll(ctx, key).Result()
 			if err != nil {
-				return fmt.Errorf("failed to get hash for key %s: %w", key, err)
+				return fmt.Errorf("get hash for key %s: %w", key, err)
 			}
-			fmt.Printf("Hash value for %s: %v\n", key, val)
+			s.T().Logf("Hash value for %s: %v\n", key, val)
 		}
 	}
 
@@ -117,16 +117,16 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 		return fmt.Errorf("unknown test case: %s", caseName)
 	}
 
-	fmt.Printf("\nExpected schema:\n")
+	s.T().Logf("\nExpected schema:\n")
 	for name, typ := range table.Schema.Columns {
-		fmt.Printf("Column %s: %v\n", name, typ)
+		s.T().Logf("Column %s: %v\n", name, typ)
 	}
 
-	fmt.Printf("\nExpected records:\n")
+	s.T().Logf("\nExpected records:\n")
 	for i, record := range table.Records {
-		fmt.Printf("Record %d:\n", i)
+		s.T().Logf("Record %d:\n", i)
 		for name, values := range record.Columns {
-			fmt.Printf("  %s: %v\n", name, values)
+			s.T().Logf("  %s: %v\n", name, values)
 		}
 	}
 

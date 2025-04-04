@@ -42,7 +42,6 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 	receivedRecord arrow.Record,
 	receivedSchema *api_service_protos.TSchema,
 	idArrBuilder IDBUILDER) {
-
 	// Modify received table for the purpose of correct matching of expected vs actual results.
 	recordWithColumnOrderFixed, schemaWithColumnOrderFixed := swapColumns(receivedRecord, receivedSchema)
 	recordWithRowsSorted := sortTableByID(recordWithColumnOrderFixed, idArrBuilder)
@@ -137,33 +136,10 @@ func newTableIDColumn[ID TableIDTypes](arr arrow.Array) arrowIDCol[ID] {
 func (c arrowIDCol[ID]) mustValue(i int) ID {
 	switch col := c.idCol.(type) {
 	case *array.Int32:
-		// Для []byte нам нужно конвертировать int32 в байты
-		var r any
-		var idType ID
-		switch any(idType).(type) {
-		case []byte:
-			// Преобразуем int32 в строку, затем в байты
-			value := fmt.Sprintf("%d", col.Value(i))
-			r = []byte(value)
-		default:
-			r = col.Value(i)
-		}
-		return r.(ID)
+		return any(col.Value(i)).(ID)
 	case *array.Int64:
-		// Для []byte нам нужно конвертировать int64 в байты
-		var r any
-		var idType ID
-		switch any(idType).(type) {
-		case []byte:
-			// Преобразуем int64 в строку, затем в байты
-			value := fmt.Sprintf("%d", col.Value(i))
-			r = []byte(value)
-		default:
-			r = col.Value(i)
-		}
-		return r.(ID)
+		return any(col.Value(i)).(ID)
 	case *array.Binary:
-		// Для []byte просто возвращаем значение напрямую
 		return any(col.Value(i)).(ID)
 	default:
 		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
