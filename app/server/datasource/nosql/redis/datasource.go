@@ -44,6 +44,7 @@ type (
 		hashVal    *map[string]string
 		items      []*api_service_protos.TSelect_TWhat_TItem
 		hashFields []string
+		acceptors  []any
 	}
 )
 
@@ -162,6 +163,34 @@ func (ds *dataSource) readKeys(
 	return nil
 }
 
+// newRedisRowTransformer создает новый экземпляр redisRowTransformer
+func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*redisRowTransformer, error) {
+	hashFields, err := getHashFields(items)
+	if err != nil {
+		return nil, fmt.Errorf("getHashFields: %w", err)
+	}
+
+	t := &redisRowTransformer{
+		items:      items,
+		hashFields: hashFields,
+		acceptors:  make([]any, len(items)),
+	}
+
+	for i, item := range items {
+		column := item.GetColumn()
+		switch column.Name {
+		case KeyColumnName:
+			t.acceptors[i] = &t.key
+		case StringColumnName:
+			t.acceptors[i] = &t.stringVal
+		case HashColumnName:
+			t.acceptors[i] = t.hashVal
+		}
+	}
+
+	return t, nil
+}
+
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -202,14 +231,9 @@ func (ds *dataSource) ReadSplit(
 
 	sink := sinks[0]
 
-	hashFields, err := getHashFields(split.Select.What.GetItems())
+	transformer, err := newRedisRowTransformer(split.Select.What.GetItems())
 	if err != nil {
-		return fmt.Errorf("getHashFields: %w", err)
-	}
-
-	transformer := &redisRowTransformer{
-		items:      split.Select.What.GetItems(),
-		hashFields: hashFields,
+		return fmt.Errorf("create transformer: %w", err)
 	}
 
 	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink); err != nil {
@@ -504,7 +528,6 @@ func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
 		return nil
 	}
 
-	// Заполняем значения
 	for i, fieldName := range t.hashFields {
 		if val, exists := (*t.hashVal)[fieldName]; exists {
 			if binaryBuilder, ok := builder.FieldBuilder(i).(*array.BinaryBuilder); ok {
@@ -522,20 +545,7 @@ func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
 }
 
 func (t *redisRowTransformer) GetAcceptors() []any {
-	acceptors := make([]any, len(t.items))
-	for i, item := range t.items {
-		column := item.GetColumn()
-
-		switch column.Name {
-		case KeyColumnName:
-			acceptors[i] = &t.key
-		case StringColumnName:
-			acceptors[i] = t.stringVal
-		case HashColumnName:
-			acceptors[i] = t.hashVal
-		}
-	}
-	return acceptors
+	return t.acceptors
 }
 
 func (t *redisRowTransformer) SetAcceptors(acceptors []any) {
