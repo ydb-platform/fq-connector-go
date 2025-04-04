@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,8 +10,6 @@ import (
 	"text/template"
 
 	"go.uber.org/zap"
-
-	"encoding/json"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 )

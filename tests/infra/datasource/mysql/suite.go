@@ -5,15 +5,14 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
-
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
+	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
 type Suite struct {

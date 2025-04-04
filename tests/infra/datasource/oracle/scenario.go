@@ -3,12 +3,12 @@ package oracle
 import (
 	"context"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/common"
-
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )

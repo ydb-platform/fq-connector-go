@@ -8,9 +8,10 @@ import (
 	"path"
 
 	"github.com/spf13/cobra"
-	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 	"go.uber.org/zap"
 	"gonum.org/v1/gonum/stat"
+
+	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	"github.com/ydb-platform/fq-connector-go/app/client/utils"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
