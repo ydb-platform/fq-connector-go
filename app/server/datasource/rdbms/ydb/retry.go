@@ -1,8 +1,9 @@
 package ydb
 
 import (
-	"github.com/ydb-platform/ydb-go-sdk/v3"
 	grpc_codes "google.golang.org/grpc/codes"
+
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 )
 
 func ErrorCheckerQuery(err error) bool {

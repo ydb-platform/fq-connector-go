@@ -34,8 +34,6 @@ linters-settings:
     rewrite-rules:
       - pattern: 'interface{}'
         replacement: 'any'
-  goimports:
-    local-prefixes: github.com/ydb-platform/fq-connector-go
   gomnd:
     # don't include the "operation" and "assign"
     checks:
@@ -448,6 +446,21 @@ linters-settings:
       - name: waitgroup-by-value
         severity: warning
         disabled: false
+  gci:
+    # Section configuration to compare against.
+    # Section names are case-insensitive and may contain parameters in ().
+    # The default order of sections is `standard > default > custom > blank > dot > alias > localmodule`,
+    # If `custom-order` is `true`, it follows the order of `sections` option.
+    # Default: ["standard", "default"]
+    sections:
+      - standard # Standard section: captures all standard packages.
+      - default # Default section: contains all imports that could not be matched to another section type.
+      - prefix(github.com/ydb-platform/ydb) # Custom section: groups all imports with the specified Prefix.
+      - localmodule # Local module section: contains all local packages. This section is not present unless explicitly enabled.
+    # Enable custom order of sections.
+    # If `true`, make the section order the same as the order of `sections`.
+    # Default: false
+    custom-order: true
 
 linters:
   fast: false
@@ -458,7 +471,7 @@ linters:
     - dogsled
     # - dupl
     - errcheck
-    - exportloopref
+    - copyloopvar
     - funlen
     - gocheckcompilerdirectives
     # - gochecknoinits
@@ -487,6 +500,8 @@ linters:
     - unused
     - whitespace
     - wsl
+    # Gci controls Go package import order and makes it always deterministic.
+    - gci
 
   # don't enable:
   # - asciicheck

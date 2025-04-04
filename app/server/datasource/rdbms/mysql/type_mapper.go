@@ -9,6 +9,7 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/go-mysql-org/go-mysql/mysql"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"

@@ -3,8 +3,9 @@ package utils
 import (
 	"fmt"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"

@@ -1,11 +1,11 @@
 package ms_sql_server
 
 import (
+	"database/sql"
 	"fmt"
 
-	"database/sql"
-
 	_ "github.com/denisenkom/go-mssqldb"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"

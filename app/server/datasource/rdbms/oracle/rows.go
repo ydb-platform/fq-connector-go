@@ -1,12 +1,11 @@
 package oracle
 
 import (
+	"database/sql/driver"
 	"fmt"
 	"io"
 	"strconv"
 	"time"
-
-	"database/sql/driver"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 

@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	ydb_balancers "github.com/ydb-platform/ydb-go-sdk/v3/balancers"
 	ydb_sdk_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	ydb_sugar "github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	yc "github.com/ydb-platform/ydb-go-yc"
-	"go.uber.org/zap"
-	"google.golang.org/grpc"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"

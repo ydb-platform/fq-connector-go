@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/common"

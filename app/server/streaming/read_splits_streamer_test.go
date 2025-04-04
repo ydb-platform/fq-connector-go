@@ -13,8 +13,9 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"go.uber.org/zap"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
