@@ -8,6 +8,8 @@ import (
 
 	testify_suite "github.com/stretchr/testify/suite"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -15,8 +17,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
-
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type Base[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]] struct {

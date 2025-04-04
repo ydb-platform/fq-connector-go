@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -12,8 +13,6 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 	"github.com/ydb-platform/fq-connector-go/common"
-
-	"go.uber.org/zap"
 )
 
 type connectionManager struct {

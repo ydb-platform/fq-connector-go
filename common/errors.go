@@ -15,11 +15,12 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/redis/go-redis/v9"
-	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 	grpc_codes "google.golang.org/grpc/codes"
+
+	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"

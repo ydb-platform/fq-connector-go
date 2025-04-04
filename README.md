@@ -18,6 +18,8 @@ Currently supported data sources:
 * Microsoft SQL Server
 * MySQL / MariaDB
 * Oracle
+* MongoDB
+* Redis
 
 ### Documentation 
 
