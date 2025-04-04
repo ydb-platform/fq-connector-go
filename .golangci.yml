@@ -471,7 +471,7 @@ linters:
     - dogsled
     # - dupl
     - errcheck
-    - copyloopvar
+    - exportloopref
     - funlen
     - gocheckcompilerdirectives
     # - gochecknoinits
