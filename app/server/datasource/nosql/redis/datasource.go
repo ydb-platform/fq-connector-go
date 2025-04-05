@@ -504,7 +504,7 @@ func (t *redisRowTransformer) appendKey(builderIn array.Builder) error {
 		builder.Append([]byte(t.key))
 		return nil
 	}
-	return fmt.Errorf("unexpected builderIn type for key: %T", builderIn)
+	return fmt.Errorf("unexpected builder type for key: %T", builderIn)
 }
 
 func (t *redisRowTransformer) appendStringValue(builderIn array.Builder) error {
@@ -516,7 +516,7 @@ func (t *redisRowTransformer) appendStringValue(builderIn array.Builder) error {
 		}
 		return nil
 	}
-	return fmt.Errorf("unexpected builderIn type for string value: %T", builderIn)
+	return fmt.Errorf("unexpected builder type for string value: %T", builderIn)
 }
 
 func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {

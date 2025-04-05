@@ -464,10 +464,8 @@ func matchStructArrays(
 			// Проверяем значение в зависимости от типа поля
 			switch field := fieldArray.(type) {
 			case *array.Binary:
-				if !field.IsNull(i) {
-					require.Equal(t, *expectedFieldValue, field.Value(i),
-						fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
-				}
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
 			default:
 				// Другие типы полей можно добавить при необходимости
 				require.FailNow(t, fmt.Sprintf("unsupported field type for %s: %T", fieldName, field))
