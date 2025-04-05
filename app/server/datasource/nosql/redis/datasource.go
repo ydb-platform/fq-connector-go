@@ -105,6 +105,7 @@ func (ds *dataSource) readKeys(
 	pattern string,
 	transformer *redisRowTransformer,
 	sink paging.Sink[any],
+	logger *zap.Logger,
 ) error {
 	var cursor uint64
 	for {
@@ -146,7 +147,7 @@ func (ds *dataSource) readKeys(
 				}
 
 			default:
-				continue
+				logger.Warn("skipped unsupported type", zap.String("value", typ))
 			}
 
 			if err := sink.AddRow(transformer); err != nil {
@@ -184,6 +185,8 @@ func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*r
 		case StringColumnName:
 			t.acceptors[i] = &t.stringVal
 		case HashColumnName:
+			hashMap := make(map[string]string)
+			t.hashVal = &hashMap
 			t.acceptors[i] = t.hashVal
 		}
 	}
@@ -236,7 +239,7 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("create transformer: %w", err)
 	}
 
-	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink); err != nil {
+	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink, logger); err != nil {
 		return fmt.Errorf("readKeys: %w", err)
 	}
 

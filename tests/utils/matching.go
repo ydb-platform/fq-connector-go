@@ -420,17 +420,12 @@ func matchStructArrays(
 	actual *array.Struct,
 	optional bool,
 ) {
-	if !optional {
-		// Структуры всегда должны быть nullable в Arrow
-		require.FailNow(t, "Struct columns must be optional in Arrow")
-	}
+	require.True(t, optional, fmt.Sprint("Struct columns must be optional in Arrow"))
 
 	// Для структурных типов мы проверяем каждое поле отдельно
 	expectedStructsBytes, ok := expectedRaw.([]map[string]*[]byte)
-	if !ok {
-		require.FailNow(t, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*[]byte, got %T",
-			columnName, expectedRaw))
-	}
+	require.True(t, ok, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*[]byte, got %T",
+		columnName, expectedRaw))
 
 	// Новый формат - []map[string]*[]byte
 	require.Equal(t, len(expectedStructsBytes), actual.Len(),
@@ -457,10 +452,10 @@ func matchStructArrays(
 			fieldArray := actual.Field(fieldIdx)
 
 			// Получаем ожидаемое значение для поля
-			expectedFieldValue, exists := expectedStruct[fieldName]
+			expectedFieldValue, _ := expectedStruct[fieldName]
 
 			// Если поле не существует или null, проверяем что Arrow тоже null
-			if !exists || expectedFieldValue == nil {
+			if expectedFieldValue == nil {
 				require.True(t, fieldArray.IsNull(i),
 					fmt.Sprintf("struct field %s: expected NULL at row %d, got non-NULL", fieldName, i))
 				continue
