@@ -48,6 +48,35 @@ type (
 	}
 )
 
+// newRedisRowTransformer создает новый экземпляр redisRowTransformer
+func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*redisRowTransformer, error) {
+	hashFields, err := getHashFields(items)
+	if err != nil {
+		return nil, fmt.Errorf("getHashFields: %w", err)
+	}
+
+	t := &redisRowTransformer{
+		items:      items,
+		hashFields: hashFields,
+		acceptors:  make([]any, len(items)),
+	}
+
+	for i, item := range items {
+		column := item.GetColumn()
+		switch column.Name {
+		case KeyColumnName:
+			t.acceptors[i] = &t.key
+		case StringColumnName:
+			t.acceptors[i] = &t.stringVal
+		case HashColumnName:
+			hashMap := make(map[string]string)
+			t.acceptors[i] = &hashMap
+		}
+	}
+
+	return t, nil
+}
+
 func (t *redisRowTransformer) clean() {
 	t.key = ""
 	t.stringVal = nil
@@ -162,36 +191,6 @@ func (ds *dataSource) readKeys(
 		}
 	}
 	return nil
-}
-
-// newRedisRowTransformer создает новый экземпляр redisRowTransformer
-func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*redisRowTransformer, error) {
-	hashFields, err := getHashFields(items)
-	if err != nil {
-		return nil, fmt.Errorf("getHashFields: %w", err)
-	}
-
-	t := &redisRowTransformer{
-		items:      items,
-		hashFields: hashFields,
-		acceptors:  make([]any, len(items)),
-	}
-
-	for i, item := range items {
-		column := item.GetColumn()
-		switch column.Name {
-		case KeyColumnName:
-			t.acceptors[i] = &t.key
-		case StringColumnName:
-			t.acceptors[i] = &t.stringVal
-		case HashColumnName:
-			hashMap := make(map[string]string)
-			t.hashVal = &hashMap
-			t.acceptors[i] = t.hashVal
-		}
-	}
-
-	return t, nil
 }
 
 func (ds *dataSource) ReadSplit(
