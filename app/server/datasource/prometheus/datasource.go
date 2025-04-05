@@ -3,12 +3,9 @@ package prometheus
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"time"
 
-	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
-	cfg "github.com/prometheus/prometheus/config"
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
@@ -16,6 +13,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -24,25 +22,26 @@ import (
 
 const (
 	prometheusClientName = "fq-connector-remote-read-client"
-
-	defaultConnectionTimeoutSeconds = 10
+	prometheusNameLabel  = "__name__"
 )
 
 type dataSource struct {
-	cc conversion.Collection
+	cfg *config.TPrometheusConfig
+	cc  conversion.Collection
 }
 
 var _ datasource.DataSource[any] = (*dataSource)(nil)
 
-func NewDataSource(cc conversion.Collection) datasource.DataSource[any] {
+func NewDataSource(cfg *config.TPrometheusConfig, cc conversion.Collection) datasource.DataSource[any] {
 	return &dataSource{
-		cc: cc,
+		cfg: cfg,
+		cc:  cc,
 	}
 }
 
 func (ds *dataSource) DescribeTable(
 	ctx context.Context,
-	_ *zap.Logger,
+	logger *zap.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	dsi := request.DataSourceInstance
@@ -51,12 +50,20 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("cannot create Prometheus client using '%v' protocol", dsi.Protocol)
 	}
 
-	client, err := makeConnection(dsi)
+	client, err := NewReadClient(dsi, ds.cfg)
 	if err != nil {
-		return nil, fmt.Errorf("make connection: %w", err)
+		return nil, fmt.Errorf("new read client: %w", err)
 	}
 
-	fromMatcher, err := labels.NewMatcher(labels.MatchEqual, "__name__", request.GetTable())
+	// To get the values of a specific metric, you must first create a PromQL query using the internal label `__name__`.
+	// Comparison of the received PromQL query with SQL (metric name in Prometheus ~ table name in SQL):
+	//
+	// PromQL - `{__name__='some_metric'}`
+	//
+	// SQL - `SELECT * FROM some_metric`
+	//
+	// For more info: https://prometheus.io/docs/prometheus/latest/querying/basics/#instant-vector-selectors
+	fromMatcher, err := labels.NewMatcher(labels.MatchEqual, prometheusNameLabel, request.GetTable())
 	if err != nil {
 		return nil, fmt.Errorf("new matcher from: %w", err)
 	}
@@ -71,10 +78,15 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("to prompb query: %w", err)
 	}
 
-	timeSeries, err := client.Read(ctx, pbQuery, false)
+	logger.Debug("do remote read Prometheus request")
+
+	timeSeries, seriesClose, err := client.Read(ctx, pbQuery)
 	if err != nil {
 		return nil, fmt.Errorf("client remote read: %w", err)
 	}
+	defer seriesClose()
+
+	logger.Info("metrics have been read successfully")
 
 	if !timeSeries.Next() {
 		return nil, fmt.Errorf("time series next: %w", ErrEmptyTimeSeries)
@@ -115,9 +127,9 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("cannot create Prometheus client using '%v' protocol", dsi.Protocol)
 	}
 
-	client, err := makeConnection(dsi)
+	client, err := NewReadClient(dsi, ds.cfg)
 	if err != nil {
-		return fmt.Errorf("make connection: %w", err)
+		return fmt.Errorf("new read client: %w", err)
 	}
 
 	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
@@ -134,9 +146,9 @@ func (ds *dataSource) doReadSplitSingleConn(
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
-	client remote.ReadClient,
+	client *ReadClient,
 ) error {
-	fromMatcher, err := labels.NewMatcher(labels.MatchEqual, "__name__", split.Select.From.GetTable())
+	fromMatcher, err := labels.NewMatcher(labels.MatchEqual, prometheusNameLabel, split.Select.From.GetTable())
 	if err != nil {
 		return fmt.Errorf("new matcher from: %w", err)
 	}
@@ -153,10 +165,15 @@ func (ds *dataSource) doReadSplitSingleConn(
 		return fmt.Errorf("to query: %w", err)
 	}
 
-	timeSeries, err := client.Read(ctx, pbQuery, false)
+	logger.Debug("do remote read Prometheus request")
+
+	timeSeries, seriesClose, err := client.Read(ctx, pbQuery)
 	if err != nil {
 		return fmt.Errorf("client remote read: %w", err)
 	}
+	defer seriesClose()
+
+	logger.Info("metrics have been read successfully")
 
 	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
 	if err != nil {
@@ -202,52 +219,4 @@ func (ds *dataSource) doReadSplitSingleConn(
 	sink.Finish()
 
 	return nil
-}
-
-func makeConnection(dsi *api_common.TGenericDataSourceInstance) (remote.ReadClient, error) {
-	options := getPrometheusOptions(dsi)
-
-	readClient, err := remote.NewReadClient(prometheusClientName, &remote.ClientConfig{
-		URL: &config.URL{URL: &url.URL{
-			Scheme: options.GetSchema().String(),
-			Host:   common.EndpointToString(dsi.Endpoint),
-			Path:   "/api/v1/read",
-		}},
-		Timeout: model.Duration(time.Duration(options.GetConnectionTimeoutSeconds()) * time.Second),
-		// TODO: Check
-		HTTPClientConfig: config.HTTPClientConfig{
-			TLSConfig: config.TLSConfig{InsecureSkipVerify: dsi.GetUseTls()},
-		},
-		ChunkedReadLimit: options.GetChunkedReadLimit(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("new Prometheus remote read client: %w", err)
-	}
-
-	return readClient, nil
-}
-
-func getPrometheusOptions(dsi *api_common.TGenericDataSourceInstance) *api_common.TPrometheusDataSourceOptions {
-	options := &api_common.TPrometheusDataSourceOptions{
-		Schema:                   api_common.TPrometheusDataSourceOptions_HTTP,
-		ConnectionTimeoutSeconds: uint64(defaultConnectionTimeoutSeconds),
-		ChunkedReadLimit:         uint64(cfg.DefaultChunkedReadLimit),
-	}
-
-	dsiOptions := dsi.GetPrometheusOptions()
-	if dsiOptions != nil {
-		if dsiOptions.GetSchema() == api_common.TPrometheusDataSourceOptions_HTTPS {
-			options.Schema = dsiOptions.GetSchema()
-		}
-
-		if dsiOptions.GetConnectionTimeoutSeconds() > 0 {
-			options.ConnectionTimeoutSeconds = dsiOptions.GetConnectionTimeoutSeconds()
-		}
-
-		if dsiOptions.GetChunkedReadLimit() > 0 {
-			options.ChunkedReadLimit = dsiOptions.GetChunkedReadLimit()
-		}
-	}
-
-	return options
 }

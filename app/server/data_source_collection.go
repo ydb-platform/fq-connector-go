@@ -79,7 +79,8 @@ func (dsc *DataSourceCollection) DescribeTable(
 
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EGenericDataSourceKind_PROMETHEUS:
-		ds := prometheus.NewDataSource(dsc.converterCollection)
+		prometheusCfg := dsc.cfg.Datasources.Prometheus
+		ds := prometheus.NewDataSource(prometheusCfg, dsc.converterCollection)
 
 		return ds.DescribeTable(ctx, logger, request)
 
@@ -144,7 +145,8 @@ func (dsc *DataSourceCollection) ListSplits(
 				return fmt.Errorf("run streamer: %w", err)
 			}
 		case api_common.EGenericDataSourceKind_PROMETHEUS:
-			ds := prometheus.NewDataSource(dsc.converterCollection)
+			prometheusCfg := dsc.cfg.Datasources.Prometheus
+			ds := prometheus.NewDataSource(prometheusCfg, dsc.converterCollection)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
 
@@ -206,7 +208,8 @@ func (dsc *DataSourceCollection) ReadSplit(
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EGenericDataSourceKind_PROMETHEUS:
-		ds := prometheus.NewDataSource(dsc.converterCollection)
+		prometheusCfg := dsc.cfg.Datasources.Prometheus
+		ds := prometheus.NewDataSource(prometheusCfg, dsc.converterCollection)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 
