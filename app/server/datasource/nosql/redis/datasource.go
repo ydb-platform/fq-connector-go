@@ -111,24 +111,28 @@ func (*dataSource) ListSplits(
 // getHashFields извлекает поля хеша из схемы запроса
 func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, error) {
 	var hashFields []string
+
 	for _, item := range items {
 		column := item.GetColumn()
 		if column == nil {
 			return nil, fmt.Errorf("select.what has nil column")
 		}
+
 		if column.Name == HashColumnName {
 			structType := column.Type.GetOptionalType().GetItem().GetStructType()
 			for _, member := range structType.Members {
 				hashFields = append(hashFields, member.Name)
 			}
+
 			break
 		}
 	}
+
 	return hashFields, nil
 }
 
 // readKeys читает ключи из Redis и обрабатывает их значения
-func (ds *dataSource) readKeys(
+func (*dataSource) readKeys(
 	ctx context.Context,
 	client *redis.Client,
 	pattern string,
@@ -137,6 +141,7 @@ func (ds *dataSource) readKeys(
 	logger *zap.Logger,
 ) error {
 	var cursor uint64
+
 	for {
 		keys, newCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
 		if err != nil {
@@ -157,6 +162,7 @@ func (ds *dataSource) readKeys(
 				if err != nil {
 					return fmt.Errorf("get string value for key %s: %w", key, err)
 				}
+
 				transformer.stringVal = &value
 
 			case redisTypeHash:
@@ -167,11 +173,13 @@ func (ds *dataSource) readKeys(
 					}
 
 					hashMap := make(map[string]string)
+
 					for i, field := range transformer.hashFields {
 						if values[i] != nil {
 							hashMap[field] = values[i].(string)
 						}
 					}
+
 					transformer.hashVal = &hashMap
 				}
 
@@ -182,6 +190,7 @@ func (ds *dataSource) readKeys(
 			if err := sink.AddRow(transformer); err != nil {
 				return fmt.Errorf("add row: %w", err)
 			}
+
 			transformer.clean()
 		}
 
@@ -190,13 +199,14 @@ func (ds *dataSource) readKeys(
 			break
 		}
 	}
+
 	return nil
 }
 
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	request *api_service_protos.TReadSplitsRequest,
+	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
 ) error {
@@ -211,6 +221,7 @@ func (ds *dataSource) ReadSplit(
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
 		var err error
 		client, err = ds.makeConnection(ctx, logger, dsi)
+
 		return err
 	})
 
@@ -478,6 +489,7 @@ func (t *redisRowTransformer) AppendToArrowBuilders(builders []array.Builder) er
 		}
 
 		builder := builders[i]
+
 		switch column.Name {
 		case KeyColumnName:
 			if err := t.appendKey(builder); err != nil {
@@ -504,6 +516,7 @@ func (t *redisRowTransformer) appendKey(builderIn array.Builder) error {
 		builder.Append([]byte(t.key))
 		return nil
 	}
+
 	return fmt.Errorf("unexpected builder type for key: %T", builderIn)
 }
 
@@ -514,8 +527,10 @@ func (t *redisRowTransformer) appendStringValue(builderIn array.Builder) error {
 		} else {
 			builder.AppendNull()
 		}
+
 		return nil
 	}
+
 	return fmt.Errorf("unexpected builder type for string value: %T", builderIn)
 }
 
@@ -531,18 +546,20 @@ func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
 	}
 
 	for i, fieldName := range t.hashFields {
+		binaryBuilder, ok := builder.FieldBuilder(i).(*array.BinaryBuilder)
+		if !ok {
+			return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, builder.FieldBuilder(i))
+		}
+
 		if val, exists := (*t.hashVal)[fieldName]; exists {
-			if binaryBuilder, ok := builder.FieldBuilder(i).(*array.BinaryBuilder); ok {
-				binaryBuilder.Append([]byte(val))
-			} else {
-				return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, builder.FieldBuilder(i))
-			}
+			binaryBuilder.Append([]byte(val))
 		} else {
 			builder.FieldBuilder(i).AppendNull()
 		}
 	}
 
 	builder.Append(true)
+
 	return nil
 }
 
@@ -550,6 +567,6 @@ func (t *redisRowTransformer) GetAcceptors() []any {
 	return t.acceptors
 }
 
-func (t *redisRowTransformer) SetAcceptors(acceptors []any) {
+func (*redisRowTransformer) SetAcceptors(_ []any) {
 	panic("not implemented")
 }

@@ -232,15 +232,19 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 		for k, v := range t {
 			size += uint64(len(k) + len(v))
 		}
+
 		return size, variableSize, nil
 	case *map[string]string:
 		if t == nil {
 			return 0, variableSize, nil
 		}
+
 		var size uint64
+
 		for k, v := range *t {
 			size += uint64(len(k) + len(v))
 		}
+
 		return size, variableSize, nil
 	default:
 		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)

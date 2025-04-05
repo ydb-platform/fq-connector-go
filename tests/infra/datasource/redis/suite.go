@@ -70,19 +70,23 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 		s.Require().NoError(client.Close())
 	}()
 
+	// Очищаем все существующие ключи
+	if _, err = client.FlushAll(ctx).Result(); err != nil {
+		return fmt.Errorf("flushall error: %w", err)
+	}
+
 	// Проверяем, что Redis пустой
-	keys, err := client.Keys(ctx, "*").Result()
-	if err != nil {
+	if _, err = client.Keys(ctx, "*").Result(); err != nil {
 		return fmt.Errorf("client.Keys: %w", err)
 	}
 
 	err = PopulateTestData(ctx, client, caseName)
 	if err != nil {
-		return fmt.Errorf("PopulateTestData: %w", err)
+		return fmt.Errorf("populateTestData: %w", err)
 	}
 
 	// Проверяем, что данные добавились
-	keys, err = client.Keys(ctx, "*").Result()
+	keys, err := client.Keys(ctx, "*").Result()
 	if err != nil {
 		return fmt.Errorf("client.Keys: %w", err)
 	}
@@ -93,6 +97,7 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 		if err != nil {
 			return fmt.Errorf("get type for key %s: %w", key, err)
 		}
+
 		s.T().Logf("Key %s: type=%s\n", key, typ)
 
 		switch typ {
@@ -101,12 +106,15 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 			if err != nil {
 				return fmt.Errorf("get value for key %s: %w", key, err)
 			}
+
 			s.T().Logf("String value for %s: %s\n", key, val)
+
 		case "hash":
 			val, err := client.HGetAll(ctx, key).Result()
 			if err != nil {
 				return fmt.Errorf("get hash for key %s: %w", key, err)
 			}
+
 			s.T().Logf("Hash value for %s: %v\n", key, val)
 		}
 	}
@@ -118,13 +126,16 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 	}
 
 	s.T().Logf("\nExpected schema:\n")
+
 	for name, typ := range table.Schema.Columns {
 		s.T().Logf("Column %s: %v\n", name, typ)
 	}
 
 	s.T().Logf("\nExpected records:\n")
+
 	for i, record := range table.Records {
 		s.T().Logf("Record %d:\n", i)
+
 		for name, values := range record.Columns {
 			s.T().Logf("  %s: %v\n", name, values)
 		}

@@ -104,13 +104,16 @@ func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (
 		}
 	case *Ydb.Type_StructType:
 		fields := make([]arrow.Field, 0, len(t.StructType.Members))
+
 		for _, member := range t.StructType.Members {
 			field, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
 			if err != nil {
 				return nil, fmt.Errorf("map YDB type to Arrow field for struct member %s: %w", member.Name, err)
 			}
+
 			fields = append(fields, field)
 		}
+
 		structType := arrow.StructOf(fields...)
 		builder = array.NewStructBuilder(arrowAllocator, structType)
 	default:
@@ -214,13 +217,16 @@ func ydbTypeToArrowField(ydbType *Ydb.Type, column *Ydb.Column) (arrow.Field, er
 		}
 	case *Ydb.Type_StructType:
 		fields := make([]arrow.Field, 0, len(t.StructType.Members))
+
 		for _, member := range t.StructType.Members {
-			field, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
+			innerfield, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
 			if err != nil {
 				return arrow.Field{}, fmt.Errorf("map YDB type to Arrow field for struct member %s: %w", member.Name, err)
 			}
-			fields = append(fields, field)
+
+			fields = append(fields, innerfield)
 		}
+
 		field = arrow.Field{
 			Name: column.Name,
 			Type: arrow.StructOf(fields...),

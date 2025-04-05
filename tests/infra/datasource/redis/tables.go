@@ -8,10 +8,8 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
-
-	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
-
 	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 

@@ -65,6 +65,7 @@ func (r *Record[ID, IDBUILDER]) MatchRecord(
 // where the column with the name `id` should always come first.
 func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.Record, *api_service_protos.TSchema) {
 	idIndex := -1
+
 	for i, field := range table.Schema().Fields() {
 		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" || field.Name == "_id" || field.Name == "key" {
 			idIndex = i
@@ -198,6 +199,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 				} else {
 					// Создаем структуру для сохранения значений полей
 					structData := make(map[string]any)
+
 					for fieldIdx := 0; fieldIdx < col.NumField(); fieldIdx++ {
 						fieldName := col.DataType().(*arrow.StructType).Field(fieldIdx).Name
 						if col.Field(fieldIdx).IsNull(rowIdx) {
@@ -212,6 +214,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 							}
 						}
 					}
+
 					restCols[rowIdx][colIdx-1] = structData
 				}
 			}
@@ -331,7 +334,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 						fieldName := builder.Type().(*arrow.StructType).Field(fieldIdx).Name
 						fieldBuilder := builder.FieldBuilder(fieldIdx)
 
-						fieldValue, _ := structData[fieldName]
+						fieldValue := structData[fieldName]
 						if fieldValue == nil {
 							fieldBuilder.AppendNull()
 							continue
@@ -420,7 +423,7 @@ func matchStructArrays(
 	actual *array.Struct,
 	optional bool,
 ) {
-	require.True(t, optional, fmt.Sprint("Struct columns must be optional in Arrow"))
+	require.True(t, optional, "Struct columns must be optional in Arrow")
 
 	// Для структурных типов мы проверяем каждое поле отдельно
 	expectedStructsBytes, ok := expectedRaw.([]map[string]*[]byte)
@@ -447,12 +450,13 @@ func matchStructArrays(
 
 		// Проверяем каждое поле структуры
 		expectedStruct := expectedStructsBytes[i]
+
 		for fieldIdx := 0; fieldIdx < actual.NumField(); fieldIdx++ {
 			fieldName := actual.DataType().(*arrow.StructType).Field(fieldIdx).Name
 			fieldArray := actual.Field(fieldIdx)
 
 			// Получаем ожидаемое значение для поля
-			expectedFieldValue, _ := expectedStruct[fieldName]
+			expectedFieldValue := expectedStruct[fieldName]
 
 			// Если поле не существует или null, проверяем что Arrow тоже null
 			if expectedFieldValue == nil {
