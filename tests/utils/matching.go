@@ -185,6 +185,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			processColumn[string, *array.String](table, colIdx, restCols)
 		case *array.Binary:
 			processColumn[[]byte, *array.Binary](table, colIdx, restCols)
+		//nolint:revive
 		case *array.Struct:
 			// Обработка для структурных типов
 			numRows := int(table.NumRows())
@@ -202,6 +203,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 
 					for fieldIdx := 0; fieldIdx < col.NumField(); fieldIdx++ {
 						fieldName := col.DataType().(*arrow.StructType).Field(fieldIdx).Name
+
 						if col.Field(fieldIdx).IsNull(rowIdx) {
 							structData[fieldName] = nil
 						} else {

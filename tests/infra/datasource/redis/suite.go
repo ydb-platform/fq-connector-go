@@ -57,6 +57,8 @@ func connectRedisFromDS(ctx context.Context, ds *datasource.DataSource) (*redis.
 
 // populateTestDataForCase creates a Redis client, populates test data for the given case,
 // and ensures the client and context are properly closed.
+//
+//nolint:gocyclo
 func (s *Suite) populateTestDataForCase(caseName string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
