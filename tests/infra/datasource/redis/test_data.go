@@ -32,7 +32,7 @@ func PopulateTestData(ctx context.Context, client *redis.Client, caseName string
 			"field1": "hashValue1",
 			"field2": "hashValue2",
 		}).Err(); err != nil {
-			return fmt.Errorf("HSET hashOnly:hashKey1: %w", err)
+			return fmt.Errorf("hset hashOnly:hashKey1: %w", err)
 		}
 
 		if err := client.HSet(ctx, "hashOnly:hashKey2", map[string]any{
@@ -40,7 +40,7 @@ func PopulateTestData(ctx context.Context, client *redis.Client, caseName string
 			"field2": "hashValue4",
 			"field3": "hashValue5",
 		}).Err(); err != nil {
-			return fmt.Errorf("HSET hashOnly:hashKey2: %w", err)
+			return fmt.Errorf("hset hashOnly:hashKey2: %w", err)
 		}
 
 	case "mixed":
@@ -53,7 +53,7 @@ func PopulateTestData(ctx context.Context, client *redis.Client, caseName string
 			"hashField1": "mixedHash1",
 			"hashField2": "mixedHash2",
 		}).Err(); err != nil {
-			return fmt.Errorf("HSET mixed:hashKey2: %w", err)
+			return fmt.Errorf("hset mixed:hashKey2: %w", err)
 		}
 
 	case "empty":

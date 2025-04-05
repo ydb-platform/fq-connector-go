@@ -47,6 +47,11 @@ func String(v string) *string { return &v }
 // Byte returns pointer to provided value
 func Byte(v byte) *byte { return &v }
 
+// Bytes returns pointer to provided value
+func Bytes(v []byte) *[]byte {
+	return &v
+}
+
 // Rune returns pointer to provided value
 func Rune(v rune) *rune { return &v }
 
