@@ -79,6 +79,8 @@
 - `object`
 
 Все остальные типы временно классифицируются как примитивы.
+1) На первом этапе происходт [парсинг метаданных по индексу](https://github.com/trinodb/trino/blob/8d4ba2a80b9ec807b08dac699a58e8d09b63d707/plugin/trino-opensearch/src/main/java/io/trino/plugin/opensearch/client/IndexMetadata.java#L50).
+2) А далее конкретными [декодерами Trino](https://github.com/trinodb/trino/blob/8d4ba2a80b9ec807b08dac699a58e8d09b63d707/plugin/trino-opensearch/src/main/java/io/trino/plugin/opensearch/OpenSearchMetadata.java#L291).
 
 #### 1.3 Конвертация типов OpenSearch в типы Trino
 
@@ -118,6 +120,8 @@ Trino предоставляет [globaly available](https://trino.io/docs/curre
 
 #### 4.1 Параллельное чтение
 Trino запрашивает данные с нескольких узлов кластера OpenSearch для параллельной обработки запросов.
+Это подход к массивно-параллельному чтение, достаются сплиты по шардам в рамках [одного запроса](https://github.com/trinodb/trino/blob/8d4ba2a80b9ec807b08dac699a58e8d09b63d707/plugin/trino-opensearch/src/main/java/io/trino/plugin/opensearch/OpenSearchSplitManager.java#L45)
+Далее, на уровне планировщика и ядра, трино это должно будет выполниться на шардах и в координаторе агрегироваться.
 
 #### 4.2 Пушдаун предикатов
 В интеграции с OpenSearch поддерживаются только следующие типы данных для [пушдауна](https://trino.io/docs/current/optimizer/pushdown.html#predicate-pushdown).
@@ -138,6 +142,8 @@ Trino запрашивает данные с нескольких узлов к�
 ### Примеры
 
 Создадим индекс с массивами и вложенными объектами, посмотрим, как Trino справится.
+Это именно создание индекса с заданным маппингом. 
+Обновление только маппинга необходимо делать по пути [_mapping](https://opensearch.org/docs/1.1/opensearch/rest-api/update-mapping/#example)
 
 ```json
    curl -X PUT "http://localhost:9200/complex_index_1?pretty" -H 'Content-Type: application/json' -d'
@@ -272,6 +278,11 @@ curl -X PUT "http://localhost:9200/complex_index_1/_doc/1?pretty" -H 'Content-Ty
 ```
 
 А теперь посмотрим на вывод Trino.
+Здесь
+* `elasticsearch` — каталог (подключение к Elasticsearch/OpenSearch).
+* `default` — это схема, созданная Trino для группировки всех индексов Elasticsearch/OpenSearch.
+* `complex_index_1` — индекс в Elasticsearch/OpenSearch, который Trino видит как таблицу.
+Как сконфигурировать настройку для Trino описано [здесь](https://trino.io/docs/current/connector/opensearch.html#configuration) 
 ```shell
 trino> SELECT * FROM elasticsearch.default.complex_index_1;
                                         address                                        | age |   full_name   |      hobbies       | is_active |                                                                                                                                                        projects                                                                                                                                                         |    registration_date    | user_id  
@@ -351,7 +362,13 @@ DESCRIBE `lambda:function_name`.domain.index
 
 Athena OpenSearch connector поддерживает параллельное сканирование на основе сегментов.
 Коннектор использует информацию о работоспособности кластера, полученную из экземпляра OpenSearch, для создания нескольких запросов на поиск документов.
-Запросы разделены для каждого сегмента и выполняются одновременно.
+Запросы разделены для каждого сегмента и выполняются одновременно. 
+[connectors-opensearch-performance](https://docs.aws.amazon.com/athena/latest/ug/connectors-opensearch.html#connectors-opensearch-performance)
+
+[Сегмент](https://opensearch.org/docs/latest/api-reference/index-apis/segment/) – именно часть шарда.
+
+Конкурентный поиск на уровне индекса и на уровне кластера. 
+[concurrent-segment-search](https://opensearch.org/docs/latest/search-plugins/concurrent-segment-search)
 
 #### 4.2 Пушдаун предиктов
 
@@ -391,7 +408,7 @@ WHERE year >= 1955 AND year <= 1962 OR year = 1996
 | `double`            | `Double`          | `DOUBLE`     |
 | `binary`            | `String`          | `BINARY`     |
 | `keyword` / `text`  | `Utf8`            | `VARCHAR`    |
-| `object`            | `Json`            | `STRUCT`     |
+| `object`            | `Struct`          | `STRUCT`     |
 | `nested`            | `List<T>`         | `LIST`       |
 | `scaled_float`      | `Decimal`         | `DECIMAL128` |
 | `date`              | `Interval`        | `DATE64`     |
