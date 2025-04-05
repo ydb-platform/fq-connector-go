@@ -33,7 +33,7 @@ func makeDefaultPushdownConfig() *config.TPushdownConfig {
 
 // TODO: use reflection to generalize datasource setting code
 //
-//nolint:gocyclo
+//nolint:gocyclo,funlen
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.ConnectorServer.MaxRecvMessageSize == 0 {
 		c.ConnectorServer.MaxRecvMessageSize = math.MaxInt32
@@ -172,6 +172,19 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Redis.ExponentialBackoff == nil {
 		c.Datasources.Redis.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// Prometheus
+
+	if c.Datasources.Prometheus == nil {
+		c.Datasources.Prometheus = &config.TPrometheusConfig{
+			OpenConnectionTimeout: "5s",
+			ChunkedReadLimit:      5e7,
+		}
+	}
+
+	if c.Datasources.Prometheus.ExponentialBackoff == nil {
+		c.Datasources.Prometheus.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
 	// PostgreSQL

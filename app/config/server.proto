@@ -229,6 +229,18 @@ message TRedisConfig {
     TExponentialBackoffConfig exponential_backoff = 10;
 }
 
+// TPrometheusConfig contains settings specific for Prometheus data source
+message TPrometheusConfig {
+    // Timeout for Prometheus connection opening.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string open_connection_timeout = 1;
+
+    // By default, we use `5e+7 bytes` ~ 50MB for the maximum size of frame, that we can read at once from data source
+    uint64 chunked_read_limit = 2;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
 // TPostgreSQLConfig contains settings specific for PostgreSQL data source
 message TPostgreSQLConfig {
     // Timeout for PostgreSQL connection opening.
@@ -351,4 +363,5 @@ message TDatasourcesConfig {
     TLoggingConfig logging = 8;
     TMongoDbConfig mongodb = 9;
     TRedisConfig redis = 10;
+    TPrometheusConfig prometheus = 11;
 }

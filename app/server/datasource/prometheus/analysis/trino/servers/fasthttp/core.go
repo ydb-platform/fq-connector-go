@@ -35,6 +35,7 @@ func main() {
 
 	go func() {
 		log.Printf("server listening at %s", srvAddr)
+
 		if err := fasthttp.ListenAndServe(srvAddr, fasthttpHandler); err != nil {
 			log.Panicf("error while serving: %s", err)
 		}
@@ -42,6 +43,7 @@ func main() {
 
 	go func() {
 		log.Printf("metrics listening at %s", metricsAddr)
+
 		if err := http.ListenAndServe(metricsAddr, promhttp.Handler()); err != nil {
 			log.Panicf("error while serving metrics: %s", err)
 		}

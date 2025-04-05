@@ -15,6 +15,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/mongodb"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/prometheus"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -75,6 +76,11 @@ func (dsc *DataSourceCollection) DescribeTable(
 			redisCfg,
 			dsc.converterCollection,
 		)
+
+		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EGenericDataSourceKind_PROMETHEUS:
+		prometheusCfg := dsc.cfg.Datasources.Prometheus
+		ds := prometheus.NewDataSource(prometheusCfg, dsc.converterCollection)
 
 		return ds.DescribeTable(ctx, logger, request)
 
@@ -138,6 +144,16 @@ func (dsc *DataSourceCollection) ListSplits(
 			if err := streamer.Run(); err != nil {
 				return fmt.Errorf("run streamer: %w", err)
 			}
+		case api_common.EGenericDataSourceKind_PROMETHEUS:
+			prometheusCfg := dsc.cfg.Datasources.Prometheus
+			ds := prometheus.NewDataSource(prometheusCfg, dsc.converterCollection)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+
 		default:
 			return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 		}
@@ -179,7 +195,6 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
-
 	case api_common.EGenericDataSourceKind_REDIS:
 		redisCfg := dsc.cfg.Datasources.Redis
 		ds := redis.NewDataSource(
@@ -190,6 +205,11 @@ func (dsc *DataSourceCollection) ReadSplit(
 			redisCfg,
 			dsc.converterCollection,
 		)
+
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+	case api_common.EGenericDataSourceKind_PROMETHEUS:
+		prometheusCfg := dsc.cfg.Datasources.Prometheus
+		ds := prometheus.NewDataSource(prometheusCfg, dsc.converterCollection)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 
