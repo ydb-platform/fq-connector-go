@@ -3,11 +3,7 @@ package prometheus
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/prometheus/common/model"
-	"github.com/prometheus/prometheus/model/labels"
-	"github.com/prometheus/prometheus/storage/remote"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
 	"go.uber.org/zap"
 
@@ -18,11 +14,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
-)
-
-const (
-	prometheusClientName = "fq-connector-remote-read-client"
-	prometheusNameLabel  = "__name__"
 )
 
 type dataSource struct {
@@ -55,27 +46,11 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("new read client: %w", err)
 	}
 
-	// To get the values of a specific metric, you must first create a PromQL query using the internal label `__name__`.
-	// Comparison of the received PromQL query with SQL (metric name in Prometheus ~ table name in SQL):
-	//
-	// PromQL - `{__name__='some_metric'}`
-	//
-	// SQL - `SELECT * FROM some_metric`
-	//
-	// For more info: https://prometheus.io/docs/prometheus/latest/querying/basics/#instant-vector-selectors
-	fromMatcher, err := labels.NewMatcher(labels.MatchEqual, prometheusNameLabel, request.GetTable())
+	pbQuery, err := NewPromQLBuilder().
+		From(request.GetTable()).
+		ToQuery()
 	if err != nil {
-		return nil, fmt.Errorf("new matcher from: %w", err)
-	}
-
-	pbQuery, err := remote.ToQuery(
-		0,
-		int64(model.TimeFromUnixNano(time.Now().UnixNano())),
-		[]*labels.Matcher{fromMatcher},
-		nil,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("to prompb query: %w", err)
+		return nil, fmt.Errorf("promql builder to query: %w", err)
 	}
 
 	logger.Debug("do remote read Prometheus request")
@@ -137,32 +112,23 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("make sinks: %w", err)
 	}
 
-	return ds.doReadSplitSingleConn(ctx, logger, request, split, sinks[0], client)
+	return ds.doReadSplit(ctx, logger, request, split, sinks[0], client)
 }
 
-func (ds *dataSource) doReadSplitSingleConn(
+func (ds *dataSource) doReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	_ *api_service_protos.TReadSplitsRequest,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 	client *ReadClient,
 ) error {
-	fromMatcher, err := labels.NewMatcher(labels.MatchEqual, prometheusNameLabel, split.Select.From.GetTable())
+	pbQuery, err := NewPromQLBuilder().
+		From(split.Select.From.GetTable()).
+		WithYdbWhere(whereArrayFromSplits(request.GetSplits())).
+		ToQuery()
 	if err != nil {
-		return fmt.Errorf("new matcher from: %w", err)
-	}
-
-	// TODO: Limit && Offset (<from> and <to> params)
-	// Now we read all metrics
-	pbQuery, err := remote.ToQuery(
-		0,
-		int64(model.TimeFromUnixNano(time.Now().Add(time.Minute).UnixNano())),
-		[]*labels.Matcher{fromMatcher},
-		nil,
-	)
-	if err != nil {
-		return fmt.Errorf("to query: %w", err)
+		return fmt.Errorf("promql builder to query: %w", err)
 	}
 
 	logger.Debug("do remote read Prometheus request")

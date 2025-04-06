@@ -16,6 +16,10 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+const (
+	prometheusClientName = "fq-connector-remote-read-client"
+)
+
 type CloseFunc func()
 
 type ReadClient struct {
