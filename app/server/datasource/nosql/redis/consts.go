@@ -1,13 +1,14 @@
 package redis
 
+//nolint:unused
 const (
-	redisTypeNone   = "none"
-	redisTypeString = "string"
-	redisTypeHash   = "hash"
-	redisTypeList   = "list"
-	redisTypeSet    = "set"
-	redisTypeZSet   = "zset"
-	redisTypeStream = "stream"
+	TypeNone   = "none"
+	TypeString = "string"
+	TypeHash   = "hash"
+	TypeList   = "list"
+	TypeSet    = "set"
+	TypeZSet   = "zset"
+	TypeStream = "stream"
 
 	KeyColumnName    = "key"
 	StringColumnName = "string_values"

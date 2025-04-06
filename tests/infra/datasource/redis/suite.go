@@ -9,6 +9,7 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/redis/go-redis/v9"
 
+	dsredis "github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 )
@@ -74,17 +75,17 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 
 	// Очищаем все существующие ключи
 	if _, err = client.FlushAll(ctx).Result(); err != nil {
-		return fmt.Errorf("flushall error: %w", err)
+		return fmt.Errorf("flush all: %w", err)
 	}
 
 	// Проверяем, что Redis пустой
 	if _, err = client.Keys(ctx, "*").Result(); err != nil {
-		return fmt.Errorf("client.Keys: %w", err)
+		return fmt.Errorf("get Redis keys: %w", err)
 	}
 
 	err = PopulateTestData(ctx, client, caseName)
 	if err != nil {
-		return fmt.Errorf("populateTestData: %w", err)
+		return fmt.Errorf("populate test data: %w", err)
 	}
 
 	// Проверяем, что данные добавились
@@ -103,7 +104,7 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 		s.T().Logf("Key %s: type=%s\n", key, typ)
 
 		switch typ {
-		case "string":
+		case dsredis.TypeString:
 			val, err := client.Get(ctx, key).Result()
 			if err != nil {
 				return fmt.Errorf("get value for key %s: %w", key, err)
@@ -111,7 +112,7 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 
 			s.T().Logf("String value for %s: %s\n", key, val)
 
-		case "hash":
+		case dsredis.TypeHash:
 			val, err := client.HGetAll(ctx, key).Result()
 			if err != nil {
 				return fmt.Errorf("get hash for key %s: %w", key, err)

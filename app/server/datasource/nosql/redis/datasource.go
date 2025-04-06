@@ -140,7 +140,7 @@ func (*dataSource) readKeys(
 	sink paging.Sink[any],
 	logger *zap.Logger,
 ) error {
-	var cursor uint64
+	var cursor, unsupportedTypesCount uint64
 
 	for {
 		keys, newCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
@@ -157,7 +157,7 @@ func (*dataSource) readKeys(
 			transformer.key = key
 
 			switch typ {
-			case redisTypeString:
+			case TypeString:
 				value, err := client.Get(ctx, key).Result()
 				if err != nil {
 					return fmt.Errorf("get string value for key %s: %w", key, err)
@@ -165,7 +165,7 @@ func (*dataSource) readKeys(
 
 				transformer.stringVal = &value
 
-			case redisTypeHash:
+			case TypeHash:
 				if len(transformer.hashFields) > 0 {
 					values, err := client.HMGet(ctx, key, transformer.hashFields...).Result()
 					if err != nil {
@@ -184,7 +184,7 @@ func (*dataSource) readKeys(
 				}
 
 			default:
-				logger.Warn("skipped unsupported type", zap.String("value", typ))
+				unsupportedTypesCount++
 			}
 
 			if err := sink.AddRow(transformer); err != nil {
@@ -198,6 +198,10 @@ func (*dataSource) readKeys(
 		if cursor == 0 {
 			break
 		}
+	}
+
+	if unsupportedTypesCount > 0 {
+		logger.Warn("number of unsupported types encountered: ", zap.Uint64("value", unsupportedTypesCount))
 	}
 
 	return nil
@@ -355,6 +359,9 @@ func (*dataSource) analyzeKeys(
 	keys []string,
 ) (*keysSpec, error) {
 	var res keysSpec
+
+	var unsupportedTypesCount uint64
+
 	res.unionHashFields = make(map[string]struct{})
 
 	for _, key := range keys {
@@ -364,9 +371,9 @@ func (*dataSource) analyzeKeys(
 		}
 
 		switch typ {
-		case redisTypeString:
+		case TypeString:
 			res.stringExists = true
-		case redisTypeHash:
+		case TypeHash:
 			res.hashExists = true
 			fields, err := client.HKeys(ctx, key).Result()
 
@@ -378,8 +385,12 @@ func (*dataSource) analyzeKeys(
 				res.unionHashFields[field] = struct{}{}
 			}
 		default:
-			logger.Warn("skipped unsupported type", zap.String("value", typ))
+			unsupportedTypesCount++
 		}
+	}
+
+	if unsupportedTypesCount > 0 {
+		logger.Warn("number of unsupported types encountered: ", zap.Uint64("value", unsupportedTypesCount))
 	}
 
 	return &res, nil
