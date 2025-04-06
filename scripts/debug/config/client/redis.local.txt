@@ -22,7 +22,4 @@ data_source_instance {
         }
     }
     protocol: NATIVE
-    redis_options {
-
-    }
 }

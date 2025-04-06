@@ -97,5 +97,5 @@ func TestMongoDB(t *testing.T) {
 
 func TestRedis(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
-	testify_suite.Run(t, redis.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "Redis")))
+	testify_suite.Run(t, redis.NewSuite(suite.NewBase[[]byte, *array.BinaryBuilder](t, state, "Redis")))
 }

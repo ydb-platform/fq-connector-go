@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 
@@ -25,9 +26,10 @@ var _ datasource.DataSource[any] = (*dataSource)(nil)
 
 type (
 	dataSource struct {
-		retrierSet *retry.RetrierSet
-		cfg        *config.TRedisConfig
-		cc         conversion.Collection
+		retrierSet  *retry.RetrierSet
+		cfg         *config.TRedisConfig
+		cc          conversion.Collection
+		queryLogger common.QueryLogger
 	}
 
 	keysSpec struct {
@@ -35,7 +37,51 @@ type (
 		hashExists      bool
 		unionHashFields map[string]struct{}
 	}
+
+	redisRowTransformer struct {
+		key        string
+		stringVal  *string
+		hashVal    *map[string]string
+		items      []*api_service_protos.TSelect_TWhat_TItem
+		hashFields []string
+		acceptors  []any
+	}
 )
+
+// newRedisRowTransformer создает новый экземпляр redisRowTransformer
+func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*redisRowTransformer, error) {
+	hashFields, err := getHashFields(items)
+	if err != nil {
+		return nil, fmt.Errorf("getHashFields: %w", err)
+	}
+
+	t := &redisRowTransformer{
+		items:      items,
+		hashFields: hashFields,
+		acceptors:  make([]any, len(items)),
+	}
+
+	for i, item := range items {
+		column := item.GetColumn()
+		switch column.Name {
+		case KeyColumnName:
+			t.acceptors[i] = &t.key
+		case StringColumnName:
+			t.acceptors[i] = &t.stringVal
+		case HashColumnName:
+			hashMap := make(map[string]string)
+			t.acceptors[i] = &hashMap
+		}
+	}
+
+	return t, nil
+}
+
+func (t *redisRowTransformer) clean() {
+	t.key = ""
+	t.stringVal = nil
+	t.hashVal = nil
+}
 
 func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TRedisConfig, cc conversion.Collection) datasource.DataSource[any] {
 	return &dataSource{
@@ -62,13 +108,157 @@ func (*dataSource) ListSplits(
 	return nil
 }
 
-func (*dataSource) ReadSplit(
-	_ context.Context,
-	_ *zap.Logger,
-	_ *api_service_protos.TReadSplitsRequest,
-	_ *api_service_protos.TSplit,
-	_ paging.SinkFactory[any],
+// getHashFields извлекает поля хеша из схемы запроса
+func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, error) {
+	var hashFields []string
+
+	for _, item := range items {
+		column := item.GetColumn()
+		if column == nil {
+			return nil, fmt.Errorf("select.what has nil column")
+		}
+
+		if column.Name == HashColumnName {
+			structType := column.Type.GetOptionalType().GetItem().GetStructType()
+			for _, member := range structType.Members {
+				hashFields = append(hashFields, member.Name)
+			}
+
+			break
+		}
+	}
+
+	return hashFields, nil
+}
+
+// readKeys читает ключи из Redis и обрабатывает их значения
+func (*dataSource) readKeys(
+	ctx context.Context,
+	client *redis.Client,
+	pattern string,
+	transformer *redisRowTransformer,
+	sink paging.Sink[any],
+	logger *zap.Logger,
 ) error {
+	var cursor, unsupportedTypesCount uint64
+
+	for {
+		keys, newCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
+		if err != nil {
+			return fmt.Errorf("scan keys: %w", err)
+		}
+
+		for _, key := range keys {
+			typ, err := client.Type(ctx, key).Result()
+			if err != nil {
+				return fmt.Errorf("get type for key %s: %w", key, err)
+			}
+
+			transformer.key = key
+
+			switch typ {
+			case TypeString:
+				value, err := client.Get(ctx, key).Result()
+				if err != nil {
+					return fmt.Errorf("get string value for key %s: %w", key, err)
+				}
+
+				transformer.stringVal = &value
+
+			case TypeHash:
+				if len(transformer.hashFields) > 0 {
+					values, err := client.HMGet(ctx, key, transformer.hashFields...).Result()
+					if err != nil {
+						return fmt.Errorf("get hash value for key %s: %w", key, err)
+					}
+
+					hashMap := make(map[string]string)
+
+					for i, field := range transformer.hashFields {
+						if values[i] != nil {
+							hashMap[field] = values[i].(string)
+						}
+					}
+
+					transformer.hashVal = &hashMap
+				}
+
+			default:
+				unsupportedTypesCount++
+			}
+
+			if err := sink.AddRow(transformer); err != nil {
+				return fmt.Errorf("add row: %w", err)
+			}
+
+			transformer.clean()
+		}
+
+		cursor = newCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	if unsupportedTypesCount > 0 {
+		logger.Warn("number of unsupported types encountered: ", zap.Uint64("value", unsupportedTypesCount))
+	}
+
+	return nil
+}
+
+func (ds *dataSource) ReadSplit(
+	ctx context.Context,
+	logger *zap.Logger,
+	_ *api_service_protos.TReadSplitsRequest,
+	split *api_service_protos.TSplit,
+	sinkFactory paging.SinkFactory[any],
+) error {
+	dsi := split.Select.DataSourceInstance
+
+	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
+		return fmt.Errorf("cannot run Redis connection with protocol '%v'", dsi.Protocol)
+	}
+
+	var client *redis.Client
+
+	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
+		var err error
+		client, err = ds.makeConnection(ctx, logger, dsi)
+
+		return err
+	})
+
+	if err != nil {
+		return fmt.Errorf("make connection: %w", err)
+	}
+
+	defer common.LogCloserError(logger, client, "close connection")
+
+	if split.Select.From.Table == "" {
+		return common.ErrEmptyTableName
+	}
+
+	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
+
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
+	if err != nil {
+		return fmt.Errorf("make sinks: %w", err)
+	}
+
+	sink := sinks[0]
+
+	transformer, err := newRedisRowTransformer(split.Select.What.GetItems())
+	if err != nil {
+		return fmt.Errorf("create transformer: %w", err)
+	}
+
+	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink, logger); err != nil {
+		return fmt.Errorf("readKeys: %w", err)
+	}
+
+	sink.Finish()
+
 	return nil
 }
 
@@ -169,6 +359,9 @@ func (*dataSource) analyzeKeys(
 	keys []string,
 ) (*keysSpec, error) {
 	var res keysSpec
+
+	var unsupportedTypesCount uint64
+
 	res.unionHashFields = make(map[string]struct{})
 
 	for _, key := range keys {
@@ -178,9 +371,9 @@ func (*dataSource) analyzeKeys(
 		}
 
 		switch typ {
-		case redisTypeString:
+		case TypeString:
 			res.stringExists = true
-		case redisTypeHash:
+		case TypeHash:
 			res.hashExists = true
 			fields, err := client.HKeys(ctx, key).Result()
 
@@ -192,8 +385,12 @@ func (*dataSource) analyzeKeys(
 				res.unionHashFields[field] = struct{}{}
 			}
 		default:
-			logger.Warn("skipped unsupported type", zap.String("value", typ))
+			unsupportedTypesCount++
 		}
+	}
+
+	if unsupportedTypesCount > 0 {
+		logger.Warn("number of unsupported types encountered: ", zap.Uint64("value", unsupportedTypesCount))
 	}
 
 	return &res, nil
@@ -293,4 +490,94 @@ func (ds *dataSource) makeConnection(
 	logger.Info("successfully connected to database", zap.String("addr", addr))
 
 	return client, nil
+}
+
+func (t *redisRowTransformer) AppendToArrowBuilders(builders []array.Builder) error {
+	for i, item := range t.items {
+		column := item.GetColumn()
+		if column == nil {
+			return fmt.Errorf("item #%d is not a column", i)
+		}
+
+		builder := builders[i]
+
+		switch column.Name {
+		case KeyColumnName:
+			if err := t.appendKey(builder); err != nil {
+				return fmt.Errorf("append key: %w", err)
+			}
+		case StringColumnName:
+			if err := t.appendStringValue(builder); err != nil {
+				return fmt.Errorf("append string value: %w", err)
+			}
+		case HashColumnName:
+			if err := t.appendHashValue(builder); err != nil {
+				return fmt.Errorf("append hash value: %w", err)
+			}
+		default:
+			return fmt.Errorf("unknown column: %s", column.Name)
+		}
+	}
+
+	return nil
+}
+
+func (t *redisRowTransformer) appendKey(builderIn array.Builder) error {
+	if builder, ok := builderIn.(*array.BinaryBuilder); ok {
+		builder.Append([]byte(t.key))
+		return nil
+	}
+
+	return fmt.Errorf("unexpected builder type for key: %T", builderIn)
+}
+
+func (t *redisRowTransformer) appendStringValue(builderIn array.Builder) error {
+	if builder, ok := builderIn.(*array.BinaryBuilder); ok {
+		if t.stringVal != nil {
+			builder.Append([]byte(*t.stringVal))
+		} else {
+			builder.AppendNull()
+		}
+
+		return nil
+	}
+
+	return fmt.Errorf("unexpected builder type for string value: %T", builderIn)
+}
+
+func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
+	builder, ok := builderIn.(*array.StructBuilder)
+	if !ok {
+		return fmt.Errorf("unexpected builder type for hash value: %T", builderIn)
+	}
+
+	if t.hashVal == nil {
+		builder.AppendNull()
+		return nil
+	}
+
+	for i, fieldName := range t.hashFields {
+		binaryBuilder, ok := builder.FieldBuilder(i).(*array.BinaryBuilder)
+		if !ok {
+			return fmt.Errorf("unexpected builder type for hash field %s: %T", fieldName, builder.FieldBuilder(i))
+		}
+
+		if val, exists := (*t.hashVal)[fieldName]; exists {
+			binaryBuilder.Append([]byte(val))
+		} else {
+			builder.FieldBuilder(i).AppendNull()
+		}
+	}
+
+	builder.Append(true)
+
+	return nil
+}
+
+func (t *redisRowTransformer) GetAcceptors() []any {
+	return t.acceptors
+}
+
+func (*redisRowTransformer) SetAcceptors(_ []any) {
+	panic("not implemented")
 }
