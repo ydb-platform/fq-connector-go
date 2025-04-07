@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x 
+set -x
 
 /ydb -p tests-ydb-client yql -s '
     CREATE TABLE simple (id Int32 NOT NULL, col1 String NOT NULL, col2 Int32 NOT NULL, PRIMARY KEY (id));
@@ -74,7 +74,7 @@ set -x
                col_14_date, col_15_datetime, col_16_timestamp, col_17_json)
     VALUES
         (1, true, 1, -2, 3, -4, 5, 6, 7, 8, 9.9f, -10.10, "ая", "az",
-            Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123Z"), 
+            Date("1988-11-20"), Datetime("1988-11-20T12:55:28Z"), Timestamp("1988-11-20T12:55:28.123Z"),
             CAST(@@{ "friends" : [{"name": "James Holden","age": 35},{"name": "Naomi Nagata","age": 30}]}@@ AS Json)
         ),
         (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -98,7 +98,7 @@ set -x
         id Int32 NOT NULL,
         col_01_int Int32,
         col_02_text UTF8,
-        PRIMARY KEY (id) 
+        PRIMARY KEY (id)
     );
     COMMIT;
     INSERT INTO pushdown (id, col_01_int, col_02_text) VALUES
@@ -114,7 +114,7 @@ set -x
         col_01_int Int32,
         col_02_utf8 UTF8,
         col_03_string STRING,
-        PRIMARY KEY (id) 
+        PRIMARY KEY (id)
     );
     COMMIT;
     INSERT INTO pushdown_strings (id, col_01_int, col_02_utf8, col_03_string) VALUES
@@ -127,8 +127,8 @@ set -x
     -- YQ-4089
     CREATE TABLE pushdown_coalesce (
         id Int32 NOT NULL,
-        col_01_timestamp Timestamp, 
-        PRIMARY KEY (id) 
+        col_01_timestamp Timestamp,
+        PRIMARY KEY (id)
     );
     COMMIT;
     INSERT INTO pushdown_coalesce (id, col_01_timestamp) VALUES
@@ -152,6 +152,17 @@ set -x
       (4, "d"),
       (5, "e");
     COMMIT;
+
+    CREATE TABLE `yq-4224` (
+        hash UTF8 NOT NULL,
+        sbom_s3_path UTF8,
+        PRIMARY KEY (hash, sbom_s3_path)
+    );
+    COMMIT;
+    INSERT INTO `yq-4224` (hash, sbom_s3_path) VALUES
+      ("6758ddf04f23be19dc7adf08356c697f21dc751aabc1c71b55d340ee920781ca", "a"),
+      ("6758ddf04f23be19dc7adf08356c697f21dc751aabc1c71b55d340ee920781cb", NULL);
+    COMMIT;
   '
 
 # YQ-3494
@@ -166,4 +177,5 @@ set -x
       (1, JsonDocument('{\"key1\": \"value1\"}')),
       (2, JsonDocument('{\"key2\": \"value2\"}'));
     COMMIT;
-" 
+"
+
