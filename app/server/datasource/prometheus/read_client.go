@@ -18,6 +18,9 @@ import (
 
 const (
 	prometheusClientName = "fq-connector-remote-read-client"
+
+	httpSchema  = "http"
+	httpsSchema = "https"
 )
 
 type CloseFunc func()
@@ -27,11 +30,9 @@ type ReadClient struct {
 }
 
 func NewReadClient(dsi *api_common.TGenericDataSourceInstance, cfg *config.TPrometheusConfig) (*ReadClient, error) {
-	options := getPrometheusOptions(dsi)
-
 	readClient, err := remote.NewReadClient(prometheusClientName, &remote.ClientConfig{
 		URL: &conf.URL{URL: &url.URL{
-			Scheme: options.GetSchema().String(),
+			Scheme: chooseSchema(dsi.GetUseTls()),
 			Host:   common.EndpointToString(dsi.Endpoint),
 			Path:   "/api/v1/read",
 		}},
@@ -66,13 +67,10 @@ func (rc *ReadClient) Read(ctx context.Context, pbQuery *prompb.Query) (storage.
 	}, nil
 }
 
-func getPrometheusOptions(dsi *api_common.TGenericDataSourceInstance) *api_common.TPrometheusDataSourceOptions {
-	schema := api_common.TPrometheusDataSourceOptions_HTTP
-
-	dsiOptions := dsi.GetPrometheusOptions()
-	if dsiOptions != nil && dsiOptions.GetSchema() == api_common.TPrometheusDataSourceOptions_HTTPS {
-		schema = dsiOptions.GetSchema()
+func chooseSchema(useTLS bool) string {
+	if useTLS {
+		return httpsSchema
 	}
 
-	return &api_common.TPrometheusDataSourceOptions{Schema: schema}
+	return httpSchema
 }
