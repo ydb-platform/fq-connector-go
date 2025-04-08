@@ -418,6 +418,9 @@ func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arr
 }
 
 // matchStructArrays обрабатывает сравнение структурных типов Arrow
+// Важно: для интеграции с YDB все структуры должны быть optional (обернуты в OptionalType),
+// а все поля внутри структур должны быть nullable. Эта функция проверяет оба этих условия,
+// чтобы гарантировать правильную передачу данных между YDB и Arrow.
 func matchStructArrays(
 	t *testing.T,
 	columnName string,
@@ -426,6 +429,13 @@ func matchStructArrays(
 	optional bool,
 ) {
 	require.True(t, optional, "Struct columns must be optional in Arrow")
+
+	// Дополнительная проверка, что все поля структуры также являются nullable
+	dataType := actual.DataType().(*arrow.StructType)
+	for i := 0; i < len(dataType.Fields()); i++ {
+		field := dataType.Field(i)
+		require.True(t, field.Nullable, fmt.Sprintf("struct field %s must be nullable", field.Name))
+	}
 
 	// Для структурных типов мы проверяем каждое поле отдельно
 	expectedStructsBytes, ok := expectedRaw.([]map[string]*[]byte)
