@@ -1,0 +1,13 @@
+CREATE OBJECT mongodb_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE mongodb_external_datasource WITH (
+    SOURCE_TYPE="MongoDB",
+    LOCATION="localhost:27017",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="mongodb_local_password",
+    READING_MODE="TABLE",
+    UNSUPPORTED_TYPE_DISPLAY_MODE="UNSUPPORTED_OMIT",
+    UNEXPECTED_TYPE_DISPLAY_MODE="UNEXPECTED_AS_NULL"
+);

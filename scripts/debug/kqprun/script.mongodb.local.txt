@@ -1,0 +1,1 @@
+SELECT * FROM mongodb_external_datasource.primitives;
