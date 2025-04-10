@@ -124,6 +124,8 @@ func (p PromQLBuilder) applyTimestampExpr(op protos.TPredicate_TComparison_EOper
 	// Because YDB convert timestamp using `time.UnixMicro`
 	promTime := toPromTime(time.UnixMicro(int64(value.GetValue().GetUint64Value())))
 
+	// We use +1 or -1 for operators where the operands are not assumed to be equal.
+	// These values equivalent one nanosecond.
 	switch op {
 	case protos.TPredicate_TComparison_L:
 		p.endTime = promTime - 1

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/prometheus/prometheus/storage"
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
 	"go.uber.org/zap"
 
@@ -13,20 +14,23 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type dataSource struct {
-	cfg *config.TPrometheusConfig
-	cc  conversion.Collection
+	retrierSet *retry.RetrierSet
+	cfg        *config.TPrometheusConfig
+	cc         conversion.Collection
 }
 
 var _ datasource.DataSource[any] = (*dataSource)(nil)
 
-func NewDataSource(cfg *config.TPrometheusConfig, cc conversion.Collection) datasource.DataSource[any] {
+func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TPrometheusConfig, cc conversion.Collection) datasource.DataSource[any] {
 	return &dataSource{
-		cfg: cfg,
-		cc:  cc,
+		retrierSet: retrierSet,
+		cfg:        cfg,
+		cc:         cc,
 	}
 }
 
@@ -55,10 +59,28 @@ func (ds *dataSource) DescribeTable(
 
 	logger.Debug("do remote read Prometheus request")
 
-	timeSeries, seriesClose, err := client.Read(ctx, pbQuery)
+	var timeSeries storage.SeriesSet
+
+	var seriesClose CloseFunc
+
+	err = ds.retrierSet.Query.Run(
+		ctx,
+		logger,
+		func() error {
+			var queryErr error
+
+			timeSeries, seriesClose, queryErr = client.Read(ctx, pbQuery)
+			if err != nil {
+				return fmt.Errorf("client remote read: %w", queryErr)
+			}
+
+			return nil
+		},
+	)
 	if err != nil {
-		return nil, fmt.Errorf("client remote read: %w", err)
+		return nil, fmt.Errorf("retrier set query run: %w", err)
 	}
+
 	defer seriesClose()
 
 	logger.Info("metrics have been read successfully")
@@ -133,10 +155,28 @@ func (ds *dataSource) doReadSplit(
 
 	logger.Debug("do remote read Prometheus request")
 
-	timeSeries, seriesClose, err := client.Read(ctx, pbQuery)
+	var timeSeries storage.SeriesSet
+
+	var seriesClose CloseFunc
+
+	err = ds.retrierSet.Query.Run(
+		ctx,
+		logger,
+		func() error {
+			var queryErr error
+
+			timeSeries, seriesClose, queryErr = client.Read(ctx, pbQuery)
+			if err != nil {
+				return fmt.Errorf("client remote read: %w", queryErr)
+			}
+
+			return nil
+		},
+	)
 	if err != nil {
-		return fmt.Errorf("client remote read: %w", err)
+		return fmt.Errorf("retrier set query run: %w", err)
 	}
+
 	defer seriesClose()
 
 	logger.Info("metrics have been read successfully")
@@ -168,7 +208,7 @@ func (ds *dataSource) doReadSplit(
 			}
 
 			ts, v := iter.At()
-			if err = reader.accept(logger, series.Labels(), ts, v); err != nil {
+			if err = reader.accept(series.Labels(), ts, v); err != nil {
 				return fmt.Errorf("accept time series: %w", err)
 			}
 

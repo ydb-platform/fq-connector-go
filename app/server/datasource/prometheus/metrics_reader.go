@@ -6,7 +6,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/prometheus/prometheus/model/labels"
-	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 )
 
 type appenderFunc = func(acceptor any, builder array.Builder) error
@@ -32,7 +32,7 @@ func makeMetricsReader(
 ) (*metricsReader, error) {
 	transformer, err := makeTransformer(ydbTypes, cc)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("make transformer: %w", err)
 	}
 
 	return &metricsReader{
@@ -51,7 +51,7 @@ func makeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.Row
 	for _, ydbType := range ydbTypes {
 		acceptors, appenders, err = addAcceptorAppenderNonNullable(ydbType, cc, acceptors, appenders)
 		if err != nil {
-			return nil, fmt.Errorf("addAcceptorAppender: %w", err)
+			return nil, fmt.Errorf("add ydb type to acceptors and appenders: %w", err)
 		}
 	}
 
@@ -85,14 +85,14 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 
 func convert[INTO any](acceptor **INTO, value any) {
 	if v, ok := value.(INTO); ok {
-		*acceptor = new(INTO)
+		*acceptor = ptr.T[INTO](v)
 		**acceptor = v
 	} else {
 		*acceptor = nil
 	}
 }
 
-func (r *metricsReader) accept(logger *zap.Logger, l labels.Labels, timestamp int64, val float64) error {
+func (r *metricsReader) accept(l labels.Labels, timestamp int64, val float64) error {
 	acceptors := r.transformer.GetAcceptors()
 
 	for i, f := range r.arrowTypes.Fields() {
@@ -111,6 +111,7 @@ func (r *metricsReader) accept(logger *zap.Logger, l labels.Labels, timestamp in
 		case *string:
 			labelValue := l.Get(f.Name)
 			if labelValue == "" {
+				a = nil
 				continue
 			}
 
@@ -118,19 +119,15 @@ func (r *metricsReader) accept(logger *zap.Logger, l labels.Labels, timestamp in
 		case **string:
 			labelValue := l.Get(f.Name)
 			if labelValue == "" {
+				*a = nil
 				continue
 			}
 
-			*a = new(string)
-			**a = labelValue
+			convert(a, labelValue)
 		default:
-			logger.Warn(fmt.Sprintf("unsupported %T", acceptors[i]))
-
-			return common.ErrDataTypeNotSupported
+			return fmt.Errorf("%w: %T", common.ErrDataTypeNotSupported, acceptors[i])
 		}
 	}
-
-	r.transformer.SetAcceptors(acceptors)
 
 	return nil
 }

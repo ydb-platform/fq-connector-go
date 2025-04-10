@@ -1,6 +1,6 @@
 scrape_configs:
 
-  - job_name: 'fasthttp-ping'
+  - job_name: 'test-job'
     scrape_interval: 1s
     static_configs:
-      - targets: [ 'fasthttp-ping:8081' ]
+      - targets: [ 'test-server:8081' ]
