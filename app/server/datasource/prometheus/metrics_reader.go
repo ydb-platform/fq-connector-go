@@ -49,13 +49,57 @@ func makeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.Row
 	var err error
 
 	for _, ydbType := range ydbTypes {
-		acceptors, appenders, err = addAcceptorAppenderNonNullable(ydbType, cc, acceptors, appenders)
+		acceptors, appenders, err = addAcceptorAppender(ydbType, cc, acceptors, appenders)
 		if err != nil {
 			return nil, fmt.Errorf("add ydb type to acceptors and appenders: %w", err)
 		}
 	}
 
 	return paging.NewRowTransformer(acceptors, appenders, nil), nil
+}
+
+func addAcceptorAppender(ydbType *Ydb.Type, cc conversion.Collection, acceptors []any, appenders []appenderFunc) (
+	[]any,
+	[]appenderFunc,
+	error,
+) {
+	var err error
+
+	if optType := ydbType.GetOptionalType(); optType != nil {
+		acceptors, appenders, err = addAcceptorAppenderNullable(optType.Item, cc, acceptors, appenders)
+		if err != nil {
+			return nil, nil, fmt.Errorf("add nullable: %w", err)
+		}
+	} else {
+		acceptors, appenders, err = addAcceptorAppenderNonNullable(ydbType, cc, acceptors, appenders)
+		if err != nil {
+			return nil, nil, fmt.Errorf("add non nullable: %w", err)
+		}
+	}
+
+	return acceptors, appenders, nil
+}
+
+func addAcceptorAppenderNullable(ydbType *Ydb.Type, cc conversion.Collection, acceptors []any, appenders []appenderFunc) (
+	[]any,
+	[]appenderFunc,
+	error,
+) {
+	switch t := ydbType.Type.(type) {
+	case *Ydb.Type_TypeId:
+		switch t.TypeId {
+		// Because only `string`, that represent prometheus labels, can be nullable
+		case Ydb.Type_STRING:
+			acceptors = append(acceptors, new(*string))
+			appenders = append(appenders, utils.MakeAppenderNullable[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+		default:
+			return nil, nil, fmt.Errorf("unsupported typeid type: %s", t.TypeId.String())
+		}
+	default:
+		return nil, nil, fmt.Errorf("unsupported type: %T", t)
+	}
+
+	return acceptors, appenders, nil
 }
 
 func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection, acceptors []any, appenders []appenderFunc) (
@@ -75,9 +119,11 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 		case Ydb.Type_TIMESTAMP:
 			acceptors = append(acceptors, new(uint64))
 			appenders = append(appenders, utils.MakeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
+		default:
+			return nil, nil, fmt.Errorf("unsupported typeid type: %s", t.TypeId.String())
 		}
 	default:
-		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
+		return nil, nil, fmt.Errorf("unsupported type: %T", t)
 	}
 
 	return acceptors, appenders, nil

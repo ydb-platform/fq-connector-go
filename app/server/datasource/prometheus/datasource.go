@@ -8,6 +8,8 @@ import (
 	"github.com/prometheus/prometheus/tsdb/chunkenc"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -50,18 +52,9 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("new read client: %w", err)
 	}
 
-	pbQuery, err := NewPromQLBuilder(logger).
-		From(request.GetTable()).
-		ToQuery()
-	if err != nil {
-		return nil, fmt.Errorf("promql builder to query: %w", err)
-	}
+	logger.Debug("do read Prometheus schema request")
 
-	logger.Debug("do remote read Prometheus request")
-
-	var timeSeries storage.SeriesSet
-
-	var seriesClose CloseFunc
+	var columns []*Ydb.Column
 
 	err = ds.retrierSet.Query.Run(
 		ctx,
@@ -69,9 +62,9 @@ func (ds *dataSource) DescribeTable(
 		func() error {
 			var queryErr error
 
-			timeSeries, seriesClose, queryErr = client.Read(ctx, pbQuery)
-			if err != nil {
-				return fmt.Errorf("client remote read: %w", queryErr)
+			columns, queryErr = client.Schema(ctx, request.GetTable())
+			if queryErr != nil {
+				return fmt.Errorf("get prometheus schema: %w", queryErr)
 			}
 
 			return nil
@@ -81,16 +74,10 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("retrier set query run: %w", err)
 	}
 
-	defer seriesClose()
-
-	logger.Info("metrics have been read successfully")
-
-	if !timeSeries.Next() {
-		return nil, fmt.Errorf("time series next: %w", ErrEmptyTimeSeries)
-	}
+	logger.Info("schema have been read successfully")
 
 	return &api_service_protos.TDescribeTableResponse{Schema: &api_service_protos.TSchema{
-		Columns: timeSeriesToYdbSchema(timeSeries.At().Labels()),
+		Columns: columns,
 	}}, nil
 }
 
@@ -170,7 +157,7 @@ func (ds *dataSource) doReadSplit(
 			var queryErr error
 
 			timeSeries, seriesClose, queryErr = client.Read(ctx, pbQuery)
-			if err != nil {
+			if queryErr != nil {
 				return fmt.Errorf("client remote read: %w", queryErr)
 			}
 
