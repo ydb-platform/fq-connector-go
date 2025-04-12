@@ -7,8 +7,6 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-
-	"github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 const (
@@ -35,19 +33,6 @@ func timeSeriesToYdbSchema(l labels.Labels) []*Ydb.Column {
 	}}...)
 
 	return ydbColumns
-}
-
-func whereArrayFromSplits(splits []*protos.TSplit) []*protos.TSelect_TWhere {
-	whereArr := make([]*protos.TSelect_TWhere, 0, len(splits))
-
-	for _, split := range splits {
-		sel := split.GetSelect()
-		if sel != nil && sel.GetWhere() != nil {
-			whereArr = append(whereArr, sel.GetWhere())
-		}
-	}
-
-	return whereArr
 }
 
 func toPromTime(t time.Time) int64 {

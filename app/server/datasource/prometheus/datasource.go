@@ -50,7 +50,7 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("new read client: %w", err)
 	}
 
-	pbQuery, err := NewPromQLBuilder().
+	pbQuery, err := NewPromQLBuilder(logger).
 		From(request.GetTable()).
 		ToQuery()
 	if err != nil {
@@ -145,10 +145,14 @@ func (ds *dataSource) doReadSplit(
 	sink paging.Sink[any],
 	client *ReadClient,
 ) error {
-	pbQuery, err := NewPromQLBuilder().
+	promQLExpr, err := NewPromQLBuilder(logger).
 		From(split.Select.From.GetTable()).
-		WithYdbWhere(whereArrayFromSplits(request.GetSplits())).
-		ToQuery()
+		WithYdbWhere(split.Select.GetWhere(), request.GetFiltering())
+	if err != nil {
+		return fmt.Errorf("build promql expression: %w", err)
+	}
+
+	pbQuery, err := promQLExpr.ToQuery()
 	if err != nil {
 		return fmt.Errorf("promql builder to query: %w", err)
 	}

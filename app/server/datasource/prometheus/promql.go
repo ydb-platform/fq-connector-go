@@ -7,28 +7,43 @@ import (
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/prompb"
 	"github.com/prometheus/prometheus/storage/remote"
+	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 const (
 	prometheusNameLabel = "__name__"
 )
 
+var acceptableErrors = common.NewErrorMatcher(
+	common.ErrUnsupportedExpression,
+	common.ErrUnimplementedPredicateType,
+	common.ErrUnimplementedTypedValue,
+	common.ErrUnimplementedOperation,
+)
+
 type PromQLBuilder struct {
+	logger        *zap.Logger
 	labelMatchers []*labels.Matcher
 	startTime     int64
 	endTime       int64
+
+	predicateErrors []error
 }
 
-func NewPromQLBuilder() PromQLBuilder {
+func NewPromQLBuilder(logger *zap.Logger) PromQLBuilder {
 	return PromQLBuilder{
+		logger: logger,
 		// Because we will at least add the `from` expression.
 		labelMatchers: make([]*labels.Matcher, 0, 1),
 		// By default, we collect all metrics before `startTime`
 		endTime: toPromTime(time.Now().Add(time.Hour)),
+
+		predicateErrors: make([]error, 0),
 	}
 }
 
@@ -52,21 +67,13 @@ func (p PromQLBuilder) WithEndTime(end time.Time) PromQLBuilder {
 	return p
 }
 
-func (p PromQLBuilder) WithYdbWhere(whereArr []*protos.TSelect_TWhere) PromQLBuilder {
-	for _, where := range whereArr {
-		if where == nil || where.GetFilterTyped() == nil {
-			continue
-		}
-
-		// Now we support only comparison predicate
-		switch predicate := where.GetFilterTyped(); {
-		case predicate.GetComparison() != nil:
-			p = p.applyComparisonPredicate(predicate.GetComparison())
-		default:
-		}
+func (p PromQLBuilder) WithYdbWhere(where *protos.TSelect_TWhere, filtering protos.TReadSplitsRequest_EFiltering) (PromQLBuilder, error) {
+	// If Where clause is not provided, return current query
+	if where == nil || where.GetFilterTyped() == nil {
+		return p, nil
 	}
 
-	return p
+	return applyPredicate(p, where.GetFilterTyped()).matchPredicateErrors(filtering)
 }
 
 func (p PromQLBuilder) ToQuery() (*prompb.Query, error) {
@@ -83,17 +90,32 @@ func (p PromQLBuilder) ToQuery() (*prompb.Query, error) {
 	return pbQuery, nil
 }
 
+func applyPredicate(p PromQLBuilder, predicate *protos.TPredicate) PromQLBuilder {
+	// Now we support only conjunction and comparison predicates
+	switch pred := predicate.Payload.(type) {
+	case *protos.TPredicate_Conjunction:
+		for _, curPred := range pred.Conjunction.GetOperands() {
+			p = applyPredicate(p, curPred)
+		}
+	case *protos.TPredicate_Comparison:
+		return p.applyComparisonPredicate(predicate.GetComparison())
+	default:
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, pred))
+	}
+
+	return p
+}
+
 func (p PromQLBuilder) applyComparisonPredicate(c *protos.TPredicate_TComparison) PromQLBuilder {
-	if c == nil ||
-		c.GetOperation() == protos.TPredicate_TComparison_COMPARISON_OPERATION_UNSPECIFIED ||
-		c.GetLeftValue() == nil ||
-		c.GetRightValue() == nil {
+	lv, rv, op := c.GetLeftValue(), c.GetRightValue(), c.GetOperation()
+	if op == protos.TPredicate_TComparison_COMPARISON_OPERATION_UNSPECIFIED || lv == nil || rv == nil {
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("get comparison predicate: %w", common.ErrInvalidRequest))
 		return p
 	}
 
 	// Now we support only WHERE <column> <operation> <value>
 	// For example: `WHERE timestamp >= Timestamp("2025-03-17T16:00:00Z")`
-	switch lv, rv, op := c.GetLeftValue(), c.GetRightValue(), c.GetOperation(); {
+	switch {
 	case lv.GetColumn() != "" && rv.GetTypedValue() != nil:
 		switch lv.GetColumn() {
 		// If column is `timestamp` we must change `startTime` and `endTime` params
@@ -108,16 +130,24 @@ func (p PromQLBuilder) applyComparisonPredicate(c *protos.TPredicate_TComparison
 			return p.applyStringExpr(op, lv.GetColumn(), rv.GetTypedValue())
 		}
 	default:
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("apply comparison predicate: %w", common.ErrUnsupportedExpression))
 		return p
 	}
 }
 
 func (p PromQLBuilder) applyTimestampExpr(op protos.TPredicate_TComparison_EOperation, value *Ydb.TypedValue) PromQLBuilder {
 	// Now we support only `Ydb.Type_TIMESTAMP` type
-	if value == nil ||
-		value.Type.GetTypeId() != Ydb.Type_TIMESTAMP ||
-		value.GetValue() == nil ||
+	if value.Type.GetTypeId() != Ydb.Type_TIMESTAMP {
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf(
+			"get type for timestamp expression: %w, type %s",
+			common.ErrDataTypeNotSupported, value.Type.GetTypeId().String()))
+
+		return p
+	}
+
+	if value.GetValue() == nil ||
 		value.GetValue().GetUint64Value() == 0 {
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("get timestamp value: %w", common.ErrInvalidRequest))
 		return p
 	}
 
@@ -139,15 +169,25 @@ func (p PromQLBuilder) applyTimestampExpr(op protos.TPredicate_TComparison_EOper
 		p.startTime = promTime
 		p.endTime = promTime
 	default:
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf(
+			"apply timestamp expression: %w, type: %s",
+			common.ErrUnimplementedOperation, op.String()))
 	}
 
 	return p
 }
 
 func (p PromQLBuilder) applyStringExpr(op protos.TPredicate_TComparison_EOperation, column string, value *Ydb.TypedValue) PromQLBuilder {
-	if value == nil ||
-		value.Type.GetTypeId() != Ydb.Type_STRING ||
-		value.GetValue() == nil {
+	if value.Type.GetTypeId() != Ydb.Type_STRING {
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf(
+			"get type for string expression: %w, type %s",
+			common.ErrDataTypeNotSupported, value.Type.GetTypeId().String()))
+
+		return p
+	}
+
+	if value.GetValue() == nil {
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("get string value: %w", common.ErrInvalidRequest))
 		return p
 	}
 
@@ -159,6 +199,10 @@ func (p PromQLBuilder) applyStringExpr(op protos.TPredicate_TComparison_EOperati
 	case protos.TPredicate_TComparison_NE:
 		matchType = labels.MatchNotEqual
 	default:
+		p.predicateErrors = append(p.predicateErrors, fmt.Errorf(
+			"apply string expression: %w, type: %s",
+			common.ErrUnimplementedOperation, op.String()))
+
 		return p
 	}
 
@@ -169,4 +213,36 @@ func (p PromQLBuilder) applyStringExpr(op protos.TPredicate_TComparison_EOperati
 	})
 
 	return p
+}
+
+func (p PromQLBuilder) matchPredicateErrors(filtering protos.TReadSplitsRequest_EFiltering) (PromQLBuilder, error) {
+	switch filtering {
+	case protos.TReadSplitsRequest_FILTERING_UNSPECIFIED,
+		protos.TReadSplitsRequest_FILTERING_OPTIONAL:
+		var lastFatalErr error
+
+		for _, err := range p.predicateErrors {
+			if acceptableErrors.Match(err) {
+				p.logger.Info("considering pushdown error as acceptable", zap.Error(err))
+				continue
+			}
+
+			lastFatalErr = err
+		}
+
+		if lastFatalErr != nil {
+			return PromQLBuilder{}, lastFatalErr
+		}
+
+		return p, nil
+	case protos.TReadSplitsRequest_FILTERING_MANDATORY:
+		var lastErr error
+		if len(p.predicateErrors) > 0 {
+			lastErr = p.predicateErrors[len(p.predicateErrors)-1]
+		}
+
+		return p, lastErr
+	default:
+		return PromQLBuilder{}, fmt.Errorf("unknown filtering mode: %d", filtering)
+	}
 }
