@@ -118,3 +118,16 @@ services:
     container_name: ${USER}-fq-connector-go-tests-redis
     ports:
       - "6379:6379"
+
+  opensearch:
+    image: opensearchproject/opensearch
+    container_name: ${USER}-fq-connector-go-tests-opensearch
+    ports:
+      - '9200:9200'
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+    volumes:
+      - ./opensearch/init/opensearch-init.sh:/docker-entrypoint-initdb.d/opensearch-init.sh:ro
