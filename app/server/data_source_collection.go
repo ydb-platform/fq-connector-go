@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/opensearch"
 
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"go.uber.org/zap"
@@ -77,7 +78,22 @@ func (dsc *DataSourceCollection) DescribeTable(
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EGenericDataSourceKind_OPENSEARCH:
+		openSearchCfg := &config.TExponentialBackoffConfig{
+			InitialInterval:     "1ms",
+			MaxInterval:         "5ms",
+			RandomizationFactor: 0,
+			Multiplier:          2,
+			MaxElapsedTime:      "10ms",
+		} // TODO fix with config
+		ds := opensearch.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerNoop),
+			},
+		)
 
+		return ds.DescribeTable(ctx, logger, request)
 	default:
 		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -131,6 +147,26 @@ func (dsc *DataSourceCollection) ListSplits(
 				},
 				redisCfg,
 				dsc.converterCollection,
+			)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+		case api_common.EGenericDataSourceKind_OPENSEARCH:
+			openSearchCfg := &config.TExponentialBackoffConfig{
+				InitialInterval:     "1ms",
+				MaxInterval:         "5ms",
+				RandomizationFactor: 0,
+				Multiplier:          2,
+				MaxElapsedTime:      "10ms",
+			} // TODO fix with config
+			ds := opensearch.NewDataSource(
+				&retry.RetrierSet{
+					MakeConnection: retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerMakeConnectionCommon),
+					Query:          retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerNoop),
+				},
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -192,7 +228,22 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+	case api_common.EGenericDataSourceKind_OPENSEARCH:
+		openSearchCfg := &config.TExponentialBackoffConfig{
+			InitialInterval:     "1ms",
+			MaxInterval:         "5ms",
+			RandomizationFactor: 0,
+			Multiplier:          2,
+			MaxElapsedTime:      "10ms",
+		} // TODO fix with config
+		ds := opensearch.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerNoop),
+			},
+		)
 
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
