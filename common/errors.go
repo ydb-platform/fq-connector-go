@@ -20,7 +20,7 @@ import (
 	grpc_codes "google.golang.org/grpc/codes"
 
 	ydb_proto "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	ydb "github.com/ydb-platform/ydb-go-sdk/v3"
+	"github.com/ydb-platform/ydb-go-sdk/v3"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -322,6 +322,33 @@ func newAPIErrorFromRedisError(err error) *api_service_protos.TError {
 	}
 }
 
+func newAPIErrorFromOpenSearchError(err error) *api_service_protos.TError {
+	if err == nil {
+		return nil
+	}
+
+	var status ydb_proto.StatusIds_StatusCode
+
+	if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "no such host") {
+		status = ydb_proto.StatusIds_UNAVAILABLE
+	} else if strings.Contains(err.Error(), "401 Unauthorized") {
+		status = ydb_proto.StatusIds_UNAUTHORIZED
+	} else if strings.Contains(err.Error(), "index_not_found_exception") {
+		status = ydb_proto.StatusIds_NOT_FOUND
+	} else if strings.Contains(err.Error(), "parsing_exception") || strings.Contains(err.Error(), "illegal_argument_exception") {
+		status = ydb_proto.StatusIds_BAD_REQUEST
+	} else if strings.Contains(err.Error(), "cluster_block_exception") {
+		status = ydb_proto.StatusIds_UNAVAILABLE
+	} else {
+		status = ydb_proto.StatusIds_INTERNAL_ERROR
+	}
+
+	return &api_service_protos.TError{
+		Status:  status,
+		Message: err.Error(),
+	}
+}
+
 //nolint:gocyclo
 func newAPIErrorFromConnectorError(err error) *api_service_protos.TError {
 	var status ydb_proto.StatusIds_StatusCode
@@ -396,6 +423,8 @@ func NewAPIErrorFromStdError(err error, kind api_common.EGenericDataSourceKind) 
 		apiError = newAPIErrorFromMongoDbError(err)
 	case api_common.EGenericDataSourceKind_REDIS:
 		apiError = newAPIErrorFromRedisError(err)
+	case api_common.EGenericDataSourceKind_OPENSEARCH:
+		apiError = newAPIErrorFromOpenSearchError(err)
 	default:
 		panic(fmt.Sprintf("Unexpected data source kind: %v", api_common.EGenericDataSourceKind_name[int32(kind)]))
 	}

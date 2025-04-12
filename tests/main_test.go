@@ -3,6 +3,7 @@ package tests
 import (
 	"flag"
 	"fmt"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/opensearch"
 	"log"
 	"testing"
 
@@ -112,4 +113,9 @@ func TestMongoDB(t *testing.T) {
 func TestRedis(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
 	testify_suite.Run(t, redis.NewSuite(suite.NewBase[[]byte, *array.BinaryBuilder](t, state, "Redis")))
+}
+
+func TestOpenSearch(t *testing.T) {
+	state.SkipSuiteIfNotEnabled(t)
+	testify_suite.Run(t, opensearch.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "OpenSearch")))
 }
