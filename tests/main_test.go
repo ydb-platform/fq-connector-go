@@ -3,6 +3,7 @@ package tests
 import (
 	"flag"
 	"fmt"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/opensearch"
 	"log"
 	"testing"
 
