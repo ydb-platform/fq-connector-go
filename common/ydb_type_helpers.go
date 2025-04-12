@@ -25,6 +25,9 @@ func MakeTaggedType(tag string, ydbType *Ydb.Type) *Ydb.Type {
 func MakeListType(ydbType *Ydb.Type) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_ListType{ListType: &Ydb.ListType{Item: ydbType}}}
 }
+func MakeStructType(ydbTypeMembers []*Ydb.StructMember) *Ydb.Type {
+	return &Ydb.Type{Type: &Ydb.Type_StructType{StructType: &Ydb.StructType{Members: ydbTypeMembers}}}
+}
 
 func MakeStructType(ydbTypeMembers []*Ydb.StructMember) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_StructType{StructType: &Ydb.StructType{Members: ydbTypeMembers}}}
