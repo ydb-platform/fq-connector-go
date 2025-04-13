@@ -148,50 +148,89 @@ func (*dataSource) readKeys(
 			return fmt.Errorf("scan keys: %w", err)
 		}
 
-		for _, key := range keys {
-			typ, err := client.Type(ctx, key).Result()
+		// ——— TYPE в пайплайне ————————————————————————
+		pipe := client.Pipeline()
+		typeCmds := make([]*redis.StatusCmd, len(keys))
+		for i, key := range keys {
+			typeCmds[i] = pipe.Type(ctx, key)
+		}
+		if _, err := pipe.Exec(ctx); err != nil {
+			return fmt.Errorf("TYPE pipeline exec failed: %w", err)
+		}
+
+		var strKeys, hashKeys []string
+		for i, cmd := range typeCmds {
+			t, err := cmd.Result()
 			if err != nil {
-				return fmt.Errorf("get type for key %s: %w", key, err)
+				return fmt.Errorf("get type for key comand: %w", err)
 			}
-
-			transformer.key = key
-
-			switch typ {
+			switch t {
 			case TypeString:
-				value, err := client.Get(ctx, key).Result()
-				if err != nil {
-					return fmt.Errorf("get string value for key %s: %w", key, err)
-				}
-
-				transformer.stringVal = &value
-
+				strKeys = append(strKeys, keys[i])
 			case TypeHash:
-				if len(transformer.hashFields) > 0 {
-					values, err := client.HMGet(ctx, key, transformer.hashFields...).Result()
-					if err != nil {
-						return fmt.Errorf("get hash value for key %s: %w", key, err)
-					}
-
-					hashMap := make(map[string]string)
-
-					for i, field := range transformer.hashFields {
-						if values[i] != nil {
-							hashMap[field] = values[i].(string)
-						}
-					}
-
-					transformer.hashVal = &hashMap
-				}
-
+				hashKeys = append(hashKeys, keys[i])
 			default:
 				unsupportedTypesCount++
 			}
+		}
 
-			if err := sink.AddRow(transformer); err != nil {
-				return fmt.Errorf("add row: %w", err)
+		// ——— GET для строк через пайплайн ——————————————
+		if len(strKeys) > 0 {
+			pipe = client.Pipeline()
+			getCmds := make([]*redis.StringCmd, len(strKeys))
+			for i, key := range strKeys {
+				getCmds[i] = pipe.Get(ctx, key)
 			}
+			if _, err := pipe.Exec(ctx); err != nil {
+				return fmt.Errorf("GET pipeline exec failed: %w", err)
+			}
+			for i, cmd := range getCmds {
+				val, err := cmd.Result()
+				if err != nil {
+					return fmt.Errorf("get result for comand: %w", err)
+				}
+				transformer.key = strKeys[i]
+				transformer.stringVal = &val
+				transformer.hashVal = nil
 
-			transformer.clean()
+				if err := sink.AddRow(transformer); err != nil {
+					return fmt.Errorf("add row: %w", err)
+				}
+				transformer.clean()
+			}
+		}
+
+		// ——— HMGET для хешей через пайплайн ————————————
+		if len(hashKeys) > 0 && len(transformer.hashFields) > 0 {
+			pipe = client.Pipeline()
+			hmgetCmds := make([]*redis.SliceCmd, len(hashKeys))
+			for i, key := range hashKeys {
+				hmgetCmds[i] = pipe.HMGet(ctx, key, transformer.hashFields...)
+			}
+			if _, err := pipe.Exec(ctx); err != nil {
+				return fmt.Errorf("HMGET pipeline exec failed: %w", err)
+			}
+			for i, cmd := range hmgetCmds {
+				vals, err := cmd.Result()
+				if err != nil {
+					return fmt.Errorf("get result for comand: %w", err)
+				}
+				transformer.key = hashKeys[i]
+				m := make(map[string]string, len(transformer.hashFields))
+				for j, field := range transformer.hashFields {
+					if vals[j] != nil {
+						m[field] = vals[j].(string)
+					}
+				}
+				transformer.hashVal = &m
+				transformer.stringVal = nil
+
+				if err := sink.AddRow(transformer); err != nil {
+					return fmt.Errorf("add row: %w", err)
+				}
+
+				transformer.clean()
+			}
 		}
 
 		cursor = newCursor
@@ -464,10 +503,12 @@ func (ds *dataSource) makeConnection(
 	// Assume that dsi contains necessary fields: Endpoint, Credentials.
 	addr := fmt.Sprintf("%s:%d", dsi.Endpoint.Host, dsi.Endpoint.Port)
 	options := &redis.Options{
-		Addr:     addr,
-		Password: dsi.Credentials.GetBasic().Password,
-		Username: dsi.Credentials.GetBasic().Username, // use if required
-		DB:       0,                                   // can be extended if dsi.Database specifies a DB number
+		Addr:         addr,
+		Password:     dsi.Credentials.GetBasic().Password,
+		Username:     dsi.Credentials.GetBasic().Username, // use if required
+		DB:           0,                                   // can be extended if dsi.Database specifies a DB number
+		PoolSize:     50,
+		MinIdleConns: 10,
 	}
 
 	client := redis.NewClient(options)

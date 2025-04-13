@@ -33,3 +33,9 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - ./postgresql/data/:/var/lib/postgresql/data/
+
+  redis:
+    image: valkey/valkey:8.0.1
+    container_name: fq-connector-go-bench-redis
+    ports:
+      - "6379:6379"
