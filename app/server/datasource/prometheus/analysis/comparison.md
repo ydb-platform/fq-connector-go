@@ -135,26 +135,9 @@ trino:default> select * from up limit 10;
 
 Результатом `SELECT *` запроса всегда будет таблица следующего вида:
 
-| Тип метрики | Название метрики (`__name__`) | ...      | Лэйблы (`label`) | ...      | Время (`timestamp`) | Значение (`value`)                                                                                  |
-|-------------|-------------------------------|----------|------------------|----------|---------------------|-----------------------------------------------------------------------------------------------------|
-| `String`    | `String`                      | `String` | `String`         | `String` | `Timestamp`         | `Double` \| `List<Double>` \| `Dict<Double, Uint64 \| Double \| List<Uint64> \| List<Double>>` |
-
-**Колонка "Значение (`value`)" может содержать разные типы данных, зависимость описана в разделе ниже**
-
-### Колонка `value` результирующей таблицы YDB
-
-В таблице ниже описана зависимость типы данных в результирующей таблице YDB от типа метрики и типа данных Prometheus (от простейшего запроса с простейшими метриками)
-
-| Тип метрики Prometheus | Тип данных Prometheus | Пример запроса Prometheus              | YDB                           | Комментарий                                                                                                         |
-|------------------------|-----------------------|----------------------------------------|-------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `counter`              | `Instant vector`      | `echo_requests_total`                  | `Double`                     | `echo_requests_total` - `counter` метрика                                                                           |
-| `counter`              | `Range vector`        | `echo_requests_total[10s]`             | `List<Double>`               | `List<10 значений метрики из предыдущих 10 секунд>`                                                                 |
-| `gauge`                | `Instant vector`      | `go_memstats_sys_bytes`                | `Double`                     | `go_memstats_sys_bytes` - `gauge` метрика                                                                           |
-| `gauge`                | `Range vector`        | `go_memstats_sys_bytes[10s]`           | `List<Double>`               | `List<10 значений метрики из предыдущих 10 секунд>`                                                                 |
-| `histogram`            | `Instant vector`      | `echo_response_size_bytes_bucket`      | `Dict<Double, Uint64>`       | `echo_response_size_bytes_bucket` - `histogram` метрика; <br/><br/> `Dict<значение le (<=), кол-во значений <= le>` |
-| `histogram`            | `Range vector`        | `echo_response_size_bytes_bucket[10s]` | `Dict<Double, List<Uint64>>` | `Dict<значение le (<=), List<10 значений кол-ва предыдущих 10 секунд>>`                                             |
-| `summary`              | `Instant vector`      | `go_gc_duration_seconds`               | `Dict<Float, Double>`        | `go_gc_duration_seconds` - `summary` метрика; <br/><br/> `Dict<уровень quantile (от 0 до 1), значение quantile>`    |
-| `summary`              | `Range vector`        | `go_gc_duration_seconds[10s]`          | `Dict<Float, List<Double>>`  | `Dict<уровень quantile (от 0 до 1), List<значения 10 квантилей предыдущих 10 секунд>>`                              |
+| Название метрики (`__name__`) | ...      | Лэйблы (`label`) | ...      | Время (`timestamp`) | Значение (`value`) |
+|-------------------------------|----------|------------------|----------|---------------------|--------------------|
+| `String`                      | `String` | `String`         | `String` | `Timestamp`         | `Double`           |
 
 ### API Prometheus
 

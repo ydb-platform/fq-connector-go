@@ -11,15 +11,6 @@ services:
       - '--storage.tsdb.retention.time=12h'
       - '--storage.tsdb.wal-compression'
 
-  fasthttp-ping:
-    image: go_env:latest
-    container_name: fasthttp-ping
-    ports:
-      - "8082:8081"
-    depends_on:
-      - prometheus
-    entrypoint: ["/bin/sh", "-c", "go run servers/fasthttp/core.go"]
-
   trino:
     image: trinodb/trino:latest
     container_name: trino
