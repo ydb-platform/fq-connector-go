@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -117,8 +118,8 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 			acceptors = append(acceptors, new(string))
 			appenders = append(appenders, utils.MakeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
 		case Ydb.Type_TIMESTAMP:
-			acceptors = append(acceptors, new(uint64))
-			appenders = append(appenders, utils.MakeAppender[uint64, uint64, *array.Uint64Builder](cc.Uint64()))
+			acceptors = append(acceptors, new(time.Time))
+			appenders = append(appenders, utils.MakeAppender[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 		default:
 			return nil, nil, fmt.Errorf("unsupported typeid type: %s", t.TypeId.String())
 		}
@@ -144,10 +145,10 @@ func (r *metricsReader) accept(l labels.Labels, timestamp int64, val float64) er
 	for i, f := range r.arrowTypes.Fields() {
 		switch a := acceptors[i].(type) {
 		// Cause only timestamp column can be with uint64 type
-		case *uint64:
-			*a = uint64(timestamp)
-		case **uint64:
-			convert(a, uint64(timestamp))
+		case *time.Time:
+			*a = time.UnixMilli(timestamp)
+		case **time.Time:
+			convert(a, time.UnixMilli(timestamp))
 		// Cause only value column can be with float64 type
 		case *float64:
 			*a = val
