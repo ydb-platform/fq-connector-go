@@ -1,0 +1,12 @@
+    CREATE OBJECT secret_password (TYPE SECRET) WITH (value = "password");
+    
+    CREATE EXTERNAL DATA SOURCE external_data_source WITH (
+        SOURCE_TYPE="Redis",
+        LOCATION="localhost:6379",
+        DATABASE_NAME="0",
+        AUTH_METHOD="BASIC",
+        LOGIN="default",
+        PASSWORD_SECRET_NAME="secret_password",
+        --PROTOCOL="NATIVE",
+        USE_TLS="FALSE"
+    );
