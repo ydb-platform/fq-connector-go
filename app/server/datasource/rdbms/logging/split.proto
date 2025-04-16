@@ -7,12 +7,13 @@ import "yql/essentials/providers/common/proto/gateways_config.proto";
 option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging/";
 
 message TSplitDescription {
-    // TYdb is used to describe the shard of the YDB database that is used
-    // as an underlying storage for Cloud Logging.
+    // TYdb is used to describe the column shards of the OLAP YDB database 
+    // that is used as an underlying storage for Cloud Logging.
     message TYdb {
         NYql.TGenericEndpoint endpoint = 1;
         string database_name = 2;
         string table_name = 3;
+        repeated uint64 tablet_ids = 4;
     }
 
     oneof payload {

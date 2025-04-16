@@ -3,14 +3,18 @@ package logging
 import (
 	"fmt"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
 
 type splitProviderImpl struct {
-	resolver Resolver
+	resolver         Resolver
+	ydbSplitProvider *ydb.SplitProvider
 }
 
 func (s *splitProviderImpl) ListSplits(
@@ -31,7 +35,70 @@ func (s *splitProviderImpl) ListSplits(
 		return fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
+	var errGroup errgroup.Group
+
+	// Load tablet ids from YDB databases living in different data centers concurrently.
 	for _, src := range response.sources {
+		src := src
+
+		errGroup.Go(func() error {
+			return s.handleYDBSource(params, src)
+		})
+	}
+
+	if err := errGroup.Wait(); err != nil {
+		return fmt.Errorf("handle YDB source: %w", err)
+	}
+
+	return nil
+}
+
+func (s *splitProviderImpl) handleYDBSource(
+	params *rdbms_utils.ListSplitsParams,
+	src *ydbSource,
+) error {
+	// Connect YDB to get some table metadata
+	var cs []rdbms_utils.Connection
+
+	err := params.MakeConnectionRetrier.Run(params.Ctx, params.Logger,
+		func() error {
+			var makeConnErr error
+
+			makeConnectionParams := &rdbms_utils.ConnectionParams{
+				Ctx:                params.Ctx,
+				Logger:             params.Logger,
+				DataSourceInstance: params.Select.GetDataSourceInstance(),
+				TableName:          params.Select.GetFrom().GetTable(),
+				MaxConnections:     1, // single connection is enough to get metadata
+			}
+
+			cs, makeConnErr = params.ConnectionManager.Make(makeConnectionParams)
+			if makeConnErr != nil {
+				return fmt.Errorf("make connection: %w", makeConnErr)
+			}
+
+			return nil
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("retry: %w", err)
+	}
+
+	defer params.ConnectionManager.Release(params.Ctx, params.Logger, cs)
+
+	tabletIDs, err := s.ydbSplitProvider.GetColumnShardTabletIDs(
+		params.Ctx,
+		params.Logger,
+		cs[0],
+	)
+
+	if err != nil {
+		return fmt.Errorf("get column shard tablet ids: %w", err)
+	}
+
+	// 1 tablet id <-> 1 column shard <-> 1 split
+	for _, tabletId := range tabletIDs {
 		split := &datasource.ListSplitResult{
 			Slct: params.Select,
 			Description: &TSplitDescription{
@@ -40,6 +107,7 @@ func (s *splitProviderImpl) ListSplits(
 						Endpoint:     src.endpoint,
 						DatabaseName: src.databaseName,
 						TableName:    src.tableName,
+						TabletIds:    []uint64{tabletId},
 					},
 				},
 			},
