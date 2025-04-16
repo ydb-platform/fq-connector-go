@@ -20,18 +20,18 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 )
 
-var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
+var _ rdbms_utils.SplitProvider = (*SplitProvider)(nil)
 
-type splitProviderImpl struct {
+type SplitProvider struct {
 	cfg *config.TYdbConfig_TSplitting
 }
 
-func (s *splitProviderImpl) ListSplits(
+func (s *SplitProvider) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
 
-	// Otherwise connect YDB to get some table metadata
+	// Connect YDB to get some table metadata
 	var cs []rdbms_utils.Connection
 
 	err := params.MakeConnectionRetrier.Run(ctx, logger,
@@ -105,7 +105,7 @@ func (s *splitProviderImpl) ListSplits(
 	return nil
 }
 
-func (splitProviderImpl) getTableStoreType(
+func (SplitProvider) getTableStoreType(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -143,20 +143,49 @@ func (splitProviderImpl) getTableStoreType(
 	return desc.StoreType, nil
 }
 
-func (splitProviderImpl) listSplitsColumnShard(
+func (s SplitProvider) listSplitsColumnShard(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,
 ) error {
+	tabletIDs, err := s.GetColumnShardTabletIDs(ctx, logger, conn)
+	if err != nil {
+		return fmt.Errorf("enumerate shards: %w", err)
+	}
+
+	for _, tabletId := range tabletIDs {
+		description := &TSplitDescription{
+			Payload: &TSplitDescription_ColumnShard{
+				ColumnShard: &TSplitDescription_TColumnShard{
+					TabletIds: []uint64{tabletId},
+				},
+			},
+		}
+
+		select {
+		case resultChan <- makeSplit(slct, description):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	return nil
+}
+
+func (SplitProvider) GetColumnShardTabletIDs(
+	ctx context.Context,
+	logger *zap.Logger,
+	conn rdbms_utils.Connection,
+) ([]uint64, error) {
 	driver := conn.(Connection).Driver()
 	databaseName, tableName := conn.From()
 	prefix := path.Join(databaseName, tableName)
 
-	logger.Debug("discovering column table shard ids", zap.String("prefix", prefix))
+	logger.Debug("discovering column table tablet ids", zap.String("prefix", prefix))
 
-	var totalShards int
+	var tabletIds []uint64
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -188,32 +217,18 @@ func (splitProviderImpl) listSplitsColumnShard(
 						break
 					}
 
-					return fmt.Errorf("next result set: %w", err)
+					return fmt.Errorf("next row: %w", err)
 				}
 
 				if err := r.Scan(&tabletId); err != nil {
 					return fmt.Errorf("row scan: %w", err)
 				}
 
-				description := &TSplitDescription{
-					Payload: &TSplitDescription_ColumnShard{
-						ColumnShard: &TSplitDescription_TColumnShard{
-							TabletIds: []uint64{tabletId},
-						},
-					},
-				}
-
-				select {
-				case resultChan <- makeSplit(slct, description):
-				case <-ctx.Done():
-					return ctx.Err()
-				}
-
-				totalShards++
+				tabletIds = append(tabletIds, tabletId)
 			}
 		}
 
-		logger.Info("discovered column table shards", zap.Int("total", totalShards))
+		logger.Info("discovered column table tablet ids", zap.Int("total", len(tabletIds)))
 
 		return nil
 	},
@@ -221,14 +236,14 @@ func (splitProviderImpl) listSplitsColumnShard(
 	)
 
 	if err != nil {
-		return fmt.Errorf("querying table shard ids: %w", err)
+		return nil, fmt.Errorf("querying column table tablet ids: %w", err)
 	}
 
-	return nil
+	return tabletIds, nil
 }
 
 // TODO: check request.MaxSplitCount (SLJ always wants a single split)
-func (splitProviderImpl) listSingleSplit(
+func (SplitProvider) listSingleSplit(
 	ctx context.Context,
 	_ *zap.Logger,
 	_ rdbms_utils.Connection,
@@ -262,7 +277,7 @@ func makeSplit(
 }
 
 func NewSplitProvider(cfg *config.TYdbConfig_TSplitting) rdbms_utils.SplitProvider {
-	return &splitProviderImpl{
+	return &SplitProvider{
 		cfg: cfg,
 	}
 }
