@@ -16,7 +16,6 @@ import (
 var errEmptyArray = errors.New("can't determine field type for items in an empty array")
 var errNull = errors.New("can't determine field type for null")
 
-const idColumn string = "_id"
 const objectIdTag string = "ObjectId"
 
 type readingMode = api_common.TMongoDbDataSourceOptions_EReadingMode
@@ -154,11 +153,7 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported bool) ([]*Yd
 	columns := make([]*Ydb.Column, 0, len(deducedTypes))
 
 	for columnName, deducedType := range deducedTypes {
-		if columnName == idColumn {
-			columns = append(columns, &Ydb.Column{Name: columnName, Type: deducedType})
-		} else {
-			columns = append(columns, &Ydb.Column{Name: columnName, Type: common.MakeOptionalType(deducedType)})
-		}
+		columns = append(columns, &Ydb.Column{Name: columnName, Type: common.MakeOptionalType(deducedType)})
 	}
 
 	return columns, nil
