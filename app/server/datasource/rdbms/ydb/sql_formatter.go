@@ -13,15 +13,15 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 )
 
-var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
+var _ rdbms_utils.SQLFormatter = (*SQLFormatter)(nil)
 
-type sqlFormatter struct {
+type SQLFormatter struct {
 	mode config.TYdbConfig_Mode
 	cfg  *config.TPushdownConfig
 }
 
 //nolint:gocyclo
-func (f sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
+func (f SQLFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
 		return true
@@ -58,7 +58,7 @@ func (f sqlFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) b
 	}
 }
 
-func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
+func (f SQLFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	switch v := t.Type.(type) {
 	case *Ydb.Type_TypeId:
 		return f.supportsTypeForPushdown(v.TypeId)
@@ -71,7 +71,7 @@ func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	}
 }
 
-func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
+func (f SQLFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		return true
@@ -86,7 +86,7 @@ func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.
 	}
 }
 
-func (f sqlFormatter) GetPlaceholder(id int) string {
+func (f SQLFormatter) GetPlaceholder(id int) string {
 	switch f.mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
 		return fmt.Sprintf("$p%d", id)
@@ -98,11 +98,11 @@ func (f sqlFormatter) GetPlaceholder(id int) string {
 }
 
 // TODO: add identifiers processing
-func (sqlFormatter) SanitiseIdentifier(ident string) string {
+func (SQLFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", ident)
 }
 
-func (f sqlFormatter) FormatFrom(tableName string) string {
+func (f SQLFormatter) FormatFrom(tableName string) string {
 	// Trim leading slash, otherwise TablePathPrefix won't work.
 	// See https://ydb.tech/docs/ru/yql/reference/syntax/pragma#table-path-prefix
 	tableName = strings.TrimPrefix(tableName, "/")
@@ -110,7 +110,7 @@ func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }
 
-func (f sqlFormatter) RenderSelectQueryText(
+func (f SQLFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
 ) (string, error) {
@@ -128,12 +128,12 @@ func (f sqlFormatter) RenderSelectQueryText(
 
 	switch t := splitDescription.GetPayload().(type) {
 	case *TSplitDescription_ColumnShard:
-		queryText, err = f.renderSelectQueryTextForColumnShard(parts, split, splitDescription.GetColumnShard())
+		queryText, err = f.RenderSelectQueryTextForColumnShard(parts, splitDescription.GetColumnShard().TabletIds)
 		if err != nil {
 			return "", fmt.Errorf("render select query text for column shard: %w", err)
 		}
 	case *TSplitDescription_DataShard:
-		queryText, err = f.renderSelectQueryTextForDataShard(parts, split, splitDescription.GetDataShard())
+		queryText, err = f.renderSelectQueryTextForDataShard(parts, splitDescription.GetDataShard())
 		if err != nil {
 			return "", fmt.Errorf("render select query text for column shard: %w", err)
 		}
@@ -144,35 +144,40 @@ func (f sqlFormatter) RenderSelectQueryText(
 	return queryText, nil
 }
 
-func (sqlFormatter) renderSelectQueryTextForColumnShard(
+func (SQLFormatter) RenderSelectQueryTextForColumnShard(
 	parts *rdbms_utils.SelectQueryParts,
-	split *api_service_protos.TSplit,
-	columnShardDescription *TSplitDescription_TColumnShard,
+	tabletIDs []uint64,
 ) (string, error) {
-	// WITH TabletId='72075186224054918'
-	head, err := rdbms_utils.DefaultSelectQueryRender(parts, split)
-	if err != nil {
-		return "", fmt.Errorf("default select query render: %w", err)
-	}
 
-	if len(columnShardDescription.TabletIds) != 1 {
+	var sb strings.Builder
+
+	sb.WriteString("SELECT ")
+	sb.WriteString(parts.SelectClause)
+	sb.WriteString(" FROM ")
+	sb.WriteString(parts.FromClause)
+
+	if len(tabletIDs) != 1 {
 		return "", fmt.Errorf(
 			"column shard split description must contain exactly 1 shard id, have %d instead",
-			len(columnShardDescription.TabletIds),
+			len(tabletIDs),
 		)
 	}
 
-	result := head + fmt.Sprintf(" WITH TabletId='%d'", columnShardDescription.TabletIds[0])
+	sb.WriteString(fmt.Sprintf(" WITH TabletId='%d'", tabletIDs[0]))
 
-	return result, nil
+	if parts.WhereClause != "" {
+		sb.WriteString(" WHERE ")
+		sb.WriteString(parts.WhereClause)
+	}
+
+	return sb.String(), nil
 }
 
-func (sqlFormatter) renderSelectQueryTextForDataShard(
+func (SQLFormatter) renderSelectQueryTextForDataShard(
 	parts *rdbms_utils.SelectQueryParts,
-	split *api_service_protos.TSplit,
 	_ *TSplitDescription_TDataShard,
 ) (string, error) {
-	queryText, err := rdbms_utils.DefaultSelectQueryRender(parts, split)
+	queryText, err := rdbms_utils.DefaultSelectQueryRender(parts)
 	if err != nil {
 		return "", fmt.Errorf("default select query render: %w", err)
 	}
@@ -180,8 +185,8 @@ func (sqlFormatter) renderSelectQueryTextForDataShard(
 	return queryText, nil
 }
 
-func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
-	return sqlFormatter{
+func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {
+	return SQLFormatter{
 		mode: mode,
 		cfg:  cfg,
 	}

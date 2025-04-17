@@ -14,7 +14,7 @@ var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
 
 type splitProviderImpl struct {
 	resolver         Resolver
-	ydbSplitProvider *ydb.SplitProvider
+	ydbSplitProvider ydb.SplitProvider
 }
 
 func (s *splitProviderImpl) ListSplits(
@@ -29,6 +29,8 @@ func (s *splitProviderImpl) ListSplits(
 		logGroupName: params.Select.From.Table,
 		credentials:  params.Select.DataSourceInstance.GetCredentials(),
 	}
+
+	fmt.Println(">> HERE <<")
 
 	response, err := s.resolver.resolve(request)
 	if err != nil {
@@ -123,8 +125,9 @@ func (s *splitProviderImpl) handleYDBSource(
 	return nil
 }
 
-func NewSplitProvider(resolver Resolver) rdbms_utils.SplitProvider {
+func NewSplitProvider(resolver Resolver, ydbSplitProvider ydb.SplitProvider) rdbms_utils.SplitProvider {
 	return &splitProviderImpl{
-		resolver: resolver,
+		resolver:         resolver,
+		ydbSplitProvider: ydbSplitProvider,
 	}
 }

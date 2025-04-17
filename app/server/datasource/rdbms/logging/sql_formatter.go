@@ -7,28 +7,29 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 )
 
 var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 
 type sqlFormatter struct {
-	rdbms_utils.SQLFormatter
+	ydb.SQLFormatter
 }
 
-func (sqlFormatter) RenderSelectQueryText(
+func (s sqlFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
 ) (string, error) {
 	var dst TSplitDescription
 
 	if err := protojson.Unmarshal(split.GetDescription(), &dst); err != nil {
-		return "", fmt.Errorf("unmarshal src: %w", err)
+		return "", fmt.Errorf("unmarshal split description: %w", err)
 	}
 
-	return rdbms_utils.DefaultSelectQueryRender(parts, nil)
+	return s.RenderSelectQueryTextForColumnShard(parts, dst.GetYdb().TabletIds)
 }
 
-func NewSQLFormatter(ydbSQLFormatter rdbms_utils.SQLFormatter) rdbms_utils.SQLFormatter {
+func NewSQLFormatter(ydbSQLFormatter ydb.SQLFormatter) rdbms_utils.SQLFormatter {
 	return &sqlFormatter{
 		SQLFormatter: ydbSQLFormatter,
 	}
