@@ -132,6 +132,8 @@ func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, e
 }
 
 // readKeys читает ключи из Redis и обрабатывает их значения
+//
+//nolint:funlen,gocyclo
 func (*dataSource) readKeys(
 	ctx context.Context,
 	client *redis.Client,
@@ -151,19 +153,23 @@ func (*dataSource) readKeys(
 		// ——— TYPE в пайплайне ————————————————————————
 		pipe := client.Pipeline()
 		typeCmds := make([]*redis.StatusCmd, len(keys))
+
 		for i, key := range keys {
 			typeCmds[i] = pipe.Type(ctx, key)
 		}
+
 		if _, err := pipe.Exec(ctx); err != nil {
 			return fmt.Errorf("TYPE pipeline exec failed: %w", err)
 		}
 
 		var strKeys, hashKeys []string
+
 		for i, cmd := range typeCmds {
 			t, err := cmd.Result()
 			if err != nil {
 				return fmt.Errorf("get type for key comand: %w", err)
 			}
+
 			switch t {
 			case TypeString:
 				strKeys = append(strKeys, keys[i])
@@ -178,17 +184,21 @@ func (*dataSource) readKeys(
 		if len(strKeys) > 0 {
 			pipe = client.Pipeline()
 			getCmds := make([]*redis.StringCmd, len(strKeys))
+
 			for i, key := range strKeys {
 				getCmds[i] = pipe.Get(ctx, key)
 			}
+
 			if _, err := pipe.Exec(ctx); err != nil {
 				return fmt.Errorf("GET pipeline exec failed: %w", err)
 			}
+
 			for i, cmd := range getCmds {
 				val, err := cmd.Result()
 				if err != nil {
 					return fmt.Errorf("get result for comand: %w", err)
 				}
+
 				transformer.key = strKeys[i]
 				transformer.stringVal = &val
 				transformer.hashVal = nil
@@ -196,6 +206,7 @@ func (*dataSource) readKeys(
 				if err := sink.AddRow(transformer); err != nil {
 					return fmt.Errorf("add row: %w", err)
 				}
+
 				transformer.clean()
 			}
 		}
@@ -204,24 +215,30 @@ func (*dataSource) readKeys(
 		if len(hashKeys) > 0 && len(transformer.hashFields) > 0 {
 			pipe = client.Pipeline()
 			hmgetCmds := make([]*redis.SliceCmd, len(hashKeys))
+
 			for i, key := range hashKeys {
 				hmgetCmds[i] = pipe.HMGet(ctx, key, transformer.hashFields...)
 			}
+
 			if _, err := pipe.Exec(ctx); err != nil {
 				return fmt.Errorf("HMGET pipeline exec failed: %w", err)
 			}
+
 			for i, cmd := range hmgetCmds {
 				vals, err := cmd.Result()
 				if err != nil {
 					return fmt.Errorf("get result for comand: %w", err)
 				}
+
 				transformer.key = hashKeys[i]
 				m := make(map[string]string, len(transformer.hashFields))
+
 				for j, field := range transformer.hashFields {
 					if vals[j] != nil {
 						m[field] = vals[j].(string)
 					}
 				}
+
 				transformer.hashVal = &m
 				transformer.stringVal = nil
 
