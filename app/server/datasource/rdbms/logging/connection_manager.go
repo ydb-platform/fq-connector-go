@@ -27,6 +27,7 @@ func (cm *connectionManager) Make(
 	// This method is called in two different contexts:
 	// 1. When YDB wants to get a table description (DescribeTable phase).
 	if params.Split == nil && params.MaxConnections == 1 {
+		fmt.Println(">> CRAB 1 <<")
 		cs, err := cm.makeConnectionToDescribeTable(params)
 		if err != nil {
 			return nil, fmt.Errorf("make connection to describe table: %w", err)
@@ -38,6 +39,7 @@ func (cm *connectionManager) Make(
 	// 2. When YDB wants to get data from the particular database
 	// according to the split description (ReadSplits phase).
 	if params.Split != nil {
+		fmt.Println(">> CRAB 2 <<")
 		cs, err := cm.makeConnectionToReadSplit(params)
 		if err != nil {
 			return nil, fmt.Errorf("make connection to read split: %w", err)
@@ -74,7 +76,7 @@ func (cm *connectionManager) makeConnectionToDescribeTable(
 
 	src := response.sources[0]
 
-	params.Logger.Debug("resolved log group into YDB endpoint", src.ToZapFields()...)
+	params.Logger.Info("resolved log group into YDB endpoint", src.ToZapFields()...)
 
 	// prepare new data source instance describing the underlying YDB database
 	dsi := &api_common.TGenericDataSourceInstance{

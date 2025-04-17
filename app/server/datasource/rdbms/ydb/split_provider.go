@@ -26,7 +26,7 @@ type SplitProvider struct {
 	cfg *config.TYdbConfig_TSplitting
 }
 
-func (s *SplitProvider) ListSplits(
+func (s SplitProvider) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
@@ -185,7 +185,7 @@ func (SplitProvider) GetColumnShardTabletIDs(
 
 	logger.Debug("discovering column table tablet ids", zap.String("prefix", prefix))
 
-	var tabletIds []uint64
+	var tabletIDs []uint64
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
@@ -224,11 +224,11 @@ func (SplitProvider) GetColumnShardTabletIDs(
 					return fmt.Errorf("row scan: %w", err)
 				}
 
-				tabletIds = append(tabletIds, tabletId)
+				tabletIDs = append(tabletIDs, tabletId)
 			}
 		}
 
-		logger.Info("discovered column table tablet ids", zap.Int("total", len(tabletIds)))
+		logger.Info("discovered column table tablet ids", zap.Int("total", len(tabletIDs)))
 
 		return nil
 	},
@@ -239,7 +239,7 @@ func (SplitProvider) GetColumnShardTabletIDs(
 		return nil, fmt.Errorf("querying column table tablet ids: %w", err)
 	}
 
-	return tabletIds, nil
+	return tabletIDs, nil
 }
 
 // TODO: check request.MaxSplitCount (SLJ always wants a single split)
@@ -276,8 +276,8 @@ func makeSplit(
 	}
 }
 
-func NewSplitProvider(cfg *config.TYdbConfig_TSplitting) rdbms_utils.SplitProvider {
-	return &SplitProvider{
+func NewSplitProvider(cfg *config.TYdbConfig_TSplitting) SplitProvider {
+	return SplitProvider{
 		cfg: cfg,
 	}
 }

@@ -90,7 +90,7 @@ func (sqlFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
 ) (string, error) {
-	return rdbms_utils.DefaultSelectQueryRender(parts, split)
+	return rdbms_utils.DefaultSelectQueryRender(parts)
 }
 
 func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
