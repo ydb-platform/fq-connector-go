@@ -42,7 +42,6 @@ func randomString(n int, r *rand.Rand) string {
 }
 
 func main() {
-	// Создаём локальный генератор случайных чисел
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	ctx := context.Background()
@@ -113,11 +112,11 @@ func main() {
 
 		// Периодический вывод прогресса каждые 10*batchSize ключей.
 		if keyIndex%(batchSize*100) == 0 {
-			fmt.Printf("Вставлено ключей: %d, приблизительный объём данных: %.2f Гбайт\n",
+			log.Printf("Вставлено ключей: %d, приблизительный объём данных: %.2f Гбайт\n",
 				keyIndex, float64(insertedBytes)/1024/1024/1024)
 		}
 	}
 
-	fmt.Printf("Завершено. Всего вставлено ключей: %d, итоговый приблизительный объём: %.2f Гбайт\n",
+	log.Printf("Завершено. Всего вставлено ключей: %d, итоговый приблизительный объём: %.2f Гбайт\n",
 		keyIndex, float64(insertedBytes)/1024/1024/1024)
 }

@@ -48,7 +48,6 @@ type (
 	}
 )
 
-// newRedisRowTransformer создает новый экземпляр redisRowTransformer
 func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*redisRowTransformer, error) {
 	hashFields, err := getHashFields(items)
 	if err != nil {
@@ -108,7 +107,7 @@ func (*dataSource) ListSplits(
 	return nil
 }
 
-// getHashFields извлекает поля хеша из схемы запроса
+// getHashFields retrieves HASH fields from request schema
 func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, error) {
 	var hashFields []string
 
@@ -131,9 +130,8 @@ func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, e
 	return hashFields, nil
 }
 
-// readKeys читает ключи из Redis и обрабатывает их значения
-//
-//nolint:funlen,gocyclo
+// Redis Pipeline Docs https://redis.io/docs/latest/develop/clients/go/transpipe/
+// readKeys orchestrates a batched SCAN over Redis keys matching 'pattern', and processes string and hash keys.
 func (*dataSource) readKeys(
 	ctx context.Context,
 	client *redis.Client,
@@ -142,122 +140,167 @@ func (*dataSource) readKeys(
 	sink paging.Sink[any],
 	logger *zap.Logger,
 ) error {
-	var cursor, unsupportedTypesCount uint64
+	var cursor, unsupported uint64
 
 	for {
-		keys, newCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
+		// 1) Scan a batch of keys
+		keys, nextCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
 		if err != nil {
 			return fmt.Errorf("scan keys: %w", err)
 		}
 
-		// ——— TYPE в пайплайне ————————————————————————
-		pipe := client.Pipeline()
-		typeCmds := make([]*redis.StatusCmd, len(keys))
-
-		for i, key := range keys {
-			typeCmds[i] = pipe.Type(ctx, key)
+		// 2) Determine types via pipeline
+		strKeys, hashKeys, batchUnsupported, err := splitKeysByType(ctx, client, keys)
+		if err != nil {
+			return err
 		}
 
-		if _, err := pipe.Exec(ctx); err != nil {
-			return fmt.Errorf("TYPE pipeline exec failed: %w", err)
-		}
+		unsupported += batchUnsupported
 
-		var strKeys, hashKeys []string
-
-		for i, cmd := range typeCmds {
-			t, err := cmd.Result()
-			if err != nil {
-				return fmt.Errorf("get type for key comand: %w", err)
-			}
-
-			switch t {
-			case TypeString:
-				strKeys = append(strKeys, keys[i])
-			case TypeHash:
-				hashKeys = append(hashKeys, keys[i])
-			default:
-				unsupportedTypesCount++
-			}
-		}
-
-		// ——— GET для строк через пайплайн ——————————————
+		// 3) Fetch and emit string key rows
 		if len(strKeys) > 0 {
-			pipe = client.Pipeline()
-			getCmds := make([]*redis.StringCmd, len(strKeys))
-
-			for i, key := range strKeys {
-				getCmds[i] = pipe.Get(ctx, key)
-			}
-
-			if _, err := pipe.Exec(ctx); err != nil {
-				return fmt.Errorf("GET pipeline exec failed: %w", err)
-			}
-
-			for i, cmd := range getCmds {
-				val, err := cmd.Result()
-				if err != nil {
-					return fmt.Errorf("get result for comand: %w", err)
-				}
-
-				transformer.key = strKeys[i]
-				transformer.stringVal = &val
-				transformer.hashVal = nil
-
-				if err := sink.AddRow(transformer); err != nil {
-					return fmt.Errorf("add row: %w", err)
-				}
-
-				transformer.clean()
+			if err = processStringKeys(ctx, client, strKeys, transformer, sink); err != nil {
+				return err
 			}
 		}
 
-		// ——— HMGET для хешей через пайплайн ————————————
+		// 4) Fetch and emit hash key rows
 		if len(hashKeys) > 0 && len(transformer.hashFields) > 0 {
-			pipe = client.Pipeline()
-			hmgetCmds := make([]*redis.SliceCmd, len(hashKeys))
-
-			for i, key := range hashKeys {
-				hmgetCmds[i] = pipe.HMGet(ctx, key, transformer.hashFields...)
-			}
-
-			if _, err := pipe.Exec(ctx); err != nil {
-				return fmt.Errorf("HMGET pipeline exec failed: %w", err)
-			}
-
-			for i, cmd := range hmgetCmds {
-				vals, err := cmd.Result()
-				if err != nil {
-					return fmt.Errorf("get result for comand: %w", err)
-				}
-
-				transformer.key = hashKeys[i]
-				m := make(map[string]string, len(transformer.hashFields))
-
-				for j, field := range transformer.hashFields {
-					if vals[j] != nil {
-						m[field] = vals[j].(string)
-					}
-				}
-
-				transformer.hashVal = &m
-				transformer.stringVal = nil
-
-				if err := sink.AddRow(transformer); err != nil {
-					return fmt.Errorf("add row: %w", err)
-				}
-
-				transformer.clean()
+			if err = processHashKeys(ctx, client, hashKeys, transformer, sink); err != nil {
+				return err
 			}
 		}
 
-		cursor = newCursor
+		cursor = nextCursor
 		if cursor == 0 {
 			break
 		}
 	}
 
-	if unsupportedTypesCount > 0 {
-		logger.Warn("number of unsupported types encountered: ", zap.Uint64("value", unsupportedTypesCount))
+	if unsupported > 0 {
+		logger.Warn("unsupported key types encountered", zap.Uint64("count", unsupported))
+	}
+
+	return nil
+}
+
+// splitKeysByType issues a pipeline of TYPE commands, then partitions keys into string and hash slices.
+func splitKeysByType(
+	ctx context.Context,
+	client *redis.Client,
+	keys []string,
+) (strKeys []string, hashKeys []string, unsupported uint64, err error) {
+	pipe := client.Pipeline()
+	typeCmds := make([]*redis.StatusCmd, len(keys))
+
+	for i, key := range keys {
+		typeCmds[i] = pipe.Type(ctx, key)
+	}
+
+	if _, err = pipe.Exec(ctx); err != nil {
+		return nil, nil, 0, fmt.Errorf("TYPE pipeline exec failed: %w", err)
+	}
+
+	for i, cmd := range typeCmds {
+		t, err := cmd.Result()
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("TYPE command result failed: %w", err)
+		}
+
+		switch t {
+		case TypeString:
+			strKeys = append(strKeys, keys[i])
+		case TypeHash:
+			hashKeys = append(hashKeys, keys[i])
+		default:
+			unsupported++
+		}
+	}
+
+	return strKeys, hashKeys, unsupported, nil
+}
+
+// processStringKeys pipelines GET commands for string keys and writes rows to the sink.
+func processStringKeys(
+	ctx context.Context,
+	client *redis.Client,
+	keys []string,
+	transformer *redisRowTransformer,
+	sink paging.Sink[any],
+) error {
+	pipe := client.Pipeline()
+	getCmds := make([]*redis.StringCmd, len(keys))
+
+	for i, key := range keys {
+		getCmds[i] = pipe.Get(ctx, key)
+	}
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("GET pipeline exec failed: %w", err)
+	}
+
+	for i, cmd := range getCmds {
+		val, e := cmd.Result()
+		if e != nil {
+			return fmt.Errorf("GET command result failed: %w", e)
+		}
+
+		transformer.key = keys[i]
+		transformer.stringVal = &val
+		transformer.hashVal = nil
+
+		if err := sink.AddRow(transformer); err != nil {
+			return fmt.Errorf("add row: %w", err)
+		}
+
+		transformer.clean()
+	}
+
+	return nil
+}
+
+// processHashKeys pipelines HMGET commands for hash keys and writes rows to the sink.
+func processHashKeys(
+	ctx context.Context,
+	client *redis.Client,
+	keys []string,
+	transformer *redisRowTransformer,
+	sink paging.Sink[any],
+) error {
+	pipe := client.Pipeline()
+	hmgetCmds := make([]*redis.SliceCmd, len(keys))
+
+	for i, key := range keys {
+		hmgetCmds[i] = pipe.HMGet(ctx, key, transformer.hashFields...)
+	}
+
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("HMGET pipeline exec failed: %w", err)
+	}
+
+	for i, cmd := range hmgetCmds {
+		vals, e := cmd.Result()
+		if e != nil {
+			return fmt.Errorf("HMGET command result failed: %w", e)
+		}
+
+		transformer.key = keys[i]
+		m := make(map[string]string, len(transformer.hashFields))
+
+		for j, field := range transformer.hashFields {
+			if vals[j] != nil {
+				m[field] = vals[j].(string)
+			}
+		}
+
+		transformer.hashVal = &m
+		transformer.stringVal = nil
+
+		if err := sink.AddRow(transformer); err != nil {
+			return fmt.Errorf("add row: %w", err)
+		}
+
+		transformer.clean()
 	}
 
 	return nil
