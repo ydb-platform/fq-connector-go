@@ -20,6 +20,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 )
 
 type unexpectedTypeDisplayMode = api_common.TMongoDbDataSourceOptions_EUnexpectedTypeDisplayMode
@@ -148,8 +149,7 @@ func bsonDToString(doc bson.D) (string, error) {
 
 func convert[INTO any](acceptor **INTO, value any) {
 	if v, ok := value.(INTO); ok {
-		*acceptor = new(INTO)
-		**acceptor = v
+		*acceptor = ptr.T(v)
 	} else {
 		*acceptor = nil
 	}
@@ -180,6 +180,7 @@ func (r *documentReader) accept(logger *zap.Logger, doc bson.M) error {
 		case *string:
 			value, ok := doc[f.Name]
 			if !ok {
+				acceptors[i] = nil
 				continue
 			}
 
@@ -215,8 +216,7 @@ func (r *documentReader) accept(logger *zap.Logger, doc bson.M) error {
 				}
 			}
 
-			*a = new(string)
-			**a = str
+			*a = ptr.T(str)
 
 		case *primitive.Binary:
 			*a = doc[f.Name].(primitive.Binary)
@@ -233,8 +233,6 @@ func (r *documentReader) accept(logger *zap.Logger, doc bson.M) error {
 			return common.ErrDataTypeNotSupported
 		}
 	}
-
-	r.transformer.SetAcceptors(acceptors)
 
 	return nil
 }
