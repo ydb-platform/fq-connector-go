@@ -92,7 +92,21 @@ func TestMsSqlServer(t *testing.T) {
 
 func TestMongoDB(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
-	testify_suite.Run(t, mongodb.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "MongoDB")))
+
+	objectIdYqlTypes := []config.TMongoDbConfig_ObjectIdYqlType{
+		config.TMongoDbConfig_OBJECT_ID_AS_STRING,
+		config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING,
+	}
+
+	for _, yqlType := range objectIdYqlTypes {
+		suiteName := yqlType.String()
+		option := suite.WithEmbeddedOptions(server.WithObjectIdYQLType(yqlType))
+
+		testify_suite.Run(
+			t,
+			mongodb.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, suiteName, option), yqlType),
+		)
+	}
 }
 
 func TestRedis(t *testing.T) {
