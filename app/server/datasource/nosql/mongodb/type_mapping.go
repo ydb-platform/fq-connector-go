@@ -20,7 +20,7 @@ var errNull = errors.New("can't determine field type for null")
 const objectIdTag string = "ObjectId"
 
 type readingMode = api_common.TMongoDbDataSourceOptions_EReadingMode
-type objectIdType = config.TMongoDbConfig_ObjectIdYqlType
+type objectIdType = config.TMongoDbConfig_EObjectIdYqlType
 
 func typeMapObjectId(objectIdType objectIdType) (*Ydb.Type, error) {
 	asTaggedString := config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING
