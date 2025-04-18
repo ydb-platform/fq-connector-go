@@ -11,7 +11,7 @@ import (
 type Suite struct {
 	*suite.Base[int32, *array.Int32Builder]
 	dataSource   *datasource.DataSource
-	yqlTypeToUse config.TMongoDbConfig_ObjectIdYqlType
+	yqlTypeToUse config.TMongoDbConfig_EObjectIdYqlType
 }
 
 func (s *Suite) TestReadSplitPrimitives() {
@@ -62,7 +62,7 @@ func (s *Suite) TestObjectIdAsTaggedString() {
 
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
-	yqlTypeToUse config.TMongoDbConfig_ObjectIdYqlType,
+	yqlTypeToUse config.TMongoDbConfig_EObjectIdYqlType,
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

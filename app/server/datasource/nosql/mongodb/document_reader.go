@@ -227,6 +227,7 @@ func (r *documentReader) accept(doc bson.M) error {
 		case **primitive.ObjectID:
 			convert(a, doc[f.Name])
 		case *any:
+			// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
 			value, ok := doc[f.Name]
 			if !ok {
 				acceptors[i] = nil
@@ -243,6 +244,7 @@ func (r *documentReader) accept(doc bson.M) error {
 			}
 
 		case **any:
+			// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
 			value, ok := doc[f.Name]
 			if !ok {
 				*a = nil
@@ -352,6 +354,11 @@ func addAcceptorAppenderNullable(ydbType *Ydb.Type, cc conversion.Collection, ac
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case Ydb.Type_STRING:
+			// When reading data from MongoDB, we sometimes encounter two different BSON types
+			// (ObjectId and Binary) that both need to be converted to the same YQL String type.
+			// Since we don't know in advance which type we'll get,
+			// we use Go's any (empty interface) to handle both possibilities.
+			// This is the simplest approach to deal with this type ambiguity during the conversion process.
 			acceptors = append(acceptors, new(*any))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				acceptorPtr := acceptor.(**any)
@@ -416,6 +423,11 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 			acceptors = append(acceptors, new(string))
 			appenders = append(appenders, utils.MakeAppender[string, string, *array.StringBuilder](cc.String()))
 		case Ydb.Type_STRING:
+			// When reading data from MongoDB, we sometimes encounter two different BSON types
+			// (ObjectId and Binary) that both need to be converted to the same YQL String type.
+			// Since we don't know in advance which type we'll get,
+			// we use Go's any (empty interface) to handle both possibilities.
+			// This is the simplest approach to deal with this type ambiguity during the conversion process.
 			acceptors = append(acceptors, new(any))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				acceptorPtr := acceptor.(*any)

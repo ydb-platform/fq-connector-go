@@ -93,7 +93,7 @@ func TestMsSqlServer(t *testing.T) {
 func TestMongoDB(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
 
-	objectIdYqlTypes := []config.TMongoDbConfig_ObjectIdYqlType{
+	objectIdYqlTypes := []config.TMongoDbConfig_EObjectIdYqlType{
 		config.TMongoDbConfig_OBJECT_ID_AS_STRING,
 		config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING,
 	}
