@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -20,12 +19,16 @@ type Bench struct {
 	lastTS   time.Time
 	lastCPU  float64
 	bytesInt int64
-	bytesArr int64
 	rows     int64
 	interval time.Duration
 	proc     *process.Process
 	ticker   *time.Ticker
 	done     chan struct{}
+
+	sumRateMB   float64
+	sumRateRows float64
+	sumCPU      float64
+	reportCount int
 }
 
 func NewBench(interval time.Duration) (*Bench, error) {
@@ -67,14 +70,15 @@ func (b *Bench) Stop() {
 	close(b.done)
 }
 
-func (b *Bench) Add(internal, arrow, rows int) {
+// Add tracks internal byte count and row count
+func (b *Bench) Add(internalBytes, rowCount int) {
 	b.mu.Lock()
-	b.bytesInt += int64(internal)
-	b.bytesArr += int64(arrow)
-	b.rows += int64(rows)
+	b.bytesInt += int64(internalBytes)
+	b.rows += int64(rowCount)
 	b.mu.Unlock()
 }
 
+// report logs metrics and tracks for averages
 func (b *Bench) report(kind string) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -88,26 +92,41 @@ func (b *Bench) report(kind string) {
 	cpuDelta := cpuNow - b.lastCPU
 	cpuUtil := cpuDelta / period * 100.0
 
-	bi, ba, rows := b.bytesInt, b.bytesArr, b.rows
-	rateInt := float64(bi) / elapsed.Seconds()
-	rateArr := float64(ba) / elapsed.Seconds()
+	bi := b.bytesInt
+	rows := b.rows
+	rateMB := float64(bi) / elapsed.Seconds() / 1024 / 1024
 	rateRows := float64(rows) / elapsed.Seconds()
 
-	log.Printf("%s RESULT: elapsed time: %s, bytes internal = %s (%.2f MB/s), bytes arrow = %s (%.2f MB/s), rows = %d (%.2f rows/s), cpu = %.2f%%",
+	log.Printf("%s RESULT: elapsed=%s, bytes=%s, rate=%.2f MB/s, rows=%d, rowsRate=%.2f rows/s, cpu=%.2f%%",
 		kind,
 		elapsed.Truncate(time.Millisecond),
-		humanize.Bytes(uint64(bi)), rateInt/1024/1024,
-		humanize.Bytes(uint64(ba)), rateArr/1024/1024,
-		rows, rateRows,
+		humanize.Bytes(uint64(bi)),
+		rateMB,
+		rows,
+		rateRows,
 		cpuUtil,
 	)
+
+	if kind == "INTERMEDIATE" {
+		b.sumRateMB += rateMB
+		b.sumRateRows += rateRows
+		b.sumCPU += cpuUtil
+		b.reportCount++
+	}
 
 	b.lastTS = now
 	b.lastCPU = cpuNow
 }
 
+// Final logs final and average metrics
 func (b *Bench) Final() {
 	b.report("FINAL")
+	if b.reportCount > 0 {
+		avgMB := b.sumRateMB / float64(b.reportCount)
+		avgRows := b.sumRateRows / float64(b.reportCount)
+		avgCPU := b.sumCPU / float64(b.reportCount)
+		log.Printf("AVERAGE: rate=%.2f MB/s, rowsRate=%.2f rows/s, cpu=%.2f%%", avgMB, avgRows, avgCPU)
+	}
 }
 
 func connectRedis() *redis.Client {
@@ -127,14 +146,14 @@ func scanAll(b *Bench) {
 	var cursor uint64
 
 	for {
-		// 1) Сканируем пачкой 100k ключей
+		// 1) SCAN batch
 		keys, cur, err := rdb.Scan(ctx, cursor, "*", 100000).Result()
 		if err != nil {
 			log.Fatal(err)
 		}
 		cursor = cur
 
-		// 2) Pipeline для TYPE
+		// 2) TYPE pipeline
 		pipe := rdb.Pipeline()
 		typeCmds := make([]*redis.StatusCmd, len(keys))
 		for i, key := range keys {
@@ -144,22 +163,20 @@ func scanAll(b *Bench) {
 			log.Printf("TYPE pipeline error: %v", err)
 		}
 
-		// 3) Разделяем ключи по типу
 		var strKeys, hashKeys []string
 		for i, cmd := range typeCmds {
 			t, err := cmd.Result()
 			if err != nil {
 				continue
 			}
-			switch t {
-			case "string":
+			if t == "string" {
 				strKeys = append(strKeys, keys[i])
-			case "hash":
+			} else if t == "hash" {
 				hashKeys = append(hashKeys, keys[i])
 			}
 		}
 
-		// 4) Pipeline GET для строк
+		// 3) GET pipeline
 		if len(strKeys) > 0 {
 			pipe = rdb.Pipeline()
 			getCmds := make([]*redis.StringCmd, len(strKeys))
@@ -169,17 +186,14 @@ func scanAll(b *Bench) {
 			if _, err := pipe.Exec(ctx); err != nil {
 				log.Printf("GET pipeline error: %v", err)
 			}
-			for _, cmd := range getCmds {
-				val, err := cmd.Result()
-				if err != nil {
-					continue
+			for i, cmd := range getCmds {
+				if val, err := cmd.Result(); err == nil {
+					b.Add(len(strKeys[i])+len(val), 1)
 				}
-				n := len(val)
-				b.Add(n, n, 1)
 			}
 		}
 
-		// 5) Pipeline HGETALL для хешей
+		// 4) HGETALL pipeline
 		if len(hashKeys) > 0 {
 			pipe = rdb.Pipeline()
 			hgetCmds := make([]*redis.MapStringStringCmd, len(hashKeys))
@@ -190,16 +204,13 @@ func scanAll(b *Bench) {
 				log.Printf("HGETALL pipeline error: %v", err)
 			}
 			for i, cmd := range hgetCmds {
-				m, err := cmd.Result()
-				if err != nil {
-					continue
+				if m, err := cmd.Result(); err == nil {
+					total := 0
+					for field, v := range m {
+						total += len(field) + len(v)
+					}
+					b.Add(len(hashKeys[i])+total, 1)
 				}
-				total := 0
-				for _, v := range m {
-					total += len(v)
-				}
-				b.Add(total, total, 1)
-				fmt.Printf("[HASH] key=%s, fields=%d, bytes=%d\n", hashKeys[i], len(m), total)
 			}
 		}
 

@@ -69,8 +69,7 @@ func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*r
 		case StringColumnName:
 			t.acceptors[i] = &t.stringVal
 		case HashColumnName:
-			hashMap := make(map[string]string)
-			t.acceptors[i] = &hashMap
+			t.acceptors[i] = &t.hashVal
 		}
 	}
 

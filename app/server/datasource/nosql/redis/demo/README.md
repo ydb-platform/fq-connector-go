@@ -22,9 +22,7 @@ HMSET sample_session:234567890 email "jane@example.com" last_activity "2023-01-0
 3. Запускаем YDB Embedded UI:
 
 ```bash
-./ydb/tests/tools/kqprun/kqprun 
-    --app-config=/home/vitalyisaev/arcadia/junk/vitalyisaev/connectors/app_config.local.conf  
-    -M 8080
+./ydb/tests/tools/kqprun/kqprun --app-config=/home/glebbs/ydb/ydb/tests/tools/kqprun/configuration/app_config.conf -M 8080
 ```
 
 4. Интерфейсы:
