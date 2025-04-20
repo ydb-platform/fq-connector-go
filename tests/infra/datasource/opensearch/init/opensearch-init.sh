@@ -116,5 +116,5 @@ curl -X POST "http://localhost:9200/optional/_bulk" -H 'Content-Type: applicatio
 '
 
 echo "==============================="
-echo "Successfully initialized!"
+echo "Successfully initialized!!!"
 echo "==============================="
