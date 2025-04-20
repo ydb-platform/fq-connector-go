@@ -144,7 +144,7 @@ func (r *metricsReader) accept(l labels.Labels, timestamp int64, val float64) er
 
 	for i, f := range r.arrowTypes.Fields() {
 		switch a := acceptors[i].(type) {
-		// Cause only timestamp column can be with uint64 type
+		// Cause only timestamp column can be with time.Time type
 		case *time.Time:
 			*a = time.UnixMilli(timestamp)
 		case **time.Time:

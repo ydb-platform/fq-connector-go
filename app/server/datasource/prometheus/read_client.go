@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	conf "github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
@@ -24,6 +25,7 @@ import (
 const (
 	prometheusClientName         = "fq-connector-remote-read-client"
 	prometheusGetLabelsURLFormat = "%s/api/v1/labels?match[]=%s"
+	prometheusGetLabelsTimeout   = 10 * time.Second
 
 	httpSchema  = "http"
 	httpsSchema = "https"
@@ -44,12 +46,8 @@ func NewReadClient(dsi *api_common.TGenericDataSourceInstance, cfg *config.TProm
 	}}
 
 	readClient, err := remote.NewReadClient(prometheusClientName, &remote.ClientConfig{
-		URL:     remoteReadURL,
-		Timeout: model.Duration(common.MustDurationFromString(cfg.GetOpenConnectionTimeout())),
-		// TODO: Check
-		HTTPClientConfig: conf.HTTPClientConfig{
-			TLSConfig: conf.TLSConfig{InsecureSkipVerify: dsi.GetUseTls()},
-		},
+		URL:              remoteReadURL,
+		Timeout:          model.Duration(common.MustDurationFromString(cfg.GetOpenConnectionTimeout())),
 		ChunkedReadLimit: cfg.GetChunkedReadLimit(),
 	})
 	if err != nil {
@@ -101,6 +99,9 @@ func (rc *ReadClient) getAllLabels(ctx context.Context, metric string) ([]string
 		rc.promURL.String(),
 		url.QueryEscape(metric),
 	)
+
+	ctx, cancel := context.WithTimeout(ctx, prometheusGetLabelsTimeout)
+	defer cancel()
 
 	labelsRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, getLabelsURL, nil)
 	if err != nil {

@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -125,7 +126,7 @@ func (p PromQLBuilder) applyComparisonPredicate(c *protos.TPredicate_TComparison
 		// `from`/`to` time options and label matchers
 		case valueColumn:
 			return p
-		// Other columns is a strings, that represent prometheus labels
+		// Other columns are strings that represent prometheus labels
 		default:
 			return p.applyStringExpr(op, lv.GetColumn(), rv.GetTypedValue())
 		}
@@ -155,7 +156,7 @@ func (p PromQLBuilder) applyTimestampExpr(op protos.TPredicate_TComparison_EOper
 	promTime := toPromTime(time.UnixMicro(int64(value.GetValue().GetUint64Value())))
 
 	// We use +1 or -1 for operators where the operands are not assumed to be equal.
-	// These values equivalent one nanosecond.
+	// These values are equal to one millisecond.
 	switch op {
 	case protos.TPredicate_TComparison_L:
 		p.endTime = promTime - 1
@@ -236,12 +237,7 @@ func (p PromQLBuilder) matchPredicateErrors(filtering protos.TReadSplitsRequest_
 
 		return p, nil
 	case protos.TReadSplitsRequest_FILTERING_MANDATORY:
-		var lastErr error
-		if len(p.predicateErrors) > 0 {
-			lastErr = p.predicateErrors[len(p.predicateErrors)-1]
-		}
-
-		return p, lastErr
+		return p, errors.Join(p.predicateErrors...)
 	default:
 		return PromQLBuilder{}, fmt.Errorf("unknown filtering mode: %d", filtering)
 	}
