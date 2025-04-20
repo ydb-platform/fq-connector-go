@@ -30,10 +30,6 @@ func MakeStructType(ydbTypeMembers []*Ydb.StructMember) *Ydb.Type {
 	return &Ydb.Type{Type: &Ydb.Type_StructType{StructType: &Ydb.StructType{Members: ydbTypeMembers}}}
 }
 
-func MakeStructType(ydbTypeMembers []*Ydb.StructMember) *Ydb.Type {
-	return &Ydb.Type{Type: &Ydb.Type_StructType{StructType: &Ydb.StructType{Members: ydbTypeMembers}}}
-}
-
 func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
 	out := &Ydb.TypedValue{Type: ydbType, Value: &Ydb.Value{}}
 
