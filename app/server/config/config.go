@@ -175,6 +175,20 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Redis.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	// OpenSearch
+
+	if c.Datasources.Opensearch == nil {
+		c.Datasources.Opensearch = &config.TOpenSearchConfig{
+			DialTimeout:           "5s",
+			ResponseHeaderTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Opensearch.ExponentialBackoff == nil {
+		c.Datasources.Opensearch.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
 	// PostgreSQL
 
 	if c.Datasources.Postgresql == nil {

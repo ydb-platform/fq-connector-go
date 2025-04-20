@@ -120,10 +120,13 @@ services:
       - "6379:6379"
 
   opensearch:
-    image: opensearchproject/opensearch
+    build:
+      context: ./opensearch/init
+      dockerfile: Dockerfile
     container_name: ${USER}-fq-connector-go-tests-opensearch
     ports:
       - '9200:9200'
+      - '9300:9300'
     environment:
       - cluster.name=opensearch-cluster
       - node.name=opensearch-node
@@ -131,3 +134,4 @@ services:
       - DISABLE_SECURITY_PLUGIN=true
     volumes:
       - ./opensearch/init/opensearch-init.sh:/docker-entrypoint-initdb.d/opensearch-init.sh:ro
+      - ./opensearch/init/opensearch.yml:/usr/share/opensearch/config/opensearch.yml

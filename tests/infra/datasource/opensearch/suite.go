@@ -13,7 +13,7 @@ type Suite struct {
 }
 
 func (s *Suite) TestDescribeTable() {
-	testCaseNames := []string{"simple", "list", "nested"}
+	testCaseNames := []string{"simple", "list", "nested", "optional"}
 
 	for _, testCase := range testCaseNames {
 		s.ValidateTableMetadata(s.dataSource, tables[testCase])

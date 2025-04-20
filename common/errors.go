@@ -329,23 +329,26 @@ func newAPIErrorFromOpenSearchError(err error) *api_service_protos.TError {
 
 	var status ydb_proto.StatusIds_StatusCode
 
-	if strings.Contains(err.Error(), "connection refused") || strings.Contains(err.Error(), "no such host") {
+	errMsg := err.Error()
+
+	switch {
+	case strings.Contains(errMsg, "connection refused") || strings.Contains(errMsg, "no such host"):
 		status = ydb_proto.StatusIds_UNAVAILABLE
-	} else if strings.Contains(err.Error(), "401 Unauthorized") {
+	case strings.Contains(errMsg, "401 Unauthorized"):
 		status = ydb_proto.StatusIds_UNAUTHORIZED
-	} else if strings.Contains(err.Error(), "index_not_found_exception") {
+	case strings.Contains(errMsg, "index_not_found_exception"):
 		status = ydb_proto.StatusIds_NOT_FOUND
-	} else if strings.Contains(err.Error(), "parsing_exception") || strings.Contains(err.Error(), "illegal_argument_exception") {
+	case strings.Contains(errMsg, "parsing_exception") || strings.Contains(errMsg, "illegal_argument_exception"):
 		status = ydb_proto.StatusIds_BAD_REQUEST
-	} else if strings.Contains(err.Error(), "cluster_block_exception") {
+	case strings.Contains(errMsg, "cluster_block_exception"):
 		status = ydb_proto.StatusIds_UNAVAILABLE
-	} else {
+	default:
 		status = ydb_proto.StatusIds_INTERNAL_ERROR
 	}
 
 	return &api_service_protos.TError{
 		Status:  status,
-		Message: err.Error(),
+		Message: errMsg,
 	}
 }
 

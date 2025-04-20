@@ -88,3 +88,33 @@ curl -X POST "http://localhost:9200/nested/_bulk" -H 'Content-Type: application/
 { "index": { "_id": "1" } }
 { "id": 1, "name": "Bob", "address": { "city": "San Francisco", "country": "USA" } }
 '
+
+echo "==============================="
+echo "Optional fields demo"
+echo "==============================="
+
+curl -X PUT "http://localhost:9200/optional" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "id": { "type": "integer" },
+      "a": { "type": "keyword" },
+      "b": { "type": "integer" }
+    }
+  }
+}'
+
+curl -X POST "http://localhost:9200/optional/_bulk" -H 'Content-Type: application/json' -d'
+{ "index": { "_id": "1" } }
+{ "id": 1, "a": "value1", "b": 10 }
+{ "index": { "_id": "2" } }
+{ "id": 2, "a": "value2", "b": 20, "c": "new_field" }
+{ "index": { "_id": "3" } }
+{ "id": 3, "a": "value3", "b": 30, "d": 3.14 }
+{ "index": { "_id": "4" } }
+{ "id": 4, "a": "value4", "c": "another_value", "d": 2.71 }
+'
+
+echo "==============================="
+echo "Successfully initialized!"
+echo "==============================="

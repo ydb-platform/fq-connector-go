@@ -3,7 +3,6 @@ package tests
 import (
 	"flag"
 	"fmt"
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/opensearch"
 	"log"
 	"testing"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mongodb"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/ms_sql_server"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/mysql"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/opensearch"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/oracle"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/postgresql"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource/redis"

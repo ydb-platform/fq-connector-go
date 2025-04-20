@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/opensearch"
 
 	"github.com/apache/arrow/go/v13/arrow/memory"
 	"go.uber.org/zap"
@@ -15,6 +14,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/mongodb"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/opensearch"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
@@ -79,18 +79,13 @@ func (dsc *DataSourceCollection) DescribeTable(
 
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
-		openSearchCfg := &config.TExponentialBackoffConfig{
-			InitialInterval:     "1ms",
-			MaxInterval:         "5ms",
-			RandomizationFactor: 0,
-			Multiplier:          2,
-			MaxElapsedTime:      "10ms",
-		} // TODO fix with config
+		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
 			&retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerMakeConnectionCommon),
-				Query:          retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerNoop),
+				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
+			openSearchCfg,
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -155,18 +150,13 @@ func (dsc *DataSourceCollection) ListSplits(
 				return fmt.Errorf("run streamer: %w", err)
 			}
 		case api_common.EGenericDataSourceKind_OPENSEARCH:
-			openSearchCfg := &config.TExponentialBackoffConfig{
-				InitialInterval:     "1ms",
-				MaxInterval:         "5ms",
-				RandomizationFactor: 0,
-				Multiplier:          2,
-				MaxElapsedTime:      "10ms",
-			} // TODO fix with config
+			openSearchCfg := dsc.cfg.Datasources.Opensearch
 			ds := opensearch.NewDataSource(
 				&retry.RetrierSet{
-					MakeConnection: retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerMakeConnectionCommon),
-					Query:          retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerNoop),
+					MakeConnection: retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+					Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 				},
+				openSearchCfg,
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -229,18 +219,13 @@ func (dsc *DataSourceCollection) ReadSplit(
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
-		openSearchCfg := &config.TExponentialBackoffConfig{
-			InitialInterval:     "1ms",
-			MaxInterval:         "5ms",
-			RandomizationFactor: 0,
-			Multiplier:          2,
-			MaxElapsedTime:      "10ms",
-		} // TODO fix with config
+		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
 			&retry.RetrierSet{
-				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerMakeConnectionCommon),
-				Query:          retry.NewRetrierFromConfig(openSearchCfg, retry.ErrorCheckerNoop),
+				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
+			openSearchCfg,
 		)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
