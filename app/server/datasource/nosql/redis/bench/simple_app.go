@@ -36,11 +36,15 @@ func NewBench(interval time.Duration) (*Bench, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	t, err := p.Times()
+
 	if err != nil {
 		return nil, err
 	}
+
 	now := time.Now()
+
 	return &Bench{
 		start:    now,
 		lastTS:   now,
@@ -53,6 +57,7 @@ func NewBench(interval time.Duration) (*Bench, error) {
 
 func (b *Bench) Start() {
 	b.ticker = time.NewTicker(b.interval)
+
 	go func() {
 		for {
 			select {
@@ -121,6 +126,7 @@ func (b *Bench) report(kind string) {
 // Final logs final and average metrics
 func (b *Bench) Final() {
 	b.report("FINAL")
+
 	if b.reportCount > 0 {
 		avgMB := b.sumRateMB / float64(b.reportCount)
 		avgRows := b.sumRateRows / float64(b.reportCount)
@@ -141,11 +147,13 @@ func connectRedis() *redis.Client {
 	})
 }
 
+//nolint:gocyclo
 func scanAll(b *Bench) {
 	rdb := connectRedis()
 	defer rdb.Close()
 
 	ctx := context.Background()
+
 	var cursor uint64
 
 	for {
@@ -154,22 +162,29 @@ func scanAll(b *Bench) {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		cursor = cur
 
 		// 2) TYPE pipeline
 		pipe := rdb.Pipeline()
 		typeCmds := make([]*redis.StatusCmd, len(keys))
+
 		for i, key := range keys {
 			typeCmds[i] = pipe.Type(ctx, key)
 		}
-		pipe.Exec(ctx)
+
+		if _, err = pipe.Exec(ctx); err != nil {
+			log.Printf("TYPE pipeline error: %v", err)
+		}
 
 		var strKeys, hashKeys []string
+
 		for i, cmd := range typeCmds {
-			t, err := cmd.Result()
-			if err != nil {
-				log.Fatalf("cmd result: %v", err)
+			t, errRes := cmd.Result()
+			if errRes != nil {
+				log.Fatalf("cmd result: %v", errRes)
 			}
+
 			if t == "string" {
 				strKeys = append(strKeys, keys[i])
 			} else if t == "hash" {
@@ -181,14 +196,22 @@ func scanAll(b *Bench) {
 		if len(strKeys) > 0 {
 			pipe = rdb.Pipeline()
 			getCmds := make([]*redis.StringCmd, len(strKeys))
+
 			for i, key := range strKeys {
 				getCmds[i] = pipe.Get(ctx, key)
 			}
-			pipe.Exec(ctx)
+
+			if _, err = pipe.Exec(ctx); err != nil {
+				log.Printf("GET pipeline error: %v", err)
+			}
+
 			for i, cmd := range getCmds {
-				if val, err := cmd.Result(); err == nil {
-					b.Add(len(strKeys[i])+len(val), 1)
+				val, errRes := cmd.Result()
+				if errRes != nil {
+					log.Fatalf("cmd result: %v", errRes)
 				}
+
+				b.Add(len(strKeys[i])+len(val), 1)
 			}
 		}
 
@@ -196,18 +219,28 @@ func scanAll(b *Bench) {
 		if len(hashKeys) > 0 {
 			pipe = rdb.Pipeline()
 			hgetCmds := make([]*redis.MapStringStringCmd, len(hashKeys))
+
 			for i, key := range hashKeys {
 				hgetCmds[i] = pipe.HGetAll(ctx, key)
 			}
-			pipe.Exec(ctx)
+
+			if _, err := pipe.Exec(ctx); err != nil {
+				log.Printf("HGETALL pipeline error: %v", err)
+			}
+
 			for i, cmd := range hgetCmds {
-				if m, err := cmd.Result(); err == nil {
-					total := 0
-					for field, v := range m {
-						total += len(field) + len(v)
-					}
-					b.Add(len(hashKeys[i])+total, 1)
+				m, errRes := cmd.Result()
+				if errRes != nil {
+					log.Fatalf("cmd result: %v", errRes)
 				}
+
+				total := 0
+
+				for field, v := range m {
+					total += len(field) + len(v)
+				}
+
+				b.Add(len(hashKeys[i])+total, 1)
 			}
 		}
 
@@ -225,6 +258,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("bench init: %v", err)
 	}
+
 	bench.Start()
 
 	scanAll(bench)
