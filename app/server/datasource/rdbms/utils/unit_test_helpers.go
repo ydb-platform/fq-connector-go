@@ -123,6 +123,36 @@ func NewNestedValueExpression(val string) *api_service_protos.TExpression {
 	}
 }
 
+func NewTimestampExpression(val uint64) *api_service_protos.TExpression {
+	return &api_service_protos.TExpression{
+		Payload: &api_service_protos.TExpression_TypedValue{
+			TypedValue: &Ydb.TypedValue{
+				Type: common.MakePrimitiveType(Ydb.Type_TIMESTAMP),
+				Value: &Ydb.Value{
+					Value: &Ydb.Value_Uint64Value{
+						Uint64Value: val,
+					},
+				},
+			},
+		},
+	}
+}
+
+func NewStringValueExpression(val string) *api_service_protos.TExpression {
+	return &api_service_protos.TExpression{
+		Payload: &api_service_protos.TExpression_TypedValue{
+			TypedValue: &Ydb.TypedValue{
+				Type: common.MakePrimitiveType(Ydb.Type_STRING),
+				Value: &Ydb.Value{
+					Value: &Ydb.Value_TextValue{
+						TextValue: val,
+					},
+				},
+			},
+		},
+	}
+}
+
 func MakeTestSplit() *api_service_protos.TSplit {
 	return &api_service_protos.TSplit{
 		Select: &api_service_protos.TSelect{

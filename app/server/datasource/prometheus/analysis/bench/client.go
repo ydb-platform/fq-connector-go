@@ -24,6 +24,7 @@ var bodySize = int64(0)
 
 func main() {
 	runtime.GOMAXPROCS(1)
+
 	ctx := context.Background()
 
 	readClient, err := remote.NewReadClient("remote-read-test", &remote.ClientConfig{
@@ -31,6 +32,10 @@ func main() {
 		Timeout:          model.Duration(1000 * time.Second),
 		ChunkedReadLimit: cfg.DefaultChunkedReadLimit,
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	readClient.(*remote.Client).Client = &http.Client{
 		Transport: &Transport{Transport: http.DefaultTransport},
 	}
@@ -40,9 +45,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	now := time.Now()
+
 	pbQuery, err := remote.ToQuery(
-		int64(model.TimeFromUnixNano(time.Now().Add(-48*time.Hour).UnixNano())),
-		int64(model.TimeFromUnixNano(time.Now().UnixNano())),
+		int64(model.TimeFromUnixNano(now.Add(-20*time.Minute).UnixNano())),
+		int64(model.TimeFromUnixNano(now.UnixNano())),
 		matchers,
 		nil,
 	)
@@ -55,6 +62,7 @@ func main() {
 	measureCount := 1.0
 	measureCountInt := int64(measureCount)
 	start := time.Now()
+
 	for range measureCountInt {
 		timeseries, err := readClient.Read(ctx, pbQuery, false)
 		if err != nil {
@@ -62,30 +70,33 @@ func main() {
 		}
 
 		var it chunkenc.Iterator
+
 		for timeseries.Next() {
 			s := timeseries.At()
-			it := s.Iterator(it)
+			l := s.Labels().String()
+			iter := s.Iterator(it)
 
-			//l := s.Labels().String()
-			for vt := it.Next(); vt != chunkenc.ValNone; vt = it.Next() {
+			for vt := iter.Next(); vt != chunkenc.ValNone; vt = iter.Next() {
 				atomic.AddInt64(&metricsCount, 1)
+
 				switch vt {
 				case chunkenc.ValFloat:
-					ts, v := it.At()
+					ts, v := iter.At()
 					vv += float64(ts) + v
-					//fmt.Printf("%s %g %d\n", l, v, ts)
+					fmt.Printf("%s %g %d\n", l, v, ts)
 				case chunkenc.ValHistogram:
-					ts, h := it.AtHistogram(nil)
+					ts, h := iter.AtHistogram(nil)
 					vv += float64(ts) + h.Sum
-					//fmt.Printf("%s %s %d\n", l, h.String(), ts)
+					fmt.Printf("%s %s %d\n", l, h.String(), ts)
 				case chunkenc.ValFloatHistogram:
-					ts, h := it.AtFloatHistogram(nil)
+					ts, h := iter.AtFloatHistogram(nil)
 					vv += float64(ts) + h.Sum
-					//fmt.Printf("%s %s %d\n", l, h.String(), ts)
+					fmt.Printf("%s %s %d\n", l, h.String(), ts)
 				default:
 					panic("unreachable")
 				}
 			}
+
 			if err := timeseries.Err(); err != nil {
 				log.Fatal(err)
 			}
@@ -99,7 +110,11 @@ func main() {
 	fmt.Printf("Metrics count: %d\n", metricsCount/measureCountInt)
 	fmt.Printf("Size: %.3f KB\n", avgSize)
 	fmt.Printf("Avg time: %.5f s\n", avgTime)
-	fmt.Printf("Throughput: %.3f KB/s; %.3f MB/s; %.3f GB/s\n", avgSize/avgTime, (avgSize/1024.0)/avgTime, (avgSize/(1024.0*1024.0))/avgTime)
+	fmt.Printf("Throughput: %.3f KB/s; %.3f MB/s; %.3f GB/s\n",
+		avgSize/avgTime,
+		(avgSize/1024.0)/avgTime,
+		(avgSize/(1024.0*1024.0))/avgTime,
+	)
 }
 
 func mustParseURL(raw string) *url.URL {
@@ -107,6 +122,7 @@ func mustParseURL(raw string) *url.URL {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return u
 }
 
@@ -120,10 +136,11 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		return nil, err
 	}
 
-	body, err := t.cloneBody(res.Body)
+	body, err := cloneBody(res.Body)
 	if err != nil {
 		return nil, err
 	}
+
 	atomic.AddInt64(&bodySize, int64(len(body)))
 
 	res.Body = io.NopCloser(bytes.NewBuffer(body))
@@ -131,7 +148,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, nil
 }
 
-func (t *Transport) cloneBody(body io.ReadCloser) ([]byte, error) {
+func cloneBody(body io.ReadCloser) ([]byte, error) {
 	if body == nil {
 		return nil, nil
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/mongodb"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/opensearch"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/prometheus"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -78,6 +79,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
+<<<<<<< HEAD
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
 		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
@@ -90,6 +92,20 @@ func (dsc *DataSourceCollection) DescribeTable(
 			dsc.converterCollection,
 			dsc.queryLoggerFactory.Make(logger),
 		)
+=======
+	case api_common.EGenericDataSourceKind_PROMETHEUS:
+		prometheusCfg := dsc.cfg.Datasources.Prometheus
+		ds := prometheus.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(prometheusCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(prometheusCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			prometheusCfg,
+			dsc.converterCollection,
+		)
+
+		return ds.DescribeTable(ctx, logger, request)
+>>>>>>> f59c59d (Prometheus: basic support (#267))
 
 		return ds.DescribeTable(ctx, logger, request)
 	default:
@@ -172,6 +188,23 @@ func (dsc *DataSourceCollection) ListSplits(
 			if err := streamer.Run(); err != nil {
 				return fmt.Errorf("run streamer: %w", err)
 			}
+		case api_common.EGenericDataSourceKind_PROMETHEUS:
+			prometheusCfg := dsc.cfg.Datasources.Prometheus
+			ds := prometheus.NewDataSource(
+				&retry.RetrierSet{
+					MakeConnection: retry.NewRetrierFromConfig(prometheusCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+					Query:          retry.NewRetrierFromConfig(prometheusCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+				},
+				prometheusCfg,
+				dsc.converterCollection,
+			)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+
 		default:
 			return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 		}
@@ -240,6 +273,19 @@ func (dsc *DataSourceCollection) ReadSplit(
 			logger,
 			dsc.converterCollection,
 			dsc.queryLoggerFactory.Make(logger),
+		)
+
+		return doReadSplit(
+			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+	case api_common.EGenericDataSourceKind_PROMETHEUS:
+		prometheusCfg := dsc.cfg.Datasources.Prometheus
+		ds := prometheus.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(prometheusCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(prometheusCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			prometheusCfg,
+			dsc.converterCollection,
 		)
 
 		return doReadSplit(
