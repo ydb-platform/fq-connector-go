@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    # No volumes defined for redis
+    # Using default configuration without AOF persistence
+    command: redis-server --requirepass password
+    networks:
+      - redis-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: redis-commander
+    restart: unless-stopped
+    environment:
+      - REDIS_HOSTS=local:redis:6379:0:password
+      - HTTP_USER=admin
+      - HTTP_PASSWORD=password
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - redis-network
+
+networks:
+  redis-network:
+    driver: bridge

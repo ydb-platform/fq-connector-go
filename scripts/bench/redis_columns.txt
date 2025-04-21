@@ -1,0 +1,41 @@
+server_local: {
+    endpoint: {
+        host: "localhost"
+        port: 2130
+    }
+}
+
+data_source_instance {
+    kind: REDIS
+    endpoint {
+        host: "localhost"
+        port: 6379
+    }
+    database: "connector"
+    credentials {
+        basic {
+            username: "default"
+            password: ""
+        }
+    }
+    protocol: NATIVE
+}
+
+table: "key:*"
+
+test_cases: [
+    {
+        columns: [
+            "key",
+            "string_values"
+        ],
+        server_params: {
+            paging: {
+                bytes_per_page: 4194304
+                prefetch_queue_capacity: 2
+            }
+        }
+    }
+]
+
+result_dir: "/Users/gisolomennikov/itmo/diploma/fq-connector-go/scripts/bench/redis/results/columns"
