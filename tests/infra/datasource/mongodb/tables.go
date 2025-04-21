@@ -13,8 +13,8 @@ import (
 
 var memPool memory.Allocator = memory.NewGoAllocator()
 
-var testIdType = common.MakePrimitiveType(Ydb.Type_INT32)
-var objectIdType = common.MakeTaggedType("ObjectId", common.MakePrimitiveType(Ydb.Type_STRING))
+var testIdType = common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32))
+var objectIdType = common.MakePrimitiveType(Ydb.Type_STRING)
 
 var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 	"simple": {
@@ -30,7 +30,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
 			Columns: map[string]any{
-				"_id": []int32{0, 1, 2},
+				"_id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
 				"a":   []*string{ptr.String("jelly"), ptr.String("butter"), ptr.String("toast")},
 				"b":   []*int32{ptr.Int32(2000), ptr.Int32(-20021), ptr.Int32(2076)},
 				"c":   []*int64{ptr.Int64(13), ptr.Int64(0), ptr.Int64(2076)},
@@ -54,7 +54,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
 			Columns: map[string]any{
-				"_id":     []int32{0, 1, 2},
+				"_id":     []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
 				"int32":   []*int32{ptr.Int32(42), ptr.Int32(13), ptr.Int32(15)},
 				"int64":   []*int64{ptr.Int64(23423), ptr.Int64(13), ptr.Int64(15)},
 				"string":  []*string{ptr.String("hello"), ptr.String("hi"), ptr.String("bye")},
@@ -86,7 +86,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
 			Columns: map[string]any{
-				"_id":      []int32{0, 1, 2},
+				"_id":      []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
 				"int32":    []*int32{ptr.Int32(32), ptr.Int32(64), nil},
 				"int64":    []*int64{ptr.Int64(23423), nil, nil},
 				"string":   []*string{ptr.String("outer"), nil, nil},
@@ -112,7 +112,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
 			Columns: map[string]any{
-				"_id": []int32{0, 1},
+				"_id": []*int32{ptr.Int32(0), ptr.Int32(1)},
 				"a":   []*string{ptr.String("32"), ptr.String("42")},
 				"b":   []*string{ptr.String("{foo: 32}"), ptr.String("b")},
 				"c":   []*string{ptr.String("bye"), ptr.String("rKw=")},
@@ -157,8 +157,28 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
 			Columns: map[string]any{
-				"_id":     []int32{2202},
+				"_id":     []*int32{ptr.Int32(2202)},
 				"decimal": []*string{ptr.String("9823.1297")},
+			},
+		}},
+	},
+	"tagged": {
+		Name:                  "object_ids",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":      testIdType,
+				"objectid": common.MakeOptionalType(common.MakeTaggedType("ObjectId", objectIdType)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
+				"objectid": []*[]byte{
+					ptr.T([]byte(string("171e75500ecde1c75c59139e"))),
+					ptr.T([]byte(string("271e75500ecde1c75c59139e"))),
+					ptr.T([]byte(string("371e75500ecde1c75c59139e"))),
+				},
 			},
 		}},
 	},
