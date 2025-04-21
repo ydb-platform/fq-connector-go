@@ -105,7 +105,8 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TGenericData
 	case api_common.EGenericDataSourceKind_DATA_SOURCE_KIND_UNSPECIFIED:
 		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
 	case api_common.EGenericDataSourceKind_LOGGING:
-	case api_common.EGenericDataSourceKind_ORACLE:
+	case api_common.EGenericDataSourceKind_ORACLE,
+		api_common.EGenericDataSourceKind_PROMETHEUS:
 		validators = append(validators, validateEndpoint, validateUseTLS(logger))
 	default:
 		validators = append(validators, validateEndpoint, validateDatabase, validateUseTLS(logger))
@@ -147,7 +148,8 @@ func validateDataSourceOptions(dsi *api_common.TGenericDataSourceInstance) error
 		api_common.EGenericDataSourceKind_YDB,
 		api_common.EGenericDataSourceKind_MYSQL,
 		api_common.EGenericDataSourceKind_MONGO_DB,
-		api_common.EGenericDataSourceKind_REDIS:
+		api_common.EGenericDataSourceKind_REDIS,
+		api_common.EGenericDataSourceKind_PROMETHEUS:
 	default:
 		return fmt.Errorf("unsupported data source %s: %w", dsi.GetKind().String(), common.ErrInvalidRequest)
 	}
