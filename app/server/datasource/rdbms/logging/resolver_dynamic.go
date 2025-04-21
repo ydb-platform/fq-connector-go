@@ -3,7 +3,6 @@ package logging
 import (
 	"crypto/tls"
 	"fmt"
-	"runtime"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -21,20 +20,6 @@ type dynamicResolver struct {
 	cfg    *config.TLoggingConfig
 }
 
-func printStackTrace() {
-	buf := make([]byte, 1024)
-	var n int
-	for {
-		n = runtime.Stack(buf, false)
-		if n < len(buf) {
-			break
-		}
-		buf = make([]byte, 2*len(buf))
-	}
-
-	fmt.Printf("Stack Trace:\n%s\n", string(buf[:n]))
-}
-
 func (r *dynamicResolver) resolve(
 	request *resolveRequest,
 ) (*resolveResponse, error) {
@@ -44,8 +29,6 @@ func (r *dynamicResolver) resolve(
 
 	md := metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", request.credentials.GetToken().GetValue()))
 	ctx := metadata.NewOutgoingContext(request.ctx, md)
-
-	printStackTrace()
 
 	request.logger.Debug(
 		"resolving log group into reading endpoints",

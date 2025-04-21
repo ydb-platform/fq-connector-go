@@ -25,15 +25,15 @@ func (cm *connectionManager) Make(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	switch params.QueryPhase {
-	case rdbms_utils.QueryPhaseDescribeTable:
-		cs, err := cm.makeConnectionToDescribeTable(params)
+	case rdbms_utils.QueryPhaseDescribeTable, rdbms_utils.QueryPhaseListSplits:
+		cs, err := cm.makeConnectionForMetadata(params)
 		if err != nil {
-			return nil, fmt.Errorf("make connection to describe table: %w", err)
+			return nil, fmt.Errorf("make connection for metadata: %w", err)
 		}
 
 		return cs, nil
 	case rdbms_utils.QueryPhaseReadSplits:
-		cs, err := cm.makeConnectionToReadSplit(params)
+		cs, err := cm.makeConnectionForData(params)
 		if err != nil {
 			return nil, fmt.Errorf("make connection to read split: %w", err)
 		}
@@ -44,7 +44,7 @@ func (cm *connectionManager) Make(
 	}
 }
 
-func (cm *connectionManager) makeConnectionToDescribeTable(
+func (cm *connectionManager) makeConnectionForMetadata(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	// Turn log group name into physical YDB endpoints
@@ -88,7 +88,7 @@ func (cm *connectionManager) makeConnectionToDescribeTable(
 	return cs, nil
 }
 
-func (cm *connectionManager) makeConnectionToReadSplit(
+func (cm *connectionManager) makeConnectionForData(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	// Deserialize split description
