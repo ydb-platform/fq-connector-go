@@ -158,7 +158,7 @@ func (r *metricsReader) accept(l labels.Labels, timestamp int64, val float64) er
 		case *string:
 			labelValue := l.Get(f.Name)
 			if labelValue == "" {
-				a = nil
+				acceptors[i] = nil
 				continue
 			}
 
