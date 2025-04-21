@@ -142,3 +142,47 @@ Spark также использует Storage API; и поддерживает p
 
 Для Spark подготовлен пример использования с источником BigQuery: 
 [github.com/vladDotH/bigquery-examples/tree/main/spark](https://github.com/vladDotH/bigquery-examples/tree/main/spark)
+
+## Реализация коннектора в YDB
+
+Возможные варианты для реалзиации:
+- Использовать REST API и SQL-запросы
+- Использовать gRPC Storage API
+
+В обоих случаях можно получить схему (Google SQL или Arrow) для вывода типов.
+Storage API позволяет читать данные в нескольких потоках (по разным колонкам), но не поддерживает сложные операции по типу группировок,
+а только простую фильтрацию (where условия).
+
+Первоначальные шаги реализации:
+1. Получение схемы
+2. Получение данных (если из Storage API то в одном стриме)
+3. Поддержка примитивных типов
+4. Пушдаун предикатов в фильтры
+
+Дополнительные возможные действия:
+1. Поддержка составных типов
+2. Распараллелить стримы Storage API для получения данных
+
+
+Маппинг типов:
+
+| BigQuery    | YDB/YQL                              | Arrow                   |
+| ----------- | ------------------------------------ | ----------------------- |
+| Array<T>    | List<T>                              | List<T>                 |
+| Boolean     | Bool                                 | Bool                    |
+| Bytes       | String                               | Binary                  |
+| Date        | Date                                 | Date                    |
+| Datetime    | Datetime                             | Timestamp               |
+| GEOGRAPHY   | String                               | Utf8                    |
+| INTERVAL    | Interval                             | INTERVAL_MONTH_DAY_NANO |
+| JSON        | JSON                                 | Utf8                    |
+| INT64       | Int64                                | Int64                   |
+| NUMERIC     | Decimal                              | Decimal                 |
+| BIGNUMERIC  | Decimal                              | Decimal256              |
+| FLOAT64     | Double                               | Double                  |
+| RANGE<T>    | Tuple<T,T> or Struct<start:T, end:T> | Struct<start T, end T>  |
+| STRING      | Utf8                                 | Utf8                    |
+| STRUCT<k V> | Structure<k:V>                       | Struct                  |
+| TIME        | Timestamp                            | TIME64                  |
+| TIMESTAMP   | Timestamp                            | Timestamp               |
+
