@@ -68,6 +68,11 @@ Trino поддерживает [следующие операции](https://tri
 8. [DROP SCHEMA](https://trino.io/docs/current/sql/drop-schema.html)
 9. [COMMENT](https://trino.io/docs/current/sql/comment.html)
 
+#### Использование
+
+Для Trino подготовлен пример использования источника BigQuery: 
+[github.com/vladDotH/bigquery-examples/tree/main/trino](https://github.com/vladDotH/bigquery-examples/tree/main/trino)
+
 ### Amazon [Athena](https://docs.aws.amazon.com/athena/latest/ug/connectors-bigquery.html)
 
 Athena использует только Arrow схему для чтения типов [BigQueryRowReader.java#L54](https://github.com/awslabs/aws-athena-query-federation/blob/master/athena-google-bigquery/src/main/java/com/amazonaws/athena/connectors/google/bigquery/BigQueryRowReader.java#L54).
@@ -108,7 +113,32 @@ Apache Doris решает проблему проще и напрямую исп
 | TIMESTAMP  | DATETIME     |
 | GEOGRAPHY  | STRING       |
 | ARRAY      | ARRAY        |
-| MAP        | MAP          |
 | RECORD     | STRUCT       |
 
 
+### Apache [Spark](https://spark.apache.org/docs/latest/)
+
+Spark поддерживает BigQuery в качестве источника для [Spark SQL Datasource API](https://spark.apache.org/docs/latest/sql-programming-guide.html#data-sources).
+Spark также использует Storage API; и поддерживает pushdown предикатов.
+
+Маппинг типов для Spark:
+| BigQuery                 | Spark                              |
+| ------------------------ | ---------------------------------- |
+| BOOLEAN                  | BooleanType                        |
+| INT64                    | LongType                           |
+| FLOAT64                  | DoubleType                         |
+| NUMERIC                  | DecimalType                        |
+| BIGNUMERIC               | DecimalType                        |
+| STRING                   | StringType                         |
+| BYTES                    | BinaryType                         |
+| DATE                     | DateType                           |
+| DATETIME                 | StringType, TimestampNTZType       |
+| TIME                     | LongType, StringType*              |
+| TIMESTAMP                | TimestampType                      |
+| ARRAY                    | ArrayType                          |
+| STRUCT                   | StructType                         |
+| JSON                     | StringType                         |
+| ARRAY<STRUCT<key,value>> | MapType (BigQuery has no Map type) |
+
+Для Spark подготовлен пример использования с источником BigQuery: 
+[github.com/vladDotH/bigquery-examples/tree/main/spark](https://github.com/vladDotH/bigquery-examples/tree/main/spark)
