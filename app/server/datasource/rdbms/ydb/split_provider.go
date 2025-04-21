@@ -43,7 +43,7 @@ func (s SplitProvider) ListSplits(
 				Logger:             logger,
 				DataSourceInstance: slct.GetDataSourceInstance(),
 				TableName:          slct.GetFrom().GetTable(),
-				MaxConnections:     1, // single connection is enough to get metadata
+				QueryPhase:         rdbms_utils.QueryPhaseListSplits,
 			}
 
 			cs, makeConnErr = params.ConnectionManager.Make(makeConnectionParams)

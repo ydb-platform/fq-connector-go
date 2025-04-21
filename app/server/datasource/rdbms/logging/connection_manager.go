@@ -24,31 +24,24 @@ type connectionManager struct {
 func (cm *connectionManager) Make(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
-	// This method is called in two different contexts:
-	// 1. When YDB wants to get a table description (DescribeTable phase).
-	if params.Split == nil && params.MaxConnections == 1 {
-		fmt.Println(">> CRAB 1 <<")
+	switch params.QueryPhase {
+	case rdbms_utils.QueryPhaseDescribeTable:
 		cs, err := cm.makeConnectionToDescribeTable(params)
 		if err != nil {
 			return nil, fmt.Errorf("make connection to describe table: %w", err)
 		}
 
 		return cs, nil
-	}
-
-	// 2. When YDB wants to get data from the particular database
-	// according to the split description (ReadSplits phase).
-	if params.Split != nil {
-		fmt.Println(">> CRAB 2 <<")
+	case rdbms_utils.QueryPhaseReadSplits:
 		cs, err := cm.makeConnectionToReadSplit(params)
 		if err != nil {
 			return nil, fmt.Errorf("make connection to read split: %w", err)
 		}
 
 		return cs, nil
+	default:
+		return nil, fmt.Errorf("unknown query phase: %v", params.QueryPhase)
 	}
-
-	return nil, fmt.Errorf("unknown connection making strategy")
 }
 
 func (cm *connectionManager) makeConnectionToDescribeTable(

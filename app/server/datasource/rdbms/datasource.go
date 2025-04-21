@@ -54,7 +54,7 @@ func (ds *dataSourceImpl) DescribeTable(
 				Logger:             logger,
 				DataSourceInstance: request.DataSourceInstance,
 				TableName:          request.Table,
-				MaxConnections:     1, // single connection is enough to get metadata
+				QueryPhase:         rdbms_utils.QueryPhaseDescribeTable,
 			}
 
 			cs, makeConnErr = ds.connectionManager.Make(params)
@@ -128,6 +128,7 @@ func (ds *dataSourceImpl) ReadSplit(
 				DataSourceInstance: split.Select.DataSourceInstance,
 				TableName:          split.Select.From.Table,
 				Split:              split,
+				QueryPhase:         rdbms_utils.QueryPhaseReadSplits,
 			}
 
 			cs, makeConnErr = ds.connectionManager.Make(params)

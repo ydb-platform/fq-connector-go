@@ -35,7 +35,7 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 		Ctx:                ctx,
 		Logger:             preset.Logger,
 		DataSourceInstance: preset.Cfg.DataSourceInstance,
-		MaxConnections:     1,
+		QueryPhase:         rdbms_utils.QueryPhaseReadSplits,
 	})
 
 	if err != nil {
