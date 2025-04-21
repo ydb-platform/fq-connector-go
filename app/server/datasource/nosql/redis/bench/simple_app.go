@@ -135,6 +135,9 @@ func connectRedis() *redis.Client {
 		DB:           0,
 		PoolSize:     50,
 		MinIdleConns: 10,
+		DialTimeout:  60 * time.Second, // время на TCP‑connect + AUTH
+		ReadTimeout:  60 * time.Second, // 0 => ждать ответ сколько угодно
+		WriteTimeout: 60 * time.Second, // 0 => ждать пока пакет отправится
 	})
 }
 
@@ -159,15 +162,13 @@ func scanAll(b *Bench) {
 		for i, key := range keys {
 			typeCmds[i] = pipe.Type(ctx, key)
 		}
-		if _, err := pipe.Exec(ctx); err != nil {
-			log.Printf("TYPE pipeline error: %v", err)
-		}
+		pipe.Exec(ctx)
 
 		var strKeys, hashKeys []string
 		for i, cmd := range typeCmds {
 			t, err := cmd.Result()
 			if err != nil {
-				continue
+				log.Fatalf("cmd result: %v", err)
 			}
 			if t == "string" {
 				strKeys = append(strKeys, keys[i])
@@ -183,9 +184,7 @@ func scanAll(b *Bench) {
 			for i, key := range strKeys {
 				getCmds[i] = pipe.Get(ctx, key)
 			}
-			if _, err := pipe.Exec(ctx); err != nil {
-				log.Printf("GET pipeline error: %v", err)
-			}
+			pipe.Exec(ctx)
 			for i, cmd := range getCmds {
 				if val, err := cmd.Result(); err == nil {
 					b.Add(len(strKeys[i])+len(val), 1)
@@ -200,9 +199,7 @@ func scanAll(b *Bench) {
 			for i, key := range hashKeys {
 				hgetCmds[i] = pipe.HGetAll(ctx, key)
 			}
-			if _, err := pipe.Exec(ctx); err != nil {
-				log.Printf("HGETALL pipeline error: %v", err)
-			}
+			pipe.Exec(ctx)
 			for i, cmd := range hgetCmds {
 				if m, err := cmd.Result(); err == nil {
 					total := 0

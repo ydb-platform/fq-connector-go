@@ -14,5 +14,5 @@ const (
 	StringColumnName = "string_values"
 	HashColumnName   = "hash_values"
 
-	scanBatchSize = 100
+	scanBatchSize = 100000
 )
