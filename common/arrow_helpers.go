@@ -102,9 +102,24 @@ func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (
 		if err != nil {
 			return nil, fmt.Errorf("tagged YDB type to Arrow builder: %w", err)
 		}
+	case *Ydb.Type_StructType:
+		fields := make([]arrow.Field, 0, len(t.StructType.Members))
+
+		for _, member := range t.StructType.Members {
+			field, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
+			if err != nil {
+				return nil, fmt.Errorf("map YDB type to Arrow field for struct member %s: %w", member.Name, err)
+			}
+
+			field.Nullable = true
+			fields = append(fields, field)
+		}
+
+		structType := arrow.StructOf(fields...)
+		builder = array.NewStructBuilder(arrowAllocator, structType)
 	default:
 		err := fmt.Errorf(
-			"only primitive, optional and tagged types are supported, got '%T' instead: %w",
+			"only primitive, optional, tagged and struct types are supported, got '%T' instead: %w",
 			t, ErrDataTypeNotSupported,
 		)
 
@@ -201,9 +216,27 @@ func ydbTypeToArrowField(ydbType *Ydb.Type, column *Ydb.Column) (arrow.Field, er
 		if err != nil {
 			return arrow.Field{}, fmt.Errorf("tagged YDB type to arrow field: %w", err)
 		}
+	case *Ydb.Type_StructType:
+		fields := make([]arrow.Field, 0, len(t.StructType.Members))
+
+		for _, member := range t.StructType.Members {
+			innerfield, err := ydbTypeToArrowField(member.Type, &Ydb.Column{Name: member.Name})
+			if err != nil {
+				return arrow.Field{}, fmt.Errorf("map YDB type to Arrow field for struct member %s: %w", member.Name, err)
+			}
+
+			innerfield.Nullable = true
+			fields = append(fields, innerfield)
+		}
+
+		field = arrow.Field{
+			Name:     column.Name,
+			Type:     arrow.StructOf(fields...),
+			Nullable: true,
+		}
 	default:
 		err := fmt.Errorf(
-			"only primitive, optional and tagged types are supported, got '%T' instead: %w",
+			"only primitive, optional, tagged and struct types are supported, got '%T' instead: %w",
 			t, ErrDataTypeNotSupported,
 		)
 
