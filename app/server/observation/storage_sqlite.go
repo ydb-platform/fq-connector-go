@@ -572,6 +572,10 @@ func newStorageSQLite(cfg *config.TObservationConfig_TStorage_TSQLite) (Storage,
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
 
+	db.SetMaxOpenConns(1) // Limit to 1 connection for SQLite
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(time.Hour)
+
 	// Set pragmas for better performance
 	pragmas := []string{
 		"PRAGMA journal_mode=WAL",
@@ -579,6 +583,7 @@ func newStorageSQLite(cfg *config.TObservationConfig_TStorage_TSQLite) (Storage,
 		"PRAGMA cache_size=5000",
 		"PRAGMA temp_store=MEMORY",
 		"PRAGMA mmap_size=30000000000",
+		"PRAGMA busy_timeout=5000",
 	}
 
 	for _, pragma := range pragmas {
