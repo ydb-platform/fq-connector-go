@@ -11,6 +11,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -35,6 +36,7 @@ type dataSourceImpl struct {
 	splitProvider       rdbms_utils.SplitProvider
 	retrierSet          *retry.RetrierSet
 	converterCollection conversion.Collection
+	observationStorage  observation.Storage
 	logger              *zap.Logger
 }
 
@@ -109,6 +111,7 @@ func (ds *dataSourceImpl) ListSplits(
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
+	queryID observation.IncomingQueryID,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
@@ -261,6 +264,7 @@ func NewDataSource(
 	logger *zap.Logger,
 	preset *Preset,
 	converterCollection conversion.Collection,
+	observationStorage observation.Storage,
 ) datasource.DataSource[any] {
 	return &dataSourceImpl{
 		logger:              logger,

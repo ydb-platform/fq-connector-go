@@ -30,7 +30,6 @@ type serviceConnector struct {
 	cfg                  *config.TServerConfig
 	grpcServer           *grpc.Server
 	listener             net.Listener
-	observationStorage   observation.Storage
 	logger               *zap.Logger
 }
 
@@ -170,7 +169,6 @@ func (s *serviceConnector) doReadSplits(
 			stream,
 			request,
 			split,
-			s.observationStorage,
 		)
 
 		if err != nil {
@@ -279,6 +277,7 @@ func newServiceConnector(
 		memory.DefaultAllocator,
 		paging.NewReadLimiterFactory(cfg.ReadLimit),
 		conversion.NewCollection(cfg.Conversion),
+		observationStorage,
 		cfg,
 	)
 	if err != nil {
@@ -290,7 +289,6 @@ func newServiceConnector(
 		logger:               logger,
 		grpcServer:           grpcServer,
 		listener:             listener,
-		observationStorage:   observationStorage,
 		cfg:                  cfg,
 	}
 

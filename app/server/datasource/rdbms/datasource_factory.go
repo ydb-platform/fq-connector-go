@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -25,16 +26,18 @@ import (
 var _ datasource.Factory[any] = (*dataSourceFactory)(nil)
 
 type dataSourceFactory struct {
-	clickhouse          Preset
-	postgresql          Preset
-	ydb                 Preset
-	msSQLServer         Preset
-	mysql               Preset
-	greenplum           Preset
-	oracle              Preset
-	logging             Preset
-	converterCollection conversion.Collection
+	clickhouse  Preset
+	postgresql  Preset
+	ydb         Preset
+	msSQLServer Preset
+	mysql       Preset
+	greenplum   Preset
+	oracle      Preset
+	logging     Preset
+
+	observationStorage  observation.Storage
 	loggingResolver     logging.Resolver
+	converterCollection conversion.Collection
 }
 
 func (dsf *dataSourceFactory) Make(
@@ -43,21 +46,21 @@ func (dsf *dataSourceFactory) Make(
 ) (datasource.DataSource[any], error) {
 	switch dataSourceType {
 	case api_common.EGenericDataSourceKind_CLICKHOUSE:
-		return NewDataSource(logger, &dsf.clickhouse, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.clickhouse, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_POSTGRESQL:
-		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.postgresql, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_YDB:
-		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.ydb, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_MS_SQL_SERVER:
-		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.msSQLServer, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_MYSQL:
-		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.mysql, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_GREENPLUM:
-		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.greenplum, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_ORACLE:
-		return NewDataSource(logger, &dsf.oracle, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.oracle, dsf.converterCollection, dsf.observationStorage), nil
 	case api_common.EGenericDataSourceKind_LOGGING:
-		return NewDataSource(logger, &dsf.logging, dsf.converterCollection), nil
+		return NewDataSource(logger, &dsf.logging, dsf.converterCollection, dsf.observationStorage), nil
 	default:
 		return nil, fmt.Errorf("pick handler for data source type '%v': %w", dataSourceType, common.ErrDataSourceNotSupported)
 	}
@@ -75,6 +78,7 @@ func NewDataSourceFactory(
 	cfg *config.TDatasourcesConfig,
 	qlf common.QueryLoggerFactory,
 	converterCollection conversion.Collection,
+	observationStorage observation.Storage,
 ) (datasource.Factory[any], error) {
 	connManagerBase := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
