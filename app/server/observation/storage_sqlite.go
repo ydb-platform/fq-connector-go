@@ -10,6 +10,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
+	"go.uber.org/zap"
 )
 
 var _ Storage = (*storageSQLite)(nil)
@@ -214,7 +215,13 @@ func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int
 }
 
 // CreateOutgoingQuery creates a new outgoing query associated with an incoming query
-func (s *storageSQLite) CreateOutgoingQuery(incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText, queryArgs string) (OutgoingQueryID, error) {
+func (s *storageSQLite) CreateOutgoingQuery(
+	logger *zap.Logger,
+	incomingQueryID IncomingQueryID,
+	dsi *api_common.TGenericDataSourceInstance,
+	queryText string,
+	queryArgs []any,
+) (OutgoingQueryID, error) {
 	// Start a transaction
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -224,8 +231,7 @@ func (s *storageSQLite) CreateOutgoingQuery(incomingQueryID IncomingQueryID, dsi
 	// Define a function to rollback if needed
 	rollback := func() {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			// Just log rollback errors, can't do much about them
-			fmt.Printf("rollback error: %v\n", rbErr)
+			logger.Error("tx rollback", zap.Error(err))
 		}
 	}
 
@@ -247,7 +253,7 @@ func (s *storageSQLite) CreateOutgoingQuery(incomingQueryID IncomingQueryID, dsi
 		DatabaseName:     dsi.Database,
 		DatabaseEndpoint: common.EndpointToString(dsi.Endpoint),
 		QueryText:        queryText,
-		QueryArgs:        queryArgs,
+		QueryArgs:        fmt.Sprint(queryArgs),
 		CreatedAt:        time.Now().UTC(),
 		State:            QueryStateRunning,
 	}
