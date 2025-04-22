@@ -178,8 +178,8 @@ func (s *serviceConnector) doReadSplits(
 	return logger, nil
 }
 
-func (s *serviceConnector) start() error {
-	s.logger.Debug("starting GRPC server", zap.String("address", s.listener.Addr().String()))
+func (s *serviceConnector) Start() error {
+	s.logger.Info("starting GRPC server", zap.String("address", s.listener.Addr().String()))
 
 	if err := s.grpcServer.Serve(s.listener); err != nil {
 		return fmt.Errorf("listener serve: %w", err)
@@ -231,7 +231,7 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 	return opts, nil
 }
 
-func (s *serviceConnector) stop() {
+func (s *serviceConnector) Stop() {
 	s.grpcServer.GracefulStop()
 	common.LogCloserError(s.logger, s.dataSourceCollection, "closing data source collection")
 }
@@ -240,7 +240,7 @@ func newServiceConnector(
 	logger *zap.Logger,
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
-) (service, error) {
+) (utils.Service, error) {
 	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
 	// TODO: drop deprecated fields after YQ-2057

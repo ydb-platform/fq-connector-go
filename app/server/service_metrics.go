@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
@@ -18,8 +19,8 @@ type serviceMetrics struct {
 	registry   *solomon.Registry
 }
 
-func (s *serviceMetrics) start() error {
-	s.logger.Debug("starting HTTP metrics server", zap.String("address", s.httpServer.Addr))
+func (s *serviceMetrics) Start() error {
+	s.logger.Info("starting HTTP server", zap.String("address", s.httpServer.Addr))
 
 	if err := s.httpServer.ListenAndServe(); err != nil {
 		return fmt.Errorf("http metrics server listen and serve: %w", err)
@@ -28,7 +29,7 @@ func (s *serviceMetrics) start() error {
 	return nil
 }
 
-func (s *serviceMetrics) stop() {
+func (s *serviceMetrics) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
@@ -38,7 +39,10 @@ func (s *serviceMetrics) stop() {
 	}
 }
 
-func newServiceMetrics(logger *zap.Logger, cfg *config.TMetricsServerConfig, registry *solomon.Registry) service {
+func newServiceMetrics(
+	logger *zap.Logger,
+	cfg *config.TMetricsServerConfig,
+	registry *solomon.Registry) utils.Service {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", NewHTTPPullerHandler(logger, registry, WithSpack()))
 

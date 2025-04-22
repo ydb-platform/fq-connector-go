@@ -7,6 +7,9 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 // QueryState represents the possible states of a query
@@ -18,65 +21,16 @@ const (
 	QueryStateCancelled QueryState = "cancelled"
 )
 
-// Query represents a database query and its metadata
-type Query struct {
-	ID               uint64     `json:"id"`
-	DatabaseName     string     `json:"database_name"`
-	DatabaseEndpoint string     `json:"database_endpoint"`
-	DataSourceKind   string     `json:"data_source_kind"`
-	QueryText        string     `json:"query_text"`
-	QueryArgs        string     `json:"query_args"`
-	CreatedAt        time.Time  `json:"created_at"`
-	FinishedAt       *time.Time `json:"finished_at,omitempty"`
-	RowsRead         int64      `json:"rows_read"`
-	BytesRead        int64      `json:"bytes_read"`
-	State            QueryState `json:"state"`
-	Error            string     `json:"error,omitempty"`
-}
+var _ Storage = (*storageSQLite)(nil)
 
-// QueryStorage handles storing and retrieving query data
-type QueryStorage struct {
+// storageSQLite handles storing and retrieving query data
+type storageSQLite struct {
 	db   *sql.DB
 	path string
 }
 
-// NewQueryStorage creates a new QueryStorage instance
-func NewQueryStorage(dbPath string) (*QueryStorage, error) {
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		return nil, fmt.Errorf("opening SQLite database: %w", err)
-	}
-
-	// Set pragmas for better performance
-	pragmas := []string{
-		"PRAGMA journal_mode=WAL",
-		"PRAGMA synchronous=NORMAL",
-		"PRAGMA cache_size=5000",
-		"PRAGMA temp_store=MEMORY",
-		"PRAGMA mmap_size=30000000000",
-	}
-
-	for _, pragma := range pragmas {
-		if _, err := db.Exec(pragma); err != nil {
-			return nil, fmt.Errorf("setting pragma %s: %w", pragma, err)
-		}
-	}
-
-	storage := &QueryStorage{
-		db:   db,
-		path: dbPath,
-	}
-
-	if err := storage.initialize(); err != nil {
-		db.Close()
-		return nil, err
-	}
-
-	return storage, nil
-}
-
 // initialize creates the necessary tables if they don't exist
-func (s *QueryStorage) initialize() error {
+func (s *storageSQLite) initialize() error {
 	// Create the queries table
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS queries (
@@ -111,7 +65,7 @@ func (s *QueryStorage) initialize() error {
 }
 
 // Close closes the database connection
-func (s *QueryStorage) Close() error {
+func (s *storageSQLite) Close() error {
 	if s.db != nil {
 		return s.db.Close()
 	}
@@ -119,11 +73,11 @@ func (s *QueryStorage) Close() error {
 }
 
 // CreateQuery creates a new query record with auto-generated ID
-func (s *QueryStorage) CreateQuery(dbName, dbEndpoint, dataSourceKind string) (*Query, error) {
+func (s *storageSQLite) CreateQuery(dsi *api_common.TGenericDataSourceInstance) (QueryID, error) {
 	query := &Query{
-		DatabaseName:     dbName,
-		DatabaseEndpoint: dbEndpoint,
-		DataSourceKind:   dataSourceKind,
+		DatabaseName:     dsi.Database,
+		DatabaseEndpoint: common.EndpointToString(dsi.Endpoint),
+		DataSourceKind:   dsi.Kind.String(),
 		CreatedAt:        time.Now().UTC(),
 		RowsRead:         0,
 		BytesRead:        0,
@@ -135,21 +89,21 @@ func (s *QueryStorage) CreateQuery(dbName, dbEndpoint, dataSourceKind string) (*
 		query.DatabaseName, query.DatabaseEndpoint, query.DataSourceKind, query.CreatedAt, query.RowsRead, query.BytesRead, string(query.State),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("creating query: %w", err)
+		return 0, fmt.Errorf("creating query: %w", err)
 	}
 
 	// Get the auto-generated ID
 	id, err := result.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("retrieving generated ID: %w", err)
+		return 0, fmt.Errorf("retrieving generated ID: %w", err)
 	}
-	query.ID = uint64(id)
+	query.ID = QueryID(id)
 
-	return query, nil
+	return query.ID, nil
 }
 
 // SetQueryDetails sets the query text and arguments
-func (s *QueryStorage) SetQueryDetails(id uint64, queryText, queryArgs string) error {
+func (s *storageSQLite) SetQueryDetails(id QueryID, queryText, queryArgs string) error {
 	result, err := s.db.Exec(
 		"UPDATE queries SET query_text = ?, query_args = ? WHERE id = ?",
 		queryText, queryArgs, id,
@@ -171,7 +125,7 @@ func (s *QueryStorage) SetQueryDetails(id uint64, queryText, queryArgs string) e
 }
 
 // GetQuery retrieves a query by its ID
-func (s *QueryStorage) GetQuery(id uint64) (*Query, error) {
+func (s *storageSQLite) GetQuery(id QueryID) (*Query, error) {
 	var query Query
 	var finishedAt sql.NullTime
 	var queryText, queryArgs, errorMsg sql.NullString
@@ -214,7 +168,7 @@ func (s *QueryStorage) GetQuery(id uint64) (*Query, error) {
 }
 
 // ListQueries retrieves a list of queries with optional filtering
-func (s *QueryStorage) ListQueries(state *QueryState, limit, offset int) ([]*Query, error) {
+func (s *storageSQLite) ListQueries(state *QueryState, limit, offset int) ([]*Query, error) {
 	var querySQL string
 	var args []interface{}
 
@@ -279,7 +233,7 @@ func (s *QueryStorage) ListQueries(state *QueryState, limit, offset int) ([]*Que
 }
 
 // UpdateQueryProgress updates the number of rows and bytes read for a query
-func (s *QueryStorage) UpdateQueryProgress(id uint64, rowsRead, bytesRead int64) error {
+func (s *storageSQLite) UpdateQueryProgress(id QueryID, rowsRead, bytesRead int64) error {
 	result, err := s.db.Exec(
 		"UPDATE queries SET rows_read = ?, bytes_read = ? WHERE id = ?",
 		rowsRead, bytesRead, id,
@@ -301,7 +255,7 @@ func (s *QueryStorage) UpdateQueryProgress(id uint64, rowsRead, bytesRead int64)
 }
 
 // FinishQuery marks a query as finished
-func (s *QueryStorage) FinishQuery(id uint64, rowsRead, bytesRead int64) error {
+func (s *storageSQLite) FinishQuery(id QueryID, rowsRead, bytesRead int64) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -325,7 +279,7 @@ func (s *QueryStorage) FinishQuery(id uint64, rowsRead, bytesRead int64) error {
 }
 
 // CancelQuery marks a query as cancelled with error message and resource usage data
-func (s *QueryStorage) CancelQuery(id uint64, errorMsg string, rowsRead, bytesRead int64) error {
+func (s *storageSQLite) CancelQuery(id QueryID, errorMsg string, rowsRead, bytesRead int64) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -349,7 +303,7 @@ func (s *QueryStorage) CancelQuery(id uint64, errorMsg string, rowsRead, bytesRe
 }
 
 // DeleteQuery removes a query from the database
-func (s *QueryStorage) DeleteQuery(id uint64) error {
+func (s *storageSQLite) DeleteQuery(id QueryID) error {
 	result, err := s.db.Exec("DELETE FROM queries WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("deleting query: %w", err)
@@ -368,13 +322,13 @@ func (s *QueryStorage) DeleteQuery(id uint64) error {
 }
 
 // GetRunningQueries gets all queries that are currently running
-func (s *QueryStorage) GetRunningQueries() ([]*Query, error) {
+func (s *storageSQLite) GetRunningQueries() ([]*Query, error) {
 	state := QueryStateRunning
 	return s.ListQueries(&state, 1000, 0)
 }
 
 // FindSimilarQueriesWithDifferentUsage finds groups of queries with identical text and args but different resource usage
-func (s *QueryStorage) FindSimilarQueriesWithDifferentUsage() ([][]*Query, error) {
+func (s *storageSQLite) FindSimilarQueriesWithDifferentUsage() ([][]*Query, error) {
 	// First, find groups of queries with the same text and args
 	findSimilarSQL := `
 	WITH query_groups AS (
@@ -496,4 +450,39 @@ func (s *QueryStorage) FindSimilarQueriesWithDifferentUsage() ([][]*Query, error
 	}
 
 	return result, nil
+}
+
+// newStorageSQLite creates a new QueryStorage instance
+func newStorageSQLite(cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
+	db, err := sql.Open("sqlite3", cfg.Path)
+	if err != nil {
+		return nil, fmt.Errorf("opening SQLite database: %w", err)
+	}
+
+	// Set pragmas for better performance
+	pragmas := []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA synchronous=NORMAL",
+		"PRAGMA cache_size=5000",
+		"PRAGMA temp_store=MEMORY",
+		"PRAGMA mmap_size=30000000000",
+	}
+
+	for _, pragma := range pragmas {
+		if _, err := db.Exec(pragma); err != nil {
+			return nil, fmt.Errorf("setting pragma %s: %w", pragma, err)
+		}
+	}
+
+	storage := &storageSQLite{
+		db:   db,
+		path: cfg.Path,
+	}
+
+	if err := storage.initialize(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("initialize: %w", err)
+	}
+
+	return storage, nil
 }

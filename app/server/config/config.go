@@ -274,6 +274,10 @@ func validateServerConfig(c *config.TServerConfig) error {
 		return fmt.Errorf("validate `datasources`: %w", err)
 	}
 
+	if err := validateObservationConfig(c.Observation); err != nil {
+		return fmt.Errorf("validate `observation`: %w", err)
+	}
+
 	return nil
 }
 
@@ -593,6 +597,48 @@ func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
 
 	if _, err := common.DurationFromString(c.MaxElapsedTime); err != nil {
 		return fmt.Errorf("validate `max_elapsed_time`: %v", err)
+	}
+
+	return nil
+}
+
+func validateObservationConfig(c *config.TObservationConfig) error {
+	if c == nil {
+		return nil
+	}
+
+	if err := validateObservationServerConfig(c.Server); err != nil {
+		return fmt.Errorf("validate `server`: %w", err)
+	}
+
+	if err := validateObservationStorageConfig(c.Storage); err != nil {
+		return fmt.Errorf("validate `storage`: %w", err)
+	}
+
+	return nil
+}
+
+func validateObservationServerConfig(c *config.TObservationConfig_TServer) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if err := validateEndpoint(c.Endpoint); err != nil {
+		return fmt.Errorf("validate `endpoint`: %w", err)
+	}
+
+	return nil
+}
+
+func validateObservationStorageConfig(c *config.TObservationConfig_TStorage) error {
+	if c == nil {
+		return fmt.Errorf("required section is missing")
+	}
+
+	if storage := c.GetSqlite(); storage != nil {
+		if storage.Path == "" {
+			return fmt.Errorf("empty `sqlite.path`")
+		}
 	}
 
 	return nil
