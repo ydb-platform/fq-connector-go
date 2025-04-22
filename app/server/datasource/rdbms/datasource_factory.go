@@ -215,5 +215,7 @@ func NewDataSourceFactory(
 		},
 	}
 
+	dsf.observationStorage = observationStorage
+
 	return dsf, nil
 }

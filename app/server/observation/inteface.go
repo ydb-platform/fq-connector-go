@@ -3,9 +3,10 @@ package observation
 import (
 	"time"
 
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"go.uber.org/zap"
 )
 
 type IncomingQueryID uint64
@@ -17,19 +18,19 @@ type QueryState string
 const (
 	QueryStateRunning   QueryState = "running"
 	QueryStateFinished  QueryState = "finished"
-	QueryStateCancelled QueryState = "cancelled"
+	QueryStateCancelled QueryState = "canceled"
 )
 
 // IncomingQuery represents an incoming query
 type IncomingQuery struct {
-	ID             IncomingQueryID                   `json:"id"`
-	DataSourceKind api_common.EGenericDataSourceKind `json:"data_source_kind"`
-	RowsRead       int64                             `json:"rows_read"`
-	BytesRead      int64                             `json:"bytes_read"`
-	State          QueryState                        `json:"state"`
-	CreatedAt      time.Time                         `json:"created_at"`
-	FinishedAt     *time.Time                        `json:"finished_at,omitempty"`
-	Error          string                            `json:"error,omitempty"`
+	ID             IncomingQueryID `json:"id"`
+	DataSourceKind string          `json:"data_source_kind"`
+	RowsRead       int64           `json:"rows_read"`
+	BytesRead      int64           `json:"bytes_read"`
+	State          QueryState      `json:"state"`
+	CreatedAt      time.Time       `json:"created_at"`
+	FinishedAt     *time.Time      `json:"finished_at,omitempty"`
+	Error          string          `json:"error,omitempty"`
 }
 
 // OutgoingQuery represents an outgoing query to a data source
@@ -55,7 +56,7 @@ type Storage interface {
 	ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error)
 
 	// Outgoing query operations
-	CreateOutgoingQuery(logger *zap.Logger, incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText string, queryArgs []interface{}) (OutgoingQueryID, error)
+	CreateOutgoingQuery(logger *zap.Logger, incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText string, queryArgs []any) (OutgoingQueryID, error)
 	FinishOutgoingQuery(id OutgoingQueryID) error
 	CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error
 	ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error)

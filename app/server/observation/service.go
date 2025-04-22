@@ -10,10 +10,11 @@ import (
 	"strconv"
 	"time"
 
+	"go.uber.org/zap"
+
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"go.uber.org/zap"
 )
 
 var _ utils.Service = (*serviceImpl)(nil)
@@ -420,7 +421,7 @@ func (s *serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.R
         .state-finished {
             color: green;
         }
-        .state-cancelled {
+        .state-canceled {
             color: red;
         }
     </style>
@@ -701,7 +702,7 @@ func (s *serviceImpl) renderOutgoingQueriesHTML(w http.ResponseWriter, r *http.R
         .state-finished {
             color: green;
         }
-        .state-cancelled {
+        .state-canceled {
             color: red;
         }
         .query-text {
