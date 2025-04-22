@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -52,7 +53,7 @@ func (s *serviceImpl) Stop() {
 	}
 
 	// Finally close the storage
-	err := s.storage.Close()
+	err := s.storage.close()
 	if err != nil {
 		s.logger.Error("Error closing storage", zap.Error(err))
 	} else {
@@ -133,14 +134,67 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
-// handleGetRunningQueries handles GET requests to retrieve running queries
-func (s *serviceImpl) handleGetRunningQueries(w http.ResponseWriter, r *http.Request) {
+func (s *serviceImpl) handleListQueries(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	queries, err := s.storage.GetRunningQueries()
+	// Parse query parameters
+	queryParams := r.URL.Query()
+
+	// Get limit parameter (default to 100 if not provided)
+	limit := 100
+	if limitStr := queryParams.Get("limit"); limitStr != "" {
+		parsedLimit, err := strconv.Atoi(limitStr)
+		if err != nil || parsedLimit <= 0 {
+			http.Error(w, "Invalid limit parameter", http.StatusBadRequest)
+			return
+		}
+		limit = parsedLimit
+	}
+
+	// Get offset parameter (default to 0 if not provided)
+	offset := 0
+	if offsetStr := queryParams.Get("offset"); offsetStr != "" {
+		parsedOffset, err := strconv.Atoi(offsetStr)
+		if err != nil || parsedOffset < 0 {
+			http.Error(w, "Invalid offset parameter", http.StatusBadRequest)
+			return
+		}
+		offset = parsedOffset
+	}
+
+	// Get state parameter (optional filter)
+	var stateParam *QueryState
+	if stateStr := queryParams.Get("state"); stateStr != "" {
+		state := QueryState(stateStr)
+		stateParam = &state
+	}
+
+	// Call the storage method
+	queries, err := s.storage.ListQueries(stateParam, limit, offset)
+	if err != nil {
+		http.Error(w, "Failed to list queries", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the result as JSON
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(queries); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// handleGetRunningQueries handles GET requests to retrieve running queries
+func (s *serviceImpl) handleListRunningQueries(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	queries, err := s.storage.ListRunningQueries()
 	if err != nil {
 		// Just return the error to the client, middleware will log it
 		http.Error(w, "Failed to get running queries", http.StatusInternalServerError)
@@ -156,13 +210,13 @@ func (s *serviceImpl) handleGetRunningQueries(w http.ResponseWriter, r *http.Req
 }
 
 // handleFindSimilarQueriesWithDifferentUsage handles GET requests to find similar queries with different usage
-func (s *serviceImpl) handleFindSimilarQueriesWithDifferentUsage(w http.ResponseWriter, r *http.Request) {
+func (s *serviceImpl) handleListSimilarQueriesWithDifferentStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	similarQueries, err := s.storage.FindSimilarQueriesWithDifferentUsage()
+	similarQueries, err := s.storage.ListSimilarQueriesWithDifferentStats()
 	if err != nil {
 		// Just return the error to the client, middleware will log it
 		http.Error(w, "Failed to find similar queries", http.StatusInternalServerError)
@@ -192,12 +246,16 @@ func NewService(
 
 	mux := http.NewServeMux()
 	mux.Handle(
-		"/api/queries/running",
-		s.requestLoggerMiddleware(http.HandlerFunc(s.handleGetRunningQueries)),
+		"/api/queries/list",
+		s.requestLoggerMiddleware(http.HandlerFunc(s.handleListQueries)),
 	)
 	mux.Handle(
-		"/api/queries/similar",
-		s.requestLoggerMiddleware(http.HandlerFunc(s.handleFindSimilarQueriesWithDifferentUsage)),
+		"/api/queries/list_running",
+		s.requestLoggerMiddleware(http.HandlerFunc(s.handleListRunningQueries)),
+	)
+	mux.Handle(
+		"/api/queries/list_similar_with_different_stats",
+		s.requestLoggerMiddleware(http.HandlerFunc(s.handleListSimilarQueriesWithDifferentStats)),
 	)
 
 	// Create listener

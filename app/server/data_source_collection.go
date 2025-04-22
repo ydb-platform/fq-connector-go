@@ -17,6 +17,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
@@ -151,6 +152,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
+	observationStorage observation.Storage,
 ) error {
 	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
 	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
@@ -162,11 +164,11 @@ func (dsc *DataSourceCollection) ReadSplit(
 			return fmt.Errorf("make data source: %w", err)
 		}
 
-		return doReadSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
-		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(
@@ -178,7 +180,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 			mongoDbCfg,
 		)
 
-		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, observationStorage, dsc.cfg)
 
 	case api_common.EGenericDataSourceKind_REDIS:
 		redisCfg := dsc.cfg.Datasources.Redis
@@ -191,7 +193,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 			dsc.converterCollection,
 		)
 
-		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, observationStorage, dsc.cfg)
 
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
@@ -206,6 +208,7 @@ func doReadSplit[T paging.Acceptor](
 	dataSource datasource.DataSource[T],
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
+	observationStorage observation.Storage,
 	cfg *config.TServerConfig,
 ) error {
 	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
@@ -236,7 +239,20 @@ func doReadSplit[T paging.Acceptor](
 		dataSource,
 	)
 
+	// Register query for further analysis
+	query, err := observationStorage.CreateQuery(split.Select.DataSourceInstance)
+	if err != nil {
+		return fmt.Errorf("create query: %w", err)
+	}
+
+	// Run streaming reading
 	if err := streamer.Run(); err != nil {
+		// Register query error
+		cancelQueryErr := observationStorage.CancelQuery(query, err.Error(), sinkFactory.FinalStats())
+		if cancelQueryErr != nil {
+			logger.Error("observation storage cancel query", zap.Error(cancelQueryErr))
+		}
+
 		return fmt.Errorf("run paging streamer: %w", err)
 	}
 
@@ -249,6 +265,12 @@ func doReadSplit[T paging.Acceptor](
 	)
 
 	logger.Debug("split reading finished", fields...)
+
+	// Register query success
+	err = observationStorage.FinishQuery(query, readStats)
+	if err != nil {
+		return fmt.Errorf("observation storage finish query: %w", err)
+	}
 
 	return nil
 }
