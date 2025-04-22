@@ -51,6 +51,7 @@ func (s *storageSQLite) initialize() error {
 		database_endpoint TEXT NOT NULL,
 		query_text TEXT,
 		query_args TEXT,
+		rows_read INTEGER NOT NULL DEFAULT 0,
 		state TEXT NOT NULL,
 		created_at TIMESTAMP NOT NULL,
 		finished_at TIMESTAMP,
@@ -253,6 +254,7 @@ func (s *storageSQLite) CreateOutgoingQuery(
 		IncomingQueryID:  incomingQueryID,
 		DatabaseName:     dsi.Database,
 		DatabaseEndpoint: common.EndpointToString(dsi.Endpoint),
+		RowsRead:         0,
 		QueryText:        queryText,
 		QueryArgs:        fmt.Sprint(queryArgs),
 		CreatedAt:        time.Now().UTC(),
@@ -262,10 +264,10 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	// Execute the insert within the transaction
 	result, err := tx.Exec(
 		`INSERT INTO outgoing_queries 
-		(incoming_query_id, database_name, database_endpoint, query_text, query_args, created_at, state) 
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		(incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state) 
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		query.IncomingQueryID, query.DatabaseName, query.DatabaseEndpoint,
-		query.QueryText, query.QueryArgs, query.CreatedAt, string(query.State),
+		query.RowsRead, query.QueryText, query.QueryArgs, query.CreatedAt, string(query.State),
 	)
 	if err != nil {
 		rollback()
@@ -289,12 +291,12 @@ func (s *storageSQLite) CreateOutgoingQuery(
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
-func (s *storageSQLite) FinishOutgoingQuery(id OutgoingQueryID) error {
+func (s *storageSQLite) FinishOutgoingQuery(id OutgoingQueryID, rowsRead int64) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
-		"UPDATE outgoing_queries SET state = ?, finished_at = ? WHERE id = ?",
-		string(QueryStateFinished), finishedAt, id,
+		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?",
+		string(QueryStateFinished), finishedAt, rowsRead, id,
 	)
 	if err != nil {
 		return fmt.Errorf("marking outgoing query as finished: %w", err)
@@ -420,99 +422,113 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 	return queries, nil
 }
 
-// ListSimilarIncomingQueriesWithDifferentStats finds incoming queries with same outgoing query text but different resource usage
-func (s *storageSQLite) ListSimilarIncomingQueriesWithDifferentStats() ([][]*IncomingQuery, error) {
-	// Step 1: Find outgoing queries with the same text and args that are associated with different incoming queries
+// ListSimilarOutgoingQueriesWithDifferentStats finds outgoing queries with the same characteristics but different resource usage
+func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats() ([][]*OutgoingQuery, error) {
+	// Step 1: Find groups of outgoing queries with the same database, endpoint, query text, and args
 	findSimilarSQL := `
-	WITH query_groups AS (
-		SELECT 
-			query_text, 
-			query_args,
-			COUNT(DISTINCT incoming_query_id) as distinct_incoming_queries
-		FROM 
-			outgoing_queries
-		WHERE 
-			query_text IS NOT NULL AND
-			query_text != '' AND
-			state != ?
-		GROUP BY 
-			query_text, query_args
-		HAVING 
-			distinct_incoming_queries > 1
-	)
-	SELECT 
-		query_text, query_args
-	FROM 
-		query_groups
-	LIMIT 100;
-	`
+    WITH query_groups AS (
+        SELECT 
+            database_name, 
+            database_endpoint, 
+            query_text, 
+            query_args,
+            COUNT(*) as count,
+            COUNT(DISTINCT rows_read) as distinct_rows
+        FROM 
+            outgoing_queries
+        WHERE 
+            query_text IS NOT NULL AND
+            query_text != '' AND
+            state = ? 
+        GROUP BY 
+            database_name, database_endpoint, query_text, query_args
+        HAVING 
+            count > 1 AND
+            distinct_rows > 1
+    )
+    SELECT 
+        database_name, database_endpoint, query_text, query_args
+    FROM 
+        query_groups
+    ORDER BY
+        count DESC
+    LIMIT 100;
+    `
 
-	rows, err := s.db.Query(findSimilarSQL, string(QueryStateRunning))
+	rows, err := s.db.Query(findSimilarSQL, string(QueryStateFinished))
 	if err != nil {
 		return nil, fmt.Errorf("finding similar outgoing queries: %w", err)
 	}
 	defer rows.Close()
 
-	// Store query text and args pairs
+	// Store query characteristics
 	type queryKey struct {
-		text string
-		args string
+		databaseName string
+		endpoint     string
+		text         string
+		args         string
 	}
 
 	var keys []queryKey
 	for rows.Next() {
-		var text, args string
-		if err := rows.Scan(&text, &args); err != nil {
+		var key queryKey
+		if err := rows.Scan(&key.databaseName, &key.endpoint, &key.text, &key.args); err != nil {
 			return nil, fmt.Errorf("scanning query key: %w", err)
 		}
-		keys = append(keys, queryKey{text, args})
+		keys = append(keys, key)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating query keys: %w", err)
 	}
 
-	// Step 2: For each unique query text+args, find all incoming queries that have these outgoing queries
-	var result [][]*IncomingQuery
+	// Step 2: For each unique combination, fetch all matching outgoing queries
+	var result [][]*OutgoingQuery
 	for _, key := range keys {
-		// Get the incoming query IDs that have outgoing queries with this text+args
-		incomingIDsSQL := `
-		WITH incoming_ids AS (
-			SELECT DISTINCT incoming_query_id
-			FROM outgoing_queries
-			WHERE query_text = ? AND query_args = ? AND state != ?
-		)
-		SELECT 
-			iq.id, iq.data_source_kind, iq.rows_read, iq.bytes_read, 
-			iq.state, iq.created_at, iq.finished_at, iq.error
-		FROM 
-			incoming_queries iq
-		JOIN 
-			incoming_ids i ON iq.id = i.incoming_query_id
-		WHERE
-			iq.state != ?
-		ORDER BY 
-			iq.created_at DESC
-		`
+		fetchSQL := `
+        SELECT 
+            id, incoming_query_id, database_name, database_endpoint, 
+            query_text, query_args, rows_read, state, created_at, 
+            finished_at, error
+        FROM 
+            outgoing_queries
+        WHERE 
+            database_name = ? AND
+            database_endpoint = ? AND
+            query_text = ? AND
+            query_args = ? AND
+            state = ?
+        ORDER BY 
+            rows_read DESC, created_at DESC
+        `
 
-		qrows, err := s.db.Query(incomingIDsSQL, key.text, key.args,
-			string(QueryStateRunning), string(QueryStateRunning))
+		qrows, err := s.db.Query(fetchSQL, key.databaseName, key.endpoint, key.text, key.args, string(QueryStateFinished))
 		if err != nil {
-			return nil, fmt.Errorf("fetching incoming query group: %w", err)
+			return nil, fmt.Errorf("fetching query group: %w", err)
 		}
 
-		var group []*IncomingQuery
+		var group []*OutgoingQuery
 		for qrows.Next() {
-			var query IncomingQuery
+			var query OutgoingQuery
 			var finishedAt sql.NullTime
-			var errorMsg sql.NullString
+			var queryText, queryArgs, errorMsg sql.NullString
+			var rowsRead int64
 
 			if err := qrows.Scan(
-				&query.ID, &query.DataSourceKind, &query.RowsRead, &query.BytesRead,
-				&query.State, &query.CreatedAt, &finishedAt, &errorMsg,
+				&query.ID, &query.IncomingQueryID, &query.DatabaseName, &query.DatabaseEndpoint,
+				&queryText, &queryArgs, &rowsRead, &query.State, &query.CreatedAt,
+				&finishedAt, &errorMsg,
 			); err != nil {
 				qrows.Close()
-				return nil, fmt.Errorf("scanning incoming query: %w", err)
+				return nil, fmt.Errorf("scanning outgoing query: %w", err)
+			}
+
+			if queryText.Valid {
+				query.QueryText = queryText.String
+			}
+
+			if queryArgs.Valid {
+				query.QueryArgs = queryArgs.String
 			}
 
 			if errorMsg.Valid {
@@ -523,32 +539,31 @@ func (s *storageSQLite) ListSimilarIncomingQueriesWithDifferentStats() ([][]*Inc
 				query.FinishedAt = &finishedAt.Time
 			}
 
+			// Set the rows_read value
+			query.RowsRead = rowsRead
+
 			group = append(group, &query)
 		}
 		qrows.Close()
 
 		if err := qrows.Err(); err != nil {
-			return nil, fmt.Errorf("iterating incoming query group: %w", err)
+			return nil, fmt.Errorf("iterating outgoing query group: %w", err)
 		}
 
-		// Step 3: Check if these incoming queries have different resource usage
+		// Only add groups with more than one query and different rows_read values
 		if len(group) > 1 {
-			// Check if there are variations in resource usage
-			hasDifferentStats := false
-			var firstRowsRead, firstBytesRead int64
-			if len(group) > 0 {
-				firstRowsRead = group[0].RowsRead
-				firstBytesRead = group[0].BytesRead
-			}
+			// Check if there are actual differences in rows_read
+			hasDifferentRowsRead := false
+			firstRowsRead := group[0].RowsRead
 
 			for i := 1; i < len(group); i++ {
-				if group[i].RowsRead != firstRowsRead || group[i].BytesRead != firstBytesRead {
-					hasDifferentStats = true
+				if group[i].RowsRead != firstRowsRead {
+					hasDifferentRowsRead = true
 					break
 				}
 			}
 
-			if hasDifferentStats {
+			if hasDifferentRowsRead {
 				result = append(result, group)
 			}
 		}

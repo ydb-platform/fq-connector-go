@@ -44,6 +44,7 @@ type OutgoingQuery struct {
 	State            QueryState      `json:"state"`
 	CreatedAt        time.Time       `json:"created_at"`
 	FinishedAt       *time.Time      `json:"finished_at,omitempty"`
+	RowsRead         int64           `json:"rows_read"`
 	Error            string          `json:"error,omitempty"`
 }
 
@@ -57,12 +58,12 @@ type Storage interface {
 
 	// Outgoing query operations
 	CreateOutgoingQuery(logger *zap.Logger, incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText string, queryArgs []any) (OutgoingQueryID, error)
-	FinishOutgoingQuery(id OutgoingQueryID) error
+	FinishOutgoingQuery(id OutgoingQueryID, rowsRead int64) error
 	CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error
 	ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error)
 
 	// Analysis operations
-	ListSimilarIncomingQueriesWithDifferentStats() ([][]*IncomingQuery, error)
+	ListSimilarOutgoingQueriesWithDifferentStats() ([][]*OutgoingQuery, error)
 
 	// Lifecycle
 	Close() error

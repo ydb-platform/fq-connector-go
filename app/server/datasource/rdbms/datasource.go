@@ -193,7 +193,7 @@ func (ds *dataSourceImpl) ReadSplit(
 			}
 
 			// execute query
-			err = ds.doReadSplitSingleConn(ctx, logger, query, sink, conn)
+			rowsRead, err := ds.doReadSplitSingleConn(ctx, logger, query, sink, conn)
 			if err != nil {
 				// register error
 				if cancelErr := ds.observationStorage.CancelOutgoingQuery(outgoingQueryID, err.Error()); cancelErr != nil {
@@ -204,7 +204,7 @@ func (ds *dataSourceImpl) ReadSplit(
 			}
 
 			// register success
-			if err := ds.observationStorage.FinishOutgoingQuery(outgoingQueryID); err != nil {
+			if err := ds.observationStorage.FinishOutgoingQuery(outgoingQueryID, rowsRead); err != nil {
 				logger.Error("finish outgoing query: %w", zap.Error(err))
 			}
 
@@ -225,7 +225,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	query *rdbms_utils.SelectQuery,
 	sink paging.Sink[any],
 	conn rdbms_utils.Connection,
-) error {
+) (int64, error) {
 	var rows rdbms_utils.Rows
 
 	err := ds.retrierSet.Query.Run(
@@ -243,37 +243,41 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	)
 
 	if err != nil {
-		return fmt.Errorf("query: %w", err)
+		return 0, fmt.Errorf("query: %w", err)
 	}
 
 	defer common.LogCloserError(logger, rows, "close rows")
 
 	transformer, err := rows.MakeTransformer(query.YdbTypes, ds.converterCollection)
 	if err != nil {
-		return fmt.Errorf("make transformer: %w", err)
+		return 0, fmt.Errorf("make transformer: %w", err)
 	}
+
+	rowsRead := int64(0)
 
 	for cont := true; cont; cont = rows.NextResultSet() {
 		for rows.Next() {
+			rowsRead++
+
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
-				return fmt.Errorf("rows scan: %w", err)
+				return 0, fmt.Errorf("rows scan: %w", err)
 			}
 
 			if err := sink.AddRow(transformer); err != nil {
-				return fmt.Errorf("add row to paging writer: %w", err)
+				return 0, fmt.Errorf("add row to paging writer: %w", err)
 			}
 		}
 	}
 
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("rows error: %w", err)
+		return 0, fmt.Errorf("rows error: %w", err)
 	}
 
 	// Notify sink that there will be no more data from this connection.
 	// Hours lost in attempts to move this call into defer: 2
 	sink.Finish()
 
-	return nil
+	return rowsRead, nil
 }
 
 func NewDataSource(

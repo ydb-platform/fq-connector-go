@@ -154,7 +154,6 @@ func (s *serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 		URL         string
 		Description string
 	}
-
 	data := struct {
 		Title string
 		Links []Link
@@ -182,9 +181,9 @@ func (s *serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 				Description: "List all currently running outgoing queries",
 			},
 			{
-				Name:        "List Similar Queries with Different Stats",
-				URL:         "/api/queries/similar_with_different_stats",
-				Description: "Find groups of similar queries with different resource usage",
+				Name:        "List Similar Outgoing Queries with Different Stats",
+				URL:         "/api/queries/outgoing/similar_with_different_stats",
+				Description: "Find groups of similar outgoing queries with different row counts",
 			},
 		},
 	}
@@ -827,8 +826,8 @@ func (s *serviceImpl) handleListRunningOutgoingQueries(w http.ResponseWriter, r 
 	http.Error(w, "Unsupported format", http.StatusBadRequest)
 }
 
-// handleListSimilarQueriesWithDifferentStats handles GET requests to find similar queries with different stats
-func (s *serviceImpl) handleListSimilarQueriesWithDifferentStats(w http.ResponseWriter, r *http.Request) {
+// handleListSimilarOutgoingQueriesWithDifferentStats handles GET requests to find similar outgoing queries with different rows_read
+func (s *serviceImpl) handleListSimilarOutgoingQueriesWithDifferentStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -836,9 +835,9 @@ func (s *serviceImpl) handleListSimilarQueriesWithDifferentStats(w http.Response
 
 	format := r.URL.Query().Get("format")
 
-	similarQueryGroups, err := s.storage.ListSimilarIncomingQueriesWithDifferentStats()
+	similarQueryGroups, err := s.storage.ListSimilarOutgoingQueriesWithDifferentStats()
 	if err != nil {
-		http.Error(w, "Failed to find similar queries with different stats", http.StatusInternalServerError)
+		http.Error(w, "Failed to find similar outgoing queries with different stats", http.StatusInternalServerError)
 		return
 	}
 
@@ -854,7 +853,7 @@ func (s *serviceImpl) handleListSimilarQueriesWithDifferentStats(w http.Response
 
 	// Otherwise, render HTML
 	if format == "html" {
-		s.renderSimilarQueriesHTML(w, similarQueryGroups)
+		s.renderSimilarOutgoingQueriesHTML(w, similarQueryGroups)
 		return
 	}
 
@@ -862,22 +861,23 @@ func (s *serviceImpl) handleListSimilarQueriesWithDifferentStats(w http.Response
 	http.Error(w, "Unsupported format", http.StatusBadRequest)
 }
 
-// renderSimilarQueriesHTML renders similar queries with different stats as HTML
-func (s *serviceImpl) renderSimilarQueriesHTML(w http.ResponseWriter, queryGroups [][]*IncomingQuery) {
+// renderSimilarOutgoingQueriesHTML renders similar outgoing queries with different stats as HTML
+func (s *serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, queryGroups [][]*OutgoingQuery) {
 	// Data for the template
 	data := struct {
-		QueryGroups [][]*IncomingQuery
+		QueryGroups [][]*OutgoingQuery
 		GroupCount  int
 	}{
 		QueryGroups: queryGroups,
 		GroupCount:  len(queryGroups),
 	}
-	// HTML template for similar queries (continued)
+
+	// HTML template for similar outgoing queries
 	const htmlTemplate = `
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Similar Queries with Different Stats</title>
+    <title>Similar Outgoing Queries with Different Stats</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -941,37 +941,64 @@ func (s *serviceImpl) renderSimilarQueriesHTML(w http.ResponseWriter, queryGroup
             font-size: 18px;
             color: #7f8c8d;
         }
+        .query-text {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .query-text:hover {
+            white-space: normal;
+            overflow: visible;
+        }
+        .details {
+            margin-bottom: 10px;
+            font-style: italic;
+            color: #555;
+        }
     </style>
 </head>
 <body>
     <a href="/" class="back-link">← Back to Home</a>
-    <h1>Similar Queries with Different Stats</h1>
+    <h1>Similar Outgoing Queries with Different Row Counts</h1>
     
     {{if gt .GroupCount 0}}
-        <p>Found {{.GroupCount}} groups of similar queries with different resource usage.</p>
+        <p>Found {{.GroupCount}} groups of similar outgoing queries with different row counts.</p>
         
         {{range $groupIndex, $group := .QueryGroups}}
             <div class="group">
                 <h2>Query Group {{$groupIndex | inc}}</h2>
+                
+                {{with $first := index $group 0}}
+                <div class="details">
+                    <p><strong>Database:</strong> {{$first.DatabaseName}}</p>
+                    <p><strong>Endpoint:</strong> {{$first.DatabaseEndpoint}}</p>
+                    <p><strong>Query:</strong> <span class="query-text">{{$first.QueryText}}</span></p>
+                    {{if $first.QueryArgs}}<p><strong>Args:</strong> {{$first.QueryArgs}}</p>{{end}}
+                </div>
+                {{end}}
+                
                 <table>
                     <tr>
                         <th>ID</th>
-                        <th>Data Source Kind</th>
+                        <th>Incoming Query ID</th>
                         <th class="stats-diff">Rows Read</th>
-                        <th class="stats-diff">Bytes Read</th>
-                        <th>State</th>
                         <th>Created At</th>
                         <th>Finished At</th>
+                        <th>State</th>
                     </tr>
                     {{range $query := $group}}
                     <tr>
                         <td>{{$query.ID}}</td>
-                        <td>{{$query.DataSourceKind}}</td>
+                        <td>
+                            <a href="/api/queries/outgoing/list?format=html&incoming_query_id={{$query.IncomingQueryID}}">
+                                {{$query.IncomingQueryID}}
+                            </a>
+                        </td>
                         <td class="stats-diff">{{$query.RowsRead}}</td>
-                        <td class="stats-diff">{{$query.BytesRead}}</td>
-                        <td>{{$query.State}}</td>
                         <td>{{$query.CreatedAt}}</td>
                         <td>{{if $query.FinishedAt}}{{$query.FinishedAt}}{{else}}-{{end}}</td>
+                        <td>{{$query.State}}</td>
                     </tr>
                     {{end}}
                 </table>
@@ -979,7 +1006,7 @@ func (s *serviceImpl) renderSimilarQueriesHTML(w http.ResponseWriter, queryGroup
         {{end}}
     {{else}}
         <div class="no-groups">
-            <p>No similar queries with different resource usage found.</p>
+            <p>No similar outgoing queries with different row counts found.</p>
         </div>
     {{end}}
 </body>
@@ -993,7 +1020,7 @@ func (s *serviceImpl) renderSimilarQueriesHTML(w http.ResponseWriter, queryGroup
 		},
 	}
 
-	tmpl, err := template.New("similar_queries").Funcs(funcMap).Parse(htmlTemplate)
+	tmpl, err := template.New("similar_outgoing_queries").Funcs(funcMap).Parse(htmlTemplate)
 	if err != nil {
 		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
 		return
@@ -1046,11 +1073,9 @@ func NewService(
 		"/api/queries/outgoing/running",
 		s.requestLoggerMiddleware(http.HandlerFunc(s.handleListRunningOutgoingQueries)),
 	)
-
-	// Register similar queries handler
 	mux.Handle(
-		"/api/queries/similar_with_different_stats",
-		s.requestLoggerMiddleware(http.HandlerFunc(s.handleListSimilarQueriesWithDifferentStats)),
+		"/api/queries/outgoing/similar_with_different_stats",
+		s.requestLoggerMiddleware(http.HandlerFunc(s.handleListSimilarOutgoingQueriesWithDifferentStats)),
 	)
 
 	// Create listener
