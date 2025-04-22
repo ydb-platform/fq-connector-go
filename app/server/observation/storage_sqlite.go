@@ -12,15 +12,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-// QueryState represents the possible states of a query
-type QueryState string
-
-const (
-	QueryStateRunning   QueryState = "running"
-	QueryStateFinished  QueryState = "finished"
-	QueryStateCancelled QueryState = "cancelled"
-)
-
 var _ Storage = (*storageSQLite)(nil)
 
 // storageSQLite handles storing and retrieving query data

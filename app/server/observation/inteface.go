@@ -8,6 +8,15 @@ import (
 
 type QueryID uint64
 
+// QueryState represents the possible states of a query
+type QueryState string
+
+const (
+	QueryStateRunning   QueryState = "running"
+	QueryStateFinished  QueryState = "finished"
+	QueryStateCancelled QueryState = "cancelled"
+)
+
 // Query represents a database query and its metadata
 type Query struct {
 	ID               QueryID    `json:"id"`
