@@ -54,21 +54,32 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 
 	var err error
 
-	registry := solomon.NewRegistry(&solomon.RegistryOpts{
+	// initialize storage for solomon metrics
+	solomonRegistry := solomon.NewRegistry(&solomon.RegistryOpts{
 		Separator:  '.',
 		UseNameTag: true,
 	})
 
+	// initialize storage for query observation system
+	observationStorage, err := observation.NewStorage(cfg.Observation)
+	if err != nil {
+		return nil, fmt.Errorf("new observation storage: %w", err)
+	}
+
+	// init metrics server
 	if cfg.MetricsServer != nil {
 		l.services[metricsServiceKey] = newServiceMetrics(
 			logger.With(zap.String("service", metricsServiceKey)),
-			cfg.MetricsServer, registry)
+			cfg.MetricsServer, solomonRegistry)
 	}
 
 	// init GRPC server
 	l.services[connectorServiceKey], err = newServiceConnector(
 		logger.With(zap.String("service", connectorServiceKey)),
-		cfg, registry)
+		cfg,
+		solomonRegistry,
+		&observationStorage,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("new connector service: %w", err)
 	}
@@ -85,6 +96,7 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 		l.services[observationServiceKey], err = observation.NewService(
 			logger.With(zap.String("service", observationServiceKey)),
 			cfg.Observation,
+			observationStorage,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("new observation service: %w", err)

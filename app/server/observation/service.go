@@ -178,19 +178,17 @@ func (s *serviceImpl) handleFindSimilarQueriesWithDifferentUsage(w http.Response
 }
 
 // NewService creates a new observation service instance.
-func NewService(logger *zap.Logger, cfg *config.TObservationConfig) (utils.Service, error) {
+func NewService(
+	logger *zap.Logger,
+	cfg *config.TObservationConfig,
+	storage Storage,
+) (utils.Service, error) {
 	var (
 		s = &serviceImpl{
-			logger: logger,
+			logger:  logger,
+			storage: storage,
 		}
-
-		err error
 	)
-
-	s.storage, err = newStorageSQLite(cfg.Storage.GetSqlite())
-	if err != nil {
-		return nil, fmt.Errorf("new storage SQLite: %w", err)
-	}
 
 	mux := http.NewServeMux()
 	mux.Handle(
