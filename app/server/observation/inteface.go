@@ -5,6 +5,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"go.uber.org/zap"
 )
 
 type IncomingQueryID uint64
@@ -54,7 +55,7 @@ type Storage interface {
 	ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error)
 
 	// Outgoing query operations
-	CreateOutgoingQuery(incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText, queryArgs string) (OutgoingQueryID, error)
+	CreateOutgoingQuery(logger *zap.Logger, incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText string, queryArgs []interface{}) (OutgoingQueryID, error)
 	FinishOutgoingQuery(id OutgoingQueryID) error
 	CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error
 	ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error)

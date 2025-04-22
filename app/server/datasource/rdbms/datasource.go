@@ -111,7 +111,7 @@ func (ds *dataSourceImpl) ListSplits(
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	queryID observation.IncomingQueryID,
+	incomingQueryID observation.IncomingQueryID,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
@@ -170,9 +170,42 @@ func (ds *dataSourceImpl) ReadSplit(
 		sink := sinks[i]
 
 		group.Go(func() error {
-			err := ds.doReadSplitSingleConn(ctx, logger, request, split, sink, conn)
+			_, tableName := conn.From()
+
+			// generate SQL query
+			query, err := rdbms_utils.MakeSelectQuery(
+				ctx,
+				logger,
+				ds.sqlFormatter,
+				split,
+				request.Filtering,
+				tableName,
+			)
 			if err != nil {
+				return fmt.Errorf("make select query: %w", err)
+			}
+
+			// register outgoing request in storage
+			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(logger, incomingQueryID, split.Select.DataSourceInstance, query.QueryText, query.QueryArgs.Values())
+			if err != nil {
+				return fmt.Errorf("create outgoing query: %w", err)
+			}
+
+			// execute query
+			err = ds.doReadSplitSingleConn(ctx, logger, query, sink, conn)
+			if err != nil {
+
+				// register error
+				if cancelErr := ds.observationStorage.CancelOutgoingQuery(outgoingQueryID, err.Error()); cancelErr != nil {
+					logger.Error("cancel outgoing query: %w", zap.Error(cancelErr))
+				}
+
 				return fmt.Errorf("do read split single conn: %w", err)
+			}
+
+			// register success
+			if err := ds.observationStorage.FinishOutgoingQuery(outgoingQueryID); err != nil {
+				logger.Error("finish outgoing query: %w", zap.Error(err))
 			}
 
 			return nil
@@ -189,35 +222,20 @@ func (ds *dataSourceImpl) ReadSplit(
 func (ds *dataSourceImpl) doReadSplitSingleConn(
 	ctx context.Context,
 	logger *zap.Logger,
-	request *api_service_protos.TReadSplitsRequest,
-	split *api_service_protos.TSplit,
+	query *rdbms_utils.SelectQuery,
 	sink paging.Sink[any],
 	conn rdbms_utils.Connection,
 ) error {
-	_, tableName := conn.From()
-
-	readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
-		ctx,
-		logger,
-		ds.sqlFormatter,
-		split,
-		request.Filtering,
-		tableName,
-	)
-	if err != nil {
-		return fmt.Errorf("make read split query: %w", err)
-	}
-
 	var rows rdbms_utils.Rows
 
-	err = ds.retrierSet.Query.Run(
+	err := ds.retrierSet.Query.Run(
 		ctx,
 		logger,
 		func() error {
 			var queryErr error
 
-			if rows, queryErr = conn.Query(&readSplitsQuery.QueryParams); queryErr != nil {
-				return fmt.Errorf("query '%s' error: %w", readSplitsQuery.QueryText, queryErr)
+			if rows, queryErr = conn.Query(&query.QueryParams); queryErr != nil {
+				return fmt.Errorf("query '%s' error: %w", query.QueryText, queryErr)
 			}
 
 			return nil
@@ -228,11 +246,9 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		return fmt.Errorf("query: %w", err)
 	}
 
-	defer func() {
-		common.LogCloserError(logger, rows, "close rows")
-	}()
+	defer common.LogCloserError(logger, rows, "close rows")
 
-	transformer, err := rows.MakeTransformer(readSplitsQuery.YdbTypes, ds.converterCollection)
+	transformer, err := rows.MakeTransformer(query.YdbTypes, ds.converterCollection)
 	if err != nil {
 		return fmt.Errorf("make transformer: %w", err)
 	}
