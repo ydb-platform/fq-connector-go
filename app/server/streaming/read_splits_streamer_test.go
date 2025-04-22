@@ -24,6 +24,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -245,7 +246,11 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})
 
-	dataSource := rdbms.NewDataSource(logger, dataSourcePreset, converterCollection)
+	// TODO: mock
+	observationStorage, err := observation.NewStorage(nil)
+	require.NoError(t, err)
+
+	dataSource := rdbms.NewDataSource(logger, dataSourcePreset, converterCollection, observationStorage)
 
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[any](
 		logger,
@@ -261,7 +266,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	sinkFactory := paging.NewSinkFactory(ctx, logger, pagingCfg, columnarBufferFactory, readLimiter)
 
 	request := &api_service_protos.TReadSplitsRequest{}
-	streamer := NewReadSplitsStreamer(logger, stream, request, split, sinkFactory, dataSource)
+	streamer := NewReadSplitsStreamer(logger, observation.IncomingQueryID(0), stream, request, split, sinkFactory, dataSource)
 
 	err = streamer.Run()
 

@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 )
 
@@ -37,6 +38,7 @@ func (*DataSourceMock[T]) ListSplits(
 func (m *DataSourceMock[T]) ReadSplit(
 	_ context.Context,
 	_ *zap.Logger,
+	_ observation.IncomingQueryID,
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[T],

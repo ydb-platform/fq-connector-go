@@ -7,9 +7,10 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
-type QueryID uint64
+type IncomingQueryID uint64
+type OutgoingQueryID uint64
 
-// QueryState represents the possible states of a query
+// QueryState represents the state of a query
 type QueryState string
 
 const (
@@ -18,31 +19,49 @@ const (
 	QueryStateCancelled QueryState = "cancelled"
 )
 
-// Query represents a database query and its metadata
-type Query struct {
-	ID               QueryID    `json:"id"`
-	DatabaseName     string     `json:"database_name"`
-	DatabaseEndpoint string     `json:"database_endpoint"`
-	DataSourceKind   string     `json:"data_source_kind"`
-	QueryText        string     `json:"query_text"`
-	QueryArgs        string     `json:"query_args"`
-	CreatedAt        time.Time  `json:"created_at"`
-	FinishedAt       *time.Time `json:"finished_at,omitempty"`
-	RowsRead         int64      `json:"rows_read"`
-	BytesRead        int64      `json:"bytes_read"`
-	State            QueryState `json:"state"`
-	Error            string     `json:"error,omitempty"`
+// IncomingQuery represents an incoming query
+type IncomingQuery struct {
+	ID             IncomingQueryID                   `json:"id"`
+	DataSourceKind api_common.EGenericDataSourceKind `json:"data_source_kind"`
+	RowsRead       int64                             `json:"rows_read"`
+	BytesRead      int64                             `json:"bytes_read"`
+	State          QueryState                        `json:"state"`
+	CreatedAt      time.Time                         `json:"created_at"`
+	FinishedAt     *time.Time                        `json:"finished_at,omitempty"`
+	Error          string                            `json:"error,omitempty"`
 }
 
+// OutgoingQuery represents an outgoing query to a data source
+type OutgoingQuery struct {
+	ID               OutgoingQueryID `json:"id"`
+	IncomingQueryID  IncomingQueryID `json:"incoming_query_id"`
+	DatabaseName     string          `json:"database_name"`
+	DatabaseEndpoint string          `json:"database_endpoint"`
+	QueryText        string          `json:"query_text"`
+	QueryArgs        string          `json:"query_args"`
+	State            QueryState      `json:"state"`
+	CreatedAt        time.Time       `json:"created_at"`
+	FinishedAt       *time.Time      `json:"finished_at,omitempty"`
+	Error            string          `json:"error,omitempty"`
+}
+
+// Storage interface defines methods for query storage
 type Storage interface {
-	CreateQuery(dsi *api_common.TGenericDataSourceInstance) (QueryID, error)
-	SetQueryDetails(id QueryID, queryText, queryArgs string) error
-	GetQuery(id QueryID) (*Query, error)
-	ListQueries(state *QueryState, limit, offset int) ([]*Query, error)
-	ListRunningQueries() ([]*Query, error)
-	ListSimilarQueriesWithDifferentStats() ([][]*Query, error)
-	FinishQuery(id QueryID, stats *api_service_protos.TReadSplitsResponse_TStats) error
-	CancelQuery(id QueryID, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error
-	DeleteQuery(id QueryID) error
-	close() error
+	// Incoming query operations
+	CreateIncomingQuery(dataSourceKind api_common.EGenericDataSourceKind) (IncomingQueryID, error)
+	FinishIncomingQuery(id IncomingQueryID, stats *api_service_protos.TReadSplitsResponse_TStats) error
+	CancelIncomingQuery(id IncomingQueryID, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error
+	ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error)
+
+	// Outgoing query operations
+	CreateOutgoingQuery(incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText, queryArgs string) (OutgoingQueryID, error)
+	FinishOutgoingQuery(id OutgoingQueryID) error
+	CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error
+	ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error)
+
+	// Analysis operations
+	ListSimilarIncomingQueriesWithDifferentStats() ([][]*IncomingQuery, error)
+
+	// Lifecycle
+	Close() error
 }

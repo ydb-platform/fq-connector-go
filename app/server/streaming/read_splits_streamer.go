@@ -10,6 +10,7 @@ import (
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -20,6 +21,7 @@ type ReadSplitsStreamer[T paging.Acceptor] struct {
 	request     *api_service_protos.TReadSplitsRequest
 	split       *api_service_protos.TSplit
 	sinkFactory paging.SinkFactory[T]
+	queryID     observation.IncomingQueryID
 	logger      *zap.Logger
 	errorChan   chan error      // notifies about errors happened during reading process
 	ctx         context.Context // clone of a stream context
@@ -117,7 +119,7 @@ func (s *ReadSplitsStreamer[T]) Run() error {
 		defer wg.Done()
 
 		select {
-		case s.errorChan <- s.dataSource.ReadSplit(s.ctx, s.logger, s.request, s.split, s.sinkFactory):
+		case s.errorChan <- s.dataSource.ReadSplit(s.ctx, s.logger, s.queryID, s.request, s.split, s.sinkFactory):
 		case <-s.ctx.Done():
 		}
 	}()
@@ -132,6 +134,7 @@ func (s *ReadSplitsStreamer[T]) Run() error {
 
 func NewReadSplitsStreamer[T paging.Acceptor](
 	logger *zap.Logger,
+	queryID observation.IncomingQueryID,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
@@ -147,6 +150,7 @@ func NewReadSplitsStreamer[T paging.Acceptor](
 		split:       split,
 		dataSource:  dataSource,
 		sinkFactory: sinkFactory,
+		queryID:     queryID,
 		errorChan:   make(chan error),
 		ctx:         ctx,
 		cancel:      cancel,

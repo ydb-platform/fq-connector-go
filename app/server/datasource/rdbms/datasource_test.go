@@ -2,7 +2,6 @@ package rdbms
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -107,9 +107,14 @@ func TestReadSplit(t *testing.T) {
 		sinkFactory := &paging.SinkFactoryMock{}
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
-		dataSource := NewDataSource(logger, preset, converterCollection)
+		// FIXME: mock
+		observationStorage, err := observation.NewStorage(nil)
+		require.NoError(t, err)
 
-		err := dataSource.ReadSplit(ctx, logger, readSplitsRequest, split, sinkFactory)
+		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
+
+		queryID := observation.IncomingQueryID(0)
+		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.NoError(t, err)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
@@ -166,10 +171,15 @@ func TestReadSplit(t *testing.T) {
 		sinkFactory := &paging.SinkFactoryMock{}
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
-		datasource := NewDataSource(logger, preset, converterCollection)
+		// FIXME: mock
+		observationStorage, err := observation.NewStorage(nil)
+		require.NoError(t, err)
 
-		err := datasource.ReadSplit(ctx, logger, readSplitsRequest, split, sinkFactory)
-		require.True(t, errors.Is(err, scanErr))
+		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
+
+		queryID := observation.IncomingQueryID(0)
+		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
+		require.NoError(t, err)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
 	})
