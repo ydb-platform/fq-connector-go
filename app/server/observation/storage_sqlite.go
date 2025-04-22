@@ -6,11 +6,12 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"go.uber.org/zap"
 )
 
 var _ Storage = (*storageSQLite)(nil)
@@ -88,7 +89,7 @@ func (s *storageSQLite) initialize() error {
 // CreateIncomingQuery creates a new incoming query record
 func (s *storageSQLite) CreateIncomingQuery(dataSourceKind api_common.EGenericDataSourceKind) (IncomingQueryID, error) {
 	query := &IncomingQuery{
-		DataSourceKind: dataSourceKind,
+		DataSourceKind: dataSourceKind.String(),
 		CreatedAt:      time.Now().UTC(),
 		RowsRead:       0,
 		BytesRead:      0,
@@ -136,7 +137,7 @@ func (s *storageSQLite) FinishIncomingQuery(id IncomingQueryID, stats *api_servi
 	return nil
 }
 
-// CancelIncomingQuery marks an incoming query as cancelled with an error message
+// CancelIncomingQuery marks an incoming query as canceled with an error message
 func (s *storageSQLite) CancelIncomingQuery(id IncomingQueryID, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	finishedAt := time.Now().UTC()
 
@@ -145,7 +146,7 @@ func (s *storageSQLite) CancelIncomingQuery(id IncomingQueryID, errorMsg string,
 		string(QueryStateCancelled), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
 	)
 	if err != nil {
-		return fmt.Errorf("cancelling incoming query: %w", err)
+		return fmt.Errorf("canceling incoming query: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -163,18 +164,18 @@ func (s *storageSQLite) CancelIncomingQuery(id IncomingQueryID, errorMsg string,
 // ListIncomingQueries retrieves a list of incoming queries with optional filtering
 func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error) {
 	var querySQL string
-	var args []interface{}
+	var args []any
 
 	if state == nil {
 		querySQL = `
 			SELECT id, data_source_kind, rows_read, bytes_read, state, created_at, finished_at, error
 			FROM incoming_queries ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []interface{}{limit, offset}
+		args = []any{limit, offset}
 	} else {
 		querySQL = `
 			SELECT id, data_source_kind, rows_read, bytes_read, state, created_at, finished_at, error
 			FROM incoming_queries WHERE state = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []interface{}{string(*state), limit, offset}
+		args = []any{string(*state), limit, offset}
 	}
 
 	rows, err := s.db.Query(querySQL, args...)
@@ -311,7 +312,7 @@ func (s *storageSQLite) FinishOutgoingQuery(id OutgoingQueryID) error {
 	return nil
 }
 
-// CancelOutgoingQuery marks an outgoing query as cancelled with an error message
+// CancelOutgoingQuery marks an outgoing query as canceled with an error message
 func (s *storageSQLite) CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error {
 	finishedAt := time.Now().UTC()
 
@@ -320,7 +321,7 @@ func (s *storageSQLite) CancelOutgoingQuery(id OutgoingQueryID, errorMsg string)
 		string(QueryStateCancelled), finishedAt, errorMsg, id,
 	)
 	if err != nil {
-		return fmt.Errorf("cancelling outgoing query: %w", err)
+		return fmt.Errorf("canceling outgoing query: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -338,7 +339,7 @@ func (s *storageSQLite) CancelOutgoingQuery(id OutgoingQueryID, errorMsg string)
 // ListOutgoingQueries retrieves a list of outgoing queries with optional filtering
 func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error) {
 	var querySQL string
-	var args []interface{}
+	var args []any
 
 	// Build the query based on which filters are provided
 	if incomingQueryID != nil && state != nil {
@@ -348,7 +349,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 			FROM outgoing_queries 
 			WHERE incoming_query_id = ? AND state = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []interface{}{*incomingQueryID, string(*state), limit, offset}
+		args = []any{*incomingQueryID, string(*state), limit, offset}
 	} else if incomingQueryID != nil {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
@@ -356,7 +357,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 			FROM outgoing_queries 
 			WHERE incoming_query_id = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []interface{}{*incomingQueryID, limit, offset}
+		args = []any{*incomingQueryID, limit, offset}
 	} else if state != nil {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
@@ -364,14 +365,14 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 			FROM outgoing_queries 
 			WHERE state = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []interface{}{string(*state), limit, offset}
+		args = []any{string(*state), limit, offset}
 	} else {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
 			       query_args, state, created_at, finished_at, error
 			FROM outgoing_queries 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []interface{}{limit, offset}
+		args = []any{limit, offset}
 	}
 
 	rows, err := s.db.Query(querySQL, args...)

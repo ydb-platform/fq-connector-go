@@ -301,6 +301,7 @@ func NewDataSourceCollection(
 		memoryAllocator:     memoryAllocator,
 		readLimiterFactory:  readLimiterFactory,
 		converterCollection: converterCollection,
+		observationStorage:  observationStorage,
 		cfg:                 cfg,
 	}, nil
 }

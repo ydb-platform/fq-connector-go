@@ -148,7 +148,6 @@ func (SQLFormatter) RenderSelectQueryTextForColumnShard(
 	parts *rdbms_utils.SelectQueryParts,
 	tabletIDs []uint64,
 ) (string, error) {
-
 	var sb strings.Builder
 
 	sb.WriteString("SELECT ")

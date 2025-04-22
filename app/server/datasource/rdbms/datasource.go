@@ -186,7 +186,8 @@ func (ds *dataSourceImpl) ReadSplit(
 			}
 
 			// register outgoing request in storage
-			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(logger, incomingQueryID, split.Select.DataSourceInstance, query.QueryText, query.QueryArgs.Values())
+			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(
+				logger, incomingQueryID, split.Select.DataSourceInstance, query.QueryText, query.QueryArgs.Values())
 			if err != nil {
 				return fmt.Errorf("create outgoing query: %w", err)
 			}
@@ -194,7 +195,6 @@ func (ds *dataSourceImpl) ReadSplit(
 			// execute query
 			err = ds.doReadSplitSingleConn(ctx, logger, query, sink, conn)
 			if err != nil {
-
 				// register error
 				if cancelErr := ds.observationStorage.CancelOutgoingQuery(outgoingQueryID, err.Error()); cancelErr != nil {
 					logger.Error("cancel outgoing query: %w", zap.Error(cancelErr))
@@ -291,5 +291,6 @@ func NewDataSource(
 		splitProvider:       preset.SplitProvider,
 		retrierSet:          preset.RetrierSet,
 		converterCollection: converterCollection,
+		observationStorage:  observationStorage,
 	}
 }
