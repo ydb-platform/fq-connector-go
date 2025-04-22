@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -18,8 +19,8 @@ type servicePprof struct {
 	logger     *zap.Logger
 }
 
-func (s *servicePprof) start() error {
-	s.logger.Debug("starting HTTP server", zap.String("address", s.httpServer.Addr))
+func (s *servicePprof) Start() error {
+	s.logger.Info("starting HTTP server", zap.String("address", s.httpServer.Addr))
 
 	if err := s.httpServer.ListenAndServe(); err != nil {
 		return fmt.Errorf("pprof server listen and serve: %w", err)
@@ -30,7 +31,7 @@ func (s *servicePprof) start() error {
 
 const shutdownTimeout = 5 * time.Second
 
-func (s *servicePprof) stop() {
+func (s *servicePprof) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
@@ -40,7 +41,7 @@ func (s *servicePprof) stop() {
 	}
 }
 
-func newServicePprof(logger *zap.Logger, cfg *config.TPprofServerConfig) service {
+func newServicePprof(logger *zap.Logger, cfg *config.TPprofServerConfig) utils.Service {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)

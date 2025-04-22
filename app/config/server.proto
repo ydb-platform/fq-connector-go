@@ -29,6 +29,9 @@ message TServerConfig {
     TConversionConfig conversion = 9;
     // Datasource-specific config
     TDatasourcesConfig datasources = 10;
+    // Query observation service config.
+    // Disabled if this part of config is empty.
+    TObservationConfig observation = 11;
 }
 
 // TConnectorServerConfig - configuration of the main GRPC server
@@ -375,4 +378,29 @@ message TDatasourcesConfig {
     TMongoDbConfig mongodb = 9;
     TRedisConfig redis = 10;
     TOpenSearchConfig opensearch = 11;
+}
+
+// TObservationConfig contains configuration for query observation system.
+message TObservationConfig {
+    // TStorage contains settings specific for query observation storage.
+    message TStorage {
+        // TSQLite contains settings specific for SQLite storage of the query observation system.
+        message TSQLite {
+            // database path
+            string path = 1;
+        }
+
+        oneof payload {
+            TSQLite sqlite = 1;
+        }
+    }
+
+    TStorage storage = 1;
+
+    // TServer contains settings specific for query observation HTTP server.
+    message TServer {
+        NYql.TGenericEndpoint endpoint = 1;
+    }
+
+    TServer server = 2;
 }

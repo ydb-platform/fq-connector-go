@@ -9,16 +9,13 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
 )
 
-type service interface {
-	start() error
-	stop()
-}
-
 type Launcher struct {
-	services map[string]service
+	services map[string]utils.Service
 	logger   *zap.Logger
 }
 
@@ -27,10 +24,8 @@ func (l *Launcher) Start() <-chan error {
 
 	for key := range l.services {
 		go func(key string) {
-			l.logger.Info("starting service", zap.String("service", key))
-
 			// blocking call
-			errChan <- l.services[key].start()
+			errChan <- l.services[key].Start()
 		}(key)
 	}
 
@@ -40,19 +35,20 @@ func (l *Launcher) Start() <-chan error {
 func (l *Launcher) Stop() {
 	for key, s := range l.services {
 		l.logger.Info("stopping service", zap.String("service", key))
-		s.stop()
+		s.Stop()
 	}
 }
 
 const (
-	connectorServiceKey = "connector"
-	pprofServiceKey     = "pprof"
-	metricsKey          = "metrics"
+	connectorServiceKey   = "connector"
+	pprofServiceKey       = "pprof"
+	metricsServiceKey     = "metrics"
+	observationServiceKey = "observation"
 )
 
 func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, error) {
 	l := &Launcher{
-		services: make(map[string]service, 2),
+		services: make(map[string]utils.Service, 3),
 		logger:   logger,
 	}
 
@@ -64,8 +60,8 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 	})
 
 	if cfg.MetricsServer != nil {
-		l.services[metricsKey] = newServiceMetrics(
-			logger.With(zap.String("service", metricsKey)),
+		l.services[metricsServiceKey] = newServiceMetrics(
+			logger.With(zap.String("service", metricsServiceKey)),
 			cfg.MetricsServer, registry)
 	}
 
@@ -74,7 +70,7 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 		logger.With(zap.String("service", connectorServiceKey)),
 		cfg, registry)
 	if err != nil {
-		return nil, fmt.Errorf("new connector server: %w", err)
+		return nil, fmt.Errorf("new connector service: %w", err)
 	}
 
 	// init Pprof server
@@ -82,6 +78,17 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 		l.services[pprofServiceKey] = newServicePprof(
 			logger.With(zap.String("service", pprofServiceKey)),
 			cfg.PprofServer)
+	}
+
+	// init Observation server
+	if cfg.Observation != nil {
+		l.services[observationServiceKey], err = observation.NewService(
+			logger.With(zap.String("service", observationServiceKey)),
+			cfg.Observation,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("new observation service: %w", err)
+		}
 	}
 
 	return l, nil
