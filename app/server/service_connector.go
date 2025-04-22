@@ -30,6 +30,7 @@ type serviceConnector struct {
 	cfg                  *config.TServerConfig
 	grpcServer           *grpc.Server
 	listener             net.Listener
+	observationStorage   observation.Storage
 	logger               *zap.Logger
 }
 
@@ -169,6 +170,7 @@ func (s *serviceConnector) doReadSplits(
 			stream,
 			request,
 			split,
+			s.observationStorage,
 		)
 
 		if err != nil {
@@ -241,7 +243,7 @@ func newServiceConnector(
 	logger *zap.Logger,
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
-	observationStorage *observation.Storage,
+	observationStorage observation.Storage,
 ) (utils.Service, error) {
 	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
@@ -288,6 +290,7 @@ func newServiceConnector(
 		logger:               logger,
 		grpcServer:           grpcServer,
 		listener:             listener,
+		observationStorage:   observationStorage,
 		cfg:                  cfg,
 	}
 

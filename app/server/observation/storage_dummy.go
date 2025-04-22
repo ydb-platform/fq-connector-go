@@ -1,6 +1,9 @@
 package observation
 
-import api_common "github.com/ydb-platform/fq-connector-go/api/common"
+import (
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+)
 
 var _ Storage = (*storageDummyImpl)(nil)
 
@@ -23,15 +26,19 @@ func (s storageDummyImpl) ListQueries(state *QueryState, limit int, offset int) 
 	return nil, nil
 }
 
-func (s storageDummyImpl) UpdateQueryProgress(id QueryID, rowsRead int64, bytesRead int64) error {
+func (s storageDummyImpl) ListRunningQueries() ([]*Query, error) {
+	return nil, nil
+}
+
+func (s storageDummyImpl) ListSimilarQueriesWithDifferentStats() ([][]*Query, error) {
+	return nil, nil
+}
+
+func (s storageDummyImpl) FinishQuery(id QueryID, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	return nil
 }
 
-func (s storageDummyImpl) FinishQuery(id QueryID, rowsRead int64, bytesRead int64) error {
-	return nil
-}
-
-func (s storageDummyImpl) CancelQuery(id QueryID, errorMsg string, rowsRead int64, bytesRead int64) error {
+func (s storageDummyImpl) CancelQuery(id QueryID, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	return nil
 }
 
@@ -39,14 +46,6 @@ func (s storageDummyImpl) DeleteQuery(id QueryID) error {
 	return nil
 }
 
-func (s storageDummyImpl) GetRunningQueries() ([]*Query, error) {
-	return nil, nil
-}
-
-func (s storageDummyImpl) FindSimilarQueriesWithDifferentUsage() ([][]*Query, error) {
-	return nil, nil
-}
-
-func (s storageDummyImpl) Close() error {
+func (s storageDummyImpl) close() error {
 	return nil
 }

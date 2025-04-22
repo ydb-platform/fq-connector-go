@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -52,14 +53,6 @@ func (s *storageSQLite) initialize() error {
 		return fmt.Errorf("creating tables: %w", err)
 	}
 
-	return nil
-}
-
-// Close closes the database connection
-func (s *storageSQLite) Close() error {
-	if s.db != nil {
-		return s.db.Close()
-	}
 	return nil
 }
 
@@ -223,103 +216,14 @@ func (s *storageSQLite) ListQueries(state *QueryState, limit, offset int) ([]*Qu
 	return queries, nil
 }
 
-// UpdateQueryProgress updates the number of rows and bytes read for a query
-func (s *storageSQLite) UpdateQueryProgress(id QueryID, rowsRead, bytesRead int64) error {
-	result, err := s.db.Exec(
-		"UPDATE queries SET rows_read = ?, bytes_read = ? WHERE id = ?",
-		rowsRead, bytesRead, id,
-	)
-	if err != nil {
-		return fmt.Errorf("updating query progress: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("query not found: %d", id)
-	}
-
-	return nil
-}
-
-// FinishQuery marks a query as finished
-func (s *storageSQLite) FinishQuery(id QueryID, rowsRead, bytesRead int64) error {
-	finishedAt := time.Now().UTC()
-
-	result, err := s.db.Exec(
-		"UPDATE queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
-		string(QueryStateFinished), finishedAt, rowsRead, bytesRead, id,
-	)
-	if err != nil {
-		return fmt.Errorf("marking query as finished: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("query not found: %d", id)
-	}
-
-	return nil
-}
-
-// CancelQuery marks a query as cancelled with error message and resource usage data
-func (s *storageSQLite) CancelQuery(id QueryID, errorMsg string, rowsRead, bytesRead int64) error {
-	finishedAt := time.Now().UTC()
-
-	result, err := s.db.Exec(
-		"UPDATE queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
-		string(QueryStateCancelled), finishedAt, errorMsg, rowsRead, bytesRead, id,
-	)
-	if err != nil {
-		return fmt.Errorf("cancelling query: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("query not found: %d", id)
-	}
-
-	return nil
-}
-
-// DeleteQuery removes a query from the database
-func (s *storageSQLite) DeleteQuery(id QueryID) error {
-	result, err := s.db.Exec("DELETE FROM queries WHERE id = ?", id)
-	if err != nil {
-		return fmt.Errorf("deleting query: %w", err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
-		return fmt.Errorf("query not found: %d", id)
-	}
-
-	return nil
-}
-
 // GetRunningQueries gets all queries that are currently running
-func (s *storageSQLite) GetRunningQueries() ([]*Query, error) {
+func (s *storageSQLite) ListRunningQueries() ([]*Query, error) {
 	state := QueryStateRunning
 	return s.ListQueries(&state, 1000, 0)
 }
 
 // FindSimilarQueriesWithDifferentUsage finds groups of queries with identical text and args but different resource usage
-func (s *storageSQLite) FindSimilarQueriesWithDifferentUsage() ([][]*Query, error) {
+func (s *storageSQLite) ListSimilarQueriesWithDifferentStats() ([][]*Query, error) {
 	// First, find groups of queries with the same text and args
 	findSimilarSQL := `
 	WITH query_groups AS (
@@ -441,6 +345,81 @@ func (s *storageSQLite) FindSimilarQueriesWithDifferentUsage() ([][]*Query, erro
 	}
 
 	return result, nil
+}
+
+// FinishQuery marks a query as finished
+func (s *storageSQLite) FinishQuery(id QueryID, stats *api_service_protos.TReadSplitsResponse_TStats) error {
+	finishedAt := time.Now().UTC()
+
+	result, err := s.db.Exec(
+		"UPDATE queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
+		string(QueryStateFinished), finishedAt, stats.Rows, stats.Bytes, id,
+	)
+	if err != nil {
+		return fmt.Errorf("marking query as finished: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("query not found: %d", id)
+	}
+
+	return nil
+}
+
+// CancelQuery marks a query as cancelled with error message and resource usage data
+func (s *storageSQLite) CancelQuery(id QueryID, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
+	finishedAt := time.Now().UTC()
+
+	result, err := s.db.Exec(
+		"UPDATE queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
+		string(QueryStateCancelled), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
+	)
+	if err != nil {
+		return fmt.Errorf("cancelling query: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("query not found: %d", id)
+	}
+
+	return nil
+}
+
+// DeleteQuery removes a query from the database
+func (s *storageSQLite) DeleteQuery(id QueryID) error {
+	result, err := s.db.Exec("DELETE FROM queries WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("deleting query: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("checking rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("query not found: %d", id)
+	}
+
+	return nil
+}
+
+// Close closes the database connection
+func (s *storageSQLite) close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
 }
 
 // newStorageSQLite creates a new QueryStorage instance

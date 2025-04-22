@@ -78,7 +78,7 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 		logger.With(zap.String("service", connectorServiceKey)),
 		cfg,
 		solomonRegistry,
-		&observationStorage,
+		observationStorage,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new connector service: %w", err)
