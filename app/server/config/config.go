@@ -33,7 +33,7 @@ func makeDefaultPushdownConfig() *config.TPushdownConfig {
 
 // TODO: use reflection to generalize datasource setting code
 //
-//nolint:gocyclo
+//nolint:gocyclo,funlen
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.ConnectorServer.MaxRecvMessageSize == 0 {
 		c.ConnectorServer.MaxRecvMessageSize = math.MaxInt32

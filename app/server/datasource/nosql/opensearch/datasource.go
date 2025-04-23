@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/opensearch-project/opensearch-go"
-	"github.com/opensearch-project/opensearch-go/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -45,7 +45,7 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("cannot run OpenSearch connection with protocol '%v'", dsi.Protocol)
 	}
 
-	var client *opensearch.Client
+	var client *opensearchapi.Client
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
@@ -60,25 +60,25 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	indexName := request.Table
-	res, err := client.Indices.GetMapping(
-		client.Indices.GetMapping.WithContext(ctx),
-		client.Indices.GetMapping.WithIndex(indexName),
+	res, err := client.Indices.Mapping.Get(
+		ctx,
+		&opensearchapi.MappingGetReq{Indices: []string{indexName}},
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("get mapping failed: %w", err)
 	}
 
-	defer closeResponseBody(logger, res.Body)
+	defer closeResponseBody(logger, res.Inspect().Response.Body)
 
-	err = checkStatusCode(res.StatusCode)
+	err = checkStatusCode(res.Inspect().Response.StatusCode)
 	if err != nil {
 		return nil, fmt.Errorf("check status code: %w", err)
 	}
 
 	var result map[string]any
 
-	err = json.NewDecoder(res.Body).Decode(&result)
+	err = json.NewDecoder(res.Inspect().Response.Body).Decode(&result)
 	if err != nil {
 		return nil, fmt.Errorf("decode response body: %w", err)
 	}
@@ -128,40 +128,42 @@ func (ds *dataSource) makeConnection(
 	ctx context.Context,
 	logger *zap.Logger,
 	dsi *api_common.TGenericDataSourceInstance,
-) (*opensearch.Client, error) {
+) (*opensearchapi.Client, error) {
 	instanceAddress := fmt.Sprintf("%s://%s:%d", dsi.Protocol, dsi.Endpoint.Host, dsi.Endpoint.Port)
-	logger.Debug("attempting to connect to OpenSearch",
+	logger.Debug("creating connection",
 		zap.String("address", instanceAddress),
 	)
 
-	cfg := opensearch.Config{
-		Addresses: []string{instanceAddress},
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: false,
+	cfg := opensearchapi.Config{
+		Client: opensearch.Config{
+			Addresses: []string{instanceAddress},
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: false,
+				},
+				DialContext: (&net.Dialer{
+					Timeout: common.MustDurationFromString(ds.cfg.DialTimeout),
+				}).DialContext,
+				ResponseHeaderTimeout: common.MustDurationFromString(ds.cfg.ResponseHeaderTimeout),
 			},
-			DialContext: (&net.Dialer{
-				Timeout: common.MustDurationFromString(ds.cfg.DialTimeout),
-			}).DialContext,
-			ResponseHeaderTimeout: common.MustDurationFromString(ds.cfg.ResponseHeaderTimeout),
+			Username: dsi.Credentials.GetBasic().Username,
+			Password: dsi.Credentials.GetBasic().Password,
 		},
-		Username: dsi.Credentials.GetBasic().Username,
-		Password: dsi.Credentials.GetBasic().Password,
 	}
 
-	client, err := opensearch.NewClient(cfg)
+	client, err := opensearchapi.NewClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("create client: %w", err)
+		return nil, fmt.Errorf("client creation failed: %w", err)
 	}
 
-	logger.Debug("Ping with timeout OpenSearch")
+	logger.Debug("pinging connection")
 
 	err = pingWithTimeout(ctx, logger, client, common.MustDurationFromString(ds.cfg.PingConnectionTimeout))
 	if err != nil {
 		return nil, fmt.Errorf("ping OpenSearch: %w", err)
 	}
 
-	logger.Info("Successfully connected to OpenSearch", zap.String("address", instanceAddress))
+	logger.Info("successfully connected", zap.String("address", instanceAddress))
 
 	return client, nil
 }
@@ -169,17 +171,17 @@ func (ds *dataSource) makeConnection(
 func pingWithTimeout(
 	ctx context.Context,
 	logger *zap.Logger,
-	client *opensearch.Client,
+	client *opensearchapi.Client,
 	timeout time.Duration,
 ) error {
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	pingReq := opensearchapi.PingRequest{}
+	pingReq := opensearchapi.PingReq{}
 
-	res, err := pingReq.Do(ctxWithTimeout, client)
+	res, err := client.Ping(ctxWithTimeout, &pingReq)
 	if err != nil {
-		return fmt.Errorf("ping OpenSearch: %w", err)
+		return fmt.Errorf("ping: %w", err)
 	}
 	defer closeResponseBody(logger, res.Body)
 
@@ -199,7 +201,7 @@ func closeResponseBody(
 
 func checkStatusCode(statusCode int) error {
 	if statusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code from OpenSearch: %d", statusCode)
+		return fmt.Errorf("unexpected status code: %d", statusCode)
 	}
 
 	return nil

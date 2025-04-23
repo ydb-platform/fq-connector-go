@@ -2,6 +2,7 @@ package opensearch
 
 import (
 	"fmt"
+	"sort"
 
 	"go.uber.org/zap"
 
@@ -28,13 +29,15 @@ func parseMapping(
 			availableKeys = append(availableKeys, k)
 		}
 
-		return nil, fmt.Errorf("failed to extract 'properties' from mapping (available keys: %v)", availableKeys)
+		return nil, fmt.Errorf("extract 'properties' from mapping (available keys: %v)", availableKeys)
 	}
 
 	var columns []*Ydb.Column
 
-	for fieldName, fieldProps := range properties {
-		props, ok := fieldProps.(map[string]any)
+	keys := getSortedKeys(properties)
+
+	for _, fieldName := range keys {
+		props, ok := properties[fieldName].(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("invalid properties for field '%s': expected map[string]any", fieldName)
 		}
@@ -76,7 +79,7 @@ func handleStructField(
 ) (*Ydb.Column, error) {
 	children, err := processChildFields(logger, qualifiedName, properties, meta)
 	if err != nil {
-		return nil, fmt.Errorf("failed to process struct field '%s': %w", fieldName, err)
+		return nil, fmt.Errorf("process struct field '%s': %w", fieldName, err)
 	}
 
 	ydbType := common.MakeOptionalType(common.MakeStructType(children))
@@ -84,7 +87,7 @@ func handleStructField(
 	if metaValue, exists := meta[qualifiedName]; exists {
 		ydbType, err = applyMetaAnnotation(qualifiedName, metaValue, ydbType)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("apply meta annotation for field '%s': %w", fieldName, err)
 		}
 	}
 
@@ -102,17 +105,21 @@ func processChildFields(
 ) ([]*Ydb.StructMember, error) {
 	var children []*Ydb.StructMember
 
-	for childFieldName, childMapping := range properties {
+	keys := getSortedKeys(properties)
+
+	for _, childFieldName := range keys {
+		childMapping := properties[childFieldName]
+
 		childProps, ok := childMapping.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("invalid properties for child field '%s'", childFieldName)
 		}
 
 		childQualifiedName := fmt.Sprintf("%s.%s", parentQualifiedName, childFieldName)
-		childField, err := inferField(logger, childFieldName, childQualifiedName, childProps, meta)
 
+		childField, err := inferField(logger, childFieldName, childQualifiedName, childProps, meta)
 		if err != nil {
-			return nil, fmt.Errorf("failed to process child field '%s': %w", childFieldName, err)
+			return nil, fmt.Errorf("process child field '%s': %w", childFieldName, err)
 		}
 
 		children = append(children, &Ydb.StructMember{
@@ -122,6 +129,17 @@ func processChildFields(
 	}
 
 	return children, nil
+}
+
+func getSortedKeys(m map[string]any) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
 
 func applyMetaAnnotation(
@@ -149,7 +167,7 @@ func handleSimpleField(
 ) (*Ydb.Column, error) {
 	ydbType, err := typeMap(mapping)
 	if err != nil {
-		return nil, fmt.Errorf("failed to map type for field '%s': %w", fieldName, err)
+		return nil, fmt.Errorf("map type for field '%s': %w", fieldName, err)
 	}
 
 	if _, exists := meta[qualifiedName]; exists {

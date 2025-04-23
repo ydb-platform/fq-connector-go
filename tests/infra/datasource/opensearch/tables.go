@@ -56,6 +56,43 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{},
 	},
 
+	"nested_list": {
+		Name:                  "nested_list",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":      testIdType,
+				"company": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"employees": common.MakeOptionalType(common.MakeListType(
+					common.MakeOptionalType(common.MakeStructType([]*Ydb.StructMember{
+						{
+							Name: "id",
+							Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+						},
+						{
+							Name: "name",
+							Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+						},
+						{
+							Name: "skills",
+							Type: common.MakeOptionalType(common.MakeListType(
+								common.MakeOptionalType(common.MakeStructType([]*Ydb.StructMember{
+									{
+										Name: "level",
+										Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+									},
+									{
+										Name: "name",
+										Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+									},
+								})),
+							)),
+						},
+					})),
+				)),
+			},
+		},
+	},
 	"optional": {
 		Name:                  "optional",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),

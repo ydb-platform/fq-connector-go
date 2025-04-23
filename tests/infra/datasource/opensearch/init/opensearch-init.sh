@@ -90,6 +90,79 @@ curl -X POST "http://localhost:9200/nested/_bulk" -H 'Content-Type: application/
 '
 
 echo "==============================="
+echo "List of Struct mappings!"
+echo "==============================="
+
+curl -X PUT "http://localhost:9200/nested_list" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "_meta": {
+        "employees": "list",
+        "employees.skills": "list"
+    },
+    "properties": {
+      "id": { "type": "integer" },
+      "company": { "type": "keyword" },
+      "employees": {
+        "type": "nested",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "keyword" },
+          "skills": {
+            "type": "nested",
+            "properties": {
+              "name": { "type": "keyword" },
+              "level": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}'
+
+curl -X POST "http://localhost:9200/nested_list/_bulk" -H 'Content-Type: application/json' -d'
+{ "index": { "_id": "1" } }
+{
+  "id": 0,
+  "company": "Tech Corp",
+  "employees": [
+    {
+      "id": 1,
+      "name": "Alice",
+      "skills": [
+        { "name": "Go", "level": 5 },
+        { "name": "Python", "level": 4 }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Bob",
+      "skills": [
+        { "name": "Java", "level": 3 },
+        { "name": "JavaScript", "level": 5 }
+      ]
+    }
+  ]
+}
+{ "index": { "_id": "2" } }
+{
+  "id": 1,
+  "company": "Dev Inc",
+  "employees": [
+    {
+      "id": 3,
+      "name": "Charlie",
+      "skills": [
+        { "name": "Rust", "level": 4 },
+        { "name": "C++", "level": 5 }
+      ]
+    }
+  ]
+}
+'
+
+echo "==============================="
 echo "Optional fields demo"
 echo "==============================="
 

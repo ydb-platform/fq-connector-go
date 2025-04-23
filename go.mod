@@ -20,7 +20,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa
 	github.com/jackc/pgx/v5 v5.5.5
-	github.com/opensearch-project/opensearch-go v1.1.0
+	github.com/opensearch-project/opensearch-go/v4 v4.1.0
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/pingcap/errors v0.11.5-0.20201126102027-b0a155152ca3
 	github.com/pkg/errors v0.9.1
