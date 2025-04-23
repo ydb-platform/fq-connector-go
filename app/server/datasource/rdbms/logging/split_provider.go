@@ -2,9 +2,11 @@ package logging
 
 import (
 	"fmt"
+	"sort"
 
 	"golang.org/x/sync/errgroup"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
@@ -67,11 +69,18 @@ func (s *splitProviderImpl) handleYDBSource(
 			var makeConnErr error
 
 			makeConnectionParams := &rdbms_utils.ConnectionParams{
-				Ctx:                params.Ctx,
-				Logger:             params.Logger,
-				DataSourceInstance: params.Select.GetDataSourceInstance(),
-				TableName:          params.Select.GetFrom().GetTable(),
-				QueryPhase:         rdbms_utils.QueryPhaseListSplits,
+				Ctx:    params.Ctx,
+				Logger: params.Logger,
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind:        api_common.EGenericDataSourceKind_YDB,
+					Endpoint:    src.endpoint,
+					Credentials: src.credentials,
+					Database:    src.databaseName,
+					UseTls:      true,
+					Protocol:    api_common.EGenericProtocol_NATIVE,
+				},
+				TableName:  src.tableName,
+				QueryPhase: rdbms_utils.QueryPhaseListSplits,
 			}
 
 			cs, makeConnErr = params.ConnectionManager.Make(makeConnectionParams)
@@ -98,6 +107,11 @@ func (s *splitProviderImpl) handleYDBSource(
 	if err != nil {
 		return fmt.Errorf("get column shard tablet ids: %w", err)
 	}
+
+	// FIXME: remove after debug
+	sort.Slice(tabletIDs, func(i, j int) bool { return tabletIDs[i] < tabletIDs[j] })
+	dbName, _ := cs[0].From()
+	fmt.Println(">>> TABLET IDS", dbName, tabletIDs)
 
 	// 1 tablet id <-> 1 column shard <-> 1 split
 	for _, tabletId := range tabletIDs {
