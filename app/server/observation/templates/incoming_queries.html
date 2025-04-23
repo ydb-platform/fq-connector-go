@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Incoming Queries</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+    <a href="/" class="back-link">← Back to Home</a>
+    <h1>Incoming Queries</h1>
+    
+    <!-- Debug info -->
+    <div style="background-color: #f8f9fa; padding: 10px; margin-bottom: 15px; border-radius: 5px;">
+        <p><strong>Debug:</strong> Found {{.QueryCount}} queries (limit: {{.Limit}}, offset: {{.Offset}})</p>
+    </div>
+    
+    {{if .Queries}}
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Data Source Kind</th>
+            <th>Rows Read</th>
+            <th>Bytes Read</th>
+            <th>State</th>
+            <th>Created At</th>
+            <th>Finished At</th>
+            <th>Error</th>
+        </tr>
+        {{range .Queries}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>{{.DataSourceKind}}</td>
+            <td>{{.RowsRead}}</td>
+            <td>{{.BytesRead}}</td>
+            <td class="state-{{.State | lower}}">{{.State}}</td>
+            <td>{{.CreatedAt}}</td>
+            <td>{{if .FinishedAt}}{{.FinishedAt}}{{else}}-{{end}}</td>
+            <td>{{if .Error}}{{.Error}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+    </table>
+    
+    <div class="pagination">
+        {{if .HasPrev}}
+        <a href="/api/queries/incoming/list?format=html&limit={{.Limit}}&offset={{.PrevOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}">Previous</a>
+        {{else}}
+        <a href="#" class="disabled">Previous</a>
+        {{end}}
+        
+        {{if .HasNext}}
+        <a href="/api/queries/incoming/list?format=html&limit={{.Limit}}&offset={{.NextOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}">Next</a>
+        {{else}}
+        <a href="#" class="disabled">Next</a>
+        {{end}}
+    </div>
+    {{else}}
+    <p>No queries found.</p>
+    {{end}}
+</body>
+</html>

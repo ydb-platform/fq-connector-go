@@ -1,0 +1,131 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+    color: #333;
+}
+h1, h2 {
+    color: #2c3e50;
+}
+h1 {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+h2 {
+    margin-top: 30px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+tr:hover {
+    background-color: #f0f0f0;
+}
+.pagination {
+    margin-top: 20px;
+}
+.pagination a {
+    display: inline-block;
+    padding: 8px 16px;
+    text-decoration: none;
+    background-color: #3498db;
+    color: white;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+.pagination a:hover {
+    background-color: #2980b9;
+}
+.pagination a.disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+.back-link {
+    margin-bottom: 20px;
+    display: block;
+}
+.state-running {
+    color: blue;
+    font-weight: bold;
+}
+.state-finished {
+    color: green;
+}
+.state-canceled {
+    color: red;
+}
+.query-text {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.query-text:hover {
+    white-space: normal;
+    overflow: visible;
+}
+.link-container {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.link-container:hover {
+    background-color: #f0f0f0;
+}
+.link-name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #3498db;
+    text-decoration: none;
+}
+.link-name:hover {
+    text-decoration: underline;
+}
+.link-description {
+    margin-top: 5px;
+    color: #666;
+}
+.group {
+    margin-bottom: 40px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.stats-diff {
+    color: #e74c3c;
+    font-weight: bold;
+}
+.no-groups {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 18px;
+    color: #7f8c8d;
+}
+.details {
+    margin-bottom: 10px;
+    font-style: italic;
+    color: #555;
+}

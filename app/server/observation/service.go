@@ -26,10 +26,11 @@ var _ utils.Service = (*serviceImpl)(nil)
 
 // serviceImpl represents the HTTP service implementation
 type serviceImpl struct {
-	storage  Storage
-	server   *http.Server
-	listener net.Listener
-	logger   *zap.Logger
+	storage   Storage
+	server    *http.Server
+	listener  net.Listener
+	logger    *zap.Logger
+	templates *template.Template
 }
 
 // Start starts the HTTP server on the specified address
@@ -143,7 +144,7 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 }
 
 // handleHomePage serves the main HTML page with links to all other endpoints
-func (*serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
+func (s *serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -195,72 +196,9 @@ func (*serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	// HTML template
-	const htmlTemplate = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{.Title}}</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-        }
-        .link-container {
-            margin-bottom: 20px;
-            padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .link-container:hover {
-            background-color: #f0f0f0;
-        }
-        .link-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #3498db;
-            text-decoration: none;
-        }
-        .link-name:hover {
-            text-decoration: underline;
-        }
-        .link-description {
-            margin-top: 5px;
-            color: #666;
-        }
-    </style>
-</head>
-<body>
-    <h1>{{.Title}}</h1>
-    {{range .Links}}
-    <div class="link-container">
-        <a href="{{.URL}}" class="link-name">{{.Name}}</a>
-        <div class="link-description">{{.Description}}</div>
-    </div>
-    {{end}}
-</body>
-</html>
-`
-
-	tmpl, err := template.New("home").Parse(htmlTemplate)
-	if err != nil {
-		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if err := tmpl.Execute(w, data); err != nil {
+	if err := s.templates.ExecuteTemplate(w, "templates/home.html", data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return
 	}
@@ -331,7 +269,7 @@ func (s *serviceImpl) handleListIncomingQueries(w http.ResponseWriter, r *http.R
 	}
 
 	// Otherwise, render HTML
-	if format == formatJSON {
+	if format == formatHTML {
 		s.renderIncomingQueriesHTML(w, r, queries, limit, offset)
 		return
 	}
@@ -341,7 +279,7 @@ func (s *serviceImpl) handleListIncomingQueries(w http.ResponseWriter, r *http.R
 }
 
 // renderIncomingQueriesHTML renders incoming queries as HTML with pagination
-func (*serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Request, queries []*IncomingQuery, limit, offset int) {
+func (s *serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Request, queries []*IncomingQuery, limit, offset int) {
 	// Data for the template
 	data := struct {
 		Queries     []*IncomingQuery
@@ -352,6 +290,7 @@ func (*serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Req
 		HasPrev     bool
 		HasNext     bool
 		StateFilter string
+		QueryCount  int // Added for debugging
 	}{
 		Queries:    queries,
 		Limit:      limit,
@@ -360,6 +299,7 @@ func (*serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Req
 		PrevOffset: offset - limit,
 		HasPrev:    offset > 0,
 		HasNext:    len(queries) >= limit,
+		QueryCount: len(queries), // For debugging
 	}
 
 	// Get state from query params if it exists
@@ -367,145 +307,23 @@ func (*serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Req
 		data.StateFilter = stateParam
 	}
 
-	// HTML template for incoming queries
-	const htmlTemplate = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Incoming Queries</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f0f0f0;
-        }
-        .pagination {
-            margin-top: 20px;
-        }
-        .pagination a {
-            display: inline-block;
-            padding: 8px 16px;
-            text-decoration: none;
-            background-color: #3498db;
-            color: white;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-        .pagination a:hover {
-            background-color: #2980b9;
-        }
-        .pagination a.disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .back-link {
-            margin-bottom: 20px;
-            display: block;
-        }
-        .state-running {
-            color: blue;
-            font-weight: bold;
-        }
-        .state-finished {
-            color: green;
-        }
-        .state-canceled {
-            color: red;
-        }
-    </style>
-</head>
-<body>
-    <a href="/" class="back-link">← Back to Home</a>
-    <h1>Incoming Queries</h1>
-    
-    {{if .Queries}}
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Data Source Kind</th>
-            <th>Rows Read</th>
-            <th>Bytes Read</th>
-            <th>State</th>
-            <th>Created At</th>
-            <th>Finished At</th>
-            <th>Error</th>
-        </tr>
-        {{range .Queries}}
-        <tr>
-            <td>{{.ID}}</td>
-            <td>{{.DataSourceKind}}</td>
-            <td>{{.RowsRead}}</td>
-            <td>{{.BytesRead}}</td>
-            <td class="state-{{.State}}">{{.State}}</td>
-            <td>{{.CreatedAt}}</td>
-            <td>{{if .FinishedAt}}{{.FinishedAt}}{{else}}-{{end}}</td>
-            <td>{{if .Error}}{{.Error}}{{else}}-{{end}}</td>
-        </tr>
-        {{end}}
-    </table>
-    
-    <div class="pagination">
-        {{if .HasPrev}}
-        <a href="?format=html&limit={{.Limit}}&offset={{.PrevOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}">Previous</a>
-        {{else}}
-        <a href="#" class="disabled">Previous</a>
-        {{end}}
-        
-        {{if .HasNext}}
-        <a href="?format=html&limit={{.Limit}}&offset={{.NextOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}">Next</a>
-        {{else}}
-        <a href="#" class="disabled">Next</a>
-        {{end}}
-    </div>
-    {{else}}
-    <p>No queries found.</p>
-    {{end}}
-</body>
-</html>
-`
-
-	tmpl, err := template.New("incoming_queries").Parse(htmlTemplate)
-	if err != nil {
-		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if err := tmpl.Execute(w, data); err != nil {
-		http.Error(w, "Failed to render template", http.StatusInternalServerError)
+	// Add debugging output to the page
+	debug := fmt.Sprintf("<!-- Debug info: queries=%d, limit=%d, offset=%d -->",
+		len(queries), limit, offset)
+	w.Write([]byte(debug))
+
+	if err := s.templates.ExecuteTemplate(w, "templates/incoming_queries.html", data); err != nil {
+		s.logger.Error("Template rendering failed", zap.Error(err))
+		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 // handleListRunningIncomingQueries handles GET requests to list running incoming queries
 func (s *serviceImpl) handleListRunningIncomingQueries(w http.ResponseWriter, r *http.Request) {
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -662,158 +480,9 @@ func (s *serviceImpl) renderOutgoingQueriesHTML(w http.ResponseWriter, r *http.R
 		data.StateFilter = stateParam
 	}
 
-	// HTML template for outgoing queries
-	const htmlTemplate = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Outgoing Queries</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f0f0f0;
-        }
-        .pagination {
-            margin-top: 20px;
-        }
-        .pagination a {
-            display: inline-block;
-            padding: 8px 16px;
-            text-decoration: none;
-            background-color: #3498db;
-            color: white;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-        .pagination a:hover {
-            background-color: #2980b9;
-        }
-        .pagination a.disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        .back-link {
-            margin-bottom: 20px;
-            display: block;
-        }
-        .state-running {
-            color: blue;
-            font-weight: bold;
-        }
-        .state-finished {
-            color: green;
-        }
-        .state-canceled {
-            color: red;
-        }
-        .query-text {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .query-text:hover {
-            white-space: normal;
-            overflow: visible;
-        }
-    </style>
-</head>
-<body>
-    <a href="/" class="back-link">← Back to Home</a>
-    <h1>Outgoing Queries</h1>
-    
-    {{if .IncomingQueryID}}
-    <p><strong>Filtered by Incoming Query ID:</strong> {{.IncomingQueryID}}</p>
-    {{end}}
-    
-    {{if .Queries}}
-    <table>
-        <tr>
-            <th>ID</th>
-            <th>Incoming Query ID</th>
-            <th>Database</th>
-            <th>Endpoint</th>
-            <th>Query Text</th>
-            <th>State</th>
-            <th>Created At</th>
-            <th>Finished At</th>
-            <th>Error</th>
-        </tr>
-        {{range .Queries}}
-        <tr>
-            <td>{{.ID}}</td>
-            <td>
-                <a href="/api/queries/outgoing/list?format=html&incoming_query_id={{.IncomingQueryID}}">
-                    {{.IncomingQueryID}}
-                </a>
-            </td>
-            <td>{{.DatabaseName}}</td>
-            <td>{{.DatabaseEndpoint}}</td>
-            <td class="query-text">{{.QueryText}}</td>
-            <td class="state-{{.State}}">{{.State}}</td>
-            <td>{{.CreatedAt}}</td>
-            <td>{{if .FinishedAt}}{{.FinishedAt}}{{else}}-{{end}}</td>
-            <td>{{if .Error}}{{.Error}}{{else}}-{{end}}</td>
-        </tr>
-        {{end}}
-    </table>
-    
-    <div class="pagination">
-        {{if .HasPrev}}
-        <a href="?format=html&limit={{.Limit}}&offset={{.PrevOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}{{if .IncomingQueryID}}&incoming_query_id={{.IncomingQueryID}}{{end}}">Previous</a>
-        {{else}}
-        <a href="#" class="disabled">Previous</a>
-        {{end}}
-        
-        {{if .HasNext}}
-        <a href="?format=html&limit={{.Limit}}&offset={{.NextOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}{{if .IncomingQueryID}}&incoming_query_id={{.IncomingQueryID}}{{end}}">Next</a>
-        {{else}}
-        <a href="#" class="disabled">Next</a>
-        {{end}}
-    </div>
-    {{else}}
-    <p>No queries found.</p>
-    {{end}}
-</body>
-</html>
-`
-
-	tmpl, err := template.New("outgoing_queries").Parse(htmlTemplate)
-	if err != nil {
-		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if err := tmpl.Execute(w, data); err != nil {
+	if err := s.templates.ExecuteTemplate(w, "templates/outgoing_queries.html", data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return
 	}
@@ -896,7 +565,7 @@ func (s *serviceImpl) handleListSimilarOutgoingQueriesWithDifferentStats(w http.
 }
 
 // renderSimilarOutgoingQueriesHTML renders similar outgoing queries with different stats as HTML
-func (*serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, queryGroups [][]*OutgoingQuery) {
+func (s *serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, queryGroups [][]*OutgoingQuery) {
 	// Data for the template
 	data := struct {
 		QueryGroups [][]*OutgoingQuery
@@ -906,163 +575,9 @@ func (*serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, quer
 		GroupCount:  len(queryGroups),
 	}
 
-	// HTML template for similar outgoing queries
-	const htmlTemplate = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Similar Outgoing Queries with Different Stats</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-            color: #333;
-        }
-        h1, h2 {
-            color: #2c3e50;
-        }
-        h1 {
-            margin-bottom: 20px;
-        }
-        h2 {
-            margin-top: 30px;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f0f0f0;
-        }
-        .back-link {
-            margin-bottom: 20px;
-            display: block;
-        }
-        .group {
-            margin-bottom: 40px;
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .stats-diff {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        .no-groups {
-            padding: 20px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            text-align: center;
-            font-size: 18px;
-            color: #7f8c8d;
-        }
-        .query-text {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .query-text:hover {
-            white-space: normal;
-            overflow: visible;
-        }
-        .details {
-            margin-bottom: 10px;
-            font-style: italic;
-            color: #555;
-        }
-    </style>
-</head>
-<body>
-    <a href="/" class="back-link">← Back to Home</a>
-    <h1>Similar Outgoing Queries with Different Row Counts</h1>
-    
-    {{if gt .GroupCount 0}}
-        <p>Found {{.GroupCount}} groups of similar outgoing queries with different row counts.</p>
-        
-        {{range $groupIndex, $group := .QueryGroups}}
-            <div class="group">
-                <h2>Query Group {{$groupIndex | inc}}</h2>
-                
-                {{with $first := index $group 0}}
-                <div class="details">
-                    <p><strong>Database:</strong> {{$first.DatabaseName}}</p>
-                    <p><strong>Endpoint:</strong> {{$first.DatabaseEndpoint}}</p>
-                    <p><strong>Query:</strong> <span class="query-text">{{$first.QueryText}}</span></p>
-                    {{if $first.QueryArgs}}<p><strong>Args:</strong> {{$first.QueryArgs}}</p>{{end}}
-                </div>
-                {{end}}
-                
-                <table>
-                    <tr>
-                        <th>ID</th>
-                        <th>Incoming Query ID</th>
-                        <th class="stats-diff">Rows Read</th>
-                        <th>Created At</th>
-                        <th>Finished At</th>
-                        <th>State</th>
-                    </tr>
-                    {{range $query := $group}}
-                    <tr>
-                        <td>{{$query.ID}}</td>
-                        <td>
-                            <a href="/api/queries/outgoing/list?format=html&incoming_query_id={{$query.IncomingQueryID}}">
-                                {{$query.IncomingQueryID}}
-                            </a>
-                        </td>
-                        <td class="stats-diff">{{$query.RowsRead}}</td>
-                        <td>{{$query.CreatedAt}}</td>
-                        <td>{{if $query.FinishedAt}}{{$query.FinishedAt}}{{else}}-{{end}}</td>
-                        <td>{{$query.State}}</td>
-                    </tr>
-                    {{end}}
-                </table>
-            </div>
-        {{end}}
-    {{else}}
-        <div class="no-groups">
-            <p>No similar outgoing queries with different row counts found.</p>
-        </div>
-    {{end}}
-</body>
-</html>
-`
-
-	// Create a function map to increment the group index for display
-	funcMap := template.FuncMap{
-		"inc": func(i int) int {
-			return i + 1
-		},
-	}
-
-	tmpl, err := template.New("similar_outgoing_queries").Funcs(funcMap).Parse(htmlTemplate)
-	if err != nil {
-		http.Error(w, "Failed to parse template", http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
-	if err := tmpl.Execute(w, data); err != nil {
+	if err := s.templates.ExecuteTemplate(w, "templates/similar_outgoing_queries.html", data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return
 	}
@@ -1074,14 +589,22 @@ func NewService(
 	cfg *config.TObservationConfig,
 	storage Storage,
 ) (utils.Service, error) {
-	var (
-		s = &serviceImpl{
-			logger:  logger,
-			storage: storage,
-		}
-	)
+	// Load templates
+	templates, err := getTemplates()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load templates: %w", err)
+	}
+
+	var s = &serviceImpl{
+		logger:    logger,
+		storage:   storage,
+		templates: templates,
+	}
 
 	mux := http.NewServeMux()
+
+	// Serve static assets
+	mux.Handle("/assets/", http.StripPrefix("/assets/", s.requestLoggerMiddleware(getAssetHandler())))
 
 	// Register home page handler
 	mux.Handle(
