@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -140,6 +141,26 @@ func (*dataSource) readKeys(
 	sink paging.Sink[any],
 	logger *zap.Logger,
 ) error {
+	if !strings.Contains(pattern, "*") {
+		typ, err := client.Type(ctx, pattern).Result()
+		if err != nil {
+			return fmt.Errorf("TYPE command failed for key %s: %w", pattern, err)
+		}
+
+		switch typ {
+		case TypeString:
+			return processStringKeys(ctx, client, []string{pattern}, transformer, sink)
+		case TypeHash:
+			if len(transformer.hashFields) > 0 {
+				return processHashKeys(ctx, client, []string{pattern}, transformer, sink)
+			}
+			return nil
+		default:
+			logger.Warn("unsupported key type for specific key", zap.String("key", pattern), zap.String("type", typ))
+			return nil
+		}
+	}
+
 	var cursor, unsupported uint64
 
 	for {
@@ -427,18 +448,27 @@ func (ds *dataSource) DescribeTable(
 // accumulateKeys scans Redis keys matching the given pattern until at least 'count' keys are collected
 // or the scan is finished.
 func (*dataSource) accumulateKeys(ctx context.Context, client *redis.Client, pattern string, count int) ([]string, error) {
+	if !strings.Contains(pattern, "*") {
+		return []string{pattern}, nil
+	}
+
 	var (
 		allKeys []string
 		cursor  uint64
 	)
 
 	for {
-		keys, newCursor, err := client.Scan(ctx, cursor, pattern, int64(count)).Result()
+		keys, newCursor, err := client.Scan(ctx, cursor, pattern, scanBatchSize).Result()
 		if err != nil {
 			return nil, fmt.Errorf("scan keys: %w", err)
 		}
 
-		allKeys = append(allKeys, keys...)
+		for _, key := range keys {
+			allKeys = append(allKeys, key)
+			if len(allKeys) >= count {
+				break
+			}
+		}
 
 		cursor = newCursor
 
@@ -570,6 +600,8 @@ func (ds *dataSource) makeConnection(
 		DB:           0,                                   // can be extended if dsi.Database specifies a DB number
 		PoolSize:     50,
 		MinIdleConns: 10,
+		DialTimeout:  10 * time.Second, // time for TCP‑connect + AUTH
+		ReadTimeout:  10 * time.Second,
 	}
 
 	client := redis.NewClient(options)

@@ -29,7 +29,7 @@ require (
 	github.com/prometheus/common v0.44.0
 	github.com/prometheus/procfs v0.11.1
 	github.com/redis/go-redis/v9 v9.7.0
-	github.com/shirou/gopsutil/v3 v3.24.5
+	github.com/shirou/gopsutil/v3 v3.24.2
 	github.com/sijms/go-ora/v2 v2.8.19
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
