@@ -114,7 +114,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("new connection: %w", err)
 	}
 
-	logger.Debug("connection is ready")
+	logger.Info("connection is ready")
 
 	return []rdbms_utils.Connection{ydbConn}, nil
 }

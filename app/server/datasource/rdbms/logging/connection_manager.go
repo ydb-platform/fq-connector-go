@@ -24,32 +24,34 @@ type connectionManager struct {
 func (cm *connectionManager) Make(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
-	// This method is called in two different contexts:
-	// 1. When YDB wants to get a table description (DescribeTable phase).
-	if params.Split == nil && params.MaxConnections == 1 {
-		cs, err := cm.makeConnectionToDescribeTable(params)
+	switch params.QueryPhase {
+	case rdbms_utils.QueryPhaseDescribeTable:
+		cs, err := cm.makeConnectionForDescribeTable(params)
 		if err != nil {
-			return nil, fmt.Errorf("make connection to describe table: %w", err)
+			return nil, fmt.Errorf("make connection for describe table: %w", err)
 		}
 
 		return cs, nil
-	}
-
-	// 2. When YDB wants to get data from the particular database
-	// according to the split description (ReadSplits phase).
-	if params.Split != nil {
-		cs, err := cm.makeConnectionToReadSplit(params)
+	case rdbms_utils.QueryPhaseListSplits:
+		cs, err := cm.makeConnectionFromDataSourceInstance(params.Ctx, params.Logger, params.DataSourceInstance, params.TableName)
 		if err != nil {
-			return nil, fmt.Errorf("make connection to read split: %w", err)
+			return nil, fmt.Errorf("make connection from data source instance: %w", err)
 		}
 
 		return cs, nil
-	}
+	case rdbms_utils.QueryPhaseReadSplits:
+		cs, err := cm.makeConnectionForReadSplits(params)
+		if err != nil {
+			return nil, fmt.Errorf("make connection for read splits: %w", err)
+		}
 
-	return nil, fmt.Errorf("unknown connection making strategy")
+		return cs, nil
+	default:
+		return nil, fmt.Errorf("unknown query phase: %v", params.QueryPhase)
+	}
 }
 
-func (cm *connectionManager) makeConnectionToDescribeTable(
+func (cm *connectionManager) makeConnectionForDescribeTable(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	// Turn log group name into physical YDB endpoints
@@ -67,14 +69,14 @@ func (cm *connectionManager) makeConnectionToDescribeTable(
 		return nil, fmt.Errorf("resolve YDB endpoint: %w", err)
 	}
 
-	// Get exactly one
+	// Get exactly one connection for the table
 	rand.Shuffle(len(response.sources), func(i, j int) {
 		response.sources[i], response.sources[j] = response.sources[j], response.sources[i]
 	})
 
 	src := response.sources[0]
 
-	params.Logger.Debug("resolved log group into YDB endpoint", src.ToZapFields()...)
+	params.Logger.Info("resolved log group into YDB endpoint", src.ToZapFields()...)
 
 	// prepare new data source instance describing the underlying YDB database
 	dsi := &api_common.TGenericDataSourceInstance{
@@ -85,7 +87,7 @@ func (cm *connectionManager) makeConnectionToDescribeTable(
 		UseTls:      true,
 	}
 
-	cs, err := cm.makeConnectionFromDataSourceInstance(params, dsi, src.tableName)
+	cs, err := cm.makeConnectionFromDataSourceInstance(params.Ctx, params.Logger, dsi, src.tableName)
 	if err != nil {
 		return nil, fmt.Errorf("make connection from data source instance: %w", err)
 	}
@@ -93,7 +95,7 @@ func (cm *connectionManager) makeConnectionToDescribeTable(
 	return cs, nil
 }
 
-func (cm *connectionManager) makeConnectionToReadSplit(
+func (cm *connectionManager) makeConnectionForReadSplits(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	// Deserialize split description
@@ -119,7 +121,7 @@ func (cm *connectionManager) makeConnectionToReadSplit(
 		UseTls:      true,
 	}
 
-	cs, err := cm.makeConnectionFromDataSourceInstance(params, dsi, src.TableName)
+	cs, err := cm.makeConnectionFromDataSourceInstance(params.Ctx, params.Logger, dsi, src.TableName)
 	if err != nil {
 		return nil, fmt.Errorf("make connection from data source instance: %w", err)
 	}
@@ -128,15 +130,18 @@ func (cm *connectionManager) makeConnectionToReadSplit(
 }
 
 func (cm *connectionManager) makeConnectionFromDataSourceInstance(
-	params *rdbms_utils.ConnectionParams,
+	ctx context.Context,
+	logger *zap.Logger,
 	dsi *api_common.TGenericDataSourceInstance,
 	tableName string,
 ) ([]rdbms_utils.Connection, error) {
+	fmt.Println(">>> makeConnectionFromDataSourceInstance: ", dsi)
+
 	// reannotate logger with new data source instance
-	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(params.Logger, dsi)
+	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(logger, dsi)
 
 	cs, err := cm.ydbConnectionManager.Make(&rdbms_utils.ConnectionParams{
-		Ctx:                params.Ctx,
+		Ctx:                ctx,
 		Logger:             ydbLogger,
 		DataSourceInstance: dsi,
 		TableName:          tableName,

@@ -82,7 +82,7 @@ func formatSelectClause(
 }
 
 // DefaultSelectQueryRender doesn't take into account splitting
-func DefaultSelectQueryRender(parts *SelectQueryParts, _ *api_service_protos.TSplit) (string, error) {
+func DefaultSelectQueryRender(parts *SelectQueryParts) (string, error) {
 	var sb strings.Builder
 
 	sb.WriteString("SELECT ")

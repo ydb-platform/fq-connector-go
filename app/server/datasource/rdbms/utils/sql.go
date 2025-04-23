@@ -47,21 +47,26 @@ type Rows interface {
 	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
+//go:generate stringer -type=QueryPhase
+type QueryPhase int8
+
+const (
+	QueryPhaseUnspecified QueryPhase = iota
+	QueryPhaseDescribeTable
+	QueryPhaseListSplits
+	QueryPhaseReadSplits
+)
+
 type ConnectionParams struct {
 	Ctx                context.Context                        // mandatory
 	Logger             *zap.Logger                            // mandatory
 	DataSourceInstance *api_common.TGenericDataSourceInstance // mandatory
 	TableName          string                                 // mandatory
+	QueryPhase         QueryPhase                             // mandatory
 
 	// Split field may be filled when making a connection for the ReadSplits request,
 	// because different table splits can require to connect different database instances.
 	Split *api_service_protos.TSplit // optional
-
-	// MaxConnections is the maximum number of connections to make.
-	// Even if there are a plenty of physical instances of a data source,
-	// only requested number of connections will be made.
-	// Zero value means no limit.
-	MaxConnections int // optional
 }
 
 type ConnectionManager interface {
