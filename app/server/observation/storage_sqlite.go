@@ -347,7 +347,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 	if incomingQueryID != nil && state != nil {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
-			       query_args, state, created_at, finished_at, error
+			       query_args, state, created_at, finished_at, error, rows_read
 			FROM outgoing_queries 
 			WHERE incoming_query_id = ? AND state = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -355,7 +355,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 	} else if incomingQueryID != nil {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
-			       query_args, state, created_at, finished_at, error
+			       query_args, state, created_at, finished_at, error, rows_read
 			FROM outgoing_queries 
 			WHERE incoming_query_id = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -363,7 +363,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 	} else if state != nil {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
-			       query_args, state, created_at, finished_at, error
+			       query_args, state, created_at, finished_at, error, rows_read
 			FROM outgoing_queries 
 			WHERE state = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -371,7 +371,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 	} else {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
-			       query_args, state, created_at, finished_at, error
+			       query_args, state, created_at, finished_at, error, rows_read
 			FROM outgoing_queries 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
 		args = []any{limit, offset}
@@ -391,7 +391,7 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 
 		if err := rows.Scan(
 			&query.ID, &query.IncomingQueryID, &query.DatabaseName, &query.DatabaseEndpoint,
-			&queryText, &queryArgs, &query.State, &query.CreatedAt, &finishedAt, &errorMsg,
+			&queryText, &queryArgs, &query.State, &query.CreatedAt, &finishedAt, &errorMsg, &query.RowsRead,
 		); err != nil {
 			return nil, fmt.Errorf("scanning outgoing query: %w", err)
 		}
