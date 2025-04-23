@@ -19,7 +19,7 @@ func getTemplates() (*template.Template, error) {
 		"inc": func(i int) int {
 			return i + 1
 		},
-		"lower": func(v interface{}) string {
+		"lower": func(v any) string {
 			// Handle different types gracefully
 			switch value := v.(type) {
 			case string:

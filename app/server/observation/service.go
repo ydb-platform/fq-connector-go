@@ -312,18 +312,24 @@ func (s *serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.R
 	// Add debugging output to the page
 	debug := fmt.Sprintf("<!-- Debug info: queries=%d, limit=%d, offset=%d -->",
 		len(queries), limit, offset)
-	w.Write([]byte(debug))
+
+	if _, err := w.Write([]byte(debug)); err != nil {
+		s.logger.Error("writer failed", zap.Error(err))
+		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+
+		return
+	}
 
 	if err := s.templates.ExecuteTemplate(w, "templates/incoming_queries.html", data); err != nil {
 		s.logger.Error("Template rendering failed", zap.Error(err))
 		http.Error(w, "Failed to render template: "+err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 }
 
 // handleListRunningIncomingQueries handles GET requests to list running incoming queries
 func (s *serviceImpl) handleListRunningIncomingQueries(w http.ResponseWriter, r *http.Request) {
-
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -452,7 +458,12 @@ func (s *serviceImpl) handleListOutgoingQueries(w http.ResponseWriter, r *http.R
 }
 
 // renderOutgoingQueriesHTML renders outgoing queries as HTML with pagination
-func (s *serviceImpl) renderOutgoingQueriesHTML(w http.ResponseWriter, r *http.Request, queries []*OutgoingQuery, limit, offset int, incomingQueryID *IncomingQueryID) {
+func (s *serviceImpl) renderOutgoingQueriesHTML(
+	w http.ResponseWriter,
+	r *http.Request,
+	queries []*OutgoingQuery,
+	limit, offset int,
+	incomingQueryID *IncomingQueryID) {
 	// Data for the template
 	data := struct {
 		Queries         []*OutgoingQuery

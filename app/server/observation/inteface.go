@@ -57,7 +57,13 @@ type Storage interface {
 	ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error)
 
 	// Outgoing query operations
-	CreateOutgoingQuery(logger *zap.Logger, incomingQueryID IncomingQueryID, dsi *api_common.TGenericDataSourceInstance, queryText string, queryArgs []any) (OutgoingQueryID, error)
+	CreateOutgoingQuery(
+		logger *zap.Logger,
+		incomingQueryID IncomingQueryID,
+		dsi *api_common.TGenericDataSourceInstance,
+		queryText string,
+		queryArgs []any,
+	) (OutgoingQueryID, error)
 	FinishOutgoingQuery(id OutgoingQueryID, rowsRead int64) error
 	CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error
 	ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error)
