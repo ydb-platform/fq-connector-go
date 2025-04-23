@@ -679,8 +679,8 @@ func validateOpenSearchConfig(c *config.TOpenSearchConfig) error {
 
 func validateObservationConfig(c *config.TObservationConfig) error {
 	if c == nil {
-                return nil
-        }
+		return nil
+	}
 	if err := validateObservationServerConfig(c.Server); err != nil {
 		return fmt.Errorf("validate `server`: %w", err)
 	}
