@@ -88,7 +88,7 @@ func (f sqlFormatter) FormatFrom(tableName string) string {
 
 func (sqlFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
-	split *api_service_protos.TSplit,
+	_ *api_service_protos.TSplit,
 ) (string, error) {
 	return rdbms_utils.DefaultSelectQueryRender(parts)
 }

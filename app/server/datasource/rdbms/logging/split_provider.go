@@ -2,7 +2,6 @@ package logging
 
 import (
 	"fmt"
-	"sort"
 
 	"golang.org/x/sync/errgroup"
 
@@ -107,11 +106,6 @@ func (s *splitProviderImpl) handleYDBSource(
 	if err != nil {
 		return fmt.Errorf("get column shard tablet ids: %w", err)
 	}
-
-	// FIXME: remove after debug
-	sort.Slice(tabletIDs, func(i, j int) bool { return tabletIDs[i] < tabletIDs[j] })
-	dbName, _ := cs[0].From()
-	fmt.Println(">>> TABLET IDS", dbName, tabletIDs)
 
 	// 1 tablet id <-> 1 column shard <-> 1 split
 	for _, tabletId := range tabletIDs {
