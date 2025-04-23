@@ -63,7 +63,7 @@ type Storage interface {
 	ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error)
 
 	// Analysis operations
-	ListSimilarOutgoingQueriesWithDifferentStats() ([][]*OutgoingQuery, error)
+	ListSimilarOutgoingQueriesWithDifferentStats(logger *zap.Logger) ([][]*OutgoingQuery, error)
 
 	// Lifecycle
 	Close() error

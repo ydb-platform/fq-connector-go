@@ -81,3 +81,12 @@ datasources:
     mode: MODE_QUERY_SERVICE_NATIVE
     pushdown:
       enable_timestamp_pushdown: true
+
+observation:
+  server:
+    endpoint:
+      host: "0.0.0.0"
+      port: 8080
+  storage:
+    sqlite:
+      path: /tmp/connector.sqlite

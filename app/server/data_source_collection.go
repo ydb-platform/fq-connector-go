@@ -198,11 +198,13 @@ func (dsc *DataSourceCollection) ReadSplit(
 			return fmt.Errorf("make data source: %w", err)
 		}
 
-		return doReadSplit[any](logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+		return doReadSplit[any](
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
-		return doReadSplit[string](logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+		return doReadSplit[string](
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(
@@ -214,7 +216,8 @@ func (dsc *DataSourceCollection) ReadSplit(
 			mongoDbCfg,
 		)
 
-		return doReadSplit(logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+		return doReadSplit(
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 
 	case api_common.EGenericDataSourceKind_REDIS:
 		redisCfg := dsc.cfg.Datasources.Redis
@@ -244,6 +247,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 	}
 }
 
+//nolint:revive
 func doReadSplit[T paging.Acceptor](
 	logger *zap.Logger,
 	queryID observation.IncomingQueryID,
@@ -286,7 +290,7 @@ func doReadSplit[T paging.Acceptor](
 	)
 
 	// Run streaming reading
-	if err := streamer.Run(); err != nil {
+	if err = streamer.Run(); err != nil {
 		// Register query error
 		cancelQueryErr := observationStorage.CancelIncomingQuery(queryID, err.Error(), sinkFactory.FinalStats())
 		if cancelQueryErr != nil {

@@ -2,6 +2,7 @@ package rdbms
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -108,7 +109,7 @@ func TestReadSplit(t *testing.T) {
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		// FIXME: mock
-		observationStorage, err := observation.NewStorage(nil)
+		observationStorage, err := observation.NewStorage(logger, nil)
 		require.NoError(t, err)
 
 		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
@@ -172,14 +173,14 @@ func TestReadSplit(t *testing.T) {
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		// FIXME: mock
-		observationStorage, err := observation.NewStorage(nil)
+		observationStorage, err := observation.NewStorage(logger, nil)
 		require.NoError(t, err)
 
 		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
 
 		queryID := observation.IncomingQueryID(0)
 		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
-		require.NoError(t, err)
+		require.True(t, errors.Is(err, scanErr))
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
 	})

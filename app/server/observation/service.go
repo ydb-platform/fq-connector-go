@@ -17,6 +17,11 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+const (
+	formatJSON = "json"
+	formatHTML = "html"
+)
+
 var _ utils.Service = (*serviceImpl)(nil)
 
 // serviceImpl represents the HTTP service implementation
@@ -133,11 +138,12 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	size, err := rw.ResponseWriter.Write(b)
 	rw.size += size
+
 	return size, err
 }
 
 // handleHomePage serves the main HTML page with links to all other endpoints
-func (s *serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
+func (*serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
 		return
@@ -154,6 +160,7 @@ func (s *serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 		URL         string
 		Description string
 	}
+
 	data := struct {
 		Title string
 		Links []Link
@@ -252,6 +259,7 @@ func (s *serviceImpl) handleHomePage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return
@@ -271,28 +279,33 @@ func (s *serviceImpl) handleListIncomingQueries(w http.ResponseWriter, r *http.R
 
 	// Get limit parameter (default to 50 if not provided)
 	limit := 50
+
 	if limitStr := queryParams.Get("limit"); limitStr != "" {
 		parsedLimit, err := strconv.Atoi(limitStr)
 		if err != nil || parsedLimit <= 0 {
 			http.Error(w, "Invalid limit parameter", http.StatusBadRequest)
 			return
 		}
+
 		limit = parsedLimit
 	}
 
 	// Get offset parameter (default to 0 if not provided)
 	offset := 0
+
 	if offsetStr := queryParams.Get("offset"); offsetStr != "" {
 		parsedOffset, err := strconv.Atoi(offsetStr)
 		if err != nil || parsedOffset < 0 {
 			http.Error(w, "Invalid offset parameter", http.StatusBadRequest)
 			return
 		}
+
 		offset = parsedOffset
 	}
 
 	// Get state parameter (optional filter)
 	var stateParam *QueryState
+
 	if stateStr := queryParams.Get("state"); stateStr != "" {
 		state := QueryState(stateStr)
 		stateParam = &state
@@ -306,17 +319,19 @@ func (s *serviceImpl) handleListIncomingQueries(w http.ResponseWriter, r *http.R
 	}
 
 	// If format is JSON or not specified, return JSON
-	if format == "json" || format == "" {
+	if format == formatJSON || format == "" {
 		w.Header().Set("Content-Type", "application/json")
+
 		if err := json.NewEncoder(w).Encode(queries); err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 			return
 		}
+
 		return
 	}
 
 	// Otherwise, render HTML
-	if format == "html" {
+	if format == formatJSON {
 		s.renderIncomingQueriesHTML(w, r, queries, limit, offset)
 		return
 	}
@@ -326,7 +341,7 @@ func (s *serviceImpl) handleListIncomingQueries(w http.ResponseWriter, r *http.R
 }
 
 // renderIncomingQueriesHTML renders incoming queries as HTML with pagination
-func (s *serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Request, queries []*IncomingQuery, limit, offset int) {
+func (*serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.Request, queries []*IncomingQuery, limit, offset int) {
 	// Data for the template
 	data := struct {
 		Queries     []*IncomingQuery
@@ -482,6 +497,7 @@ func (s *serviceImpl) renderIncomingQueriesHTML(w http.ResponseWriter, r *http.R
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return
@@ -506,17 +522,19 @@ func (s *serviceImpl) handleListRunningIncomingQueries(w http.ResponseWriter, r 
 	}
 
 	// If format is JSON or not specified, return JSON
-	if format == "json" || format == "" {
+	if format == formatJSON || format == "" {
 		w.Header().Set("Content-Type", "application/json")
+
 		if err := json.NewEncoder(w).Encode(queries); err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 			return
 		}
+
 		return
 	}
 
 	// Otherwise, render HTML
-	if format == "html" {
+	if format == formatHTML {
 		s.renderIncomingQueriesHTML(w, r, queries, 1000, 0)
 		return
 	}
@@ -526,6 +544,8 @@ func (s *serviceImpl) handleListRunningIncomingQueries(w http.ResponseWriter, r 
 }
 
 // handleListOutgoingQueries handles GET requests to list outgoing queries
+//
+//nolint:gocyclo
 func (s *serviceImpl) handleListOutgoingQueries(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -538,28 +558,33 @@ func (s *serviceImpl) handleListOutgoingQueries(w http.ResponseWriter, r *http.R
 
 	// Get limit parameter (default to 50 if not provided)
 	limit := 50
+
 	if limitStr := queryParams.Get("limit"); limitStr != "" {
 		parsedLimit, err := strconv.Atoi(limitStr)
 		if err != nil || parsedLimit <= 0 {
 			http.Error(w, "Invalid limit parameter", http.StatusBadRequest)
 			return
 		}
+
 		limit = parsedLimit
 	}
 
 	// Get offset parameter (default to 0 if not provided)
 	offset := 0
+
 	if offsetStr := queryParams.Get("offset"); offsetStr != "" {
 		parsedOffset, err := strconv.Atoi(offsetStr)
 		if err != nil || parsedOffset < 0 {
 			http.Error(w, "Invalid offset parameter", http.StatusBadRequest)
 			return
 		}
+
 		offset = parsedOffset
 	}
 
 	// Get state parameter (optional filter)
 	var stateParam *QueryState
+
 	if stateStr := queryParams.Get("state"); stateStr != "" {
 		state := QueryState(stateStr)
 		stateParam = &state
@@ -567,12 +592,14 @@ func (s *serviceImpl) handleListOutgoingQueries(w http.ResponseWriter, r *http.R
 
 	// Get incoming query ID parameter (optional filter)
 	var incomingQueryIDParam *IncomingQueryID
+
 	if incomingQueryIDStr := queryParams.Get("incoming_query_id"); incomingQueryIDStr != "" {
 		incomingQueryID, err := strconv.ParseUint(incomingQueryIDStr, 10, 64)
 		if err != nil {
 			http.Error(w, "Invalid incoming_query_id parameter", http.StatusBadRequest)
 			return
 		}
+
 		id := IncomingQueryID(incomingQueryID)
 		incomingQueryIDParam = &id
 	}
@@ -585,17 +612,19 @@ func (s *serviceImpl) handleListOutgoingQueries(w http.ResponseWriter, r *http.R
 	}
 
 	// If format is JSON or not specified, return JSON
-	if format == "json" || format == "" {
+	if format == formatJSON || format == "" {
 		w.Header().Set("Content-Type", "application/json")
+
 		if err := json.NewEncoder(w).Encode(queries); err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 			return
 		}
+
 		return
 	}
 
 	// Otherwise, render HTML
-	if format == "html" {
+	if format == formatHTML {
 		s.renderOutgoingQueriesHTML(w, r, queries, limit, offset, incomingQueryIDParam)
 		return
 	}
@@ -783,6 +812,7 @@ func (s *serviceImpl) renderOutgoingQueriesHTML(w http.ResponseWriter, r *http.R
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return
@@ -807,17 +837,19 @@ func (s *serviceImpl) handleListRunningOutgoingQueries(w http.ResponseWriter, r 
 	}
 
 	// If format is JSON or not specified, return JSON
-	if format == "json" || format == "" {
+	if format == formatJSON || format == "" {
 		w.Header().Set("Content-Type", "application/json")
+
 		if err := json.NewEncoder(w).Encode(queries); err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 			return
 		}
+
 		return
 	}
 
 	// Otherwise, render HTML
-	if format == "html" {
+	if format == formatHTML {
 		s.renderOutgoingQueriesHTML(w, r, queries, 1000, 0, nil)
 		return
 	}
@@ -835,24 +867,26 @@ func (s *serviceImpl) handleListSimilarOutgoingQueriesWithDifferentStats(w http.
 
 	format := r.URL.Query().Get("format")
 
-	similarQueryGroups, err := s.storage.ListSimilarOutgoingQueriesWithDifferentStats()
+	similarQueryGroups, err := s.storage.ListSimilarOutgoingQueriesWithDifferentStats(s.logger)
 	if err != nil {
 		http.Error(w, "Failed to find similar outgoing queries with different stats", http.StatusInternalServerError)
 		return
 	}
 
 	// If format is JSON or not specified, return JSON
-	if format == "json" || format == "" {
+	if format == formatJSON || format == "" {
 		w.Header().Set("Content-Type", "application/json")
+
 		if err := json.NewEncoder(w).Encode(similarQueryGroups); err != nil {
 			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 			return
 		}
+
 		return
 	}
 
 	// Otherwise, render HTML
-	if format == "html" {
+	if format == formatHTML {
 		s.renderSimilarOutgoingQueriesHTML(w, similarQueryGroups)
 		return
 	}
@@ -862,7 +896,7 @@ func (s *serviceImpl) handleListSimilarOutgoingQueriesWithDifferentStats(w http.
 }
 
 // renderSimilarOutgoingQueriesHTML renders similar outgoing queries with different stats as HTML
-func (s *serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, queryGroups [][]*OutgoingQuery) {
+func (*serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, queryGroups [][]*OutgoingQuery) {
 	// Data for the template
 	data := struct {
 		QueryGroups [][]*OutgoingQuery
@@ -1027,6 +1061,7 @@ func (s *serviceImpl) renderSimilarOutgoingQueriesHTML(w http.ResponseWriter, qu
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if err := tmpl.Execute(w, data); err != nil {
 		http.Error(w, "Failed to render template", http.StatusInternalServerError)
 		return

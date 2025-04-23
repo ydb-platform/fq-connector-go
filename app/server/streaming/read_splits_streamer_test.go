@@ -145,6 +145,7 @@ func (tc testCaseStreaming) messageParams() (sentMessages, rowsInLastMessage int
 	return
 }
 
+//nolint:funlen
 func (tc testCaseStreaming) execute(t *testing.T) {
 	logger := common.NewTestLogger(t)
 	split := rdbms_utils.MakeTestSplit()
@@ -247,7 +248,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})
 
 	// TODO: mock
-	observationStorage, err := observation.NewStorage(nil)
+	observationStorage, err := observation.NewStorage(logger, nil)
 	require.NoError(t, err)
 
 	dataSource := rdbms.NewDataSource(logger, dataSourcePreset, converterCollection, observationStorage)

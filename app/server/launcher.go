@@ -61,7 +61,7 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 	})
 
 	// initialize storage for query observation system
-	observationStorage, err := observation.NewStorage(cfg.Observation)
+	observationStorage, err := observation.NewStorage(logger, cfg.Observation)
 	if err != nil {
 		return nil, fmt.Errorf("new observation storage: %w", err)
 	}

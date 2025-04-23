@@ -139,7 +139,11 @@ func (s *storageSQLite) FinishIncomingQuery(id IncomingQueryID, stats *api_servi
 }
 
 // CancelIncomingQuery marks an incoming query as canceled with an error message
-func (s *storageSQLite) CancelIncomingQuery(id IncomingQueryID, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
+func (s *storageSQLite) CancelIncomingQuery(
+	id IncomingQueryID,
+	errorMsg string,
+	stats *api_service_protos.TReadSplitsResponse_TStats,
+) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -164,8 +168,10 @@ func (s *storageSQLite) CancelIncomingQuery(id IncomingQueryID, errorMsg string,
 
 // ListIncomingQueries retrieves a list of incoming queries with optional filtering
 func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error) {
-	var querySQL string
-	var args []any
+	var (
+		querySQL string
+		args     []any
+	)
 
 	if state == nil {
 		querySQL = `
@@ -186,10 +192,13 @@ func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int
 	defer rows.Close()
 
 	var queries []*IncomingQuery
+
 	for rows.Next() {
-		var query IncomingQuery
-		var finishedAt sql.NullTime
-		var errorMsg sql.NullString
+		var (
+			query      IncomingQuery
+			finishedAt sql.NullTime
+			errorMsg   sql.NullString
+		)
 
 		if err := rows.Scan(
 			&query.ID, &query.DataSourceKind, &query.RowsRead, &query.BytesRead,
@@ -239,6 +248,7 @@ func (s *storageSQLite) CreateOutgoingQuery(
 
 	// First check if the incoming query exists
 	var exists bool
+
 	err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
 	if err != nil {
 		rollback()
@@ -339,9 +349,15 @@ func (s *storageSQLite) CancelOutgoingQuery(id OutgoingQueryID, errorMsg string)
 }
 
 // ListOutgoingQueries retrieves a list of outgoing queries with optional filtering
-func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, state *QueryState, limit, offset int) ([]*OutgoingQuery, error) {
-	var querySQL string
-	var args []any
+func (s *storageSQLite) ListOutgoingQueries(
+	incomingQueryID *IncomingQueryID,
+	state *QueryState,
+	limit, offset int,
+) ([]*OutgoingQuery, error) {
+	var (
+		querySQL string
+		args     []any
+	)
 
 	// Build the query based on which filters are provided
 	if incomingQueryID != nil && state != nil {
@@ -384,10 +400,13 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 	defer rows.Close()
 
 	var queries []*OutgoingQuery
+
 	for rows.Next() {
-		var query OutgoingQuery
-		var finishedAt sql.NullTime
-		var queryText, queryArgs, errorMsg sql.NullString
+		var (
+			query                          OutgoingQuery
+			finishedAt                     sql.NullTime
+			queryText, queryArgs, errorMsg sql.NullString
+		)
 
 		if err := rows.Scan(
 			&query.ID, &query.IncomingQueryID, &query.DatabaseName, &query.DatabaseEndpoint,
@@ -423,7 +442,9 @@ func (s *storageSQLite) ListOutgoingQueries(incomingQueryID *IncomingQueryID, st
 }
 
 // ListSimilarOutgoingQueriesWithDifferentStats finds outgoing queries with the same characteristics but different resource usage
-func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats() ([][]*OutgoingQuery, error) {
+//
+//nolint:gocyclo
+func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats(logger *zap.Logger) ([][]*OutgoingQuery, error) {
 	// Step 1: Find groups of outgoing queries with the same database, endpoint, query text, and args
 	findSimilarSQL := `
     WITH query_groups AS (
@@ -455,11 +476,11 @@ func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats() ([][]*Out
     LIMIT 100;
     `
 
-	rows, err := s.db.Query(findSimilarSQL, string(QueryStateFinished))
+	rows1, err := s.db.Query(findSimilarSQL, string(QueryStateFinished))
 	if err != nil {
 		return nil, fmt.Errorf("finding similar outgoing queries: %w", err)
 	}
-	defer rows.Close()
+	defer rows1.Close()
 
 	// Store query characteristics
 	type queryKey struct {
@@ -470,20 +491,23 @@ func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats() ([][]*Out
 	}
 
 	var keys []queryKey
-	for rows.Next() {
+
+	for rows1.Next() {
 		var key queryKey
-		if err := rows.Scan(&key.databaseName, &key.endpoint, &key.text, &key.args); err != nil {
+		if err := rows1.Scan(&key.databaseName, &key.endpoint, &key.text, &key.args); err != nil {
 			return nil, fmt.Errorf("scanning query key: %w", err)
 		}
+
 		keys = append(keys, key)
 	}
 
-	if err := rows.Err(); err != nil {
+	if err := rows1.Err(); err != nil {
 		return nil, fmt.Errorf("iterating query keys: %w", err)
 	}
 
 	// Step 2: For each unique combination, fetch all matching outgoing queries
 	var result [][]*OutgoingQuery
+
 	for _, key := range keys {
 		fetchSQL := `
         SELECT 
@@ -502,24 +526,28 @@ func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats() ([][]*Out
             rows_read DESC, created_at DESC
         `
 
-		qrows, err := s.db.Query(fetchSQL, key.databaseName, key.endpoint, key.text, key.args, string(QueryStateFinished))
+		rows2, err := s.db.Query(fetchSQL, key.databaseName, key.endpoint, key.text, key.args, string(QueryStateFinished))
 		if err != nil {
 			return nil, fmt.Errorf("fetching query group: %w", err)
 		}
 
 		var group []*OutgoingQuery
-		for qrows.Next() {
-			var query OutgoingQuery
-			var finishedAt sql.NullTime
-			var queryText, queryArgs, errorMsg sql.NullString
-			var rowsRead int64
 
-			if err := qrows.Scan(
+		for rows2.Next() {
+			var (
+				query                          OutgoingQuery
+				finishedAt                     sql.NullTime
+				queryText, queryArgs, errorMsg sql.NullString
+				rowsRead                       int64
+			)
+
+			if err := rows2.Scan(
 				&query.ID, &query.IncomingQueryID, &query.DatabaseName, &query.DatabaseEndpoint,
 				&queryText, &queryArgs, &rowsRead, &query.State, &query.CreatedAt,
 				&finishedAt, &errorMsg,
 			); err != nil {
-				qrows.Close()
+				common.LogCloserError(logger, rows2, "rows close")
+
 				return nil, fmt.Errorf("scanning outgoing query: %w", err)
 			}
 
@@ -544,9 +572,10 @@ func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats() ([][]*Out
 
 			group = append(group, &query)
 		}
-		qrows.Close()
 
-		if err := qrows.Err(); err != nil {
+		common.LogCloserError(logger, rows2, "close rows")
+
+		if err := rows2.Err(); err != nil {
 			return nil, fmt.Errorf("iterating outgoing query group: %w", err)
 		}
 
@@ -577,11 +606,12 @@ func (s *storageSQLite) Close() error {
 	if s.db != nil {
 		return s.db.Close()
 	}
+
 	return nil
 }
 
 // newStorageSQLite creates a new Storage instance
-func newStorageSQLite(cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
+func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
 	db, err := sql.Open("sqlite3", cfg.Path)
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
@@ -613,7 +643,7 @@ func newStorageSQLite(cfg *config.TObservationConfig_TStorage_TSQLite) (Storage,
 	}
 
 	if err := storage.initialize(); err != nil {
-		db.Close()
+		common.LogCloserError(logger, db, "close SQLite database")
 		return nil, fmt.Errorf("initialize: %w", err)
 	}
 
