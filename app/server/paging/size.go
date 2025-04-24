@@ -190,36 +190,6 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 		}
 
 		return uint64(len((**t).Data)), variableSize, nil
-	case *any:
-		if t == nil {
-			return 0, variableSize, nil
-		}
-
-		switch tt := (*t).(type) {
-		case bson_primitive.ObjectID:
-			return 12, fixedSize, nil
-		case bson_primitive.Binary:
-			return 0, variableSize, nil
-
-		default:
-			return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", tt, tt, common.ErrDataTypeNotSupported)
-		}
-
-	case **any:
-		if t == nil || *t == nil {
-			return 0, variableSize, nil
-		}
-
-		switch tt := (**t).(type) {
-		case bson_primitive.ObjectID:
-			return 12, fixedSize, nil
-		case bson_primitive.Binary:
-			return 0, variableSize, nil
-
-		default:
-			return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", tt, tt, common.ErrDataTypeNotSupported)
-		}
-
 	case string:
 		return uint64(len(t)), variableSize, nil
 	case *string:
