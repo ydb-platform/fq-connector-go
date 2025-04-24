@@ -133,6 +133,8 @@ func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, e
 
 // Redis Pipeline Docs https://redis.io/docs/latest/develop/clients/go/transpipe/
 // readKeys orchestrates a batched SCAN over Redis keys matching 'pattern', and processes string and hash keys.
+//
+//nolint:gocyclo
 func (*dataSource) readKeys(
 	ctx context.Context,
 	client *redis.Client,
@@ -154,6 +156,7 @@ func (*dataSource) readKeys(
 			if len(transformer.hashFields) > 0 {
 				return processHashKeys(ctx, client, []string{pattern}, transformer, sink)
 			}
+
 			return nil
 		default:
 			logger.Warn("unsupported key type for specific key", zap.String("key", pattern), zap.String("type", typ))
