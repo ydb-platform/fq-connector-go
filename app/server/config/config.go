@@ -422,6 +422,10 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("validate `ydb`: %w", err)
 	}
 
+	if err := validateMongoDBConfig(c.Mongodb); err != nil {
+		return fmt.Errorf("validate `mongodb`: %w", err)
+	}
+
 	return nil
 }
 
@@ -484,6 +488,34 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if c.Splitting == nil {
 		return fmt.Errorf("you must set `splitting` section")
+	}
+
+	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
+		return fmt.Errorf("validate `exponential_backoff`: %v", err)
+	}
+
+	return nil
+}
+
+func validateMongoDBConfig(c *config.TMongoDbConfig) error {
+	if c == nil {
+		return nil
+	}
+
+	if _, err := common.DurationFromString(c.OpenConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `open_connection_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if c.CountDocsToDeduceSchema == 0 {
+		return fmt.Errorf("validate `count_docs_to_deduce_schema`: can't be zero")
+	}
+
+	if c.ObjectIdYqlType == config.TMongoDbConfig_OBJECT_ID_UNSPECIFIED {
+		return fmt.Errorf("invalid `object_id_yql_type` value: %v", c.ObjectIdYqlType)
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
