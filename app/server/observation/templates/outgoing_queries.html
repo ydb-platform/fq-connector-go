@@ -20,9 +20,11 @@
             <th>Database</th>
             <th>Endpoint</th>
             <th>Query Text</th>
+            <th>Query Args</th>
             <th>State</th>
             <th>Created At</th>
             <th>Finished At</th>
+            <th>Rows Read</th>
             <th>Error</th>
         </tr>
         {{range .Queries}}
@@ -36,9 +38,11 @@
             <td>{{.DatabaseName}}</td>
             <td>{{.DatabaseEndpoint}}</td>
             <td class="query-text">{{.QueryText}}</td>
+            <td class="query-text">{{.QueryArgs}}</td>
             <td class="state-{{.State | lower}}">{{.State}}</td>
             <td>{{.CreatedAt}}</td>
             <td>{{if .FinishedAt}}{{.FinishedAt}}{{else}}-{{end}}</td>
+            <td>{{.RowsRead}}</td>
             <td>{{if .Error}}{{.Error}}{{else}}-{{end}}</td>
         </tr>
         {{end}}
