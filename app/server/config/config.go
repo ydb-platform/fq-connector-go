@@ -436,10 +436,14 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("validate `ydb`: %w", err)
 	}
 
+	if err := validateMongoDBConfig(c.Mongodb); err != nil {
+		return fmt.Errorf("validate `mongodb`: %w", err)
+	}
+
 	if err := validateOpenSearchConfig(c.Opensearch); err != nil {
 		return fmt.Errorf("validate `opensearch`: %w", err)
-  }
-  
+	}
+	
 	return nil
 }
 
