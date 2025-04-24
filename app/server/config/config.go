@@ -448,6 +448,10 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("validate `opensearch`: %w", err)
 	}
 
+	if err := validateRedisConfig(c.Redis); err != nil {
+		return fmt.Errorf("validate `redis`: %w", err)
+	}
+
 	return nil
 }
 
@@ -538,6 +542,26 @@ func validateMongoDBConfig(c *config.TMongoDbConfig) error {
 
 	if c.ObjectIdYqlType == config.TMongoDbConfig_OBJECT_ID_UNSPECIFIED {
 		return fmt.Errorf("invalid `object_id_yql_type` value: %v", c.ObjectIdYqlType)
+	}
+
+	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
+		return fmt.Errorf("validate `exponential_backoff`: %v", err)
+	}
+
+	return nil
+}
+
+func validateRedisConfig(c *config.TRedisConfig) error {
+	if c == nil {
+		return nil
+	}
+
+	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if c.CountDocsToDeduceSchema == 0 {
+		return fmt.Errorf("validate `count_docs_to_deduce_schema`: can't be zero")
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
