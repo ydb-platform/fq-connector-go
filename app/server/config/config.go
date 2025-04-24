@@ -443,7 +443,7 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 	if err := validateOpenSearchConfig(c.Opensearch); err != nil {
 		return fmt.Errorf("validate `opensearch`: %w", err)
 	}
-	
+
 	return nil
 }
 
