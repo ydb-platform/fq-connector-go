@@ -185,7 +185,7 @@ func (ds *dataSourceImpl) ReadSplit(
 
 			// register outgoing request in storage
 			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(
-				logger, incomingQueryID, split.Select.DataSourceInstance, query.QueryText, query.QueryArgs.Values())
+				logger, incomingQueryID, conn.DataSourceInstance(), query.QueryText, query.QueryArgs.Values())
 			if err != nil {
 				return fmt.Errorf("create outgoing query: %w", err)
 			}
