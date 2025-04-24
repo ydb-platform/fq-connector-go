@@ -26,11 +26,10 @@ type QueryParams struct {
 type Connection interface {
 	// Query runs a query on a specific connection.
 	Query(params *QueryParams) (Rows, error)
-	// For the most of the data sources the database name / table name pair
-	// is strictly defined by the user input.
-	// However, in certain kinds of data sources it's necessary
-	// to override database / table names specified by the user request.
-	From() (database, table string)
+	// DataSourceInstance comprehensively describing the target of the connection
+	DataSourceInstance() *api_common.TGenericDataSourceInstance
+	// The name of a table that will be read via this connection.
+	TableName() string
 	// Annotated logger that should be used to log all the events related
 	// to the particular data source instance.
 	Logger() *zap.Logger

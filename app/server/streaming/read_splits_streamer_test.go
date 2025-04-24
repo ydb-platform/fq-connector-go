@@ -159,7 +159,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 
 	connection := &rdbms_utils.ConnectionMock{}
 	connection.On("Logger").Return(logger)
-	connection.On("From").Return("", "example_1").Once()
+	connection.On("TableName").Return("example_1").Once()
 
 	connectionManager := &rdbms_utils.ConnectionManagerMock{}
 	connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()

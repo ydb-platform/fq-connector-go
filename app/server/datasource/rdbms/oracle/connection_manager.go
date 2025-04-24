@@ -73,7 +73,7 @@ func (c *connectionManager) Make(
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return []rdbms_utils.Connection{&connection{conn, queryLogger, params.DataSourceInstance.Database, params.TableName}}, nil
+	return []rdbms_utils.Connection{&connection{conn, queryLogger, params.DataSourceInstance, params.TableName}}, nil
 }
 
 func (*connectionManager) Release(_ context.Context, logger *zap.Logger, conn []rdbms_utils.Connection) {

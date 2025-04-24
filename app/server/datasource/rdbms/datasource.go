@@ -170,8 +170,6 @@ func (ds *dataSourceImpl) ReadSplit(
 		sink := sinks[i]
 
 		group.Go(func() error {
-			_, tableName := conn.From()
-
 			// generate SQL query
 			query, err := rdbms_utils.MakeSelectQuery(
 				ctx,
@@ -179,7 +177,7 @@ func (ds *dataSourceImpl) ReadSplit(
 				ds.sqlFormatter,
 				split,
 				request.Filtering,
-				tableName,
+				conn.TableName(),
 			)
 			if err != nil {
 				return fmt.Errorf("make select query: %w", err)

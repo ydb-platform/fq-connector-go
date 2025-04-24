@@ -110,11 +110,9 @@ func (SplitProvider) getTableStoreType(
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 ) (table_options.StoreType, error) {
-	databaseName, tableName := conn.From()
-
 	var (
 		driver = conn.(Connection).Driver()
-		prefix = path.Join(databaseName, tableName)
+		prefix = path.Join(conn.DataSourceInstance().Database, conn.TableName())
 		desc   table_options.Description
 	)
 
@@ -180,8 +178,7 @@ func (SplitProvider) GetColumnShardTabletIDs(
 	conn rdbms_utils.Connection,
 ) ([]uint64, error) {
 	driver := conn.(Connection).Driver()
-	databaseName, tableName := conn.From()
-	prefix := path.Join(databaseName, tableName)
+	prefix := path.Join(conn.DataSourceInstance().Database, conn.TableName())
 
 	logger.Debug("discovering column table tablet ids", zap.String("prefix", prefix))
 

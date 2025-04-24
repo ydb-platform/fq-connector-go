@@ -47,9 +47,9 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 
 type connection struct {
 	*pgx.Conn
-	queryLogger  common.QueryLogger
-	databaseName string
-	tableName    string
+	queryLogger        common.QueryLogger
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
 }
 
 func (c *connection) Close() error {
@@ -67,8 +67,12 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 	return rows{Rows: out}, nil
 }
 
-func (c *connection) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
+func (c *connection) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *connection) TableName() string {
+	return c.tableName
 }
 
 func (c *connection) Logger() *zap.Logger {
@@ -139,7 +143,7 @@ func (c *connectionManager) Make(
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
 
-	return []rdbms_utils.Connection{&connection{conn, queryLogger, dsi.Database, params.TableName}}, nil
+	return []rdbms_utils.Connection{&connection{conn, queryLogger, dsi, params.TableName}}, nil
 }
 
 func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {

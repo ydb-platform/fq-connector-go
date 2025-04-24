@@ -46,10 +46,10 @@ var _ rdbms_utils.Connection = (*connectionDatabaseSQL)(nil)
 
 type connectionDatabaseSQL struct {
 	*sql.DB
-	driver       *ydb_sdk.Driver
-	queryLogger  common.QueryLogger
-	databaseName string
-	tableName    string
+	driver             *ydb_sdk.Driver
+	queryLogger        common.QueryLogger
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
 }
 
 func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
@@ -80,8 +80,12 @@ func (c *connectionDatabaseSQL) Driver() *ydb_sdk.Driver {
 	return c.driver
 }
 
-func (c *connectionDatabaseSQL) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
+func (c *connectionDatabaseSQL) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *connectionDatabaseSQL) TableName() string {
+	return c.tableName
 }
 
 func (c *connectionDatabaseSQL) Close() error {
@@ -136,9 +140,9 @@ func newConnectionDatabaseSQL(
 	}
 
 	return &connectionDatabaseSQL{
-		DB:           conn,
-		driver:       ydbDriver,
-		queryLogger:  queryLogger,
-		databaseName: dsi.Database,
-		tableName:    tableName}, nil
+		DB:                 conn,
+		driver:             ydbDriver,
+		queryLogger:        queryLogger,
+		dataSourceInstance: dsi,
+		tableName:          tableName}, nil
 }
