@@ -436,6 +436,10 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("validate `ydb`: %w", err)
 	}
 
+	if err := validateOpenSearchConfig(c.Opensearch); err != nil {
+		return fmt.Errorf("validate `opensearch`: %w", err)
+	}
+
 	return nil
 }
 
@@ -608,6 +612,30 @@ func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
 
 	if _, err := common.DurationFromString(c.MaxElapsedTime); err != nil {
 		return fmt.Errorf("validate `max_elapsed_time`: %v", err)
+	}
+
+	return nil
+}
+
+func validateOpenSearchConfig(c *config.TOpenSearchConfig) error {
+	if c == nil {
+		return nil
+	}
+
+	if _, err := common.DurationFromString(c.DialTimeout); err != nil {
+		return fmt.Errorf("validate `dial_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.ResponseHeaderTimeout); err != nil {
+		return fmt.Errorf("validate `response_header_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
+		return fmt.Errorf("validate `exponential_backoff`: %v", err)
 	}
 
 	return nil

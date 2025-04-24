@@ -15,6 +15,12 @@ func parseMapping(
 	logger *zap.Logger,
 	mappings map[string]any,
 ) ([]*Ydb.Column, error) {
+	// OpenSearch does not have a dedicated "array" data type.
+	// Any field can contain zero or more elements, as long as they are of the same type.
+	// To work with YDB fq-connector-go, users must explicitly indicate which fields
+	// should be treated as lists (LIST). This is done by adding a "_meta" property
+	// to the index. The "_meta" property is used during schema construction to identify
+	// which fields should be considered as arrays (lists).
 	meta := make(map[string]any)
 	if metaSection, ok := mappings["_meta"].(map[string]any); ok {
 		meta = metaSection
@@ -44,7 +50,7 @@ func parseMapping(
 
 		field, err := inferField(logger, fieldName, fieldName, props, meta)
 		if err != nil {
-			return nil, fmt.Errorf("failed to infer field '%s': %w", fieldName, err)
+			return nil, fmt.Errorf("infer field '%s': %w", fieldName, err)
 		}
 
 		columns = append(columns, field)
@@ -116,8 +122,8 @@ func processChildFields(
 		}
 
 		childQualifiedName := fmt.Sprintf("%s.%s", parentQualifiedName, childFieldName)
-
 		childField, err := inferField(logger, childFieldName, childQualifiedName, childProps, meta)
+
 		if err != nil {
 			return nil, fmt.Errorf("process child field '%s': %w", childFieldName, err)
 		}

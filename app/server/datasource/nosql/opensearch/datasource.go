@@ -66,7 +66,7 @@ func (ds *dataSource) DescribeTable(
 	)
 
 	if err != nil {
-		return nil, fmt.Errorf("get mapping failed: %w", err)
+		return nil, fmt.Errorf("get mapping: %w", err)
 	}
 
 	defer closeResponseBody(logger, res.Inspect().Response.Body)
@@ -153,7 +153,7 @@ func (ds *dataSource) makeConnection(
 
 	client, err := opensearchapi.NewClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("client creation failed: %w", err)
+		return nil, fmt.Errorf("client creation: %w", err)
 	}
 
 	logger.Debug("pinging connection")
