@@ -94,12 +94,10 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("cursor: %w", err)
 	}
 
-	objectIdType := ds.cfg.GetObjectIdYqlType()
-
 	omitUnsupported :=
 		mongoDbOptions.UnsupportedTypeDisplayMode == api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT
 
-	columns, err := bsonToYql(logger, docs, omitUnsupported, objectIdType)
+	columns, err := bsonToYql(logger, docs, omitUnsupported)
 	if err != nil {
 		return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
 	}
@@ -273,7 +271,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 			return fmt.Errorf("decode: %w", err)
 		}
 
-		if err = reader.accept(doc); err != nil {
+		if err = reader.accept(logger, doc); err != nil {
 			return fmt.Errorf("accept document: %w", err)
 		}
 

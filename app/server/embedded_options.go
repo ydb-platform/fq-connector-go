@@ -107,18 +107,6 @@ func WithYdbConnectorMode(mode config.TYdbConfig_Mode) EmbeddedOption {
 	return &withYdbConnectorMode{mode: mode}
 }
 
-type withObjectIdYqlType struct {
-	yqlType config.TMongoDbConfig_EObjectIdYqlType
-}
-
-func (o *withObjectIdYqlType) apply(cfg *config.TServerConfig) {
-	cfg.Datasources.Mongodb.ObjectIdYqlType = o.yqlType
-}
-
-func WithObjectIdYQLType(yqlType config.TMongoDbConfig_EObjectIdYqlType) EmbeddedOption {
-	return &withObjectIdYqlType{yqlType: yqlType}
-}
-
 type withPushdownConfig struct {
 	pushdownConfig *config.TPushdownConfig
 }

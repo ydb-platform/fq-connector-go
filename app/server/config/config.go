@@ -154,7 +154,6 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			OpenConnectionTimeout:   "5s",
 			PingConnectionTimeout:   "5s",
 			CountDocsToDeduceSchema: 5,
-			ObjectIdYqlType:         config.TMongoDbConfig_OBJECT_ID_AS_STRING,
 		}
 	}
 
