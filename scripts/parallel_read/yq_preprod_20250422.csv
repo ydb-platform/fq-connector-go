@@ -1,0 +1,8 @@
+threads,1 instance,3 instances
+1,1m 9s,1m 37s
+2,47s,42s
+4,37s,45s
+8,33s,25s
+16,26s,20s
+32,26s,13s
+64,NaN,14s
