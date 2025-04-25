@@ -294,8 +294,22 @@ func (pb *predicateBuilder) formatComparison(
 		operation = " >= "
 	case api_service_protos.TPredicate_TComparison_G:
 		operation = " > "
+	case api_service_protos.TPredicate_TComparison_STARTS_WITH,
+		api_service_protos.TPredicate_TComparison_ENDS_WITH,
+		api_service_protos.TPredicate_TComparison_CONTAINS:
+
+		result, err := pb.formatComparisonWithPatternMatching(comparison)
+		if err != nil {
+			return "", fmt.Errorf("format comparison with pattern matching %v: %w", comparison, err)
+		}
+
+		return result, nil
 	default:
-		return "", fmt.Errorf("%w, op: %d", common.ErrUnimplementedOperation, op)
+		return "", fmt.Errorf(
+			"%w, op: %s",
+			common.ErrUnimplementedOperation,
+			api_service_protos.TPredicate_TComparison_EOperation_name[int32(op)],
+		)
 	}
 
 	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
@@ -309,6 +323,13 @@ func (pb *predicateBuilder) formatComparison(
 	}
 
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil
+}
+
+func (pb *predicateBuilder) formatComparisonWithPatternMatching(
+	comparison *api_service_protos.TPredicate_TComparison,
+) (string, error) {
+	fmt.Println(comparison)
+	panic("AAA")
 }
 
 func (pb *predicateBuilder) formatNegation(
