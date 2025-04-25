@@ -17,6 +17,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -160,6 +161,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	connection := &rdbms_utils.ConnectionMock{}
 	connection.On("Logger").Return(logger)
 	connection.On("TableName").Return("example_1").Once()
+	connection.On("DataSourceInstance").Return(&api_common.TGenericDataSourceInstance{}).Once()
 
 	connectionManager := &rdbms_utils.ConnectionManagerMock{}
 	connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()

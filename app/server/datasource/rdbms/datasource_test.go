@@ -83,6 +83,7 @@ func TestReadSplit(t *testing.T) {
 		}
 		connection.On("Query", `SELECT "col1", "col2" FROM "example_1"`).Return(rows, nil).Once()
 		connection.On("TableName").Return("example_1").Once()
+		connection.On("DataSourceInstance").Return(&api_common.TGenericDataSourceInstance{}).Once()
 
 		transformer := &rdbms_utils.RowTransformerMock{
 			Acceptors: []any{
@@ -134,6 +135,7 @@ func TestReadSplit(t *testing.T) {
 		connection := &rdbms_utils.ConnectionMock{}
 		connection.On("Logger").Return(logger)
 		connection.On("TableName").Return("example_1").Once()
+		connection.On("DataSourceInstance").Return(&api_common.TGenericDataSourceInstance{}).Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
 		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()

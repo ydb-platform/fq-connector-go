@@ -230,7 +230,8 @@ func (dsc *DataSourceCollection) ReadSplit(
 			dsc.converterCollection,
 		)
 
-		return doReadSplit(logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+		return doReadSplit(
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
 		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
@@ -240,7 +241,9 @@ func (dsc *DataSourceCollection) ReadSplit(
 			},
 			openSearchCfg,
 		)
-		return doReadSplit(logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+
+		return doReadSplit(
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
