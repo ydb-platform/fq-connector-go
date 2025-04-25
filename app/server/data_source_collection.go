@@ -14,6 +14,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/mongodb"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/opensearch"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
@@ -77,7 +78,17 @@ func (dsc *DataSourceCollection) DescribeTable(
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
+	case api_common.EGenericDataSourceKind_OPENSEARCH:
+		openSearchCfg := dsc.cfg.Datasources.Opensearch
+		ds := opensearch.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			openSearchCfg,
+		)
 
+		return ds.DescribeTable(ctx, logger, request)
 	default:
 		return nil, fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
@@ -131,6 +142,21 @@ func (dsc *DataSourceCollection) ListSplits(
 				},
 				redisCfg,
 				dsc.converterCollection,
+			)
+
+			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
+
+			if err := streamer.Run(); err != nil {
+				return fmt.Errorf("run streamer: %w", err)
+			}
+		case api_common.EGenericDataSourceKind_OPENSEARCH:
+			openSearchCfg := dsc.cfg.Datasources.Opensearch
+			ds := opensearch.NewDataSource(
+				&retry.RetrierSet{
+					MakeConnection: retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+					Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+				},
+				openSearchCfg,
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -192,7 +218,17 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+	case api_common.EGenericDataSourceKind_OPENSEARCH:
+		openSearchCfg := dsc.cfg.Datasources.Opensearch
+		ds := opensearch.NewDataSource(
+			&retry.RetrierSet{
+				MakeConnection: retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
+				Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
+			},
+			openSearchCfg,
+		)
 
+		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
