@@ -267,8 +267,12 @@ func (c *connectionNative) Driver() *ydb_sdk.Driver {
 	return c.driver
 }
 
-func (c *connectionNative) From() (datbaseName, tableName string) {
-	return c.dsi.Database, c.tableName
+func (c *connectionNative) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dsi
+}
+
+func (c *connectionNative) TableName() string {
+	return c.tableName
 }
 
 func (c *connectionNative) Close() error {

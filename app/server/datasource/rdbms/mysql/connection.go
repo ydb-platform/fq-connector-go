@@ -9,6 +9,7 @@ import (
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -17,15 +18,11 @@ import (
 var _ rdbms_utils.Connection = (*connection)(nil)
 
 type connection struct {
-	queryLogger  common.QueryLogger
-	conn         *client.Conn
-	cfg          *config.TMySQLConfig
-	databaseName string
-	tableName    string
-}
-
-func (c *connection) Close() error {
-	return c.conn.Close()
+	queryLogger        common.QueryLogger
+	conn               *client.Conn
+	cfg                *config.TMySQLConfig
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
 }
 
 func transformArgs(src *rdbms_utils.QueryArgs) []any {
@@ -111,10 +108,18 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 	return r, nil
 }
 
-func (c *connection) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
-}
-
 func (c *connection) Logger() *zap.Logger {
 	return c.queryLogger.Logger
+}
+
+func (c *connection) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *connection) TableName() string {
+	return c.tableName
+}
+
+func (c *connection) Close() error {
+	return c.conn.Close()
 }

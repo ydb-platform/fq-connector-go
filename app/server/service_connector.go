@@ -17,6 +17,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -178,8 +179,8 @@ func (s *serviceConnector) doReadSplits(
 	return logger, nil
 }
 
-func (s *serviceConnector) start() error {
-	s.logger.Debug("starting GRPC server", zap.String("address", s.listener.Addr().String()))
+func (s *serviceConnector) Start() error {
+	s.logger.Info("starting GRPC server", zap.String("address", s.listener.Addr().String()))
 
 	if err := s.grpcServer.Serve(s.listener); err != nil {
 		return fmt.Errorf("listener serve: %w", err)
@@ -231,7 +232,7 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 	return opts, nil
 }
 
-func (s *serviceConnector) stop() {
+func (s *serviceConnector) Stop() {
 	s.grpcServer.GracefulStop()
 	common.LogCloserError(s.logger, s.dataSourceCollection, "closing data source collection")
 }
@@ -240,7 +241,8 @@ func newServiceConnector(
 	logger *zap.Logger,
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
-) (service, error) {
+	observationStorage observation.Storage,
+) (utils.Service, error) {
 	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
 	// TODO: drop deprecated fields after YQ-2057
@@ -275,6 +277,7 @@ func newServiceConnector(
 		memory.DefaultAllocator,
 		paging.NewReadLimiterFactory(cfg.ReadLimit),
 		conversion.NewCollection(cfg.Conversion),
+		observationStorage,
 		cfg,
 	)
 	if err != nil {

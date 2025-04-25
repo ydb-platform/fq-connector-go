@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
@@ -29,6 +30,7 @@ type DataSourceCollection struct {
 	memoryAllocator     memory.Allocator
 	readLimiterFactory  *paging.ReadLimiterFactory
 	converterCollection conversion.Collection
+	observationStorage  observation.Storage
 	cfg                 *config.TServerConfig
 }
 
@@ -178,7 +180,15 @@ func (dsc *DataSourceCollection) ReadSplit(
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 ) error {
-	switch kind := split.GetSelect().GetDataSourceInstance().GetKind(); kind {
+	kind := split.GetSelect().GetDataSourceInstance().GetKind()
+
+	// Register query for further analysis
+	queryID, err := dsc.observationStorage.CreateIncomingQuery(kind)
+	if err != nil {
+		return fmt.Errorf("create query: %w", err)
+	}
+
+	switch kind {
 	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
 		api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
 		api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
@@ -188,11 +198,13 @@ func (dsc *DataSourceCollection) ReadSplit(
 			return fmt.Errorf("make data source: %w", err)
 		}
 
-		return doReadSplit[any](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[any](
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
-		return doReadSplit[string](logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit[string](
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(
@@ -204,7 +216,8 @@ func (dsc *DataSourceCollection) ReadSplit(
 			mongoDbCfg,
 		)
 
-		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit(
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 
 	case api_common.EGenericDataSourceKind_REDIS:
 		redisCfg := dsc.cfg.Datasources.Redis
@@ -217,7 +230,8 @@ func (dsc *DataSourceCollection) ReadSplit(
 			dsc.converterCollection,
 		)
 
-		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit(
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
 		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
@@ -228,20 +242,25 @@ func (dsc *DataSourceCollection) ReadSplit(
 			openSearchCfg,
 		)
 
-		return doReadSplit(logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.cfg)
+		return doReadSplit(
+			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
 	}
 }
 
+//nolint:revive
 func doReadSplit[T paging.Acceptor](
 	logger *zap.Logger,
+	queryID observation.IncomingQueryID,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	dataSource datasource.DataSource[T],
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
+	observationStorage observation.Storage,
 	cfg *config.TServerConfig,
 ) error {
 	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
@@ -265,6 +284,7 @@ func doReadSplit[T paging.Acceptor](
 
 	streamer := streaming.NewReadSplitsStreamer(
 		logger,
+		queryID,
 		stream,
 		request,
 		split,
@@ -272,7 +292,14 @@ func doReadSplit[T paging.Acceptor](
 		dataSource,
 	)
 
-	if err := streamer.Run(); err != nil {
+	// Run streaming reading
+	if err = streamer.Run(); err != nil {
+		// Register query error
+		cancelQueryErr := observationStorage.CancelIncomingQuery(queryID, err.Error(), sinkFactory.FinalStats())
+		if cancelQueryErr != nil {
+			logger.Error("observation storage cancel query", zap.Error(cancelQueryErr))
+		}
+
 		return fmt.Errorf("run paging streamer: %w", err)
 	}
 
@@ -286,6 +313,12 @@ func doReadSplit[T paging.Acceptor](
 
 	logger.Debug("split reading finished", fields...)
 
+	// Register query success
+	err = observationStorage.FinishIncomingQuery(queryID, readStats)
+	if err != nil {
+		return fmt.Errorf("observation storage finish query: %w", err)
+	}
+
 	return nil
 }
 
@@ -298,9 +331,10 @@ func NewDataSourceCollection(
 	memoryAllocator memory.Allocator,
 	readLimiterFactory *paging.ReadLimiterFactory,
 	converterCollection conversion.Collection,
+	observationStorage observation.Storage,
 	cfg *config.TServerConfig,
 ) (*DataSourceCollection, error) {
-	rdbmsFactory, err := rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection)
+	rdbmsFactory, err := rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection, observationStorage)
 	if err != nil {
 		return nil, fmt.Errorf("new rdbms data source factory: %w", err)
 	}
@@ -310,6 +344,7 @@ func NewDataSourceCollection(
 		memoryAllocator:     memoryAllocator,
 		readLimiterFactory:  readLimiterFactory,
 		converterCollection: converterCollection,
+		observationStorage:  observationStorage,
 		cfg:                 cfg,
 	}, nil
 }

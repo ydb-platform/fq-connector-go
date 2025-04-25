@@ -82,7 +82,7 @@ func (c *connectionManager) Make(
 		return nil, fmt.Errorf("set time zone: %w", err)
 	}
 
-	return []rdbms_utils.Connection{&connection{queryLogger, conn, c.cfg, dsi.Database, params.TableName}}, nil
+	return []rdbms_utils.Connection{&connection{queryLogger, conn, c.cfg, dsi, params.TableName}}, nil
 }
 
 func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {

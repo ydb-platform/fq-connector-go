@@ -7,6 +7,7 @@ import (
 	go_ora "github.com/sijms/go-ora/v2"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -14,10 +15,10 @@ import (
 var _ rdbms_utils.Connection = (*connection)(nil)
 
 type connection struct {
-	conn         *go_ora.Connection
-	queryLogger  common.QueryLogger
-	databaseName string
-	tableName    string
+	conn               *go_ora.Connection
+	queryLogger        common.QueryLogger
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
 }
 
 func (c *connection) Close() error {
@@ -48,8 +49,12 @@ func (c *connection) Query(queryParams *rdbms_utils.QueryParams) (rdbms_utils.Ro
 	return rows, nil
 }
 
-func (c *connection) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
+func (c *connection) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *connection) TableName() string {
+	return c.tableName
 }
 
 func (c *connection) Logger() *zap.Logger {

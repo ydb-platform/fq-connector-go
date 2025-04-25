@@ -19,15 +19,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ rdbms_utils.Connection = (*connectionNative)(nil)
-
-type connectionNative struct {
-	driver.Conn
-	queryLogger  common.QueryLogger
-	databaseName string
-	tableName    string
-}
-
 var _ rdbms_utils.Rows = (*rowsNative)(nil)
 
 type rowsNative struct {
@@ -54,6 +45,15 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 	return transformer, nil
 }
 
+var _ rdbms_utils.Connection = (*connectionNative)(nil)
+
+type connectionNative struct {
+	driver.Conn
+	queryLogger        common.QueryLogger
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
+}
+
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
@@ -75,8 +75,12 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	return &rowsNative{Rows: out}, nil
 }
 
-func (c *connectionNative) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
+func (c *connectionNative) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *connectionNative) TableName() string {
+	return c.tableName
 }
 
 func (c *connectionNative) Logger() *zap.Logger {
@@ -129,5 +133,5 @@ func makeConnectionNative(
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 
-	return &connectionNative{Conn: conn, queryLogger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
+	return &connectionNative{Conn: conn, queryLogger: queryLogger, dataSourceInstance: dsi, tableName: tableName}, nil
 }

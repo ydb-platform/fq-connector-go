@@ -135,8 +135,6 @@ func (cm *connectionManager) makeConnectionFromDataSourceInstance(
 	dsi *api_common.TGenericDataSourceInstance,
 	tableName string,
 ) ([]rdbms_utils.Connection, error) {
-	fmt.Println(">>> makeConnectionFromDataSourceInstance: ", dsi)
-
 	// reannotate logger with new data source instance
 	ydbLogger := common.AnnotateLoggerWithDataSourceInstance(logger, dsi)
 

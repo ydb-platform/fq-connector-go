@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+    <h1>{{.Title}}</h1>
+    {{range .Links}}
+    <div class="link-container">
+        <a href="{{.URL}}?format=html" class="link-name">{{.Name}}</a>
+        <div class="link-description">{{.Description}}</div>
+    </div>
+    {{end}}
+</body>
+</html>

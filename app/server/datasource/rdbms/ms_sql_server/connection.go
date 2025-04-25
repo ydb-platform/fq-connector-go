@@ -6,6 +6,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 	"go.uber.org/zap"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -13,18 +14,22 @@ import (
 var _ rdbms_utils.Connection = (*Connection)(nil)
 
 type Connection struct {
-	db           *sql.DB
-	queryLogger  common.QueryLogger
-	databaseName string
-	tableName    string
+	db                 *sql.DB
+	queryLogger        common.QueryLogger
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
 }
 
 func (c *Connection) Close() error {
 	return c.db.Close()
 }
 
-func (c *Connection) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
+func (c *Connection) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *Connection) TableName() string {
+	return c.tableName
 }
 
 func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Outgoing Queries</title>
+    <link rel="stylesheet" href="/assets/css/styles.css">
+</head>
+<body>
+    <a href="/" class="back-link">← Back to Home</a>
+    <h1>Outgoing Queries</h1>
+    
+    {{if .IncomingQueryID}}
+    <p><strong>Filtered by Incoming Query ID:</strong> {{.IncomingQueryID}}</p>
+    {{end}}
+    
+    {{if .Queries}}
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Incoming Query ID</th>
+            <th>Database</th>
+            <th>Endpoint</th>
+            <th>Query Text</th>
+            <th>Query Args</th>
+            <th>State</th>
+            <th>Created At</th>
+            <th>Finished At</th>
+            <th>Rows Read</th>
+            <th>Error</th>
+        </tr>
+        {{range .Queries}}
+        <tr>
+            <td>{{.ID}}</td>
+            <td>
+                <a href="/api/queries/outgoing/list?format=html&incoming_query_id={{.IncomingQueryID}}">
+                    {{.IncomingQueryID}}
+                </a>
+            </td>
+            <td>{{.DatabaseName}}</td>
+            <td>{{.DatabaseEndpoint}}</td>
+            <td class="query-text">{{.QueryText}}</td>
+            <td class="query-text">{{.QueryArgs}}</td>
+            <td class="state-{{.State | lower}}">{{.State}}</td>
+            <td>{{.CreatedAt}}</td>
+            <td>{{if .FinishedAt}}{{.FinishedAt}}{{else}}-{{end}}</td>
+            <td>{{.RowsRead}}</td>
+            <td>{{if .Error}}{{.Error}}{{else}}-{{end}}</td>
+        </tr>
+        {{end}}
+    </table>
+    
+    <div class="pagination">
+        {{if .HasPrev}}
+        <a href="/api/queries/outgoing/list?format=html&limit={{.Limit}}&offset={{.PrevOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}{{if .IncomingQueryID}}&incoming_query_id={{.IncomingQueryID}}{{end}}">Previous</a>
+        {{else}}
+        <a href="#" class="disabled">Previous</a>
+        {{end}}
+        
+        {{if .HasNext}}
+        <a href="/api/queries/outgoing/list?format=html&limit={{.Limit}}&offset={{.NextOffset}}{{if .StateFilter}}&state={{.StateFilter}}{{end}}{{if .IncomingQueryID}}&incoming_query_id={{.IncomingQueryID}}{{end}}">Next</a>
+        {{else}}
+        <a href="#" class="disabled">Next</a>
+        {{end}}
+    </div>
+    {{else}}
+    <p>No queries found.</p>
+    {{end}}
+</body>
+</html>

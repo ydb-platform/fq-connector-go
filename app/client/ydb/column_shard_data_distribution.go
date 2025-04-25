@@ -44,8 +44,7 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 
 	defer connManager.Release(ctx, preset.Logger, cs)
 
-	databaseName, _ := cs[0].From()
-	prefix := path.Join(databaseName, preset.TableName)
+	prefix := path.Join(cs[0].DataSourceInstance().Database, preset.TableName)
 	driver := cs[0].(ydb.Connection).Driver()
 
 	shardIDs, err := getColumnShardIDs(ctx, driver, prefix)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 )
@@ -31,9 +32,14 @@ func (m *ConnectionMock) Close() error {
 	return m.Called().Error(0)
 }
 
-func (m *ConnectionMock) From() (databaseName, tableName string) {
-	args := m.Called()
-	return args.String(0), args.String(1)
+// DataSourceInstance comprehensively describing the target of the connection
+func (m *ConnectionMock) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return m.Called().Get(0).(*api_common.TGenericDataSourceInstance)
+}
+
+// The name of a table that will be read via this connection.
+func (m *ConnectionMock) TableName() string {
+	return m.Called().String(0)
 }
 
 func (m *ConnectionMock) Logger() *zap.Logger {

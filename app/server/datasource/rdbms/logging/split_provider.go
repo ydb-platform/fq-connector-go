@@ -31,8 +31,6 @@ func (s *splitProviderImpl) ListSplits(
 		credentials:  params.Select.DataSourceInstance.GetCredentials(),
 	}
 
-	fmt.Println(">> HERE <<")
-
 	response, err := s.resolver.resolve(request)
 	if err != nil {
 		return fmt.Errorf("resolve YDB endpoint: %w", err)

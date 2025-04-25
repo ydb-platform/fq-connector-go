@@ -20,13 +20,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-type connectionHTTP struct {
-	*sql.DB
-	queryLogger  common.QueryLogger
-	databaseName string
-	tableName    string
-}
-
 var _ rdbms_utils.Rows = (*rows)(nil)
 
 type rows struct {
@@ -52,6 +45,15 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 	return transformer, nil
 }
 
+var _ rdbms_utils.Connection = (*connectionHTTP)(nil)
+
+type connectionHTTP struct {
+	*sql.DB
+	queryLogger        common.QueryLogger
+	dataSourceInstance *api_common.TGenericDataSourceInstance
+	tableName          string
+}
+
 func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
@@ -73,8 +75,12 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 	return &rows{Rows: out}, nil
 }
 
-func (c *connectionHTTP) From() (databaseName, tableName string) {
-	return c.databaseName, c.tableName
+func (c *connectionHTTP) DataSourceInstance() *api_common.TGenericDataSourceInstance {
+	return c.dataSourceInstance
+}
+
+func (c *connectionHTTP) TableName() string {
+	return c.tableName
 }
 
 func (c *connectionHTTP) Logger() *zap.Logger {
@@ -134,5 +140,10 @@ func makeConnectionHTTP(
 	conn.SetMaxOpenConns(maxOpenConns)
 	conn.SetConnMaxLifetime(connMaxLifetime)
 
-	return &connectionHTTP{DB: conn, queryLogger: queryLogger, databaseName: dsi.Database, tableName: tableName}, nil
+	return &connectionHTTP{
+		DB:                 conn,
+		queryLogger:        queryLogger,
+		dataSourceInstance: dsi,
+		tableName:          tableName,
+	}, nil
 }

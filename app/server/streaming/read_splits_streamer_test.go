@@ -17,6 +17,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service "github.com/ydb-platform/fq-connector-go/api/service"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -24,6 +25,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/clickhouse"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -144,6 +146,7 @@ func (tc testCaseStreaming) messageParams() (sentMessages, rowsInLastMessage int
 	return
 }
 
+//nolint:funlen
 func (tc testCaseStreaming) execute(t *testing.T) {
 	logger := common.NewTestLogger(t)
 	split := rdbms_utils.MakeTestSplit()
@@ -157,7 +160,8 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 
 	connection := &rdbms_utils.ConnectionMock{}
 	connection.On("Logger").Return(logger)
-	connection.On("From").Return("", "example_1").Once()
+	connection.On("TableName").Return("example_1").Once()
+	connection.On("DataSourceInstance").Return(&api_common.TGenericDataSourceInstance{}).Once()
 
 	connectionManager := &rdbms_utils.ConnectionManagerMock{}
 	connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
@@ -245,7 +249,11 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})
 
-	dataSource := rdbms.NewDataSource(logger, dataSourcePreset, converterCollection)
+	// TODO: mock
+	observationStorage, err := observation.NewStorage(logger, nil)
+	require.NoError(t, err)
+
+	dataSource := rdbms.NewDataSource(logger, dataSourcePreset, converterCollection, observationStorage)
 
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[any](
 		logger,
@@ -261,7 +269,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	sinkFactory := paging.NewSinkFactory(ctx, logger, pagingCfg, columnarBufferFactory, readLimiter)
 
 	request := &api_service_protos.TReadSplitsRequest{}
-	streamer := NewReadSplitsStreamer(logger, stream, request, split, sinkFactory, dataSource)
+	streamer := NewReadSplitsStreamer(logger, observation.IncomingQueryID(0), stream, request, split, sinkFactory, dataSource)
 
 	err = streamer.Run()
 

@@ -17,6 +17,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -70,7 +71,6 @@ func TestReadSplit(t *testing.T) {
 
 		connection := &rdbms_utils.ConnectionMock{}
 		connection.On("Logger").Return(logger)
-		connection.On("From").Return("", "example_1").Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
 		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
@@ -82,6 +82,8 @@ func TestReadSplit(t *testing.T) {
 			},
 		}
 		connection.On("Query", `SELECT "col1", "col2" FROM "example_1"`).Return(rows, nil).Once()
+		connection.On("TableName").Return("example_1").Once()
+		connection.On("DataSourceInstance").Return(&api_common.TGenericDataSourceInstance{}).Once()
 
 		transformer := &rdbms_utils.RowTransformerMock{
 			Acceptors: []any{
@@ -107,9 +109,14 @@ func TestReadSplit(t *testing.T) {
 		sinkFactory := &paging.SinkFactoryMock{}
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
-		dataSource := NewDataSource(logger, preset, converterCollection)
+		// FIXME: mock
+		observationStorage, err := observation.NewStorage(logger, nil)
+		require.NoError(t, err)
 
-		err := dataSource.ReadSplit(ctx, logger, readSplitsRequest, split, sinkFactory)
+		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
+
+		queryID := observation.IncomingQueryID(0)
+		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.NoError(t, err)
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
@@ -127,7 +134,8 @@ func TestReadSplit(t *testing.T) {
 
 		connection := &rdbms_utils.ConnectionMock{}
 		connection.On("Logger").Return(logger)
-		connection.On("From").Return("", "example_1").Once()
+		connection.On("TableName").Return("example_1").Once()
+		connection.On("DataSourceInstance").Return(&api_common.TGenericDataSourceInstance{}).Once()
 
 		connectionManager.On("Make", split.Select.DataSourceInstance).Return([]rdbms_utils.Connection{connection}, nil).Once()
 		connectionManager.On("Release", []rdbms_utils.Connection{connection}).Return().Once()
@@ -166,9 +174,14 @@ func TestReadSplit(t *testing.T) {
 		sinkFactory := &paging.SinkFactoryMock{}
 		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
-		datasource := NewDataSource(logger, preset, converterCollection)
+		// FIXME: mock
+		observationStorage, err := observation.NewStorage(logger, nil)
+		require.NoError(t, err)
 
-		err := datasource.ReadSplit(ctx, logger, readSplitsRequest, split, sinkFactory)
+		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
+
+		queryID := observation.IncomingQueryID(0)
+		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.True(t, errors.Is(err, scanErr))
 
 		mock.AssertExpectationsForObjects(t, connectionManager, connection, rows, sink, sinkFactory)
