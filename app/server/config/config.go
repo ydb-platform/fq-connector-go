@@ -33,7 +33,7 @@ func makeDefaultPushdownConfig() *config.TPushdownConfig {
 
 // TODO: use reflection to generalize datasource setting code
 //
-//nolint:gocyclo
+//nolint:gocyclo,funlen
 func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.ConnectorServer.MaxRecvMessageSize == 0 {
 		c.ConnectorServer.MaxRecvMessageSize = math.MaxInt32
@@ -173,6 +173,20 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Redis.ExponentialBackoff == nil {
 		c.Datasources.Redis.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
+	// OpenSearch
+
+	if c.Datasources.Opensearch == nil {
+		c.Datasources.Opensearch = &config.TOpenSearchConfig{
+			DialTimeout:           "5s",
+			ResponseHeaderTimeout: "5s",
+			PingConnectionTimeout: "5s",
+		}
+	}
+
+	if c.Datasources.Opensearch.ExponentialBackoff == nil {
+		c.Datasources.Opensearch.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
 	// PostgreSQL
@@ -426,6 +440,10 @@ func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 		return fmt.Errorf("validate `mongodb`: %w", err)
 	}
 
+	if err := validateOpenSearchConfig(c.Opensearch); err != nil {
+		return fmt.Errorf("validate `opensearch`: %w", err)
+	}
+
 	return nil
 }
 
@@ -626,6 +644,30 @@ func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
 
 	if _, err := common.DurationFromString(c.MaxElapsedTime); err != nil {
 		return fmt.Errorf("validate `max_elapsed_time`: %v", err)
+	}
+
+	return nil
+}
+
+func validateOpenSearchConfig(c *config.TOpenSearchConfig) error {
+	if c == nil {
+		return nil
+	}
+
+	if _, err := common.DurationFromString(c.DialTimeout); err != nil {
+		return fmt.Errorf("validate `dial_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.ResponseHeaderTimeout); err != nil {
+		return fmt.Errorf("validate `response_header_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
+		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
+		return fmt.Errorf("validate `exponential_backoff`: %v", err)
 	}
 
 	return nil

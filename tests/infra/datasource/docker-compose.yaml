@@ -72,7 +72,7 @@ services:
     volumes:
       - ./mysql/init:/docker-entrypoint-initdb.d
       - ./mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
-  
+
   ms_sql_server:
     build: ./ms_sql_server/init
     container_name: ${USER}-fq-connector-go-tests-ms_sql_server
@@ -83,7 +83,7 @@ services:
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "false"
       LANG: ru_RU.UTF-8
       SA_PASSWORD: "Qwerty12345!"
-  
+
   oracle:
     image: container-registry.oracle.com/database/free@sha256:83edd0756fda0e5faecc0fdf047814f0177d4224d7bf037e4900123ee3e08718
     container_name: ${USER}-fq-connector-go-tests-oracle
@@ -118,3 +118,20 @@ services:
     container_name: ${USER}-fq-connector-go-tests-redis
     ports:
       - "6379:6379"
+
+  opensearch:
+    build:
+      context: ./opensearch/init
+      dockerfile: Dockerfile
+    container_name: ${USER}-fq-connector-go-tests-opensearch
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+    volumes:
+      - ./opensearch/init/opensearch-init.sh:/docker-entrypoint-initdb.d/opensearch-init.sh:ro
+      - ./opensearch/init/opensearch.yml:/usr/share/opensearch/config/opensearch.yml

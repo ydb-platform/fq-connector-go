@@ -204,7 +204,7 @@ message TOracleConfig {
     TPushdownConfig pushdown = 11;
 }
 
-// TMongoDbConfig contains settings specific for Oracle data source
+// TMongoDbConfig contains settings specific for MongoDB data source
 message TMongoDbConfig {
     enum EObjectIdYqlType {
         OBJECT_ID_UNSPECIFIED = 0;
@@ -233,6 +233,21 @@ message TRedisConfig {
     string ping_connection_timeout = 2;
     // Number of values to process in DescribeTable method to deduce table schema
     uint32 count_docs_to_deduce_schema = 3;
+
+    TExponentialBackoffConfig exponential_backoff = 10;
+}
+
+// TOpenSearchConfig contains settings specific for OpenSearch data source
+message TOpenSearchConfig {
+    // Timeout for establishing a connection to OpenSearch
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string dial_timeout = 1;
+    // Timeout for waiting for response headers from OpenSearch
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string response_header_timeout = 2;
+    // Timeout for pinging the OpenSearch server to check connectivity
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string ping_connection_timeout = 3;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }
@@ -359,4 +374,5 @@ message TDatasourcesConfig {
     TLoggingConfig logging = 8;
     TMongoDbConfig mongodb = 9;
     TRedisConfig redis = 10;
+    TOpenSearchConfig opensearch = 11;
 }
