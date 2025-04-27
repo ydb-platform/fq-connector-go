@@ -182,6 +182,8 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			DialTimeout:           "5s",
 			ResponseHeaderTimeout: "5s",
 			PingConnectionTimeout: "5s",
+			ScrollTimeout:         "10s",
+			BatchSize:             100,
 		}
 	}
 
@@ -692,6 +694,14 @@ func validateOpenSearchConfig(c *config.TOpenSearchConfig) error {
 
 	if _, err := common.DurationFromString(c.PingConnectionTimeout); err != nil {
 		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
+	}
+
+	if _, err := common.DurationFromString(c.ScrollTimeout); err != nil {
+		return fmt.Errorf("validate `scroll_timeout`: %v", err)
+	}
+
+	if c.BatchSize == 0 {
+		return fmt.Errorf("validate batch_size, must be greater than zero")
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
