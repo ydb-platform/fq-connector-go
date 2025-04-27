@@ -245,11 +245,11 @@ message TOpenSearchConfig {
     string ping_connection_timeout = 3;
     // Timeout for keeping scroll context alive in OpenSearch
     // Valid values should satisfy `time.ParseDuration` (e. g. '1m', '5m', '30s').
-    // Default: "10s"
+    // Default: "5m"
     string scroll_timeout = 4;
     // Number of documents to retrieve in each batch during scroll operations
     // Valid range: 1-10000
-    // Default: 100
+    // Default: 1000
     uint64 batch_size = 5;
 
     TExponentialBackoffConfig exponential_backoff = 10;
