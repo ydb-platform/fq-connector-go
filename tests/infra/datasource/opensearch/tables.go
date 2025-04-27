@@ -7,6 +7,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
@@ -26,7 +27,14 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"c":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
 			},
 		},
-		Records: []*test_utils.Record[int32, *array.Int32Builder]{},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
+				"a":  []*string{ptr.String("jelly"), ptr.String("butter"), ptr.String("toast")},
+				"b":  []*int32{ptr.Int32(2000), ptr.Int32(-20021), ptr.Int32(2076)},
+				"c":  []*int64{ptr.Int64(13), ptr.Int64(0), ptr.Int64(2076)},
+			},
+		}},
 	},
 	"list": {
 		Name:                  "list",
@@ -45,7 +53,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"id":   testIdType,
 				"name": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 				"address": common.MakeOptionalType(common.MakeStructType([]*Ydb.StructMember{
 					{Name: "city", Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8))},
@@ -105,6 +113,15 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"d":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_FLOAT)),
 			},
 		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"id": []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4)},
+				"a":  []*string{ptr.String("value1"), ptr.String("value2"), ptr.String("value3"), ptr.String("value4")},
+				"b":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30), nil},
+				"c":  []*string{nil, ptr.String("new_field"), nil, ptr.String("another_value")},
+				"d":  []*float32{nil, nil, ptr.Float32(3.14), ptr.Float32(2.71)},
+			},
+		}},
 	},
 }
 

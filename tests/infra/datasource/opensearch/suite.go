@@ -20,6 +20,14 @@ func (s *Suite) TestDescribeTable() {
 	}
 }
 
+func (s *Suite) TestReadSplitPrimitives() {
+	testCaseNames := []string{"simple"}
+
+	for _, testCase := range testCaseNames {
+		s.ValidateTable(s.dataSource, tables[testCase])
+	}
+}
+
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
 ) *Suite {
