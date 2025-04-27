@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -30,7 +30,7 @@ type documentReader struct {
 	ydbTypes   []*Ydb.Type
 }
 
-func convertToString(logger *zap.Logger, value any) (string, error) {
+func jsonToString(logger *zap.Logger, value any) (string, error) {
 	switch cast := value.(type) {
 	case int32:
 		return strconv.Itoa(int(cast)), nil
@@ -48,286 +48,180 @@ func convertToString(logger *zap.Logger, value any) (string, error) {
 		return cast.Format(time.RFC3339), nil
 	case []byte:
 		return base64.StdEncoding.EncodeToString(cast), nil
+	case []any:
+		return jsonArrayToString(logger, cast)
+	case map[string]any:
+		return jsonObjectToString(logger, cast)
 	default:
-		logger.Warn("unknown type", zap.Any("value", value))
+		logger.Info(fmt.Sprintf("unknown type: %T", value))
 	}
 
-	return "", fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
+	return "", common.ErrDataTypeNotSupported
+}
+
+func jsonArrayToString(logger *zap.Logger, arr []any) (string, error) {
+	var sb strings.Builder
+
+	sb.WriteString("[")
+
+	for i, inner := range arr {
+		innerStr, err := jsonToString(logger, inner)
+		if err != nil {
+			return "", err
+		}
+
+		sb.WriteString(innerStr)
+
+		if i+1 < len(arr) {
+			sb.WriteString(", ")
+		}
+	}
+
+	sb.WriteString("]")
+
+	return sb.String(), nil
+}
+
+func jsonObjectToString(logger *zap.Logger, obj map[string]any) (string, error) {
+	var sb strings.Builder
+
+	sb.WriteString("{")
+
+	i := 0
+
+	for key, value := range obj {
+		valueStr, err := jsonToString(logger, value)
+		if err != nil {
+			return "", err
+		}
+
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+
+		sb.WriteString(fmt.Sprintf(`"%s": %s`, key, valueStr))
+
+		i++
+	}
+
+	sb.WriteString("}")
+
+	return sb.String(), nil
 }
 
 //nolint:funlen,gocyclo
-func (r *documentReader) accept(
-	logger *zap.Logger,
-	hit opensearchapi.SearchHit,
-) error {
+func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit) error {
 	var doc map[string]any
-	// To unmarshal JSON into an interface value, Unmarshal stores one of these in the interface value:
-	// bool, for JSON booleans
-	// float64, for JSON numbers
-	// string, for JSON strings
-	// []any, for JSON arrays
-	// map[string]any, for JSON objects
-	// nil for JSON null
-
 	if err := json.Unmarshal(hit.Source, &doc); err != nil {
 		return fmt.Errorf("unmarshal _source: %w", err)
 	}
-
-	doc["_id"] = hit.ID
 
 	acceptors := r.transformer.GetAcceptors()
 
 	for i, f := range r.arrowTypes.Fields() {
 		switch a := acceptors[i].(type) {
-		case **uint8:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			if err := convertPtr[uint8](a, value); err != nil {
-				return fmt.Errorf("convert: %w", err)
-			}
+		case *bool:
+			*a = doc[f.Name].(bool)
 		case **bool:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			if err := convertPtr[bool](a, value); err != nil {
-				return fmt.Errorf("convert: %w", err)
+			convert(a, doc[f.Name])
+		case *int32:
+			if v, ok := doc[f.Name].(float64); ok {
+				*a = int32(v)
 			}
 		case **int32:
-			value, ok := doc[f.Name]
-			if !ok {
+			if v, ok := doc[f.Name].(float64); ok {
+				val := int32(v)
+				*a = &val
+			} else {
 				*a = nil
-				continue
 			}
-
-			if err := convertPtr[int32](a, value.(float64)); err != nil {
-				return fmt.Errorf("convert: %w", err)
+		case *int64:
+			if v, ok := doc[f.Name].(float64); ok {
+				*a = int64(v)
 			}
 		case **int64:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			if err := convertPtr[int64](a, value.(float64)); err != nil {
-				return fmt.Errorf("convert: %w", err)
-			}
-		case **float32:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			if err := convertPtr[float32](a, value.(float64)); err != nil {
-				return fmt.Errorf("convert: %w", err)
-			}
-		case **float64:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			if err := convertPtr[float64](a, value.(float64)); err != nil {
-				return fmt.Errorf("convert: %w", err)
-			}
-		case *string:
-			if f.Name == "_id" {
-				*a = hit.ID
+			if v, ok := doc[f.Name].(float64); ok {
+				val := int64(v)
+				*a = &val
 			} else {
-				return fmt.Errorf("unsupported type %T: for field %T, %w", acceptors[i], f.Name, common.ErrDataTypeNotSupported)
+				*a = nil
 			}
+		case *float32:
+			*a = doc[f.Name].(float32)
+		case **float32:
+			convert(a, doc[f.Name])
+		case *float64:
+			*a = doc[f.Name].(float64)
+		case **float64:
+			convert(a, doc[f.Name])
+		case *string:
+			value, ok := doc[f.Name]
+			if !ok {
+				acceptors[i] = nil
+				continue
+			}
+
+			str, err := jsonToString(logger, value)
+			if err != nil {
+				if !errors.Is(err, common.ErrDataTypeNotSupported) {
+					return fmt.Errorf("jsonToString: %w", err)
+				}
+			}
+
+			*a = str
 		case **string:
 			value, ok := doc[f.Name]
 			if !ok {
+				acceptors[i] = nil
 				*a = nil
+
 				continue
 			}
 
-			str, err := convertToString(logger, value)
-
+			str, err := jsonToString(logger, value)
 			if err != nil {
 				if !errors.Is(err, common.ErrDataTypeNotSupported) {
-					return fmt.Errorf("json to string: %w", err)
+					return fmt.Errorf("jsonToString: %w", err)
 				}
 			}
 
 			*a = ptr.T(str)
-		case **time.Time:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			t, err := parseTime(value)
-			if err != nil {
-				return fmt.Errorf("parse time for field %s: %w", f.Name, err)
-			}
-
-			*a = ptr.T(t)
-		case **map[string]any:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			convertedMap, err := convertToMapStringAny(value, f.Name)
-			if err != nil {
-				return fmt.Errorf("failed to convert map for field '%s': %w", f.Name, err)
-			}
-
-			*a = convertedMap
 		default:
-			return fmt.Errorf("unsupported type %T: %w for field %T", acceptors[i], common.ErrDataTypeNotSupported, f.Name)
+			return fmt.Errorf("unsupported type %T: %w", acceptors[i], common.ErrDataTypeNotSupported)
 		}
 	}
 
 	return nil
 }
 
-func convertToMapStringAny(value any, fieldName string) (*map[string]any, error) {
-	inputMap, ok := value.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("expected map[string]any for field %s, got %T", fieldName, value)
-	}
-
-	resultMap := make(map[string]any, len(inputMap))
-
-	for key, val := range inputMap {
-		resultMap[key] = val
-	}
-
-	return &resultMap, nil
-}
-
-func parseTime(value any) (time.Time, error) {
-	if value == nil {
-		return time.Time{}, fmt.Errorf("time value is nil")
-	}
-
-	switch v := value.(type) {
-	case string:
-		// First try ZonedDateTime (with time zone)
-		zonedTime, zerr := time.Parse(time.RFC3339Nano, v)
-		if zerr == nil {
-			return zonedTime, nil
-		}
-
-		// If it doesn't work, try LocalDateTime (without zone, interpret as UTC)
-		localTime, lerr := time.Parse(time.DateTime, v)
-		if lerr == nil {
-			return localTime.UTC(), nil
-		}
-
-		formats := []string{
-			time.DateOnly + "T" + time.TimeOnly,
-			time.DateOnly + " " + time.TimeOnly,
-		}
-		for _, format := range formats {
-			t, err := time.Parse(format, v)
-			if err == nil {
-				return t.UTC(), nil
-			}
-		}
-
-		return time.Time{}, fmt.Errorf("parse time string: %v", v)
-	case float64:
-		// Assume that these are milliseconds from the epoch
-		sec := int64(v / 1000)
-		nsec := int64(math.Round((v - math.Trunc(v/1000)*1000) * 1e6))
-
-		return time.Unix(sec, nsec*1e3).UTC(), nil
-	case int64:
-		// Milliseconds from the epoch
-		return time.Unix(0, v*int64(time.Millisecond)).UTC(), nil
-	case time.Time:
-		return v.UTC(), nil
-	default:
-		return time.Time{}, fmt.Errorf("unsupported time type: %T", value)
-	}
-}
-
-func convertPtr[INTO any](acceptor **INTO, value any) error {
+func convert[INTO any](acceptor **INTO, value any) {
 	if v, ok := value.(INTO); ok {
 		*acceptor = ptr.T(v)
-		return nil
+	} else {
+		*acceptor = nil
 	}
-
-	var tmp INTO
-	if err := convert(&tmp, value); err != nil {
-		return err
-	}
-
-	*acceptor = ptr.T(tmp)
-
-	return nil
-}
-
-// convert is a generic function that attempts to convert a value into the target type
-// pointed to by acceptor. It handles special cases like float64 conversion for OpenSearch.
-func convert[INTO any](acceptor *INTO, value any) error {
-	// First try direct type assertion - if value is already of the desired type
-	if v, ok := value.(INTO); ok {
-		*acceptor = v
-
-		return nil
-	}
-
-	// https://pkg.go.dev/encoding/json?spm=a2ty_o01.29997173.0.0.18cfc921mwu0YG#Unmarshal
-	// To unmarshal JSON into an interface value, Unmarshal stores one of these in the interface value
-	// float64, for JSON numbers
-	if floatVal, ok := value.(float64); ok {
-		switch pt := any(acceptor).(type) {
-		case *uint8:
-			*pt = uint8(floatVal)
-		case *int32:
-			*pt = int32(floatVal)
-		case *int64:
-			*pt = int64(floatVal)
-		case *uint64:
-			*pt = uint64(floatVal)
-		case *float32:
-			*pt = float32(floatVal)
-		case *float64:
-			*pt = floatVal
-		default:
-			return fmt.Errorf("unsupported conversion from float64 to %T", acceptor)
-		}
-
-		return nil
-	}
-
-	return fmt.Errorf("unsupported type %T: %w", value, common.ErrDataTypeNotSupported)
 }
 
 func makeDocumentReader(
-	transformer paging.RowTransformer[any],
 	arrowTypes *arrow.Schema,
 	ydbTypes []*Ydb.Type,
-) *documentReader {
+	cc conversion.Collection,
+) (*documentReader, error) {
+	transformer, err := makeTransformer(ydbTypes, cc)
+	if err != nil {
+		return nil, err
+	}
+
 	return &documentReader{
 		transformer: transformer,
 		arrowTypes:  arrowTypes,
 		ydbTypes:    ydbTypes,
-	}
+	}, nil
 }
 
 type appenderFunc = func(acceptor any, builder array.Builder) error
 
-func makeTransformer(
-	ydbTypes []*Ydb.Type,
-	cc conversion.Collection,
-) (paging.RowTransformer[any], error) {
+func makeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]appenderFunc, 0, len(ydbTypes))
 
@@ -336,7 +230,7 @@ func makeTransformer(
 	for _, ydbType := range ydbTypes {
 		acceptors, appenders, err = addAcceptorAppender(ydbType, cc, acceptors, appenders)
 		if err != nil {
-			return nil, fmt.Errorf("add acceptor appender: %w", err)
+			return nil, fmt.Errorf("addAcceptorAppender: %w", err)
 		}
 	}
 
@@ -358,12 +252,12 @@ func addAcceptorAppender(
 	if optType := ydbType.GetOptionalType(); optType != nil {
 		acceptors, appenders, err = addAcceptorAppenderNullable(optType.Item, cc, acceptors, appenders)
 		if err != nil {
-			return nil, nil, fmt.Errorf("add acceptor appender nullable: %w", err)
+			return nil, nil, err
 		}
 	} else {
 		acceptors, appenders, err = addAcceptorAppenderNonNullable(ydbType, cc, acceptors, appenders)
 		if err != nil {
-			return nil, nil, fmt.Errorf("add acceptor appender non nullable: %w", err)
+			return nil, nil, err
 		}
 	}
 
@@ -394,19 +288,41 @@ func addAcceptorAppenderNullable(
 		case Ydb.Type_DOUBLE:
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
-		case Ydb.Type_UTF8:
+		case Ydb.Type_UTF8, Ydb.Type_JSON:
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case Ydb.Type_STRING:
 			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, utils.MakeAppenderNullable[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				value := acceptor.(**string)
+				if *value == nil {
+					builder.AppendNull()
+					return nil
+				}
+
+				return utils.AppendValueToArrowBuilder[string, string, *array.StringBuilder](
+					*value,
+					builder,
+					cc.String(),
+				)
+			})
 		case Ydb.Type_TIMESTAMP:
 			acceptors = append(acceptors, new(*time.Time))
-			appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				value := acceptor.(**time.Time)
+				if *value == nil {
+					builder.AppendNull()
+					return nil
+				}
+
+				return utils.AppendValueToArrowBuilder[int64, int64, *array.Int64Builder](
+					(**value).UnixNano(),
+					builder,
+					cc.Int64(),
+				)
+			})
 		}
-	case *Ydb.Type_StructType:
-		acceptors = append(acceptors, new(*map[string]any))
-		appenders = append(appenders, createStructAppender(t.StructType))
+
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 	}
@@ -414,136 +330,50 @@ func addAcceptorAppenderNullable(
 	return acceptors, appenders, nil
 }
 
-//nolint:gocyclo
-func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) error {
-	fieldNames := make([]string, len(structType.Members))
-	for i, member := range structType.Members {
-		fieldNames[i] = member.Name
-	}
-
-	return func(acceptor any, builder array.Builder) error {
-		pt, ok := acceptor.(**map[string]any)
-		if !ok {
-			return fmt.Errorf("invalid acceptor type: expected **map[string]any, got %T", acceptor)
-		}
-
-		structBuilder, ok := builder.(*array.StructBuilder)
-		if !ok {
-			return fmt.Errorf("invalid builder type: expected *array.StructBuilder, got %T", builder)
-		}
-
-		if *pt == nil {
-			structBuilder.AppendNull()
-			return nil
-		}
-
-		structBuilder.Append(true) // Начинаем новую структуру
-
-		data := *pt
-
-		// Для каждого поля в структуре добавляем значение
-		for fieldIdx := 0; fieldIdx < structBuilder.NumField(); fieldIdx++ {
-			fieldName := builder.Type().(*arrow.StructType).Field(fieldIdx).Name
-			fieldBuilder := structBuilder.FieldBuilder(fieldIdx)
-
-			fieldValue := (*data)[fieldName]
-			if fieldValue == nil {
-				fieldBuilder.AppendNull()
-				continue
-			}
-
-			switch fb := fieldBuilder.(type) {
-			case *array.Uint8Builder:
-				var val bool
-				if err := convert[bool](&val, fieldValue); err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
-				}
-
-				if val {
-					fb.Append(uint8(1))
-				} else {
-					fb.Append(uint8(0))
-				}
-
-			case *array.Int32Builder:
-				var val int32
-				if err := convert(&val, fieldValue); err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
-				}
-
-				fb.Append(val)
-			case *array.Int64Builder:
-				var val int64
-				if err := convert(&val, fieldValue); err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
-				}
-
-				fb.Append(val)
-			case *array.Uint64Builder:
-				val, err := parseTime(fieldValue)
-				if err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
-				}
-
-				in, err := common.TimeToYDBTimestamp(&val)
-				if err != nil {
-					return fmt.Errorf("to timestamp %s: %w", fieldName, err)
-				}
-
-				fb.Append(in)
-			case *array.Float32Builder:
-				var val float32
-				if err := convert(&val, fieldValue); err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
-				}
-
-				fb.Append(val)
-			case *array.Float64Builder:
-				var val float64
-				if err := convert(&val, fieldValue); err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
-				}
-
-				fb.Append(val)
-			case *array.StringBuilder:
-				strval, ok := fieldValue.(string)
-				if !ok {
-					return fmt.Errorf("field %s: expected string but got %T", fieldName, fieldValue)
-				}
-
-				fb.Append(strval)
-			case *array.BinaryBuilder:
-				strval, ok := fieldValue.(string)
-				if !ok {
-					return fmt.Errorf("field %s: expected binary but got %T", fieldName, fieldValue)
-				}
-
-				fb.Append([]byte(strval))
-			default:
-				return fmt.Errorf("unsupported builder type %T for field %s", fb, fieldName)
-			}
-		}
-
-		return nil
-	}
-}
-
-func addAcceptorAppenderNonNullable(
-	ydbType *Ydb.Type,
-	cc conversion.Collection,
-	acceptors []any,
-	appenders []appenderFunc,
-) (
+func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection, acceptors []any, appenders []appenderFunc) (
 	[]any,
 	[]appenderFunc,
 	error,
 ) {
 	switch t := ydbType.Type.(type) {
 	case *Ydb.Type_TypeId:
-		if t.TypeId == Ydb.Type_UTF8 {
-			acceptors = append(acceptors, new(string))
-			appenders = append(appenders, utils.MakeAppender[string, string, *array.StringBuilder](cc.String()))
+		switch t.TypeId {
+		case Ydb.Type_BOOL:
+			acceptors = append(acceptors, new(bool))
+			appenders = append(appenders, utils.MakeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
+		case Ydb.Type_INT32:
+			acceptors = append(acceptors, new(int32))
+			appenders = append(appenders, utils.MakeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
+		case Ydb.Type_INT64:
+			acceptors = append(acceptors, new(int64))
+			appenders = append(appenders, utils.MakeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
+		case Ydb.Type_FLOAT:
+			acceptors = append(acceptors, new(float32))
+			appenders = append(appenders, utils.MakeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
+		case Ydb.Type_DOUBLE:
+			acceptors = append(acceptors, new(float64))
+			appenders = append(appenders, utils.MakeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+		case Ydb.Type_UTF8, Ydb.Type_JSON, Ydb.Type_STRING:
+			acceptors = append(acceptors, new(any))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				value := acceptor.(*any)
+
+				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](
+					&value,
+					builder,
+					cc.Bytes(),
+				)
+			})
+		case Ydb.Type_TIMESTAMP:
+			acceptors = append(acceptors, new(time.Time))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				value := acceptor.(*time.Time)
+				nanos := value.UnixNano()
+
+				return utils.AppendValueToArrowBuilder[int64, int64, *array.Int64Builder](&nanos, builder, cc.Int64())
+			})
 		}
+
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 	}
