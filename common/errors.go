@@ -46,6 +46,12 @@ var (
 	ErrPageSizeExceeded                    = fmt.Errorf("page size exceeded, check service configuration")
 )
 
+var AcceptableErrors = NewErrorMatcher(
+	ErrUnsupportedExpression,
+	ErrUnimplementedPredicateType,
+	ErrUnimplementedTypedValue,
+)
+
 var (
 	// TODO: remove this and extract MyError somehow
 	mysqlRegex = regexp.MustCompile(`\d+`)

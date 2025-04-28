@@ -23,7 +23,7 @@ var defaultMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOption
 		UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_STRING,
 	}}
 
-var stringifyMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptions{
+var asStringMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptions{
 	MongodbOptions: &api_common.TMongoDbDataSourceOptions{
 		ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
 		UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_AS_STRING,

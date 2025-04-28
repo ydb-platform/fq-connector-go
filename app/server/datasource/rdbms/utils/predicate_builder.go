@@ -528,12 +528,6 @@ func (pb *predicateBuilder) formatPredicate(
 	return result, nil
 }
 
-var acceptableErrors = common.NewErrorMatcher(
-	common.ErrUnsupportedExpression,
-	common.ErrUnimplementedPredicateType,
-	common.ErrUnimplementedTypedValue,
-)
-
 func formatWhereClause(
 	logger *zap.Logger,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
@@ -557,7 +551,7 @@ func formatWhereClause(
 			logger.Warn("failed to pushdown some parts of WHERE clause", zap.Error(conjunctionErr))
 		}
 
-		if acceptableErrors.Match(err) {
+		if common.AcceptableErrors.Match(err) {
 			logger.Info("considering pushdown error as acceptable", zap.Error(err))
 			return clause, pb.args, nil
 		}

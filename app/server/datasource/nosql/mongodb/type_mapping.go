@@ -18,6 +18,8 @@ var errNull = errors.New("can't determine field type for null")
 
 const objectIdTag string = "ObjectId"
 
+var objectIdType *Ydb.Type = common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING))
+
 type readingMode = api_common.TMongoDbDataSourceOptions_EReadingMode
 
 func typeMap(logger *zap.Logger, v bson.RawValue) (*Ydb.Type, error) {
@@ -35,7 +37,7 @@ func typeMap(logger *zap.Logger, v bson.RawValue) (*Ydb.Type, error) {
 	case bson.TypeBinary:
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
 	case bson.TypeObjectID:
-		return common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING)), nil
+		return objectIdType, nil
 	case bson.TypeNull:
 		return nil, errNull
 	default:
