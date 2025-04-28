@@ -9,9 +9,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 func makeFilter(
@@ -25,7 +26,7 @@ func makeFilter(
 	if what != nil {
 		projection := bson.D{}
 		for _, item := range what.GetItems() {
-			projection = append(projection, bson.E{item.GetColumn().Name, 1})
+			projection = append(projection, bson.E{Key: item.GetColumn().Name, Value: 1})
 		}
 
 		opts.SetProjection(projection)
@@ -35,10 +36,10 @@ func makeFilter(
 	if limit != nil {
 		opts.SetSkip(int64(limit.Offset))
 		opts.SetLimit(int64(limit.Limit))
-		// opts.SetSort() ORDER BY :(
 	}
 
 	where := split.Select.Where
+
 	filterTyped := where.GetFilterTyped()
 	if filterTyped == nil {
 		logger.Warn("handling nil filter")
@@ -57,6 +58,7 @@ func makeFilter(
 				logger.Info("considering pushdown error as acceptable", zap.Error(err))
 				return filter, opts, nil
 			}
+
 			return nil, nil, fmt.Errorf("encountered an error making a filter: %w", err)
 		default:
 			return nil, nil, fmt.Errorf("unknown filtering mode: %d", filtering)
@@ -66,6 +68,7 @@ func makeFilter(
 	return filter, opts, nil
 }
 
+//nolint:funlen,gocyclo
 func makePredicateFilter(
 	predicate *api_service_protos.TPredicate,
 ) (bson.D, error) {
@@ -123,7 +126,7 @@ func makePredicateFilter(
 	case *api_service_protos.TPredicate_Regexp:
 		result, err = getRegexFilter(p.Regexp)
 		if err != nil {
-			return result, fmt.Errorf("get If filter: %w", err)
+			return result, fmt.Errorf("get Regexp filter: %w", err)
 		}
 	default:
 		return nil, fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
@@ -140,7 +143,7 @@ func getNegationFilter(
 		return nil, err
 	}
 
-	return bson.D{{"$nor", bson.A{operand}}}, nil
+	return bson.D{{Key: "$nor", Value: bson.A{operand}}}, nil
 }
 
 func getBooleanFilter(
@@ -151,44 +154,47 @@ func getBooleanFilter(
 		return nil, err
 	}
 
-	return bson.D{{"$expr", bson.D{{"$eq", bson.A{expr, true}}}}}, nil
+	return bson.D{{Key: "$expr", Value: bson.D{{Key: "$eq", Value: bson.A{expr, true}}}}}, nil
 }
 
 func getConjunctionFilter(
 	conjunction *api_service_protos.TPredicate_TConjunction,
 ) (bson.D, error) {
 	operands := make([]bson.D, 0, len(conjunction.Operands))
+
 	for _, op := range conjunction.Operands {
 		operand, err := makePredicateFilter(op)
 		if err != nil {
 			return nil, err
 		}
+
 		operands = append(operands, operand)
 	}
 
-	return bson.D{{"$and", operands}}, nil
+	return bson.D{{Key: "$and", Value: operands}}, nil
 }
 
 func getDisjunctionFilter(
 	disjunction *api_service_protos.TPredicate_TDisjunction,
 ) (bson.D, error) {
-
 	operands := make([]bson.D, 0, len(disjunction.Operands))
+
 	for _, op := range disjunction.Operands {
 		operand, err := makePredicateFilter(op)
 		if err != nil {
 			return nil, err
 		}
+
 		operands = append(operands, operand)
 	}
 
-	return bson.D{{"$or", operands}}, nil
+	return bson.D{{Key: "$or", Value: operands}}, nil
 }
 
 func getIsNotNullFilter(expression *api_service_protos.TExpression) (bson.D, error) {
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
-		return bson.D{{e.Column, bson.D{{"$ne", nil}}}}, nil
+		return bson.D{{Key: e.Column, Value: bson.D{{Key: "$ne", Value: nil}}}}, nil
 	default:
 		return nil, common.ErrUnimplementedPredicateType
 	}
@@ -198,9 +204,9 @@ func getIsNullFilter(expression *api_service_protos.TExpression) (bson.D, error)
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		return bson.D{
-			{"$or", bson.A{
-				bson.D{{e.Column, bson.D{{"$exists", false}}}},
-				bson.D{{e.Column, bson.D{{"$eq", nil}}}},
+			{Key: "$or", Value: bson.A{
+				bson.D{{Key: e.Column, Value: bson.D{{Key: "$exists", Value: false}}}},
+				bson.D{{Key: e.Column, Value: bson.D{{Key: "$eq", Value: nil}}}},
 			}},
 		}, nil
 	default:
@@ -238,7 +244,7 @@ func getComparisonFilter(comparison *api_service_protos.TPredicate_TComparison) 
 		return nil, fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
 	}
 
-	return bson.D{{"$expr", bson.D{{operation, bson.A{left, right}}}}}, nil
+	return bson.D{{Key: "$expr", Value: bson.D{{Key: operation, Value: bson.A{left, right}}}}}, nil
 }
 
 func getInSetFilter(
@@ -253,6 +259,7 @@ func getInSetFilter(
 	}
 
 	inSet := make([]any, 0, len(in.Set))
+
 	for _, e := range in.Set {
 		expr, err := formatExpression(e)
 		if err != nil {
@@ -262,7 +269,7 @@ func getInSetFilter(
 		inSet = append(inSet, expr)
 	}
 
-	return bson.D{{fieldName, bson.D{{"$in", inSet}}}}, nil
+	return bson.D{{Key: fieldName, Value: bson.D{{Key: "$in", Value: inSet}}}}, nil
 }
 
 func getBetweenFilter(
@@ -287,10 +294,11 @@ func getBetweenFilter(
 		return nil, fmt.Errorf("format greatest expression: %v: %w", between.Greatest, err)
 	}
 
-	return bson.D{{fieldName,
-		bson.D{
-			{"$gte", least},
-			{"$lte", greatest},
+	return bson.D{{
+		Key: fieldName,
+		Value: bson.D{
+			{Key: "$gte", Value: least},
+			{Key: "$lte", Value: greatest},
 		},
 	}}, nil
 }
@@ -312,7 +320,7 @@ func getRegexFilter(
 		return nil, fmt.Errorf("format regex pattern expression: %v: %w", regex.Pattern, err)
 	}
 
-	return bson.D{{fieldName, bson.D{{"$regex", pattern}}}}, nil
+	return bson.D{{Key: fieldName, Value: bson.D{{Key: "$regex", Value: pattern}}}}, nil
 }
 
 func formatExpression(expression *api_service_protos.TExpression) (any, error) {
@@ -333,6 +341,7 @@ func formatExpression(expression *api_service_protos.TExpression) (any, error) {
 func formatTypedValue(expr *Ydb.TypedValue) (any, error) {
 	v := expr.GetValue()
 	ydbType := expr.GetType()
+
 	if v == nil || v.Value == nil || ydbType == nil {
 		return nil, fmt.Errorf("got %v of type %T as null trying to format Typed Value expression", v, v)
 	}
@@ -371,6 +380,7 @@ func formatTypedValue(expr *Ydb.TypedValue) (any, error) {
 
 func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error) {
 	operands := make([]any, 0, len(expr.Operands))
+
 	for _, opExpr := range expr.Operands {
 		op, err := formatExpression(opExpr)
 		if err != nil {
@@ -380,7 +390,7 @@ func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error)
 		operands = append(operands, op)
 	}
 
-	return bson.D{{"$ifNull", operands}}, nil
+	return bson.D{{Key: "$ifNull", Value: operands}}, nil
 }
 
 func tryFormatObjectId(exprType *Ydb.Type, value any) (any, error) {

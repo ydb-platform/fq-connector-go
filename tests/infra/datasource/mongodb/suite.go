@@ -3,11 +3,11 @@ package mongodb
 import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 
-	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
 	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
@@ -117,14 +117,18 @@ func (s *Suite) TestPushdownComparisonEQ() {
 	s.SetDefaultOptions()
 
 	testcases := map[string]*Ydb.TypedValue{
-		"_id":      common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(0)),
-		"int32":    common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(64)),
-		"int64":    common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT64), int64(23423)),
-		"string":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), "outer"),
-		"binary":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte{0xab, 0xcd}),
-		"double":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_DOUBLE), float64(1.1)),
-		"boolean":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_BOOL), false),
-		"objectid": common.MakeTypedValue(common.MakeTaggedType("ObjectId", common.MakePrimitiveType(Ydb.Type_STRING)), []byte{0x17, 0x1e, 0x75, 0x50, 0x0e, 0xcd, 0xe1, 0xc7, 0x5c, 0x59, 0x13, 0x9e}),
+		"_id":     common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(0)),
+		"int32":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(64)),
+		"int64":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT64), int64(23423)),
+		"string":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), "outer"),
+		"binary":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte{0xab, 0xcd}),
+		"double":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_DOUBLE), float64(1.1)),
+		"boolean": common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_BOOL), false),
+		"objectid": common.MakeTypedValue(
+			common.MakeTaggedType("ObjectId",
+				common.MakePrimitiveType(Ydb.Type_STRING)),
+			[]byte{0x17, 0x1e, 0x75, 0x50, 0x0e, 0xcd, 0xe1, 0xc7, 0x5c, 0x59, 0x13, 0x9e},
+		),
 	}
 
 	for column, value := range testcases {
