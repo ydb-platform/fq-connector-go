@@ -12,19 +12,15 @@ docker exec -it redis redis-cli --pass password
 SET sample_session:1 abc
 SET sample_session:2 def
 SET sample_session:5 ghi
-
 HMSET sample_session:990011223 email "mia@example.com" last_activity "2023-01-15 02:00:00" user_id "990" username "mia_thompson"
 HMSET sample_session:890123456 user_id "890" username "david_wilson"
 HMSET sample_session:234567890 email "jane@example.com" last_activity "2023-01-02 09:45:00" user_id "234" username "jane_smith"
-
 ```
 
 3. Запускаем YDB Embedded UI:
 
 ```bash
-./ydb/tests/tools/kqprun/kqprun 
-    --app-config=/home/vitalyisaev/arcadia/junk/vitalyisaev/connectors/app_config.local.conf  
-    -M 8080
+./ydb/tests/tools/kqprun/kqprun --app-config=/home/glebbs/ydb/ydb/tests/tools/kqprun/configuration/app_config.conf -M 8080
 ```
 
 4. Интерфейсы:

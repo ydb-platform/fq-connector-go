@@ -56,7 +56,7 @@ datasources:
 
   redis:
     <<: *data_source_default_var
-    count_docs_to_deduce_schema: 5
+    count_docs_to_deduce_schema: 100
 
   ydb:
     <<: *data_source_default_var
