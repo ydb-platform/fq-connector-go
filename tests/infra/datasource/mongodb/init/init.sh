@@ -150,19 +150,4 @@ db.unsupported.insertOne(
     }
 );
 
-db.object_ids.insertMany( [
-    {
-        _id: Int32(0),
-        objectid: ObjectId('171e75500ecde1c75c59139e'),
-    },
-    {
-        _id: Int32(1),
-        objectid: ObjectId('271e75500ecde1c75c59139e'),
-    },
-    {
-        _id: Int32(2),
-        objectid: ObjectId('371e75500ecde1c75c59139e'),
-    },
-]);
-
 EOF

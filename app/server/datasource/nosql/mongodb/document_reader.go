@@ -226,40 +226,6 @@ func (r *documentReader) accept(doc bson.M) error {
 			*a = doc[f.Name].(primitive.ObjectID)
 		case **primitive.ObjectID:
 			convert(a, doc[f.Name])
-		case *any:
-			// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
-			value, ok := doc[f.Name]
-			if !ok {
-				acceptors[i] = nil
-				continue
-			}
-
-			switch value.(type) {
-			case primitive.Binary:
-				*a = value
-			case primitive.ObjectID:
-				*a = value
-			default:
-				return fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
-			}
-
-		case **any:
-			// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			switch value.(type) {
-			case primitive.Binary:
-				*a = ptr.T(value)
-			case primitive.ObjectID:
-				*a = ptr.T(value)
-			default:
-				return fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
-			}
-
 		default:
 			return fmt.Errorf("unuspported type %T: %w", acceptors[i], common.ErrDataTypeNotSupported)
 		}
@@ -350,25 +316,20 @@ func addAcceptorAppenderNullable(ydbType *Ydb.Type, cc conversion.Collection, ac
 		case Ydb.Type_DOUBLE:
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
-		case Ydb.Type_UTF8, Ydb.Type_JSON:
-			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case Ydb.Type_STRING:
-			// When reading data from MongoDB, we sometimes encounter two different BSON types
-			// (ObjectId and Binary) that both need to be converted to the same YQL String type.
-			// Since we don't know in advance which type we'll get,
-			// we use Go's any (empty interface) to handle both possibilities.
-			// This is the simplest approach to deal with this type ambiguity during the conversion process.
-			acceptors = append(acceptors, new(*any))
+			acceptors = append(acceptors, new(*primitive.Binary))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				acceptorPtr := acceptor.(**any)
-				if *acceptorPtr == nil {
+				value := acceptor.(**primitive.Binary)
+				if *value == nil {
 					builder.AppendNull()
 					return nil
 				}
 
-				return yqlStringAppender(**acceptorPtr, builder, cc.Bytes())
+				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&(*value).Data, builder, cc.Bytes())
 			})
+		case Ydb.Type_UTF8, Ydb.Type_JSON:
+			acceptors = append(acceptors, new(*string))
+			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		}
 
 	case *Ydb.Type_TaggedType:
@@ -419,25 +380,15 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 		case Ydb.Type_DOUBLE:
 			acceptors = append(acceptors, new(float64))
 			appenders = append(appenders, utils.MakeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
+		case Ydb.Type_STRING:
+			acceptors = append(acceptors, new(primitive.Binary))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				value := acceptor.(*primitive.Binary)
+				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&value.Data, builder, cc.Bytes())
+			})
 		case Ydb.Type_UTF8, Ydb.Type_JSON:
 			acceptors = append(acceptors, new(string))
 			appenders = append(appenders, utils.MakeAppender[string, string, *array.StringBuilder](cc.String()))
-		case Ydb.Type_STRING:
-			// When reading data from MongoDB, we sometimes encounter two different BSON types
-			// (ObjectId and Binary) that both need to be converted to the same YQL String type.
-			// Since we don't know in advance which type we'll get,
-			// we use Go's any (empty interface) to handle both possibilities.
-			// This is the simplest approach to deal with this type ambiguity during the conversion process.
-			acceptors = append(acceptors, new(any))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				acceptorPtr := acceptor.(*any)
-				if acceptorPtr == nil {
-					builder.AppendNull()
-					return nil
-				}
-
-				return yqlStringAppender(*acceptorPtr, builder, cc.Bytes())
-			})
 		}
 
 	case *Ydb.Type_TaggedType:
@@ -462,20 +413,4 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 	}
 
 	return acceptors, appenders, nil
-}
-
-func yqlStringAppender(acceptor any, builder array.Builder, ccBytes conversion.ValuePtrConverter[[]byte, []byte]) error {
-	switch value := (acceptor).(type) {
-	case primitive.Binary:
-		return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&value.Data, builder, ccBytes)
-	case primitive.ObjectID:
-		bytes, err := value.MarshalText()
-		if err != nil {
-			return err
-		}
-
-		return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, ccBytes)
-	default:
-		return fmt.Errorf("unsupported type mapped to YQL STRING: %v", value)
-	}
 }

@@ -302,17 +302,17 @@ type TPredicate_TComparison_EOperation int32
 
 const (
 	TPredicate_TComparison_COMPARISON_OPERATION_UNSPECIFIED TPredicate_TComparison_EOperation = 0
-	TPredicate_TComparison_L                                TPredicate_TComparison_EOperation = 1  // "$column < value"
-	TPredicate_TComparison_LE                               TPredicate_TComparison_EOperation = 2  // "$column <= value"
-	TPredicate_TComparison_EQ                               TPredicate_TComparison_EOperation = 3  // "$column = value"
-	TPredicate_TComparison_NE                               TPredicate_TComparison_EOperation = 4  // "$column != value"
-	TPredicate_TComparison_GE                               TPredicate_TComparison_EOperation = 5  // "$column >= value"
-	TPredicate_TComparison_G                                TPredicate_TComparison_EOperation = 6  // "$column > value"
-	TPredicate_TComparison_IND                              TPredicate_TComparison_EOperation = 7  // "$column IS NOT DISTINCT value"
-	TPredicate_TComparison_ID                               TPredicate_TComparison_EOperation = 8  // "$column IS DISTINCT value"
-	TPredicate_TComparison_STARTS_WITH                      TPredicate_TComparison_EOperation = 9  // "$column LIKE "value%"
-	TPredicate_TComparison_ENDS_WITH                        TPredicate_TComparison_EOperation = 10 // "$column LIKE "%value"
-	TPredicate_TComparison_CONTAINS                         TPredicate_TComparison_EOperation = 11 // "$column LIKE "%value%"
+	TPredicate_TComparison_L                                TPredicate_TComparison_EOperation = 1 // "$column < value"
+	TPredicate_TComparison_LE                               TPredicate_TComparison_EOperation = 2 // "$column <= value"
+	TPredicate_TComparison_EQ                               TPredicate_TComparison_EOperation = 3 // "$column = value"
+	TPredicate_TComparison_NE                               TPredicate_TComparison_EOperation = 4 // "$column != value"
+	TPredicate_TComparison_GE                               TPredicate_TComparison_EOperation = 5 // "$column >= value"
+	TPredicate_TComparison_G                                TPredicate_TComparison_EOperation = 6 // "$column > value"
+	TPredicate_TComparison_IND                              TPredicate_TComparison_EOperation = 7 // "$column IS NOT DISTINCT value"
+	TPredicate_TComparison_ID                               TPredicate_TComparison_EOperation = 8 // "$column IS DISTINCT value"
+	TPredicate_TComparison_STARTS_WITH                      TPredicate_TComparison_EOperation = 9
+	TPredicate_TComparison_ENDS_WITH                        TPredicate_TComparison_EOperation = 10
+	TPredicate_TComparison_CONTAINS                         TPredicate_TComparison_EOperation = 11
 )
 
 // Enum value maps for TPredicate_TComparison_EOperation.
