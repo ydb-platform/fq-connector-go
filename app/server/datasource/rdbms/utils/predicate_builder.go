@@ -241,7 +241,7 @@ func (pb *predicateBuilder) formatExpression(
 	expression *api_service_protos.TExpression,
 	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
-	if !pb.formatter.SupportsPushdownExpression(expression) {
+	if !pb.formatter.SupportsExpression(expression) {
 		return "", common.ErrUnsupportedExpression
 	}
 

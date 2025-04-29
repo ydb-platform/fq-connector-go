@@ -62,7 +62,7 @@ func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	}
 }
 
-func (f sqlFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
+func (f sqlFormatter) SupportsExpression(expression *api_service_protos.TExpression) bool {
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		return true

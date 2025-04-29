@@ -86,17 +86,13 @@ type SelectQueryParts struct {
 type SQLFormatter interface {
 	// Get placeholder for n'th argument (starting from 0) for prepared statement
 	GetPlaceholder(n int) string
-
 	// Sanitize names of databases, tables, columns, views, schemas
 	SanitiseIdentifier(ident string) string
-
-	// Support for high level expression (without subexpressions, they are checked separately)
-	SupportsPushdownExpression(expression *api_service_protos.TExpression) bool
-
+	// Checks support for high level expression
+	SupportsExpression(expression *api_service_protos.TExpression) bool
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
 	FormatFrom(tableName string) string
-
 	// RenderSelectQueryText composes final query text from the given clauses.
 	// Particular implementation may mix-in some additional parts into the query.
 	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)
