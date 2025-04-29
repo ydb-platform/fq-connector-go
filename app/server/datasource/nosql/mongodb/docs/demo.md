@@ -427,3 +427,161 @@ rows {
   }
 }
 ```
+
+#### Запрос с фильтрацией по первичному ключу типа ObjectId
+
+Файл с телом запроса
+
+bar.yql
+```sql
+SELECT * FROM mongodb_external_datasource.bar WHERE _id = AsTagged('67f3c139171bfd11df51e944', 'ObjectId');
+```
+
+Команда запроса
+
+```sh
+./ydb/tests/tools/kqprun/kqprun -s ydb/schema.yql -p ydb/bar.yql --app-config=ydb/app_conf.txt --result-format="full-proto"
+```
+
+Вывод результата выполнения команды без логов:
+
+```
+columns {
+  name: "_id"
+  type {
+    optional_type {
+      item {
+        tagged_type {
+          tag: "ObjectId"
+          type {
+            type_id: STRING
+          }
+        }
+      }
+    }
+  }
+}
+columns {
+  name: "a"
+  type {
+    optional_type {
+      item {
+        type_id: UTF8
+      }
+    }
+  }
+}
+columns {
+  name: "b"
+  type {
+    optional_type {
+      item {
+        type_id: INT32
+      }
+    }
+  }
+}
+columns {
+  name: "c"
+  type {
+    optional_type {
+      item {
+        type_id: INT64
+      }
+    }
+  }
+}
+rows {
+  items {
+    bytes_value: "67f3c139171bfd11df51e944"
+  }
+  items {
+    text_value: "jelly"
+  }
+  items {
+    int32_value: 2000
+  }
+  items {
+    int64_value: 13
+  }
+}
+```
+
+#### Запрос с оператором LIKE
+
+Файл с телом запроса
+
+bar.yql
+```sql
+SELECT * FROM mongodb_external_datasource.bar WHERE a LIKE 'toast';
+```
+
+Команда запроса
+
+```sh
+./ydb/tests/tools/kqprun/kqprun -s ydb/schema.yql -p ydb/bar.yql --app-config=ydb/app_conf.txt --result-format="full-proto"
+```
+
+Вывод результата выполнения команды без логов:
+
+```
+columns {
+  name: "_id"
+  type {
+    optional_type {
+      item {
+        tagged_type {
+          tag: "ObjectId"
+          type {
+            type_id: STRING
+          }
+        }
+      }
+    }
+  }
+}
+columns {
+  name: "a"
+  type {
+    optional_type {
+      item {
+        type_id: UTF8
+      }
+    }
+  }
+}
+columns {
+  name: "b"
+  type {
+    optional_type {
+      item {
+        type_id: INT32
+      }
+    }
+  }
+}
+columns {
+  name: "c"
+  type {
+    optional_type {
+      item {
+        type_id: INT64
+      }
+    }
+  }
+}
+rows {
+  items {
+    bytes_value: "67f3c139171bfd11df51e946"
+  }
+  items {
+    text_value: "toast"
+  }
+  items {
+    int32_value: 2076
+  }
+  items {
+    int64_value: 2076
+  }
+}
+```

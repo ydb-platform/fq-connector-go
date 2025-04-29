@@ -95,6 +95,7 @@ func (b *Base[_, _]) TearDownSuite() {
 
 type validateTableOptions struct {
 	typeMappingSettings *api_service_protos.TTypeMappingSettings
+	what                *api_service_protos.TSelect_TWhat
 	predicate           *api_service_protos.TPredicate
 	filtering           api_service_protos.TReadSplitsRequest_EFiltering
 }
@@ -141,6 +142,18 @@ type withPredicateOption struct {
 
 func (o withPredicateOption) apply(options *validateTableOptions) {
 	options.predicate = o.val
+}
+
+func WithWhat(val *api_service_protos.TSelect_TWhat) ValidateTableOption {
+	return withWhatOption{val: val}
+}
+
+type withWhatOption struct {
+	val *api_service_protos.TSelect_TWhat
+}
+
+func (o withWhatOption) apply(options *validateTableOptions) {
+	options.what = o.val
 }
 
 func WithPredicate(val *api_service_protos.TPredicate) ValidateTableOption {
@@ -219,9 +232,14 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	table.MatchSchema(b.T(), schema)
 
 	// list splits
+	what := common.SchemaToSelectWhatItems(schema, nil)
+	if options.what != nil {
+		what = options.what
+	}
+
 	slct := &api_service_protos.TSelect{
 		DataSourceInstance: dsi,
-		What:               common.SchemaToSelectWhatItems(schema, nil),
+		What:               what,
 		From: &api_service_protos.TSelect_TFrom{
 			Table: table.Name,
 		},

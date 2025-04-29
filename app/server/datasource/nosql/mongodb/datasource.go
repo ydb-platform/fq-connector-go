@@ -219,19 +219,23 @@ func (ds *dataSource) doReadSplitSingleConn(
 	logger *zap.Logger,
 	dsi *api_common.TGenericDataSourceInstance,
 	mongoDbOptions *api_common.TMongoDbDataSourceOptions,
-	_ *api_service_protos.TReadSplitsRequest,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 	conn *mongo.Client,
 ) error {
 	collection := conn.Database(dsi.Database).Collection(split.Select.From.Table)
 
-	filter := bson.D{}
-	opts := options.Find()
+	filter, opts, err := makeFilter(logger, split, request.GetFiltering())
+	if err != nil {
+		return fmt.Errorf("failed to make filter: %w", err)
+	}
+
+	logger.Debug("Query filter", zap.Any("filter", filter))
 
 	var cursor *mongo.Cursor
 
-	err := ds.retrierSet.Query.Run(
+	err = ds.retrierSet.Query.Run(
 		ctx,
 		logger,
 		func() error {

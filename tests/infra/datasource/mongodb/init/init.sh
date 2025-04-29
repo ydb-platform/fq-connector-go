@@ -62,20 +62,20 @@ db.primitives.insertMany( [
 db.missing.insertMany( [
     {
         _id: Int32(0),
-        int32: Int32(32),
+        int32: Int32(64),
         int64: Long(23423),
         string: "outer",
         double: 1.1,
+        binary: Binary.createFromHexString("abcd"),
         boolean: false,
+        objectid: ObjectId('171e75500ecde1c75c59139e'),
     },
     {
         _id: Int32(1),
-        int32: Int32(64),
+        int32: Int32(32),
         double: 1.2,
         boolean: true,
         decimal: NumberDecimal("9823.1297"),
-        binary: Binary.createFromHexString("abcd"),
-        objectid: ObjectId('171e75500ecde1c75c59139e'),
     },
     {
         _id: Int32(2),
@@ -149,5 +149,59 @@ db.unsupported.insertOne(
         decimal: NumberDecimal("9823.1297"),
     }
 );
+
+db.similar.insertMany( [
+    {
+        _id: Int32(0),
+        a: Int32(1),
+        b: "hello",
+    },
+    {
+        _id: Int32(1),
+        a: Int32(1),
+        b: "hi",
+    },
+    {
+        _id: Int32(2),
+        a: Int32(2),
+        b: "hello",
+    },
+    {
+        _id: Int32(3),
+        a: Int32(2),
+        b: "one",
+    },
+    {
+        _id: Int32(4),
+        a: Int32(2),
+        b: "two",
+    },
+    {
+        _id: Int32(5),
+        a: Int32(6),
+        b: "three",
+    },
+    {
+        _id: Int32(6),
+        a: Int32(9),
+        b: "four",
+        c: "surprise",
+    },
+]);
+
+db.strcomp.insertMany( [
+    {
+        _id: Int32(0),
+        a: "abc__",
+    },
+    {
+        _id: Int32(1),
+        a: "__abc",
+    },
+    {
+        _id: Int32(2),
+        a: "__abc__",
+    },
+]);
 
 EOF

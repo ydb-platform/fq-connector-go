@@ -42,6 +42,10 @@ func MakeTypedValue(ydbType *Ydb.Type, value any) *Ydb.TypedValue {
 		out.Value.Value = &Ydb.Value_TextValue{TextValue: v}
 	case []byte:
 		out.Value.Value = &Ydb.Value_BytesValue{BytesValue: v}
+	case float64:
+		out.Value.Value = &Ydb.Value_DoubleValue{DoubleValue: v}
+	case bool:
+		out.Value.Value = &Ydb.Value_BoolValue{BoolValue: v}
 	case nil:
 		out.Value.Value = &Ydb.Value_NullFlagValue{}
 	default:

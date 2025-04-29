@@ -4,6 +4,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 func MakePredicateComparisonColumn(
@@ -43,5 +44,80 @@ func MakePredicateIsNotNullColumn(columnName string) *api_service_protos.TPredic
 				Column: columnName,
 			},
 		}},
+	}
+}
+
+func MakePredicateBoolExpressionColumn(columnName string) *api_service_protos.TPredicate_BoolExpression {
+	return &api_service_protos.TPredicate_BoolExpression{
+		BoolExpression: &api_service_protos.TPredicate_TBoolExpression{
+			Value: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_Column{
+					Column: columnName,
+				},
+			},
+		},
+	}
+}
+
+func MakePredicateBetweenColumn(columnName string, least, greatest *Ydb.TypedValue) *api_service_protos.TPredicate_Between {
+	return &api_service_protos.TPredicate_Between{
+		Between: &api_service_protos.TPredicate_TBetween{
+			Value: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_Column{
+					Column: columnName,
+				},
+			},
+			Least: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_TypedValue{
+					TypedValue: least,
+				},
+			},
+			Greatest: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_TypedValue{
+					TypedValue: greatest,
+				},
+			},
+		},
+	}
+}
+
+func MakePredicateInColumn(columnName string, values []*Ydb.TypedValue) *api_service_protos.TPredicate_In {
+	set := make([]*api_service_protos.TExpression, 0, len(values))
+	for _, value := range values {
+		set = append(set,
+			&api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_TypedValue{
+					TypedValue: value,
+				},
+			},
+		)
+	}
+
+	return &api_service_protos.TPredicate_In{
+		In: &api_service_protos.TPredicate_TIn{
+			Value: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_Column{
+					Column: columnName,
+				},
+			},
+			Set: set,
+		},
+	}
+}
+
+func MakePredicateRegexpColumn(columnName, pattern string) *api_service_protos.TPredicate_Regexp {
+	return &api_service_protos.TPredicate_Regexp{
+		Regexp: &api_service_protos.TPredicate_TRegexp{
+			Value: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_Column{
+					Column: columnName,
+				},
+			},
+			Pattern: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_TypedValue{
+					TypedValue: common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), pattern),
+				},
+			},
+		},
 	}
 }
