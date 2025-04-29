@@ -46,7 +46,7 @@ var (
 	ErrPageSizeExceeded                    = fmt.Errorf("page size exceeded, check service configuration")
 )
 
-var AcceptableErrors = NewErrorMatcher(
+var OptionalFilteringAllowedErrors = NewErrorMatcher(
 	ErrUnsupportedExpression,
 	ErrUnimplementedPredicateType,
 	ErrUnimplementedTypedValue,

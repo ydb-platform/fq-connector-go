@@ -189,4 +189,19 @@ db.similar.insertMany( [
     },
 ]);
 
+db.strcomp.insertMany( [
+    {
+        _id: Int32(0),
+        a: "abc__",
+    },
+    {
+        _id: Int32(1),
+        a: "__abc",
+    },
+    {
+        _id: Int32(2),
+        a: "__abc__",
+    },
+]);
+
 EOF

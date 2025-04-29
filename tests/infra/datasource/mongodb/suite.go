@@ -120,7 +120,7 @@ func (s *Suite) TestPushdownComparisonEQ() {
 		"_id":     common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(0)),
 		"int32":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(64)),
 		"int64":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT64), int64(23423)),
-		"string":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), "outer"),
+		"string":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "outer"),
 		"binary":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte{0xab, 0xcd}),
 		"double":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_DOUBLE), float64(1.1)),
 		"boolean": common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_BOOL), false),
@@ -141,6 +141,41 @@ func (s *Suite) TestPushdownComparisonEQ() {
 					api_service_protos.TPredicate_TComparison_EQ,
 					value,
 				),
+			}),
+		)
+	}
+}
+
+func (s *Suite) TestPushdownStringComparison() {
+	s.SetDefaultOptions()
+
+	fieldName := "a"
+	value := common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "abc")
+
+	testCases := map[string]*api_service_protos.TPredicate_Comparison{
+		"strcomp_0": tests_utils.MakePredicateComparisonColumn(
+			fieldName,
+			api_service_protos.TPredicate_TComparison_STARTS_WITH,
+			value,
+		),
+		"strcomp_1": tests_utils.MakePredicateComparisonColumn(
+			fieldName,
+			api_service_protos.TPredicate_TComparison_ENDS_WITH,
+			value,
+		),
+		"strcomp": tests_utils.MakePredicateComparisonColumn(
+			fieldName,
+			api_service_protos.TPredicate_TComparison_CONTAINS,
+			value,
+		),
+	}
+
+	for table, predicate := range testCases {
+		s.ValidateTable(
+			s.dataSource,
+			tables[table],
+			suite.WithPredicate(&api_service_protos.TPredicate{
+				Payload: predicate,
 			}),
 		)
 	}

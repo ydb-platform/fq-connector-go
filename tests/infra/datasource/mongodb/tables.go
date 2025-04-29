@@ -381,6 +381,54 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
+	"strcomp": {
+		Name:                  "strcomp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id": testIdType,
+				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
+				"a":   []*string{ptr.String("abc__"), ptr.String("__abc"), ptr.String("__abc__")},
+			},
+		}},
+	},
+	"strcomp_0": {
+		Name:                  "strcomp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id": testIdType,
+				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(0)},
+				"a":   []*string{ptr.String("abc__")},
+			},
+		}},
+	},
+	"strcomp_1": {
+		Name:                  "strcomp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id": testIdType,
+				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(1)},
+				"a":   []*string{ptr.String("__abc")},
+			},
+		}},
+	},
 }
 
 func newInt32IDArrayBuilder(pool memory.Allocator) func() *array.Int32Builder {

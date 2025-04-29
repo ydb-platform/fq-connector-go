@@ -551,8 +551,8 @@ func formatWhereClause(
 			logger.Warn("failed to pushdown some parts of WHERE clause", zap.Error(conjunctionErr))
 		}
 
-		if common.AcceptableErrors.Match(err) {
-			logger.Info("considering pushdown error as acceptable", zap.Error(err))
+		if common.OptionalFilteringAllowedErrors.Match(err) {
+			logger.Warn("considering pushdown error as acceptable", zap.Error(err))
 			return clause, pb.args, nil
 		}
 
