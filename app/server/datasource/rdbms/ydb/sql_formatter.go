@@ -87,25 +87,6 @@ func (f SQLFormatter) SupportsExpression(expression *api_service_protos.TExpress
 	}
 }
 
-func (f SQLFormatter) SupportsPredicateComparison(
-	comparison *api_service_protos.TPredicate_TComparison,
-) bool {
-	switch comparison.Operation {
-	case
-		api_service_protos.TPredicate_TComparison_L,
-		api_service_protos.TPredicate_TComparison_LE,
-		api_service_protos.TPredicate_TComparison_EQ,
-		api_service_protos.TPredicate_TComparison_NE,
-		api_service_protos.TPredicate_TComparison_GE,
-		api_service_protos.TPredicate_TComparison_G,
-		api_service_protos.TPredicate_TComparison_STARTS_WITH,
-		api_service_protos.TPredicate_TComparison_ENDS_WITH:
-		return true
-	default:
-		return false
-	}
-}
-
 func (f SQLFormatter) GetPlaceholder(id int) string {
 	switch f.mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
