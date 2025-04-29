@@ -1,10 +1,13 @@
 package ydb
 
 import (
+	"time"
+
 	"github.com/apache/arrow/go/v13/arrow/array"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -19,7 +22,6 @@ type Suite struct {
 	connectorMode config.TYdbConfig_Mode
 }
 
-/*
 func (s *Suite) TestSelect() {
 	testCaseNames := []string{"simple", "primitives", "optionals"}
 
@@ -391,7 +393,6 @@ func (s *Suite) TestInvalidPassword() {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
 }
-*/
 
 func (s *Suite) TestPushdownStringStartsWith() {
 	s.ValidateTable(
