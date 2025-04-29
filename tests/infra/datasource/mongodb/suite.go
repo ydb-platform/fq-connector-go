@@ -57,7 +57,7 @@ func (s *Suite) TestPushdownProjection() {
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "_id",
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+						Type: Optional(Primitive(Ydb.Type_INT32)),
 					},
 				},
 			},
@@ -65,7 +65,7 @@ func (s *Suite) TestPushdownProjection() {
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "int32",
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+						Type: Optional(Primitive(Ydb.Type_INT32)),
 					},
 				},
 			},
@@ -117,16 +117,14 @@ func (s *Suite) TestPushdownComparisonEQ() {
 	s.SetDefaultOptions()
 
 	testcases := map[string]*Ydb.TypedValue{
-		"_id":     common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(0)),
-		"int32":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(64)),
-		"int64":   common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT64), int64(23423)),
-		"string":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "outer"),
-		"binary":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte{0xab, 0xcd}),
-		"double":  common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_DOUBLE), float64(1.1)),
-		"boolean": common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_BOOL), false),
-		"objectid": common.MakeTypedValue(
-			common.MakeTaggedType("ObjectId",
-				common.MakePrimitiveType(Ydb.Type_STRING)),
+		"_id":     common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(0)),
+		"int32":   common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(64)),
+		"int64":   common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT64)), int64(23423)),
+		"string":  common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "outer"),
+		"binary":  common.MakeTypedValue(Optional(Primitive(Ydb.Type_STRING)), []byte{0xab, 0xcd}),
+		"double":  common.MakeTypedValue(Optional(Primitive(Ydb.Type_DOUBLE)), float64(1.1)),
+		"boolean": common.MakeTypedValue(Optional(Primitive(Ydb.Type_BOOL)), false),
+		"objectid": common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
 			[]byte{0x17, 0x1e, 0x75, 0x50, 0x0e, 0xcd, 0xe1, 0xc7, 0x5c, 0x59, 0x13, 0x9e},
 		),
 	}
@@ -150,7 +148,7 @@ func (s *Suite) TestPushdownStringComparison() {
 	s.SetDefaultOptions()
 
 	fieldName := "a"
-	value := common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "abc")
+	value := common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "abc")
 
 	testCases := map[string]*api_service_protos.TPredicate_Comparison{
 		"strcomp_0": tests_utils.MakePredicateComparisonColumn(
@@ -216,14 +214,14 @@ func (s *Suite) TestPushdownConjunction() {
 							Payload: tests_utils.MakePredicateComparisonColumn(
 								"a",
 								api_service_protos.TPredicate_TComparison_EQ,
-								common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(1)),
+								common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(1)),
 							),
 						},
 						{
 							Payload: tests_utils.MakePredicateComparisonColumn(
 								"b",
 								api_service_protos.TPredicate_TComparison_EQ,
-								common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "hello"),
+								common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "hello"),
 							),
 						},
 					},
@@ -247,14 +245,14 @@ func (s *Suite) TestPushdownDisjunction() {
 							Payload: tests_utils.MakePredicateComparisonColumn(
 								"_id",
 								api_service_protos.TPredicate_TComparison_EQ,
-								common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(0)),
+								common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(0)),
 							),
 						},
 						{
 							Payload: tests_utils.MakePredicateComparisonColumn(
 								"b",
 								api_service_protos.TPredicate_TComparison_EQ,
-								common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "hi"),
+								common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "hi"),
 							),
 						},
 					},
@@ -277,14 +275,14 @@ func (s *Suite) TestPushdownNegation() {
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"_id",
 				api_service_protos.TPredicate_TComparison_EQ,
-				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(0)),
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(0)),
 			),
 		},
 		{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"int32",
 				api_service_protos.TPredicate_TComparison_GE,
-				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(64)),
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(64)),
 			),
 		},
 	}
@@ -325,8 +323,8 @@ func (s *Suite) TestPushdownBetween() {
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateBetweenColumn(
 				"_id",
-				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(2)),
-				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(4)),
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(2)),
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(4)),
 			),
 		}),
 	)
@@ -337,14 +335,14 @@ func (s *Suite) TestPushdownIn() {
 
 	testCases := map[string][]*Ydb.TypedValue{
 		"_id": {
-			common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(1)),
-			common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(4)),
-			common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(6)),
+			common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(1)),
+			common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(4)),
+			common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(6)),
 		},
 		"b": {
-			common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "hi"),
-			common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "two"),
-			common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "four"),
+			common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "hi"),
+			common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "two"),
+			common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "four"),
 		},
 	}
 
@@ -396,7 +394,7 @@ func (s *Suite) TestPushdownWithCoalesce() {
 							},
 							{
 								Payload: &api_service_protos.TExpression_TypedValue{
-									TypedValue: common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(12)),
+									TypedValue: common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(12)),
 								},
 							},
 						},
@@ -406,7 +404,7 @@ func (s *Suite) TestPushdownWithCoalesce() {
 			Operation: api_service_protos.TPredicate_TComparison_L,
 			RightValue: &api_service_protos.TExpression{
 				Payload: &api_service_protos.TExpression_TypedValue{
-					TypedValue: common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(60)),
+					TypedValue: common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(60)),
 				},
 			},
 		},

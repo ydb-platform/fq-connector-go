@@ -13,8 +13,8 @@ import (
 
 var memPool memory.Allocator = memory.NewGoAllocator()
 
-var testIdType = common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32))
-var objectIdType = common.MakeTaggedType("ObjectId", common.MakePrimitiveType(Ydb.Type_STRING))
+var testIdType = Optional(Primitive(Ydb.Type_INT32))
+var objectIdType = Tagged("ObjectId", Primitive(Ydb.Type_STRING))
 
 var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 	"simple": {
@@ -23,9 +23,9 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"c":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+				"a":   Optional(Primitive(Ydb.Type_UTF8)),
+				"b":   Optional(Primitive(Ydb.Type_INT32)),
+				"c":   Optional(Primitive(Ydb.Type_INT64)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -43,9 +43,9 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"c":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+				"a":   Optional(Primitive(Ydb.Type_UTF8)),
+				"b":   Optional(Primitive(Ydb.Type_INT32)),
+				"c":   Optional(Primitive(Ydb.Type_INT64)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -63,13 +63,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -95,13 +95,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -123,11 +123,11 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"c":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"d":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"e":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_UTF8)),
+				"b":   Optional(Primitive(Ydb.Type_UTF8)),
+				"c":   Optional(Primitive(Ydb.Type_UTF8)),
+				"d":   Optional(Primitive(Ydb.Type_UTF8)),
+				"e":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -147,7 +147,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":     testIdType,
-				"decimal": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"decimal": Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -163,13 +163,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -185,13 +185,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -213,13 +213,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -241,13 +241,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -269,13 +269,13 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"int32":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"int64":    common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
-				"string":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-				"double":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)),
-				"boolean":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-				"binary":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
-				"objectid": common.MakeOptionalType(objectIdType),
+				"int32":    Optional(Primitive(Ydb.Type_INT32)),
+				"int64":    Optional(Primitive(Ydb.Type_INT64)),
+				"string":   Optional(Primitive(Ydb.Type_UTF8)),
+				"double":   Optional(Primitive(Ydb.Type_DOUBLE)),
+				"boolean":  Optional(Primitive(Ydb.Type_BOOL)),
+				"binary":   Optional(Primitive(Ydb.Type_STRING)),
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -297,8 +297,8 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_INT32)),
+				"b":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -315,8 +315,8 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_INT32)),
+				"b":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -333,8 +333,8 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_INT32)),
+				"b":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -351,8 +351,8 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_INT32)),
+				"b":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -369,8 +369,8 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-				"b":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_INT32)),
+				"b":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -387,7 +387,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -403,7 +403,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -419,7 +419,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id": testIdType,
-				"a":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"a":   Optional(Primitive(Ydb.Type_UTF8)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -435,4 +435,16 @@ func newInt32IDArrayBuilder(pool memory.Allocator) func() *array.Int32Builder {
 	return func() *array.Int32Builder {
 		return array.NewInt32Builder(pool)
 	}
+}
+
+func Optional(ydbType *Ydb.Type) *Ydb.Type {
+	return common.MakeOptionalType(ydbType)
+}
+
+func Primitive(typeId Ydb.Type_PrimitiveTypeId) *Ydb.Type {
+	return common.MakePrimitiveType(typeId)
+}
+
+func Tagged(tag string, ydbType *Ydb.Type) *Ydb.Type {
+	return common.MakeTaggedType(tag, ydbType)
 }
