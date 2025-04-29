@@ -292,7 +292,7 @@ func (pb *predicateBuilder) formatComparison(
 		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
 	}
 
-	// a special branch to handle LIKE operator
+	// a special branch to handle predicates related to LIKE operator
 	switch op := comparison.Operation; op {
 	case api_service_protos.TPredicate_TComparison_STARTS_WITH:
 		result, err := pb.formatter.FormatStartsWith(left, right)
@@ -334,9 +334,9 @@ func (pb *predicateBuilder) formatComparison(
 		operation = " > "
 	default:
 		return "", fmt.Errorf(
-			"%w, op: %s",
-			common.ErrUnimplementedOperation,
+			"operation %s, op: %w",
 			api_service_protos.TPredicate_TComparison_EOperation_name[int32(op)],
+			common.ErrUnimplementedOperation,
 		)
 	}
 

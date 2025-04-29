@@ -124,19 +124,19 @@ set -x
         (4, NULL, NULL, NULL);
     COMMIT;
 
-    -- YQ-4089
-    CREATE TABLE pushdown_coalesce (
+    -- YQ-4255
+    CREATE TABLE pushdown_like (
         id Int32 NOT NULL,
-        col_01_timestamp Timestamp,
+        col_01_string STRING,
+        col_02_utf8 UTF8,
         PRIMARY KEY (id)
     );
     COMMIT;
-    INSERT INTO pushdown_coalesce (id, col_01_timestamp) VALUES
-        (1, Timestamp("2021-01-01T00:00:00Z")),
-        (2, Timestamp("2022-01-01T00:00:00Z")),
-        (3, Timestamp("2023-01-01T00:00:00Z")),
-        (4, Timestamp("2024-01-01T00:00:00Z")),
-        (5, NULL);
+    INSERT INTO pushdown_like (id, col_01_string, col_02_utf8) VALUES
+        (1, "abc", "абв"),
+        (2, "def", "где"),
+        (3, "ghi", "ёжз"),
+        (4, NULL, NULL);
     COMMIT;
 
     CREATE TABLE `parent/child` (

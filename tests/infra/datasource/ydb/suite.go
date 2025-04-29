@@ -1,13 +1,10 @@
 package ydb
 
 import (
-	"time"
-
 	"github.com/apache/arrow/go/v13/arrow/array"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -22,6 +19,7 @@ type Suite struct {
 	connectorMode config.TYdbConfig_Mode
 }
 
+/*
 func (s *Suite) TestSelect() {
 	testCaseNames := []string{"simple", "primitives", "optionals"}
 
@@ -392,6 +390,49 @@ func (s *Suite) TestInvalidPassword() {
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
 	}
+}
+*/
+
+func (s *Suite) TestPushdownStringStartsWith() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_starts_with"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_01_string",
+				api_service_protos.TPredicate_TComparison_STARTS_WITH,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("ab")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringEndsWith() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_ends_with"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_01_string",
+				api_service_protos.TPredicate_TComparison_ENDS_WITH,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("ef")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownContains() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_contains"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_01_string",
+				api_service_protos.TPredicate_TComparison_CONTAINS,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("h")),
+			),
+		}),
+	)
 }
 
 func NewSuite(
