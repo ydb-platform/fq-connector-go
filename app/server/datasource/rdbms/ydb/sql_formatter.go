@@ -185,16 +185,16 @@ func (f SQLFormatter) renderSelectQueryTextForDataShard(
 	return queryText, nil
 }
 
-func (f SQLFormatter) FormatStartsWith(left, right string) (string, error) {
-	return fmt.Sprintf("StartsWith(%s, %s)", left, right), nil
+func (SQLFormatter) FormatStartsWith(left, right string) (string, error) {
+	return fmt.Sprintf("(StartsWith(%s, %s))", left, right), nil
 }
 
-func (f SQLFormatter) FormatEndsWith(left, right string) (string, error) {
-	return fmt.Sprintf("EndsWith(%s, %s)", left, right), nil
+func (SQLFormatter) FormatEndsWith(left, right string) (string, error) {
+	return fmt.Sprintf("(EndsWith(%s, %s))", left, right), nil
 }
 
-func (f SQLFormatter) FormatContains(left, right string) (string, error) {
-	return fmt.Sprintf("String::Contains(%s, %s)", left, right), nil
+func (SQLFormatter) FormatContains(left, right string) (string, error) {
+	return fmt.Sprintf("(String::Contains(%s, %s))", left, right), nil
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {

@@ -32,14 +32,14 @@ func (SQLFormatterDefault) RenderSelectQueryText(
 	return sb.String(), nil
 }
 
-func (SQLFormatterDefault) FormatStartsWith(left, right string) (string, error) {
+func (SQLFormatterDefault) FormatStartsWith(_, _ string) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }
 
-func (SQLFormatterDefault) FormatEndsWith(left, right string) (string, error) {
+func (SQLFormatterDefault) FormatEndsWith(_, _ string) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }
 
-func (SQLFormatterDefault) FormatContains(left, right string) (string, error) {
+func (SQLFormatterDefault) FormatContains(_, _ string) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }

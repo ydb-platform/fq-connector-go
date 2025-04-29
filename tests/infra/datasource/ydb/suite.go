@@ -421,7 +421,7 @@ func (s *Suite) TestPushdownStringEndsWith() {
 	)
 }
 
-func (s *Suite) TestPushdownContains() {
+func (s *Suite) TestPushdownStringContains() {
 	s.ValidateTable(
 		s.dataSource,
 		tables["pushdown_contains"],
@@ -430,6 +430,48 @@ func (s *Suite) TestPushdownContains() {
 				"col_01_string",
 				api_service_protos.TPredicate_TComparison_CONTAINS,
 				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("h")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownUtf8StartsWith() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_starts_with"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_utf8",
+				api_service_protos.TPredicate_TComparison_STARTS_WITH,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "аб"),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownUtf8EndsWith() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_ends_with"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_utf8",
+				api_service_protos.TPredicate_TComparison_ENDS_WITH,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "де"),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownUtf8Contains() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_contains"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_utf8",
+				api_service_protos.TPredicate_TComparison_CONTAINS,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_UTF8), "ж"),
 			),
 		}),
 	)
