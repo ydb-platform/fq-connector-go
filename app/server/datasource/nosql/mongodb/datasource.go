@@ -231,7 +231,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 		return fmt.Errorf("failed to make filter: %w", err)
 	}
 
-	logger.Debug(fmt.Sprintf("Filter: %v", filter))
+	logger.Debug("Query filter", zap.Any("filter", filter))
 
 	var cursor *mongo.Cursor
 
