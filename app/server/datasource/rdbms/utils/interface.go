@@ -88,8 +88,10 @@ type SQLFormatter interface {
 	GetPlaceholder(n int) string
 	// Sanitize names of databases, tables, columns, views, schemas
 	SanitiseIdentifier(ident string) string
-	// Checks support for high level expression
+	// Checks support for expression rendering
 	SupportsExpression(expression *api_service_protos.TExpression) bool
+	// Checks support for predicate comparison rendering
+	SupportsPredicateComparison(comparison *api_service_protos.TPredicate_Comparison) bool
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
 	FormatFrom(tableName string) string

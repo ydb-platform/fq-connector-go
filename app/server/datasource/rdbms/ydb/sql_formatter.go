@@ -16,6 +16,7 @@ import (
 var _ rdbms_utils.SQLFormatter = (*SQLFormatter)(nil)
 
 type SQLFormatter struct {
+	rdbms_utils.SQLFormatterDefault
 	mode config.TYdbConfig_Mode
 	cfg  *config.TPushdownConfig
 }
@@ -80,6 +81,25 @@ func (f SQLFormatter) SupportsExpression(expression *api_service_protos.TExpress
 	case *api_service_protos.TExpression_ArithmeticalExpression:
 		return false
 	case *api_service_protos.TExpression_Null:
+		return true
+	default:
+		return false
+	}
+}
+
+func (f SQLFormatter) SupportsPredicateComparison(
+	comparison *api_service_protos.TPredicate_TComparison,
+) bool {
+	switch comparison.Operation {
+	case
+		api_service_protos.TPredicate_TComparison_L,
+		api_service_protos.TPredicate_TComparison_LE,
+		api_service_protos.TPredicate_TComparison_EQ,
+		api_service_protos.TPredicate_TComparison_NE,
+		api_service_protos.TPredicate_TComparison_GE,
+		api_service_protos.TPredicate_TComparison_G,
+		api_service_protos.TPredicate_TComparison_STARTS_WITH,
+		api_service_protos.TPredicate_TComparison_ENDS_WITH:
 		return true
 	default:
 		return false
@@ -172,11 +192,11 @@ func (SQLFormatter) RenderSelectQueryTextForColumnShard(
 	return sb.String(), nil
 }
 
-func (SQLFormatter) renderSelectQueryTextForDataShard(
+func (f SQLFormatter) renderSelectQueryTextForDataShard(
 	parts *rdbms_utils.SelectQueryParts,
 	_ *TSplitDescription_TDataShard,
 ) (string, error) {
-	queryText, err := rdbms_utils.DefaultSelectQueryRender(parts)
+	queryText, err := f.SQLFormatterDefault.RenderSelectQueryText(parts, nil)
 	if err != nil {
 		return "", fmt.Errorf("default select query render: %w", err)
 	}

@@ -297,7 +297,6 @@ func (pb *predicateBuilder) formatComparison(
 	case api_service_protos.TPredicate_TComparison_STARTS_WITH,
 		api_service_protos.TPredicate_TComparison_ENDS_WITH,
 		api_service_protos.TPredicate_TComparison_CONTAINS:
-
 		result, err := pb.formatComparisonWithPatternMatching(comparison)
 		if err != nil {
 			return "", fmt.Errorf("format comparison with pattern matching %v: %w", comparison, err)

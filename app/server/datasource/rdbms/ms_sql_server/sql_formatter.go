@@ -16,6 +16,7 @@ import (
 var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
 
 type sqlFormatter struct {
+	rdbms_utils.SQLFormatterDefault
 	cfg *config.TPushdownConfig
 }
 
@@ -89,13 +90,6 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 
 func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
-}
-
-func (sqlFormatter) RenderSelectQueryText(
-	parts *rdbms_utils.SelectQueryParts,
-	_ *api_service_protos.TSplit,
-) (string, error) {
-	return rdbms_utils.DefaultSelectQueryRender(parts)
 }
 
 func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
