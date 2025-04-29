@@ -281,6 +281,44 @@ func (pb *predicateBuilder) formatComparison(
 ) (string, error) {
 	var operation string
 
+	// render left and right operands
+	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format left expression: %v: %w", comparison.LeftValue, err)
+	}
+
+	right, err := pb.formatExpression(comparison.RightValue, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
+	}
+
+	// a special branch to handle LIKE operator
+	switch op := comparison.Operation; op {
+	case api_service_protos.TPredicate_TComparison_STARTS_WITH:
+		result, err := pb.formatter.FormatStartsWith(left, right)
+		if err != nil {
+			return "", fmt.Errorf("format starts with: %w", err)
+		}
+
+		return result, nil
+	case api_service_protos.TPredicate_TComparison_ENDS_WITH:
+		result, err := pb.formatter.FormatEndsWith(left, right)
+		if err != nil {
+			return "", fmt.Errorf("format ends with: %w", err)
+		}
+
+		return result, nil
+	case api_service_protos.TPredicate_TComparison_CONTAINS:
+		result, err := pb.formatter.FormatContains(left, right)
+		if err != nil {
+			return "", fmt.Errorf("format contains: %w", err)
+		}
+
+		return result, nil
+	default:
+	}
+
+	// check basic operations
 	switch op := comparison.Operation; op {
 	case api_service_protos.TPredicate_TComparison_L:
 		operation = " < "
@@ -294,15 +332,6 @@ func (pb *predicateBuilder) formatComparison(
 		operation = " >= "
 	case api_service_protos.TPredicate_TComparison_G:
 		operation = " > "
-	case api_service_protos.TPredicate_TComparison_STARTS_WITH,
-		api_service_protos.TPredicate_TComparison_ENDS_WITH,
-		api_service_protos.TPredicate_TComparison_CONTAINS:
-		result, err := pb.formatComparisonWithPatternMatching(comparison)
-		if err != nil {
-			return "", fmt.Errorf("format comparison with pattern matching %v: %w", comparison, err)
-		}
-
-		return result, nil
 	default:
 		return "", fmt.Errorf(
 			"%w, op: %s",
@@ -311,24 +340,7 @@ func (pb *predicateBuilder) formatComparison(
 		)
 	}
 
-	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
-	if err != nil {
-		return "", fmt.Errorf("format left expression: %v: %w", comparison.LeftValue, err)
-	}
-
-	right, err := pb.formatExpression(comparison.RightValue, embedBool)
-	if err != nil {
-		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
-	}
-
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil
-}
-
-func (pb *predicateBuilder) formatComparisonWithPatternMatching(
-	comparison *api_service_protos.TPredicate_TComparison,
-) (string, error) {
-	fmt.Println(comparison)
-	panic("AAA")
 }
 
 func (pb *predicateBuilder) formatNegation(

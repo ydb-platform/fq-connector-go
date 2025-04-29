@@ -90,6 +90,12 @@ type SQLFormatter interface {
 	SanitiseIdentifier(ident string) string
 	// Checks support for expression rendering
 	SupportsExpression(expression *api_service_protos.TExpression) bool
+	// Checks support for `left LIKE "right%"` predicate pushdown
+	FormatStartsWith(left, right string) (string, error)
+	// Checks support for `left LIKE "%right"` predicate pushdown
+	FormatEndsWith(left, right string) (string, error)
+	// Checks support for `left LIKE "%right%"` predicate pushdown
+	FormatContains(left, right string) (string, error)
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
 	FormatFrom(tableName string) string

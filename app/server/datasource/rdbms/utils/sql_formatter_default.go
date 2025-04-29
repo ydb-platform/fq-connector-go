@@ -4,13 +4,15 @@ import (
 	"strings"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 // SQLFormatterDefault contains the most general implementations of some of
 // SQLFormatter methods reflecting "standard" SQL that can be met
 type SQLFormatterDefault struct{}
 
-// SelectQueryRender default implementation doesn't take into account splitting
+// RenderSelectQueryText default implementation doesn't take into account splitting.
+// It's suitable for datasource that treat the whole external table as a single split.
 func (SQLFormatterDefault) RenderSelectQueryText(
 	parts *SelectQueryParts,
 	_ *api_service_protos.TSplit,
@@ -28,4 +30,16 @@ func (SQLFormatterDefault) RenderSelectQueryText(
 	}
 
 	return sb.String(), nil
+}
+
+func (SQLFormatterDefault) FormatStartsWith(left, right string) (string, error) {
+	return "", common.ErrUnimplementedOperation
+}
+
+func (SQLFormatterDefault) FormatEndsWith(left, right string) (string, error) {
+	return "", common.ErrUnimplementedOperation
+}
+
+func (SQLFormatterDefault) FormatContains(left, right string) (string, error) {
+	return "", common.ErrUnimplementedOperation
 }
