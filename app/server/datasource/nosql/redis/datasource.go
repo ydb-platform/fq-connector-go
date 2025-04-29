@@ -138,12 +138,26 @@ func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, e
 func (*dataSource) readKeys(
 	ctx context.Context,
 	client *redis.Client,
-	pattern string,
+	split *api_service_protos.TSplit,
 	transformer *redisRowTransformer,
 	sink paging.Sink[any],
 	logger *zap.Logger,
 ) error {
-	if !strings.Contains(pattern, "*") {
+	var (
+		comp      *api_service_protos.TPredicate_TComparison
+		operation api_service_protos.TPredicate_TComparison_EOperation
+		column    string
+		pattern   = "*"
+	)
+
+	if split.Select.Where != nil && split.Select.Where.FilterTyped != nil {
+		comp = split.Select.Where.FilterTyped.GetComparison()
+		operation = comp.Operation
+		column = comp.GetLeftValue().GetColumn()
+		pattern = string(comp.GetRightValue().GetTypedValue().GetValue().GetBytesValue())
+	}
+
+	if column == KeyColumnName && operation == api_service_protos.TPredicate_TComparison_EQ {
 		typ, err := client.Type(ctx, pattern).Result()
 		if err != nil {
 			return fmt.Errorf("TYPE command failed for key %s: %w", pattern, err)
@@ -162,6 +176,18 @@ func (*dataSource) readKeys(
 			logger.Warn("unsupported key type for specific key", zap.String("key", pattern), zap.String("type", typ))
 			return nil
 		}
+	}
+
+	switch operation {
+	case api_service_protos.TPredicate_TComparison_STARTS_WITH:
+		// LIKE 'foo%' → 'foo*'
+		pattern += "*"
+	case api_service_protos.TPredicate_TComparison_ENDS_WITH:
+		// LIKE '%foo' → '*foo'
+		pattern = "*" + pattern
+	case api_service_protos.TPredicate_TComparison_CONTAINS:
+		// LIKE '%foo%' → '*foo*'
+		pattern = "*" + pattern + "*"
 	}
 
 	var cursor, unsupported uint64
@@ -377,7 +403,7 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("create transformer: %w", err)
 	}
 
-	if err := ds.readKeys(ctx, client, split.Select.From.Table, transformer, sink, logger); err != nil {
+	if err = ds.readKeys(ctx, client, split, transformer, sink, logger); err != nil {
 		return fmt.Errorf("readKeys: %w", err)
 	}
 
