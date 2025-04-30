@@ -1,3 +1,5 @@
+PRAGMA generic.UsePredicatePushdown="true";
+
 -- SELECT * FROM external_datasource.`datetime` WHERE col_03_timestamp = Timestamp("1988-11-20T12:55:28.123456Z");
 -- SELECT * FROM external_datasource.primitives;
 
@@ -8,5 +10,8 @@
 --         col_01_timestamp <= Timestamp("2024-01-01T00:00:00Z")
 -- ;
 
-PRAGMA generic.UsePredicatePushdown="true";
-SELECT * FROM external_datasource.`yq-4224` WHERE hash = "6758ddf04f23be19dc7adf08356c697f21dc751aabc1c71b55d340ee920781ca";
+-- SELECT * FROM external_datasource.`yq-4224` WHERE hash = "6758ddf04f23be19dc7adf08356c697f21dc751aabc1c71b55d340ee920781ca";
+-- SELECT * FROM external_datasource.`yq-4224` WHERE hash LIKE "6758%";
+
+-- SELECT * FROM external_datasource.primitives;
+SELECT * FROM external_datasource.primitives WHERE `col_13_utf8` LIKE Utf8("a%");

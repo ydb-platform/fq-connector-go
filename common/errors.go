@@ -50,6 +50,7 @@ var OptionalFilteringAllowedErrors = NewErrorMatcher(
 	ErrUnsupportedExpression,
 	ErrUnimplementedPredicateType,
 	ErrUnimplementedTypedValue,
+	ErrUnimplementedOperation,
 )
 
 var (

@@ -241,7 +241,7 @@ func (pb *predicateBuilder) formatExpression(
 	expression *api_service_protos.TExpression,
 	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
-	if !pb.formatter.SupportsPushdownExpression(expression) {
+	if !pb.formatter.SupportsExpression(expression) {
 		return "", common.ErrUnsupportedExpression
 	}
 
@@ -281,6 +281,44 @@ func (pb *predicateBuilder) formatComparison(
 ) (string, error) {
 	var operation string
 
+	// render left and right operands
+	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format left expression: %v: %w", comparison.LeftValue, err)
+	}
+
+	right, err := pb.formatExpression(comparison.RightValue, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
+	}
+
+	// a special branch to handle predicates related to LIKE operator
+	switch op := comparison.Operation; op {
+	case api_service_protos.TPredicate_TComparison_STARTS_WITH:
+		result, err := pb.formatter.FormatStartsWith(left, right)
+		if err != nil {
+			return "", fmt.Errorf("format starts with: %w", err)
+		}
+
+		return result, nil
+	case api_service_protos.TPredicate_TComparison_ENDS_WITH:
+		result, err := pb.formatter.FormatEndsWith(left, right)
+		if err != nil {
+			return "", fmt.Errorf("format ends with: %w", err)
+		}
+
+		return result, nil
+	case api_service_protos.TPredicate_TComparison_CONTAINS:
+		result, err := pb.formatter.FormatContains(left, right)
+		if err != nil {
+			return "", fmt.Errorf("format contains: %w", err)
+		}
+
+		return result, nil
+	default:
+	}
+
+	// check basic operations
 	switch op := comparison.Operation; op {
 	case api_service_protos.TPredicate_TComparison_L:
 		operation = " < "
@@ -295,17 +333,11 @@ func (pb *predicateBuilder) formatComparison(
 	case api_service_protos.TPredicate_TComparison_G:
 		operation = " > "
 	default:
-		return "", fmt.Errorf("%w, op: %d", common.ErrUnimplementedOperation, op)
-	}
-
-	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
-	if err != nil {
-		return "", fmt.Errorf("format left expression: %v: %w", comparison.LeftValue, err)
-	}
-
-	right, err := pb.formatExpression(comparison.RightValue, embedBool)
-	if err != nil {
-		return "", fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
+		return "", fmt.Errorf(
+			"operation %s, op: %w",
+			api_service_protos.TPredicate_TComparison_EOperation_name[int32(op)],
+			common.ErrUnimplementedOperation,
+		)
 	}
 
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil

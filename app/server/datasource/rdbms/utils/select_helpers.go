@@ -80,20 +80,3 @@ func formatSelectClause(
 
 	return sb.String(), newSelectWhat, nil
 }
-
-// DefaultSelectQueryRender doesn't take into account splitting
-func DefaultSelectQueryRender(parts *SelectQueryParts) (string, error) {
-	var sb strings.Builder
-
-	sb.WriteString("SELECT ")
-	sb.WriteString(parts.SelectClause)
-	sb.WriteString(" FROM ")
-	sb.WriteString(parts.FromClause)
-
-	if parts.WhereClause != "" {
-		sb.WriteString(" WHERE ")
-		sb.WriteString(parts.WhereClause)
-	}
-
-	return sb.String(), nil
-}

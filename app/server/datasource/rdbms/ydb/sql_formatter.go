@@ -16,6 +16,7 @@ import (
 var _ rdbms_utils.SQLFormatter = (*SQLFormatter)(nil)
 
 type SQLFormatter struct {
+	rdbms_utils.SQLFormatterDefault
 	mode config.TYdbConfig_Mode
 	cfg  *config.TPushdownConfig
 }
@@ -71,7 +72,7 @@ func (f SQLFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 	}
 }
 
-func (f SQLFormatter) SupportsPushdownExpression(expression *api_service_protos.TExpression) bool {
+func (f SQLFormatter) SupportsExpression(expression *api_service_protos.TExpression) bool {
 	switch e := expression.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		return true
@@ -172,16 +173,28 @@ func (SQLFormatter) RenderSelectQueryTextForColumnShard(
 	return sb.String(), nil
 }
 
-func (SQLFormatter) renderSelectQueryTextForDataShard(
+func (f SQLFormatter) renderSelectQueryTextForDataShard(
 	parts *rdbms_utils.SelectQueryParts,
 	_ *TSplitDescription_TDataShard,
 ) (string, error) {
-	queryText, err := rdbms_utils.DefaultSelectQueryRender(parts)
+	queryText, err := f.SQLFormatterDefault.RenderSelectQueryText(parts, nil)
 	if err != nil {
 		return "", fmt.Errorf("default select query render: %w", err)
 	}
 
 	return queryText, nil
+}
+
+func (SQLFormatter) FormatStartsWith(left, right string) (string, error) {
+	return fmt.Sprintf("(StartsWith(%s, %s))", left, right), nil
+}
+
+func (SQLFormatter) FormatEndsWith(left, right string) (string, error) {
+	return fmt.Sprintf("(EndsWith(%s, %s))", left, right), nil
+}
+
+func (SQLFormatter) FormatContains(left, right string) (string, error) {
+	return fmt.Sprintf("(String::Contains(%s, %s))", left, right), nil
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {
