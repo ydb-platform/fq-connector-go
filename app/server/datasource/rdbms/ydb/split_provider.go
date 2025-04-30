@@ -153,6 +153,17 @@ func (s SplitProvider) listSplitsColumnShard(
 		return fmt.Errorf("enumerate shards: %w", err)
 	}
 
+	// There is a weird behavior of OLAP tables that have no data:
+	// they do not return tablet ids at all, so in this case we have to return a single split
+	if len(tabletIDs) == 0 {
+		if err := s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+			return fmt.Errorf("list single split: %w", err)
+		}
+
+		return nil
+	}
+
+	// Otherwise emplace one tablet id per split
 	for _, tabletId := range tabletIDs {
 		description := &TSplitDescription{
 			Payload: &TSplitDescription_ColumnShard{
@@ -172,6 +183,8 @@ func (s SplitProvider) listSplitsColumnShard(
 	return nil
 }
 
+const getColumnShardsTabletIDsQueryTimeout = 10 * time.Second
+
 func (SplitProvider) GetColumnShardTabletIDs(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -180,15 +193,15 @@ func (SplitProvider) GetColumnShardTabletIDs(
 	driver := conn.(Connection).Driver()
 	prefix := path.Join(conn.DataSourceInstance().Database, conn.TableName())
 
-	logger.Debug("discovering column table tablet ids", zap.String("prefix", prefix))
-
 	var tabletIDs []uint64
 
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, getColumnShardsTabletIDsQueryTimeout)
 	defer cancel()
 
 	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
 		queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
+
+		logger.Debug("discovering column table tablet ids", zap.String("query", queryText))
 
 		result, err := s.Query(ctx, queryText)
 		if err != nil {

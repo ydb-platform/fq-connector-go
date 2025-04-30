@@ -105,7 +105,33 @@ func (s *splitProviderImpl) handleYDBSource(
 		return fmt.Errorf("get column shard tablet ids: %w", err)
 	}
 
-	// 1 tablet id <-> 1 column shard <-> 1 split
+	// There is a weird behavior of OLAP tables corresponding to the log groups that have no data:
+	// they do not return tablet ids at all, so in this case we have to return a single split
+	if len(tabletIDs) == 0 {
+		split := &datasource.ListSplitResult{
+			Slct: params.Select,
+			Description: &TSplitDescription{
+				Payload: &TSplitDescription_Ydb{
+					Ydb: &TSplitDescription_TYdb{
+						Endpoint:     src.endpoint,
+						DatabaseName: src.databaseName,
+						TableName:    src.tableName,
+						TabletIds:    nil,
+					},
+				},
+			},
+		}
+
+		select {
+		case params.ResultChan <- split:
+		case <-params.Ctx.Done():
+			return params.Ctx.Err()
+		}
+
+		return nil
+	}
+
+	// Otherwise 1 tablet id <-> 1 column shard <-> 1 split
 	for _, tabletId := range tabletIDs {
 		split := &datasource.ListSplitResult{
 			Slct: params.Select,
