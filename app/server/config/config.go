@@ -154,6 +154,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 			OpenConnectionTimeout:   "5s",
 			PingConnectionTimeout:   "5s",
 			CountDocsToDeduceSchema: 5,
+			ObjectIdYqlType:         config.TMongoDbConfig_OBJECT_ID_AS_STRING,
 		}
 	}
 
@@ -537,6 +538,10 @@ func validateMongoDBConfig(c *config.TMongoDbConfig) error {
 
 	if c.CountDocsToDeduceSchema == 0 {
 		return fmt.Errorf("validate `count_docs_to_deduce_schema`: can't be zero")
+	}
+
+	if c.ObjectIdYqlType == config.TMongoDbConfig_OBJECT_ID_UNSPECIFIED {
+		return fmt.Errorf("invalid `object_id_yql_type` value: %v", c.ObjectIdYqlType)
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {

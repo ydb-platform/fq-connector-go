@@ -464,30 +464,36 @@ func formatValue(exprType *Ydb.Type, value any) (any, error) {
 		switch t.TypeId {
 		case Ydb.Type_BOOL, Ydb.Type_INT8, Ydb.Type_UINT8, Ydb.Type_INT16,
 			Ydb.Type_UINT16, Ydb.Type_INT32, Ydb.Type_UINT32, Ydb.Type_INT64,
-			Ydb.Type_UINT64, Ydb.Type_FLOAT, Ydb.Type_DOUBLE, Ydb.Type_STRING, Ydb.Type_UTF8:
+			Ydb.Type_UINT64, Ydb.Type_FLOAT, Ydb.Type_DOUBLE, Ydb.Type_UTF8:
 			return value, nil
+		case Ydb.Type_STRING:
+			return tryFormatObjectId(value, false)
 		default:
 			return nil, fmt.Errorf("unsupported type %T for typed value", t)
 		}
 	case *Ydb.Type_TaggedType:
-		if !common.TypesEqual(exprType, objectIdType) {
+		if !common.TypesEqual(exprType, objectIdTaggedType) {
 			return nil, fmt.Errorf("unknown Tagged type: %T", exprType)
 		}
 
-		return tryFormatObjectId(value)
+		return tryFormatObjectId(value, true)
 	default:
 		return nil, fmt.Errorf("unsupported type %T for typed value", t)
 	}
 }
 
-func tryFormatObjectId(value any) (any, error) {
+func tryFormatObjectId(value any, mustSucceed bool) (any, error) {
 	switch v := value.(type) {
 	case []byte:
 		hexString := hex.EncodeToString(v)
 
 		objectId, err := primitive.ObjectIDFromHex(hexString)
 		if err != nil {
-			return nil, fmt.Errorf("failed to construct ObjectId from %s: %w", hexString, err)
+			if mustSucceed {
+				return nil, fmt.Errorf("failed to construct ObjectId from %s: %w", hexString, err)
+			}
+
+			return value, nil
 		}
 
 		return objectId, nil

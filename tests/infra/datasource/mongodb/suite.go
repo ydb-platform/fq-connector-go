@@ -6,6 +6,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/tests/infra/datasource"
 	"github.com/ydb-platform/fq-connector-go/tests/suite"
@@ -14,7 +15,8 @@ import (
 
 type Suite struct {
 	*suite.Base[int32, *array.Int32Builder]
-	dataSource *datasource.DataSource
+	dataSource   *datasource.DataSource
+	yqlTypeToUse config.TMongoDbConfig_EObjectIdYqlType
 }
 
 func (s *Suite) SetDefaultOptions() {
@@ -29,7 +31,17 @@ func (s *Suite) SetAsStringOptions() {
 	}
 }
 
+func (s *Suite) SetWithTaggedOptions() {
+	for _, instance := range s.dataSource.Instances {
+		instance.Options = mongoDbOptionsWithTaggedType
+	}
+}
+
 func (s *Suite) TestReadSplitPrimitives() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	testCaseNames := []string{"simple", "primitives", "missing", "uneven"}
@@ -40,6 +52,10 @@ func (s *Suite) TestReadSplitPrimitives() {
 }
 
 func (s *Suite) TestIncludeUnsupported() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetAsStringOptions()
 
 	testCaseNames := []string{"unsupported"}
@@ -49,6 +65,10 @@ func (s *Suite) TestIncludeUnsupported() {
 }
 
 func (s *Suite) TestPushdownProjection() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	what := &api_service_protos.TSelect_TWhat{
@@ -80,6 +100,10 @@ func (s *Suite) TestPushdownProjection() {
 }
 
 func (s *Suite) TestPushdownIsNull() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	testCaseNames := []string{"int32", "double", "boolean"}
@@ -97,6 +121,10 @@ func (s *Suite) TestPushdownIsNull() {
 }
 
 func (s *Suite) TestPushdownIsNotNull() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	testCaseNames := []string{"int64", "string", "objectid"}
@@ -114,6 +142,10 @@ func (s *Suite) TestPushdownIsNotNull() {
 }
 
 func (s *Suite) TestPushdownComparisonEQ() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	testcases := map[string]*Ydb.TypedValue{
@@ -124,7 +156,7 @@ func (s *Suite) TestPushdownComparisonEQ() {
 		"binary":  common.MakeTypedValue(Optional(Primitive(Ydb.Type_STRING)), []byte{0xab, 0xcd}),
 		"double":  common.MakeTypedValue(Optional(Primitive(Ydb.Type_DOUBLE)), float64(1.1)),
 		"boolean": common.MakeTypedValue(Optional(Primitive(Ydb.Type_BOOL)), false),
-		"objectid": common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
+		"objectid": common.MakeTypedValue(Optional(Primitive(Ydb.Type_STRING)),
 			[]byte{0x17, 0x1e, 0x75, 0x50, 0x0e, 0xcd, 0xe1, 0xc7, 0x5c, 0x59, 0x13, 0x9e},
 		),
 	}
@@ -145,6 +177,10 @@ func (s *Suite) TestPushdownComparisonEQ() {
 }
 
 func (s *Suite) TestPushdownStringComparison() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	fieldName := "a"
@@ -180,6 +216,10 @@ func (s *Suite) TestPushdownStringComparison() {
 }
 
 func (s *Suite) TestPushdownComparisonTwoColumns() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	s.ValidateTable(
@@ -201,6 +241,10 @@ func (s *Suite) TestPushdownComparisonTwoColumns() {
 }
 
 func (s *Suite) TestPushdownConjunction() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	s.ValidateTable(
@@ -232,6 +276,10 @@ func (s *Suite) TestPushdownConjunction() {
 }
 
 func (s *Suite) TestPushdownDisjunction() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	s.ValidateTable(
@@ -263,6 +311,10 @@ func (s *Suite) TestPushdownDisjunction() {
 }
 
 func (s *Suite) TestPushdownNegation() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	testCases := []*api_service_protos.TPredicate{
@@ -303,6 +355,10 @@ func (s *Suite) TestPushdownNegation() {
 }
 
 func (s *Suite) TestPushdownBoolExpression() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	s.ValidateTable(
@@ -315,6 +371,10 @@ func (s *Suite) TestPushdownBoolExpression() {
 }
 
 func (s *Suite) TestPushdownBetween() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	s.ValidateTable(
@@ -331,6 +391,10 @@ func (s *Suite) TestPushdownBetween() {
 }
 
 func (s *Suite) TestPushdownIn() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	testCases := map[string][]*Ydb.TypedValue{
@@ -360,6 +424,10 @@ func (s *Suite) TestPushdownIn() {
 }
 
 func (s *Suite) TestPushdownRegex() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	toastPatterns := []string{
@@ -380,6 +448,10 @@ func (s *Suite) TestPushdownRegex() {
 }
 
 func (s *Suite) TestPushdownWithCoalesce() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
 	s.SetDefaultOptions()
 
 	// SELECT * FROM missing WHERE COALESCE('int32', 12) < 60;
@@ -419,15 +491,49 @@ func (s *Suite) TestPushdownWithCoalesce() {
 	)
 }
 
+func (s *Suite) TestObjectIdAsTaggedString() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
+	}
+
+	s.SetWithTaggedOptions()
+
+	s.ValidateTable(s.dataSource, tables["tagged"])
+}
+
+func (s *Suite) TestObjectIdAsTaggedFilter() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
+	}
+
+	s.SetWithTaggedOptions()
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["tagged_0"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"objectid",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
+					[]byte{0x17, 0x1e, 0x75, 0x50, 0x0e, 0xcd, 0xe1, 0xc7, 0x5c, 0x59, 0x13, 0x9e},
+				),
+			),
+		}),
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
+	yqlTypeToUse config.TMongoDbConfig_EObjectIdYqlType,
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)
 
 	result := &Suite{
-		Base:       baseSuite,
-		dataSource: ds,
+		Base:         baseSuite,
+		dataSource:   ds,
+		yqlTypeToUse: yqlTypeToUse,
 	}
 
 	return result
