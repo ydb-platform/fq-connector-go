@@ -156,14 +156,14 @@ func (SQLFormatter) RenderSelectQueryTextForColumnShard(
 	sb.WriteString(" FROM ")
 	sb.WriteString(parts.FromClause)
 
-	if len(tabletIDs) != 1 {
-		return "", fmt.Errorf(
-			"column shard split description must contain exactly 1 shard id, have %d instead",
-			len(tabletIDs),
-		)
+	switch len(tabletIDs) {
+	case 0:
+		// It's possible when reading empty OLAP tables
+	case 1:
+		sb.WriteString(fmt.Sprintf(" WITH TabletId='%d'", tabletIDs[0]))
+	default:
+		return "", fmt.Errorf("column shard split description must contain either 0, or 1 tablet id")
 	}
-
-	sb.WriteString(fmt.Sprintf(" WITH TabletId='%d'", tabletIDs[0]))
 
 	if parts.WhereClause != "" {
 		sb.WriteString(" WHERE ")
