@@ -696,7 +696,7 @@ func validateOpenSearchConfig(c *config.TOpenSearchConfig) error {
 	}
 
 	if c.BatchSize == 0 {
-		return fmt.Errorf("validate batch_size, must be greater than zero")
+		return fmt.Errorf("validate `batch_size`, must be greater than zero")
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
