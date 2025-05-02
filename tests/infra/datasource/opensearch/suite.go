@@ -8,7 +8,7 @@ import (
 )
 
 type Suite struct {
-	*suite.Base[int32, *array.Int32Builder]
+	*suite.Base[int64, *array.Int64Builder]
 	dataSource *datasource.DataSource
 }
 
@@ -21,7 +21,7 @@ func (s *Suite) TestDescribeTable() {
 }
 
 func (s *Suite) TestReadSplitPrimitives() {
-	testCaseNames := []string{"simple"}
+	testCaseNames := []string{"simple", "optional"}
 
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(s.dataSource, tables[testCase])
@@ -29,7 +29,7 @@ func (s *Suite) TestReadSplitPrimitives() {
 }
 
 func NewSuite(
-	baseSuite *suite.Base[int32, *array.Int32Builder],
+	baseSuite *suite.Base[int64, *array.Int64Builder],
 ) *Suite {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
 	baseSuite.Require().NoError(err)

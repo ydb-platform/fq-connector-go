@@ -40,11 +40,10 @@ func parseMapping(
 
 	var columns []*Ydb.Column
 
-	// OpenSearch document unique id
-	// output only strings
+	// OpenSearch document id
 	idColumn := &Ydb.Column{
 		Name: "_id",
-		Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+		Type: common.MakePrimitiveType(Ydb.Type_INT64),
 	}
 
 	columns = append([]*Ydb.Column{idColumn}, columns...)
@@ -218,8 +217,6 @@ func typeMap(
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
 	case "keyword", "text":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case "binary":
-		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "date":
 		ydbType = common.MakePrimitiveType(Ydb.Type_TIMESTAMP)
 	default:
