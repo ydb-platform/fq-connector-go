@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -29,10 +28,11 @@ import (
 var _ datasource.DataSource[any] = (*dataSource)(nil)
 
 type dataSource struct {
-	retrierSet  *retry.RetrierSet
-	cc          conversion.Collection
-	cfg         *config.TOpenSearchConfig
-	queryLogger common.QueryLogger
+	retrierSet   *retry.RetrierSet
+	cc           conversion.Collection
+	cfg          *config.TOpenSearchConfig
+	queryLogger  common.QueryLogger
+	queryBuilder *QueryBuilder
 }
 
 func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TOpenSearchConfig, cc conversion.Collection) datasource.DataSource[any] {
@@ -192,7 +192,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 		return fmt.Errorf("scroll id is nil")
 	}
 
-	reader, err := prepareDocumentReader(split, ds.cc)
+	reader, err := prepareDocumentReader(logger, split, ds.cc)
 	if err != nil {
 		return fmt.Errorf("make document reader: %w", err)
 	}
@@ -229,12 +229,14 @@ func (ds *dataSource) initialSearch(
 	batchSize uint64,
 	scrollTimeout time.Duration,
 ) (*opensearchapi.SearchResp, error) {
+	body, err := ds.queryBuilder.BuildInitialSearchQuery(batchSize)
+	if err != nil {
+		return nil, fmt.Errorf("build query: %w", err)
+	}
+
 	req := &opensearchapi.SearchReq{
 		Indices: []string{split.Select.From.Table},
-		Body: strings.NewReader(fmt.Sprintf(`{
-                "size": %d,
-                "query": {"match_all": {}}
-            }`, batchSize)),
+		Body:    body,
 		Params: opensearchapi.SearchParams{
 			Scroll: scrollTimeout,
 		},
@@ -245,7 +247,7 @@ func (ds *dataSource) initialSearch(
 		searchErr error
 	)
 
-	err := ds.retrierSet.Query.Run(
+	err = ds.retrierSet.Query.Run(
 		ctx,
 		logger,
 		func() error {
@@ -268,20 +270,30 @@ func (ds *dataSource) initialSearch(
 }
 
 func prepareDocumentReader(
+	logger *zap.Logger,
 	split *api_service_protos.TSplit,
 	cc conversion.Collection,
 ) (*documentReader, error) {
 	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
+	logger.Debug("arrow schema", zap.Any("schema", arrowSchema))
+
 	if err != nil {
 		return nil, fmt.Errorf("select what to Arrow schema: %w", err)
 	}
 
 	ydbSchema, err := common.SelectWhatToYDBTypes(split.Select.What)
+	logger.Debug("ydb schema", zap.Any("schema", ydbSchema))
+
 	if err != nil {
 		return nil, fmt.Errorf("select what to YDB schema: %w", err)
 	}
 
-	return makeDocumentReader(arrowSchema, ydbSchema, cc)
+	transformer, err := makeTransformer(logger, ydbSchema, cc)
+	if err != nil {
+		return nil, fmt.Errorf("make transformer: %w", err)
+	}
+
+	return makeDocumentReader(transformer, arrowSchema, ydbSchema)
 }
 
 func processHitsBatch(
@@ -291,8 +303,14 @@ func processHitsBatch(
 	sink paging.Sink[any],
 ) error {
 	for _, hit := range hits {
+		logger.Debug("process hit", zap.Any("hit", hit))
+
 		if err := reader.accept(logger, hit); err != nil {
 			return fmt.Errorf("accept document: %w", err)
+		}
+
+		for _, acceptor := range reader.transformer.GetAcceptors() {
+			logger.Debug(fmt.Sprintf("type %T", acceptor), zap.Any("acceptor", acceptor))
 		}
 
 		if err := sink.AddRow(reader.transformer); err != nil {

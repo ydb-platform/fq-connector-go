@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow"
@@ -31,6 +30,8 @@ type documentReader struct {
 }
 
 func jsonToString(logger *zap.Logger, value any) (string, error) {
+	logger.Debug("jsonToString", zap.Any("value", value))
+
 	switch cast := value.(type) {
 	case int32:
 		return strconv.Itoa(int(cast)), nil
@@ -48,65 +49,11 @@ func jsonToString(logger *zap.Logger, value any) (string, error) {
 		return cast.Format(time.RFC3339), nil
 	case []byte:
 		return base64.StdEncoding.EncodeToString(cast), nil
-	case []any:
-		return jsonArrayToString(logger, cast)
-	case map[string]any:
-		return jsonObjectToString(logger, cast)
 	default:
-		logger.Info(fmt.Sprintf("unknown type: %T", value))
+		logger.Warn(fmt.Sprintf("unknown type: %T", value))
 	}
 
 	return "", common.ErrDataTypeNotSupported
-}
-
-func jsonArrayToString(logger *zap.Logger, arr []any) (string, error) {
-	var sb strings.Builder
-
-	sb.WriteString("[")
-
-	for i, inner := range arr {
-		innerStr, err := jsonToString(logger, inner)
-		if err != nil {
-			return "", err
-		}
-
-		sb.WriteString(innerStr)
-
-		if i+1 < len(arr) {
-			sb.WriteString(", ")
-		}
-	}
-
-	sb.WriteString("]")
-
-	return sb.String(), nil
-}
-
-func jsonObjectToString(logger *zap.Logger, obj map[string]any) (string, error) {
-	var sb strings.Builder
-
-	sb.WriteString("{")
-
-	i := 0
-
-	for key, value := range obj {
-		valueStr, err := jsonToString(logger, value)
-		if err != nil {
-			return "", err
-		}
-
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-
-		sb.WriteString(fmt.Sprintf(`"%s": %s`, key, valueStr))
-
-		i++
-	}
-
-	sb.WriteString("}")
-
-	return sb.String(), nil
 }
 
 //nolint:funlen,gocyclo
@@ -116,55 +63,89 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 		return fmt.Errorf("unmarshal _source: %w", err)
 	}
 
+	doc["_id"] = hit.ID
+
 	acceptors := r.transformer.GetAcceptors()
+	logger.Debug("accept document", zap.Any("acceptors", acceptors), zap.Any("fields", r.arrowTypes.Fields()))
 
 	for i, f := range r.arrowTypes.Fields() {
+		logger.Debug(fmt.Sprintf("accept field %d: %s", i, f))
+
 		switch a := acceptors[i].(type) {
 		case *bool:
 			*a = doc[f.Name].(bool)
 		case **bool:
-			convert(a, doc[f.Name])
-		case *int32:
-			if v, ok := doc[f.Name].(float64); ok {
-				*a = int32(v)
-			}
-		case **int32:
-			if v, ok := doc[f.Name].(float64); ok {
-				val := int32(v)
-				*a = &val
-			} else {
-				*a = nil
-			}
-		case *int64:
-			if v, ok := doc[f.Name].(float64); ok {
-				*a = int64(v)
-			}
-		case **int64:
-			if v, ok := doc[f.Name].(float64); ok {
-				val := int64(v)
-				*a = &val
-			} else {
-				*a = nil
-			}
-		case *float32:
-			*a = doc[f.Name].(float32)
-		case **float32:
-			convert(a, doc[f.Name])
-		case *float64:
-			*a = doc[f.Name].(float64)
-		case **float64:
-			convert(a, doc[f.Name])
-		case *string:
 			value, ok := doc[f.Name]
 			if !ok {
-				acceptors[i] = nil
+				*a = nil
 				continue
 			}
 
-			str, err := jsonToString(logger, value)
+			if err := convert[bool](a, value); err != nil {
+				return fmt.Errorf("convert: %w", err)
+			}
+		case *int32:
+			*a = int32(doc[f.Name].(float64))
+		case **int32:
+			value, ok := doc[f.Name]
+			if !ok {
+				*a = nil
+				continue
+			}
+
+			if err := convert[int32](a, value.(float64)); err != nil {
+				return fmt.Errorf("convert: %w", err)
+			}
+		case *int64:
+			if f.Name == "_id" {
+				id, err := strconv.ParseInt(hit.ID, 10, 64)
+				if err != nil {
+					return fmt.Errorf("parse _id as int64: %w", err)
+				}
+
+				*a = id
+			} else {
+				*a = int64(doc[f.Name].(float64))
+			}
+		case **int64:
+			value, ok := doc[f.Name]
+			if !ok {
+				*a = nil
+				continue
+			}
+
+			if err := convert[int64](a, value.(float64)); err != nil {
+				return fmt.Errorf("convert: %w", err)
+			}
+		case *float32:
+			*a = float32(doc[f.Name].(float64))
+		case **float32:
+			value, ok := doc[f.Name]
+			if !ok {
+				*a = nil
+				continue
+			}
+
+			if err := convert[float32](a, value.(float64)); err != nil {
+				return fmt.Errorf("convert: %w", err)
+			}
+		case *float64:
+			*a = doc[f.Name].(float64)
+		case **float64:
+			value, ok := doc[f.Name]
+			if !ok {
+				*a = nil
+				continue
+			}
+
+			if err := convert[float64](a, value.(float64)); err != nil {
+				return fmt.Errorf("convert: %w", err)
+			}
+		case *string:
+			str, err := jsonToString(logger, doc[f.Name])
 			if err != nil {
 				if !errors.Is(err, common.ErrDataTypeNotSupported) {
-					return fmt.Errorf("jsonToString: %w", err)
+					return fmt.Errorf("json to String: %w", err)
 				}
 			}
 
@@ -172,46 +153,112 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 		case **string:
 			value, ok := doc[f.Name]
 			if !ok {
-				acceptors[i] = nil
 				*a = nil
-
 				continue
 			}
 
 			str, err := jsonToString(logger, value)
+
 			if err != nil {
 				if !errors.Is(err, common.ErrDataTypeNotSupported) {
-					return fmt.Errorf("jsonToString: %w", err)
+					return fmt.Errorf("json to string: %w", err)
 				}
 			}
 
 			*a = ptr.T(str)
+		case *time.Time:
+			t, err := parseTime(doc[f.Name])
+			if err != nil {
+				return fmt.Errorf("parse time for field %s: %w", f.Name, err)
+			}
+
+			*a = t
+		case **time.Time:
+			value, ok := doc[f.Name]
+			if !ok {
+				*a = nil
+				continue
+			}
+
+			t, err := parseTime(value)
+			if err != nil {
+				return fmt.Errorf("parse time for field %s: %w", f.Name, err)
+			}
+
+			*a = ptr.T(t)
 		default:
-			return fmt.Errorf("unsupported type %T: %w", acceptors[i], common.ErrDataTypeNotSupported)
+			return fmt.Errorf("unsupported type %T: %w for field %T", acceptors[i], common.ErrDataTypeNotSupported, f.Name)
 		}
 	}
 
 	return nil
 }
 
-func convert[INTO any](acceptor **INTO, value any) {
-	if v, ok := value.(INTO); ok {
-		*acceptor = ptr.T(v)
-	} else {
-		*acceptor = nil
+func parseTime(value any) (time.Time, error) {
+	if value == nil {
+		return time.Time{}, fmt.Errorf("time value is nil")
+	}
+
+	switch v := value.(type) {
+	case string:
+		formats := []string{
+			time.RFC3339Nano,
+			time.RFC3339,
+		}
+
+		for _, format := range formats {
+			if t, err := time.Parse(format, v); err == nil {
+				return t, nil
+			}
+		}
+
+		return time.Time{}, fmt.Errorf("parse time string: %s", v)
+
+	case float64:
+		return time.Unix(0, int64(v)*int64(time.Millisecond)), nil
+
+	case int64:
+		return time.Unix(0, v), nil
+
+	case time.Time:
+		return v, nil
+
+	default:
+		return time.Time{}, fmt.Errorf("unsupported time type %T", value)
 	}
 }
 
-func makeDocumentReader(
-	arrowTypes *arrow.Schema,
-	ydbTypes []*Ydb.Type,
-	cc conversion.Collection,
-) (*documentReader, error) {
-	transformer, err := makeTransformer(ydbTypes, cc)
-	if err != nil {
-		return nil, err
+func convert[INTO any](acceptor **INTO, value any) error {
+	if v, ok := value.(INTO); ok {
+		*acceptor = ptr.T(v)
+		return nil
 	}
 
+	if floatVal, ok := value.(float64); ok {
+		switch pt := any(acceptor).(type) {
+		case **int32:
+			*pt = ptr.T(int32(floatVal))
+			return nil
+		case **int64:
+			*pt = ptr.T(int64(floatVal))
+			return nil
+		case **float32:
+			*pt = ptr.T(float32(floatVal))
+			return nil
+		case **float64:
+			*pt = ptr.T(floatVal)
+			return nil
+		}
+	}
+
+	return fmt.Errorf("unsupported type %T: %w", value, common.ErrDataTypeNotSupported)
+}
+
+func makeDocumentReader(
+	transformer paging.RowTransformer[any],
+	arrowTypes *arrow.Schema,
+	ydbTypes []*Ydb.Type,
+) (*documentReader, error) {
 	return &documentReader{
 		transformer: transformer,
 		arrowTypes:  arrowTypes,
@@ -221,23 +268,30 @@ func makeDocumentReader(
 
 type appenderFunc = func(acceptor any, builder array.Builder) error
 
-func makeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func makeTransformer(
+	logger *zap.Logger,
+	ydbTypes []*Ydb.Type,
+	cc conversion.Collection,
+) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbTypes))
 	appenders := make([]appenderFunc, 0, len(ydbTypes))
 
 	var err error
 
 	for _, ydbType := range ydbTypes {
-		acceptors, appenders, err = addAcceptorAppender(ydbType, cc, acceptors, appenders)
+		acceptors, appenders, err = addAcceptorAppender(logger, ydbType, cc, acceptors, appenders)
 		if err != nil {
 			return nil, fmt.Errorf("addAcceptorAppender: %w", err)
 		}
 	}
 
+	logger.Debug("addAcceptorAppender", zap.Any("acceptors", acceptors))
+
 	return paging.NewRowTransformer(acceptors, appenders, nil), nil
 }
 
 func addAcceptorAppender(
+	logger *zap.Logger,
 	ydbType *Ydb.Type,
 	cc conversion.Collection,
 	acceptors []any,
@@ -252,13 +306,17 @@ func addAcceptorAppender(
 	if optType := ydbType.GetOptionalType(); optType != nil {
 		acceptors, appenders, err = addAcceptorAppenderNullable(optType.Item, cc, acceptors, appenders)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("addAcceptorAppenderNullable: %w", err)
 		}
+
+		logger.Debug(fmt.Sprintf("addAcceptorAppenderNullable type: %T", optType.Item.Type))
 	} else {
 		acceptors, appenders, err = addAcceptorAppenderNonNullable(ydbType, cc, acceptors, appenders)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("addAcceptorAppenderNonNullable: %w", err)
 		}
+
+		logger.Debug(fmt.Sprintf("addAcceptorAppenderNonNullable type: %T", ydbType.Type))
 	}
 
 	return acceptors, appenders, nil
@@ -288,41 +346,16 @@ func addAcceptorAppenderNullable(
 		case Ydb.Type_DOUBLE:
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
-		case Ydb.Type_UTF8, Ydb.Type_JSON:
+		case Ydb.Type_UTF8, Ydb.Type_JSON, Ydb.Type_STRING:
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
-		case Ydb.Type_STRING:
-			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				value := acceptor.(**string)
-				if *value == nil {
-					builder.AppendNull()
-					return nil
-				}
-
-				return utils.AppendValueToArrowBuilder[string, string, *array.StringBuilder](
-					*value,
-					builder,
-					cc.String(),
-				)
-			})
 		case Ydb.Type_TIMESTAMP:
 			acceptors = append(acceptors, new(*time.Time))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				value := acceptor.(**time.Time)
-				if *value == nil {
-					builder.AppendNull()
-					return nil
-				}
-
-				return utils.AppendValueToArrowBuilder[int64, int64, *array.Int64Builder](
-					(**value).UnixNano(),
-					builder,
-					cc.Int64(),
-				)
-			})
+			appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 		}
-
+	case *Ydb.Type_StructType:
+		acceptors = append(acceptors, new(*Ydb.StructType))
+		appenders = append(appenders, utils.MakeAppenderNullable[[]byte, string, *array.StringBuilder](cc.BytesToString()))
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 	}
@@ -330,50 +363,21 @@ func addAcceptorAppenderNullable(
 	return acceptors, appenders, nil
 }
 
-func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection, acceptors []any, appenders []appenderFunc) (
+func addAcceptorAppenderNonNullable(
+	ydbType *Ydb.Type,
+	cc conversion.Collection,
+	acceptors []any, appenders []appenderFunc,
+) (
 	[]any,
 	[]appenderFunc,
 	error,
 ) {
 	switch t := ydbType.Type.(type) {
 	case *Ydb.Type_TypeId:
-		switch t.TypeId {
-		case Ydb.Type_BOOL:
-			acceptors = append(acceptors, new(bool))
-			appenders = append(appenders, utils.MakeAppender[bool, uint8, *array.Uint8Builder](cc.Bool()))
-		case Ydb.Type_INT32:
-			acceptors = append(acceptors, new(int32))
-			appenders = append(appenders, utils.MakeAppender[int32, int32, *array.Int32Builder](cc.Int32()))
-		case Ydb.Type_INT64:
+		if t.TypeId == Ydb.Type_INT64 {
 			acceptors = append(acceptors, new(int64))
 			appenders = append(appenders, utils.MakeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
-		case Ydb.Type_FLOAT:
-			acceptors = append(acceptors, new(float32))
-			appenders = append(appenders, utils.MakeAppender[float32, float32, *array.Float32Builder](cc.Float32()))
-		case Ydb.Type_DOUBLE:
-			acceptors = append(acceptors, new(float64))
-			appenders = append(appenders, utils.MakeAppender[float64, float64, *array.Float64Builder](cc.Float64()))
-		case Ydb.Type_UTF8, Ydb.Type_JSON, Ydb.Type_STRING:
-			acceptors = append(acceptors, new(any))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				value := acceptor.(*any)
-
-				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](
-					&value,
-					builder,
-					cc.Bytes(),
-				)
-			})
-		case Ydb.Type_TIMESTAMP:
-			acceptors = append(acceptors, new(time.Time))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				value := acceptor.(*time.Time)
-				nanos := value.UnixNano()
-
-				return utils.AppendValueToArrowBuilder[int64, int64, *array.Int64Builder](&nanos, builder, cc.Int64())
-			})
 		}
-
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 	}
