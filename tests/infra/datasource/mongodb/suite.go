@@ -500,7 +500,6 @@ func hexEncoded(s string) []byte {
 
 func objectIdPredicateWithCoalesce(typedValue *Ydb.TypedValue) *api_service_protos.TPredicate_Comparison {
 	// SELECT * FROM object_ids WHERE COALESCE(NULL, <typedValue>) = objectid;
-
 	return &api_service_protos.TPredicate_Comparison{
 		Comparison: &api_service_protos.TPredicate_TComparison{
 			LeftValue: &api_service_protos.TExpression{

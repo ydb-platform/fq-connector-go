@@ -82,9 +82,9 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"boolean": []*uint8{ptr.Uint8(1), ptr.Uint8(0), ptr.Uint8(0)},
 				"binary":  []*[]byte{ptr.T([]byte{0xaa, 0xaa}), ptr.T([]byte{0xab, 0xab}), ptr.T([]byte{0xac, 0xac})},
 				"objectid": []*[]byte{
-					ptr.T([]byte(string("171e75500ecde1c75c59139e"))),
-					ptr.T([]byte(string("271e75500ecde1c75c59139e"))),
-					ptr.T([]byte(string("371e75500ecde1c75c59139e"))),
+					ptr.T([]byte("171e75500ecde1c75c59139e")),
+					ptr.T([]byte("271e75500ecde1c75c59139e")),
+					ptr.T([]byte("371e75500ecde1c75c59139e")),
 				},
 			},
 		}},
@@ -113,7 +113,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"double":   []*float64{ptr.Float64(1.1), ptr.Float64(1.2), nil},
 				"boolean":  []*uint8{ptr.Uint8(0), ptr.Uint8(1), nil},
 				"binary":   []*[]byte{ptr.T([]byte{0xab, 0xcd}), nil, nil},
-				"objectid": []*[]byte{ptr.T([]byte(string("171e75500ecde1c75c59139e"))), nil, nil},
+				"objectid": []*[]byte{ptr.T([]byte("171e75500ecde1c75c59139e")), nil, nil},
 			},
 		}},
 	},
@@ -203,7 +203,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"double":   []*float64{ptr.Float64(1.1)},
 				"boolean":  []*uint8{ptr.Uint8(0)},
 				"binary":   []*[]byte{ptr.T([]byte{0xab, 0xcd})},
-				"objectid": []*[]byte{ptr.T([]byte(string("171e75500ecde1c75c59139e")))},
+				"objectid": []*[]byte{ptr.T([]byte("171e75500ecde1c75c59139e"))},
 			},
 		}},
 	},
@@ -442,9 +442,9 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			Columns: map[string]any{
 				"_id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
 				"objectid": []*[]byte{
-					ptr.T([]byte(string("171e75500ecde1c75c59139e"))),
-					ptr.T([]byte(string("271e75500ecde1c75c59139e"))),
-					ptr.T([]byte(string("371e75500ecde1c75c59139e"))),
+					ptr.T([]byte("171e75500ecde1c75c59139e")),
+					ptr.T([]byte("271e75500ecde1c75c59139e")),
+					ptr.T([]byte("371e75500ecde1c75c59139e")),
 				},
 			},
 		}},
@@ -462,7 +462,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			Columns: map[string]any{
 				"_id": []*int32{ptr.Int32(0)},
 				"objectid": []*[]byte{
-					ptr.T([]byte(string("171e75500ecde1c75c59139e"))),
+					ptr.T([]byte("171e75500ecde1c75c59139e")),
 				},
 			},
 		}},
@@ -480,7 +480,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			Columns: map[string]any{
 				"_id": []*int32{ptr.Int32(0)},
 				"objectid": []*[]byte{
-					ptr.T([]byte(string("171e75500ecde1c75c59139e"))),
+					ptr.T([]byte("171e75500ecde1c75c59139e")),
 				},
 			},
 		}},
