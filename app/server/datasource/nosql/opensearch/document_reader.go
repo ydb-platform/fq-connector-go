@@ -72,6 +72,8 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 		logger.Debug(fmt.Sprintf("accept field %d: %s", i, f))
 
 		switch a := acceptors[i].(type) {
+		case *bool:
+			*a = doc[f.Name].(bool)
 		case **bool:
 			value, ok := doc[f.Name]
 			if !ok {
@@ -82,6 +84,8 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 			if err := convert[bool](a, value); err != nil {
 				return fmt.Errorf("convert: %w", err)
 			}
+		case *int32:
+			*a = int32(doc[f.Name].(float64))
 		case **int32:
 			value, ok := doc[f.Name]
 			if !ok {
@@ -91,6 +95,17 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 
 			if err := convert[int32](a, value.(float64)); err != nil {
 				return fmt.Errorf("convert: %w", err)
+			}
+		case *int64:
+			if f.Name == "_id" {
+				id, err := strconv.ParseInt(hit.ID, 10, 64)
+				if err != nil {
+					return fmt.Errorf("parse _id as int64: %w", err)
+				}
+
+				*a = id
+			} else {
+				*a = int64(doc[f.Name].(float64))
 			}
 		case **int64:
 			value, ok := doc[f.Name]
@@ -102,6 +117,8 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 			if err := convert[int64](a, value.(float64)); err != nil {
 				return fmt.Errorf("convert: %w", err)
 			}
+		case *float32:
+			*a = float32(doc[f.Name].(float64))
 		case **float32:
 			value, ok := doc[f.Name]
 			if !ok {
@@ -112,6 +129,8 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 			if err := convert[float32](a, value.(float64)); err != nil {
 				return fmt.Errorf("convert: %w", err)
 			}
+		case *float64:
+			*a = doc[f.Name].(float64)
 		case **float64:
 			value, ok := doc[f.Name]
 			if !ok {
@@ -123,11 +142,14 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 				return fmt.Errorf("convert: %w", err)
 			}
 		case *string:
-			if f.Name == "_id" {
-				*a = hit.ID
-			} else {
-				return fmt.Errorf("unsupported type %T: %w for field %T", acceptors[i], common.ErrDataTypeNotSupported, f.Name)
+			str, err := jsonToString(logger, doc[f.Name])
+			if err != nil {
+				if !errors.Is(err, common.ErrDataTypeNotSupported) {
+					return fmt.Errorf("json to String: %w", err)
+				}
 			}
+
+			*a = str
 		case **string:
 			value, ok := doc[f.Name]
 			if !ok {
@@ -144,6 +166,13 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 			}
 
 			*a = ptr.T(str)
+		case *time.Time:
+			t, err := parseTime(doc[f.Name])
+			if err != nil {
+				return fmt.Errorf("parse time for field %s: %w", f.Name, err)
+			}
+
+			*a = t
 		case **time.Time:
 			value, ok := doc[f.Name]
 			if !ok {
@@ -157,54 +186,12 @@ func (r *documentReader) accept(logger *zap.Logger, hit opensearchapi.SearchHit)
 			}
 
 			*a = ptr.T(t)
-		case **map[string]string:
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			convertedMap, err := convertToMapStringString(logger, value, f.Name)
-			if err != nil {
-				return fmt.Errorf("failed to convert map for field '%s': %w", f.Name, err)
-			}
-
-			*a = convertedMap
 		default:
 			return fmt.Errorf("unsupported type %T: %w for field %T", acceptors[i], common.ErrDataTypeNotSupported, f.Name)
 		}
 	}
 
 	return nil
-}
-
-func convertToMapStringString(logger *zap.Logger, value any, fieldName string) (*map[string]string, error) {
-	inputMap, ok := value.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("expected map[string]any for field %s, got %T", fieldName, value)
-	}
-
-	resultMap := make(map[string]string, len(inputMap))
-
-	for key, val := range inputMap {
-		strVal, err := jsonToString(logger, val)
-		if err != nil {
-			if errors.Is(err, common.ErrDataTypeNotSupported) {
-				logger.Warn("unsupported type in map conversion",
-					zap.String("field", fieldName),
-					zap.String("key", key),
-					zap.Any("value", val))
-
-				continue
-			}
-
-			return nil, fmt.Errorf("convert map value for field %s.%s: %w", fieldName, key, err)
-		}
-
-		resultMap[key] = strVal
-	}
-
-	return &resultMap, nil
 }
 
 func parseTime(value any) (time.Time, error) {
@@ -359,16 +346,16 @@ func addAcceptorAppenderNullable(
 		case Ydb.Type_DOUBLE:
 			acceptors = append(acceptors, new(*float64))
 			appenders = append(appenders, utils.MakeAppenderNullable[float64, float64, *array.Float64Builder](cc.Float64()))
-		case Ydb.Type_STRING:
+		case Ydb.Type_UTF8, Ydb.Type_JSON, Ydb.Type_STRING:
 			acceptors = append(acceptors, new(*string))
-			appenders = append(appenders, utils.MakeAppenderNullable[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case Ydb.Type_TIMESTAMP:
 			acceptors = append(acceptors, new(*time.Time))
 			appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 		}
 	case *Ydb.Type_StructType:
-		acceptors = append(acceptors, new(*map[string]string))
-		appenders = append(appenders, createStructAppender(t.StructType))
+		acceptors = append(acceptors, new(*Ydb.StructType))
+		appenders = append(appenders, utils.MakeAppenderNullable[[]byte, string, *array.StringBuilder](cc.BytesToString()))
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 	}
@@ -376,54 +363,10 @@ func addAcceptorAppenderNullable(
 	return acceptors, appenders, nil
 }
 
-func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) error {
-	fieldNames := make([]string, len(structType.Members))
-	for i, member := range structType.Members {
-		fieldNames[i] = member.Name
-	}
-
-	return func(acceptor any, builder array.Builder) error {
-		pt, ok := acceptor.(**map[string]string)
-		if !ok {
-			return fmt.Errorf("invalid acceptor type: expected **map[string]string, got %T", acceptor)
-		}
-
-		structBuilder, ok := builder.(*array.StructBuilder)
-		if !ok {
-			return fmt.Errorf("invalid builder type: expected *array.StructBuilder, got %T", builder)
-		}
-
-		if pt == nil || *pt == nil {
-			structBuilder.AppendNull()
-			return nil
-		}
-
-		structBuilder.Append(true)
-
-		data := *pt
-
-		for i, fieldName := range fieldNames {
-			fieldBuilder, ok := structBuilder.FieldBuilder(i).(*array.BinaryBuilder)
-			if !ok {
-				return fmt.Errorf("unexpected builder type for field %s: %T", fieldName, structBuilder.FieldBuilder(i))
-			}
-
-			if value, exists := (*data)[fieldName]; exists {
-				fieldBuilder.Append([]byte(value))
-			} else {
-				fieldBuilder.AppendNull()
-			}
-		}
-
-		return nil
-	}
-}
-
 func addAcceptorAppenderNonNullable(
 	ydbType *Ydb.Type,
 	cc conversion.Collection,
-	acceptors []any,
-	appenders []appenderFunc,
+	acceptors []any, appenders []appenderFunc,
 ) (
 	[]any,
 	[]appenderFunc,
@@ -431,9 +374,9 @@ func addAcceptorAppenderNonNullable(
 ) {
 	switch t := ydbType.Type.(type) {
 	case *Ydb.Type_TypeId:
-		if t.TypeId == Ydb.Type_STRING {
-			acceptors = append(acceptors, new(string))
-			appenders = append(appenders, utils.MakeAppender[string, []byte, *array.BinaryBuilder](cc.StringToBytes()))
+		if t.TypeId == Ydb.Type_INT64 {
+			acceptors = append(acceptors, new(int64))
+			appenders = append(appenders, utils.MakeAppender[int64, int64, *array.Int64Builder](cc.Int64()))
 		}
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
