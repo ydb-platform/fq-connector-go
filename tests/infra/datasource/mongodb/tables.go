@@ -435,7 +435,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"objectid": common.MakeOptionalType(common.MakeTaggedType("ObjectId", objectIdType)),
+				"objectid": Optional(Tagged("ObjectId", objectIdType)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
@@ -455,7 +455,25 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
 				"_id":      testIdType,
-				"objectid": common.MakeOptionalType(common.MakeTaggedType("ObjectId", objectIdType)),
+				"objectid": Optional(Tagged("ObjectId", objectIdType)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(0)},
+				"objectid": []*[]byte{
+					ptr.T([]byte(string("171e75500ecde1c75c59139e"))),
+				},
+			},
+		}},
+	},
+	"object_ids_0": {
+		Name:                  "object_ids",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":      testIdType,
+				"objectid": Optional(objectIdType),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{{

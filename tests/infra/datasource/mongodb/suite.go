@@ -1,6 +1,8 @@
 package mongodb
 
 import (
+	"encoding/hex"
+
 	"github.com/apache/arrow/go/v13/arrow/array"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -491,6 +493,110 @@ func (s *Suite) TestPushdownWithCoalesce() {
 	)
 }
 
+func hexEncoded(s string) []byte {
+	bytes, _ := hex.DecodeString(s)
+	return bytes
+}
+
+func objectIdPredicateWithCoalesce(typedValue *Ydb.TypedValue) *api_service_protos.TPredicate_Comparison {
+	// SELECT * FROM object_ids WHERE COALESCE(NULL, <typedValue>) = objectid;
+
+	return &api_service_protos.TPredicate_Comparison{
+		Comparison: &api_service_protos.TPredicate_TComparison{
+			LeftValue: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_Coalesce{
+					Coalesce: &api_service_protos.TExpression_TCoalesce{
+						Operands: []*api_service_protos.TExpression{
+							{
+								Payload: &api_service_protos.TExpression_Column{Column: "nonexistent"},
+							},
+							{
+								Payload: &api_service_protos.TExpression_TypedValue{
+									TypedValue: typedValue,
+								},
+							},
+						},
+					},
+				},
+			},
+			Operation: api_service_protos.TPredicate_TComparison_EQ,
+			RightValue: &api_service_protos.TExpression{
+				Payload: &api_service_protos.TExpression_Column{Column: "objectid"},
+			},
+		},
+	}
+}
+
+func (s *Suite) TestPushdownWithCoalesceObjectId() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetDefaultOptions()
+
+	typedValue := common.MakeTypedValue(Optional(Primitive(Ydb.Type_STRING)),
+		hexEncoded("171e75500ecde1c75c59139e"))
+
+	// SELECT * FROM object_ids
+	// 	WHERE COALESCE(NULL, "171e75500ecde1c75c59139e") = objectid;
+	predicate := objectIdPredicateWithCoalesce(typedValue)
+
+	// In this test the ObjectId field is presented as YQL String
+	// And thus produces such filter:
+	// { $expr: {
+	// 	$or: [
+	// 		$eq: [
+	// 			{ $ifNull: [ $nonexistent, "171e75500ecde1c75c59139e" ]},
+	// 			$objectid,
+	// 		],
+	// 		$eq: [
+	// 			{ $ifNull: [ $nonexistent, ObjectId("171e75500ecde1c75c59139e") ]},
+	// 			$objectid,
+	// 		],
+	// 	]
+	// }}
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["object_ids_0"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: predicate,
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownWithCoalesceObjectIdTagged() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
+	}
+
+	s.SetWithTaggedOptions()
+
+	typedValue := common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
+		hexEncoded("171e75500ecde1c75c59139e"))
+
+	// SELECT * FROM object_ids
+	// 	WHERE COALESCE(NULL, AsTagged("171e75500ecde1c75c59139e", "ObjectId")) = objectid;
+	predicate := objectIdPredicateWithCoalesce(typedValue)
+
+	// In this test the ObjectId field is presented as YQL Tagged<"ObjectId", String>
+	// And thus produces such filter:
+	// { $expr: {
+	// 		$eq: [
+	// 			{ $ifNull: [ $nonexistent, ObjectId("171e75500ecde1c75c59139e") ]},
+	// 			$objectid,
+	// 		],
+	// }}
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["tagged_0"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: predicate,
+		}),
+	)
+}
+
 func (s *Suite) TestObjectIdAsTaggedString() {
 	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
@@ -516,7 +622,7 @@ func (s *Suite) TestObjectIdAsTaggedFilter() {
 				"objectid",
 				api_service_protos.TPredicate_TComparison_EQ,
 				common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
-					[]byte{0x17, 0x1e, 0x75, 0x50, 0x0e, 0xcd, 0xe1, 0xc7, 0x5c, 0x59, 0x13, 0x9e},
+					hexEncoded("171e75500ecde1c75c59139e"),
 				),
 			),
 		}),
