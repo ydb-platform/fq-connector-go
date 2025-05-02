@@ -1362,11 +1362,11 @@ type TOpenSearchConfig struct {
 	PingConnectionTimeout string `protobuf:"bytes,3,opt,name=ping_connection_timeout,json=pingConnectionTimeout,proto3" json:"ping_connection_timeout,omitempty"`
 	// Timeout for keeping scroll context alive in OpenSearch
 	// Valid values should satisfy `time.ParseDuration` (e. g. '1m', '5m', '30s').
-	// Default: "5m"
+	// Default: "10s"
 	ScrollTimeout string `protobuf:"bytes,4,opt,name=scroll_timeout,json=scrollTimeout,proto3" json:"scroll_timeout,omitempty"`
 	// Number of documents to retrieve in each batch during scroll operations
 	// Valid range: 1-10000
-	// Default: 1000
+	// Default: 100
 	BatchSize          uint64                     `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
 	ExponentialBackoff *TExponentialBackoffConfig `protobuf:"bytes,10,opt,name=exponential_backoff,json=exponentialBackoff,proto3" json:"exponential_backoff,omitempty"`
 	unknownFields      protoimpl.UnknownFields
