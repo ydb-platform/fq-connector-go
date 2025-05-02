@@ -40,6 +40,14 @@ func parseMapping(
 
 	var columns []*Ydb.Column
 
+	// OpenSearch document id
+	idColumn := &Ydb.Column{
+		Name: "_id",
+		Type: common.MakePrimitiveType(Ydb.Type_INT64),
+	}
+
+	columns = append([]*Ydb.Column{idColumn}, columns...)
+
 	keys := getSortedKeys(properties)
 
 	for _, fieldName := range keys {
