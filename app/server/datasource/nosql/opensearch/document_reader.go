@@ -91,7 +91,7 @@ func (r *documentReader) accept(
 			}
 		case **bool:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
@@ -101,7 +101,7 @@ func (r *documentReader) accept(
 			}
 		case **int32:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
@@ -111,7 +111,7 @@ func (r *documentReader) accept(
 			}
 		case **int64:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
@@ -131,7 +131,7 @@ func (r *documentReader) accept(
 			}
 		case **float64:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
@@ -147,7 +147,7 @@ func (r *documentReader) accept(
 			}
 		case **string:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
@@ -163,7 +163,7 @@ func (r *documentReader) accept(
 			*a = ptr.T(str)
 		case **time.Time:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
@@ -176,7 +176,7 @@ func (r *documentReader) accept(
 			*a = ptr.T(t)
 		case **map[string]any:
 			value, ok := doc[f.Name]
-			if !ok {
+			if !ok || value == nil {
 				*a = nil
 				continue
 			}
