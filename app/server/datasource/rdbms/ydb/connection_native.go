@@ -75,7 +75,7 @@ func (r *rowsNative) Scan(dest ...any) error {
 	return nil
 }
 
-func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r *rowsNative) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	if r.lastResultSet == nil {
 		return nil, fmt.Errorf("last result set is not ready yet")
 	}
@@ -87,7 +87,7 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 		typeNames = append(typeNames, columnType.Yql())
 	}
 
-	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes, cc)
+	transformer, err := transformerFromSQLTypes(typeNames, common.YDBColumnsToYDBTypes(ydbColumns), cc)
 	if err != nil {
 		return nil, fmt.Errorf("transformer from sql types: %w", err)
 	}

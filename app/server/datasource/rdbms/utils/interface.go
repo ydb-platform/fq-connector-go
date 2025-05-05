@@ -43,7 +43,7 @@ type Rows interface {
 	Next() bool
 	NextResultSet() bool
 	Scan(dest ...any) error
-	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
+	MakeTransformer(columns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
 //go:generate stringer -type=QueryPhase

@@ -3,11 +3,13 @@ package logging
 import (
 	"context"
 
+	"go.uber.org/zap"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-	"go.uber.org/zap"
 )
 
 const (
@@ -31,7 +33,7 @@ var _ rdbms_utils.SchemaProvider = (*schemaProviderImpl)(nil)
 type schemaProviderImpl struct {
 }
 
-func (s *schemaProviderImpl) GetSchema(
+func (schemaProviderImpl) GetSchema(
 	_ context.Context,
 	_ *zap.Logger,
 	_ rdbms_utils.Connection,

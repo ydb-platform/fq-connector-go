@@ -542,8 +542,8 @@ func TestMakeSelectQuery(t *testing.T) {
 
 			for i, ydbType := range tc.outputYdbTypes {
 				require.Equal(
-					t, ydbType, readSplitsQuery.YdbTypes[i],
-					fmt.Sprintf("unequal types at index %d: expected=%v, actual=%v", i, ydbType, readSplitsQuery.YdbTypes[i]),
+					t, ydbType, readSplitsQuery.YdbColumns[i].Type,
+					fmt.Sprintf("unequal types at index %d: expected=%v, actual=%v", i, ydbType, readSplitsQuery.YdbColumns[i].Type),
 				)
 			}
 		})
