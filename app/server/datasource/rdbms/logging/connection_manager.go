@@ -16,7 +16,6 @@ import (
 )
 
 type connectionManager struct {
-	rdbms_utils.Connection
 	ydbConnectionManager rdbms_utils.ConnectionManager
 	resolver             Resolver
 }
