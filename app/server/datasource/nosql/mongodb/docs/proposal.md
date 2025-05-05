@@ -283,20 +283,24 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 
 ## Реализация коннектора в YDB
 
-Минимум: 
-- Извлечение схемы + type inference с помощью маленького скана коллекции. При несоответствии типов некоторого поля в различных документах одной коллекции используются сериализованные значения YQL-типа `Utf8`.
-- `SELECT * FROM ... ` без предикатов в коллекции с гомогенными документами
+Обязательный минимум: 
+- Извлечение схемы с type inference с помощью маленького скана коллекции. Размер скана задается в конфиге fq-connector-go. При несоответствии типов некоторого поля в различных документах одной коллекции для его представления используются сериализованные значения YQL-типа `Utf8`.
+- `SELECT * FROM ... ` без предикатов
+- Поддержка простых типов: Int32, Int64, Boolean, Double, String, Binary, ObjectID (на стороне YDB они все будут обернуты в Optional)
+
+Расширенная базовая реализация:
 - Column projection с фильтрацией колонок на уровне коннектора
-- Поддержка простых типов: Int32, Int64, Double, String, Object, Array, Binary, BSON Date (на стороне YDB они все будут обернуты в Optional)
-- Пушдаун фильтров: операторов сравнения, логических операторов, `LIMIT`, `OFFSET`, column projection на уровне MongoDB
+- Пушдаун предикатов: операторов сравнения, логических операторов (отрицания, конъюнкции и дизъюнкции), `IS NULL` и `IS NOT NULL`, `LIMIT`, `OFFSET`,  `IN`, `BETWEEN`
 
 Продвинутая реализация
-- Пушдаун сложных предикатов, матчинг паттернов с `LIKE`, аггрегатных функций, `ORDER BY`
+- Поддержка TaggedType в блочном движке YQL
+- Пушдаун сложных предикатов: `LIKE`, `IF THEN ELSE`, `COALESCE`
+- Поддержка пушдауна арифметических операций из WHERE
+- Поддержка временных типов (Date / Interval) и сложных типов-контейнеров: списков (bson.A / List\<T\>), структур (bson.D / YQL Struct) и словарей (bson.M / YQL Dict)
+- Многопоточное чтение с ListSplits
 - Возможность редактирования полученной в коннекторе схемы
-- Поддержка сложных типов-контейнеров: структур (bson.D / YQL Struct) и словарей (bson.M / YQL Dict)
-- Чтение схемы из специальной коллекции в бд MongoDB, которую создал пользователь, или дополнительного конфигурационного файла
-- Поддержка чтения схемы из систем вроде Apache Hive Metastore
-
+- Чтение схемы из специальной коллекции в MongoDB или дополнительного конфигурационного файла
+- Чтение схемы из Apache Hive Metastore
 
 #### MongoDB to YDB + Apache Arrow type mapping
 
@@ -311,5 +315,5 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 |Object|Json|STRING|
 |Array|List\<T\>|LIST|
 |Decimal128 |Decimal|DECIMAL128|
-|ObjectId (12 bytes)|Tagged("ObjectId", String)|BINARY|
+|ObjectId (12 bytes)|String / Tagged("ObjectId", String)|BINARY|
 |Date (int64, milliseconds since epoch)|Interval|DATE64|
