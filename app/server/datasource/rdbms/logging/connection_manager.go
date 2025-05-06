@@ -120,12 +120,18 @@ func (cm *connectionManager) makeConnectionForReadSplits(
 		UseTls:      true,
 	}
 
-	cs, err := cm.makeConnectionFromDataSourceInstance(params.Ctx, params.Logger, dsi, src.TableName)
+	ydbConns, err := cm.makeConnectionFromDataSourceInstance(params.Ctx, params.Logger, dsi, src.TableName)
 	if err != nil {
 		return nil, fmt.Errorf("make connection from data source instance: %w", err)
 	}
 
-	return cs, nil
+	// Wrap YDB connections with Logging decorator to override data types
+	loggingCons := make([]rdbms_utils.Connection, 0, len(ydbConns))
+	for _, ydbConn := range ydbConns {
+		loggingCons = append(loggingCons, &connectionImpl{Connection: ydbConn})
+	}
+
+	return loggingCons, nil
 }
 
 func (cm *connectionManager) makeConnectionFromDataSourceInstance(

@@ -69,7 +69,7 @@ func (r *rowsNative) NextResultSet() bool {
 
 func (r *rowsNative) Scan(dest ...any) error {
 	if err := r.lastRow.Scan(dest...); err != nil {
-		return fmt.Errorf("rows scan: %w", err)
+		return fmt.Errorf("last row scan: %w", err)
 	}
 
 	return nil

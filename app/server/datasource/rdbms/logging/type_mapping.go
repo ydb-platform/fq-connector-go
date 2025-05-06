@@ -12,8 +12,8 @@ import (
 )
 
 func makeRowTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	acceptors := make([]any, len(ydbColumns))
-	appenders := make([]func(acceptor any, builder array.Builder) error, len(ydbColumns))
+	acceptors := make([]any, 0, len(ydbColumns))
+	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(ydbColumns))
 
 	for _, ydbColumn := range ydbColumns {
 		switch ydbColumn.Name {
