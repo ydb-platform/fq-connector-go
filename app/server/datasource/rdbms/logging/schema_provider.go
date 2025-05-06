@@ -12,16 +12,9 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	levelColumnName     = "level"
-	timestampColumnName = "timestamp"
-	messageColumnName   = "message"
-	metaColumnName      = "meta"
-)
-
 var loggingVirtualSchema = &api_service_protos.TSchema{
 	Columns: []*Ydb.Column{
-		{Name: levelColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING))},
+		{Name: levelColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8))},
 		{Name: timestampColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_TIMESTAMP))},
 		{Name: messageColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8))},
 		{Name: metaColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON))},

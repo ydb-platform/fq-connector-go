@@ -99,6 +99,9 @@ type SQLFormatter interface {
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
 	FormatFrom(tableName string) string
+	// TransformSelectWhat transforms the list of requested items
+	// (may be usefull for some special data sources)
+	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat
 	// RenderSelectQueryText composes final query text from the given clauses.
 	// Particular implementation may mix-in some additional parts into the query.
 	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)

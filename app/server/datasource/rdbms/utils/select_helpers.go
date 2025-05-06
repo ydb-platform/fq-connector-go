@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -9,21 +8,6 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
-
-func selectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) ([]*Ydb.Column, error) {
-	var columns []*Ydb.Column
-
-	for i, item := range selectWhat.Items {
-		column := item.GetColumn()
-		if column == nil {
-			return nil, fmt.Errorf("item #%d (%v) is not a column", i, item)
-		}
-
-		columns = append(columns, column)
-	}
-
-	return columns, nil
-}
 
 func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat {
 	return &api_service_protos.TSelect_TWhat{
@@ -42,30 +26,23 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 
 func formatSelectClause(
 	formatter SQLFormatter,
-	selectWhat *api_service_protos.TSelect_TWhat,
-	fakeZeroOnEmptyColumnsSet bool,
+	src *api_service_protos.TSelect_TWhat,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
+	// Apply necessary transformations to the list of requested items and extract columns
+	dst := formatter.TransformSelectWhat(src)
+	columns := common.SelectWhatToYDBColumns(dst)
+
+	// This buffer will hold the part of SELECT query that occures between SELECT and FROM keywords
 	var sb strings.Builder
 
-	columns, err := selectWhatToYDBColumns(selectWhat)
-	if err != nil {
-		return "", nil, fmt.Errorf("convert Select.What.Items to Ydb.Columns: %w", err)
-	}
-
-	var newSelectWhat *api_service_protos.TSelect_TWhat
-
-	// for the case of empty column set select some constant for constructing a valid sql statement
+	// If no columns were requested, select some constant to construct valid SQL statement
 	if len(columns) == 0 {
-		if !fakeZeroOnEmptyColumnsSet {
-			return "", nil, fmt.Errorf("empty columns set")
-		}
-
 		sb.WriteString("0")
 
 		// YQ-3314: is needed only in select COUNT(*) for ydb datasource.
 		// 		In PostgreSQL or ClickHouse type_mapper is based on typeNames that are extraceted from column.DatabaseTypeName().
 		//		But in ydb type_mapper is based on ydbTypes, that are extracted from TSelect_TWhat
-		newSelectWhat = makeTSelectTWhatForEmptyColumnsRequest()
+		dst = makeTSelectTWhatForEmptyColumnsRequest()
 	} else {
 		for i, column := range columns {
 			sb.WriteString(formatter.SanitiseIdentifier(column.GetName()))
@@ -75,8 +52,8 @@ func formatSelectClause(
 			}
 		}
 
-		newSelectWhat = selectWhat
+		dst = src
 	}
 
-	return sb.String(), newSelectWhat, nil
+	return sb.String(), dst, nil
 }
