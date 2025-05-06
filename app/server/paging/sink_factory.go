@@ -38,7 +38,10 @@ type sinkFactoryImpl[T Acceptor] struct {
 
 // MakeSinks is used to generate Sink objects, one per each data source connection.
 // This method can be called only once.
-func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) {
+func (f *sinkFactoryImpl[T]) MakeSinks(
+	selectWhat *api_service_protos.TSelect_TWhat,
+	params []*SinkParams,
+) ([]Sink[T], error) {
 	if f.state != sinkFactoryIdle {
 		return nil, fmt.Errorf("sink factory is already in use")
 	}
@@ -51,7 +54,7 @@ func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) 
 	terminateChan := make(chan Sink[T], f.totalSinks)
 
 	for i := 0; i < f.totalSinks; i++ {
-		buffer, err := f.bufferFactory.MakeBuffer()
+		buffer, err := f.bufferFactory.MakeBuffer(selectWhat)
 		if err != nil {
 			f.state = sinkFactoryFailed
 			return nil, fmt.Errorf("make buffer: %w", err)
@@ -70,6 +73,7 @@ func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) 
 			currBuffer:     buffer,
 			logger:         params[i].Logger,
 			state:          sinkOperational,
+			selectWhat:     selectWhat,
 			ctx:            f.ctx,
 		}
 

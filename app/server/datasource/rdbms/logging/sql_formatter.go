@@ -52,11 +52,11 @@ func (s sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat)
 
 func (s sqlFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
-	split *api_service_protos.TSplit,
+	splitDescriptionDump []byte,
 ) (string, error) {
 	var dst TSplitDescription
 
-	if err := protojson.Unmarshal(split.GetDescription(), &dst); err != nil {
+	if err := protojson.Unmarshal(splitDescriptionDump, &dst); err != nil {
 		return "", fmt.Errorf("unmarshal split description: %w", err)
 	}
 

@@ -265,11 +265,7 @@ func doReadSplit[T paging.Acceptor](
 ) error {
 	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
 
-	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](
-		logger,
-		memoryAllocator,
-		request.Format,
-		split.Select.What)
+	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](logger, memoryAllocator, request.Format)
 	if err != nil {
 		return fmt.Errorf("new columnar buffer factory: %w", err)
 	}

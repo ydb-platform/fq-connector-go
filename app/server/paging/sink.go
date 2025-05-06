@@ -23,15 +23,16 @@ var _ Sink[any] = (*sinkImpl[any])(nil)
 var _ Sink[string] = (*sinkImpl[string])(nil)
 
 type sinkImpl[T Acceptor] struct {
-	currBuffer     ColumnarBuffer[T]        // accumulates incoming rows
-	resultQueue    chan *ReadResult[T]      // outgoing buffer queue
-	terminateChan  chan<- Sink[T]           // notify factory when the data reading is finished
-	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
-	trafficTracker *trafficTracker[T]       // tracks the amount of data passed through the sink
-	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request
-	logger         *zap.Logger              // annotated logger
-	state          sinkState                // flag showing if it's ready to return data
-	ctx            context.Context          // client context
+	currBuffer     ColumnarBuffer[T]                 // accumulates incoming rows
+	resultQueue    chan *ReadResult[T]               // outgoing buffer queue
+	selectWhat     *api_service_protos.TSelect_TWhat // parameter for a buffer factory
+	terminateChan  chan<- Sink[T]                    // notify factory when the data reading is finished
+	bufferFactory  ColumnarBufferFactory[T]          // creates new buffer
+	trafficTracker *trafficTracker[T]                // tracks the amount of data passed through the sink
+	readLimiter    ReadLimiter                       // helps to restrict the number of rows read in every request
+	logger         *zap.Logger                       // annotated logger
+	state          sinkState                         // flag showing if it's ready to return data
+	ctx            context.Context                   // client context
 }
 
 func (s *sinkImpl[T]) AddRow(rowTransformer RowTransformer[T]) error {
@@ -87,7 +88,7 @@ func (s *sinkImpl[T]) flush(makeNewBuffer bool, isTerminalMessage bool) error {
 	if makeNewBuffer {
 		var err error
 
-		s.currBuffer, err = s.bufferFactory.MakeBuffer()
+		s.currBuffer, err = s.bufferFactory.MakeBuffer(s.selectWhat)
 		if err != nil {
 			return fmt.Errorf("make buffer: %w", err)
 		}

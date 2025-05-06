@@ -41,8 +41,8 @@ type SinkFactoryMock struct {
 	mock.Mock
 }
 
-func (m *SinkFactoryMock) MakeSinks(params []*SinkParams) ([]Sink[any], error) {
-	args := m.Called(params)
+func (m *SinkFactoryMock) MakeSinks(selectWhat *api_service_protos.TSelect_TWhat, params []*SinkParams) ([]Sink[any], error) {
+	args := m.Called(selectWhat, params)
 
 	return args.Get(0).([]Sink[any]), args.Error(1)
 }

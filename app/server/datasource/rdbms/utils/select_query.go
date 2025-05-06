@@ -8,6 +8,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -22,23 +23,26 @@ func MakeSelectQuery(
 	ctx context.Context,
 	logger *zap.Logger,
 	formatter SQLFormatter,
-	split *api_service_protos.TSplit,
+	selectWhat *api_service_protos.TSelect_TWhat,
+	selectWhere *api_service_protos.TSelect_TWhere,
+	dataSourceKind api_common.EGenericDataSourceKind,
+	splitDescription []byte,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
 	tableName string,
 ) (*SelectQuery, error) {
 	var (
-		parts        SelectQueryParts
-		modifiedWhat *api_service_protos.TSelect_TWhat
-		err          error
+		parts                 SelectQueryParts
+		selectWhatTransformed *api_service_protos.TSelect_TWhat
+		err                   error
 	)
 
 	// Render SELECT clause
-	parts.SelectClause, modifiedWhat, err = formatSelectClause(formatter, split.Select.What)
+	parts.SelectClause, selectWhatTransformed, err = formatSelectClause(formatter, selectWhat)
 	if err != nil {
 		return nil, fmt.Errorf("format select clause: %w", err)
 	}
 
-	ydbColumns := common.SelectWhatToYDBColumns(modifiedWhat)
+	ydbColumns := common.SelectWhatToYDBColumns(selectWhatTransformed)
 
 	// Render FROM clause
 	if tableName == "" {
@@ -49,13 +53,13 @@ func MakeSelectQuery(
 
 	// Render WHERE clause
 	var queryArgs *QueryArgs
-	if split.Select.Where != nil {
+	if selectWhere != nil {
 		parts.WhereClause, queryArgs, err = formatWhereClause(
 			logger,
 			filtering,
 			formatter,
-			split.Select.Where,
-			split.Select.DataSourceInstance.Kind,
+			selectWhere,
+			dataSourceKind,
 		)
 
 		if err != nil {
@@ -64,7 +68,7 @@ func MakeSelectQuery(
 	}
 
 	// Render whole query
-	queryText, err := formatter.RenderSelectQueryText(&parts, split)
+	queryText, err := formatter.RenderSelectQueryText(&parts, splitDescription)
 	if err != nil {
 		return nil, fmt.Errorf("render query text: %w", err)
 	}

@@ -156,8 +156,11 @@ func (ds *dataSourceImpl) ReadSplit(
 		}
 	}
 
+	// Apply necessary transformations to the list of requested items
+	selectWhat := ds.sqlFormatter.TransformSelectWhat(split.Select.What)
+
 	// Prepare sinks that will accept the data from the connections.
-	sinks, err := sinkFactory.MakeSinks(sinkParams)
+	sinks, err := sinkFactory.MakeSinks(selectWhat, sinkParams)
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}
@@ -175,7 +178,10 @@ func (ds *dataSourceImpl) ReadSplit(
 				ctx,
 				logger,
 				ds.sqlFormatter,
-				split,
+				selectWhat,
+				split.Select.Where,
+				split.Select.DataSourceInstance.Kind,
+				split.GetDescription(),
 				request.Filtering,
 				conn.TableName(),
 			)

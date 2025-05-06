@@ -61,17 +61,18 @@ func SelectWhatToArrowSchema(selectWhat *api_service_protos.TSelect_TWhat) (*arr
 	return schema, nil
 }
 
-func YdbTypesToArrowBuilders(ydbTypes []*Ydb.Type, arrowAllocator memory.Allocator) ([]array.Builder, error) {
+func SelectWhatToArrowBuilders(selectWhat *api_service_protos.TSelect_TWhat, arrowAllocator memory.Allocator) ([]array.Builder, error) {
 	var (
 		builders []array.Builder
 		builder  array.Builder
 		err      error
 	)
 
-	for _, ydbType := range ydbTypes {
-		builder, err = ydbTypeToArrowBuilder(ydbType, arrowAllocator)
+	for _, item := range selectWhat.Items {
+		fmt.Println(">>>> ", item)
+		builder, err = ydbTypeToArrowBuilder(item.GetColumn().Type, arrowAllocator)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("item %v to arrow builder: %w", item, err)
 		}
 
 		builders = append(builders, builder)

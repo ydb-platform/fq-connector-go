@@ -28,9 +28,9 @@ func formatSelectClause(
 	formatter SQLFormatter,
 	src *api_service_protos.TSelect_TWhat,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
-	// Apply necessary transformations to the list of requested items and extract columns
-	dst := formatter.TransformSelectWhat(src)
-	columns := common.SelectWhatToYDBColumns(dst)
+
+	columns := common.SelectWhatToYDBColumns(src)
+	var dst *api_service_protos.TSelect_TWhat
 
 	// This buffer will hold the part of SELECT query that occures between SELECT and FROM keywords
 	var sb strings.Builder

@@ -104,7 +104,7 @@ type SQLFormatter interface {
 	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat
 	// RenderSelectQueryText composes final query text from the given clauses.
 	// Particular implementation may mix-in some additional parts into the query.
-	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)
+	RenderSelectQueryText(parts *SelectQueryParts, splitDescriptionDump []byte) (string, error)
 }
 
 type SchemaProvider interface {

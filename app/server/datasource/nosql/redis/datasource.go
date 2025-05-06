@@ -391,7 +391,7 @@ func (ds *dataSource) ReadSplit(
 
 	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
 
-	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
+	sinks, err := sinkFactory.MakeSinks(split.Select.What, []*paging.SinkParams{{Logger: logger}})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}

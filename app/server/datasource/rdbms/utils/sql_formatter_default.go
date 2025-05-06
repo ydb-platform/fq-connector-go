@@ -15,7 +15,7 @@ type SQLFormatterDefault struct{}
 // It's suitable for datasource that treat the whole external table as a single split.
 func (SQLFormatterDefault) RenderSelectQueryText(
 	parts *SelectQueryParts,
-	_ *api_service_protos.TSplit,
+	splitDescription []byte,
 ) (string, error) {
 	var sb strings.Builder
 

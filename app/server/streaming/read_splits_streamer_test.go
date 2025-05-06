@@ -270,8 +270,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[any](
 		logger,
 		memory.NewGoAllocator(),
-		api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING,
-		split.Select.What)
+		api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING)
 	require.NoError(t, err)
 
 	pagingCfg := &config.TPagingConfig{RowsPerPage: uint64(tc.rowsPerPage)}

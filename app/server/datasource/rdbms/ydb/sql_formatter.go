@@ -113,7 +113,7 @@ func (f SQLFormatter) FormatFrom(tableName string) string {
 
 func (f SQLFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
-	split *api_service_protos.TSplit,
+	splitDescriptionDump []byte,
 ) (string, error) {
 	// Deserialize split description
 	var (
@@ -121,7 +121,7 @@ func (f SQLFormatter) RenderSelectQueryText(
 		err              error
 	)
 
-	if err = protojson.Unmarshal(split.GetDescription(), &splitDescription); err != nil {
+	if err = protojson.Unmarshal(splitDescriptionDump, &splitDescription); err != nil {
 		return "", fmt.Errorf("unmarshal split description: %w", err)
 	}
 
