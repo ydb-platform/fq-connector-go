@@ -275,6 +275,12 @@ func getComparisonFilter(
 		)
 	}
 
+	// In YDB type system, ObjectId can be represented as a String or Tagged<String>,
+	// but String is also used for binary data, so it doesn't map to a single MongoDB type.
+	// To build accurate filters, we try to interpret each YDB String
+	// as both binary and ObjectId, and if successful,
+	// generate a filter using a logical OR to match both.
+
 	return bson.D{{Key: "$expr",
 		Value: bson.D{{Key: "$or", Value: predicates}},
 	}}, nil
@@ -468,7 +474,7 @@ func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error)
 	operands := make([]any, 0, len(expr.Operands))
 	operandsWObjectId := make([]any, 0, len(expr.Operands))
 
-	metObjectId := false
+	objectIdPresent := false
 
 	for _, opExpr := range expr.Operands {
 		op, err := formatExpression(opExpr)
@@ -478,7 +484,7 @@ func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error)
 
 		switch o := op.(type) {
 		case objectIdPair:
-			metObjectId = true
+			objectIdPresent = true
 
 			operands = append(operands, o.bytes)
 			operandsWObjectId = append(operandsWObjectId, o.objectId)
@@ -488,7 +494,7 @@ func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error)
 		}
 	}
 
-	if !metObjectId {
+	if !objectIdPresent {
 		return bson.D{{Key: "$ifNull", Value: operands}}, nil
 	}
 
@@ -518,6 +524,9 @@ func formatValue(exprType *Ydb.Type, value any) (any, error) {
 		case Ydb.Type_STRING:
 			objectId, err := tryFormatObjectId(value)
 			if err != nil {
+				// YDB String is used for both binary data and ObjectId.
+				// If we can’t convert a value to an ObjectId, it simply means the value
+				// wasn’t one to begin with — which is expected and not an error.
 				return value, nil
 			}
 

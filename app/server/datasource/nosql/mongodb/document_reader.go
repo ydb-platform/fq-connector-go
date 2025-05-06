@@ -448,7 +448,7 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 
 				bytes, err := value.MarshalText()
 				if err != nil {
-					return err
+					return fmt.Errorf("marshal text from data in ObjectId: %w", err)
 				}
 
 				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, cc.Bytes())
@@ -471,7 +471,7 @@ func yqlStringAppender(acceptor any, builder array.Builder, ccBytes conversion.V
 	case primitive.ObjectID:
 		bytes, err := value.MarshalText()
 		if err != nil {
-			return err
+			return fmt.Errorf("marshal text from data in ObjectId: %w", err)
 		}
 
 		return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, ccBytes)
