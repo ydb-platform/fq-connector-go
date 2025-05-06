@@ -18,6 +18,19 @@ type sqlFormatter struct {
 	ydb.SQLFormatter
 }
 
+func (s sqlFormatter) RenderSelectQueryText(
+	parts *rdbms_utils.SelectQueryParts,
+	split *api_service_protos.TSplit,
+) (string, error) {
+	var dst TSplitDescription
+
+	if err := protojson.Unmarshal(split.GetDescription(), &dst); err != nil {
+		return "", fmt.Errorf("unmarshal split description: %w", err)
+	}
+
+	return s.RenderSelectQueryTextForColumnShard(parts, dst.GetYdb().TabletIds)
+}
+
 func (s sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat {
 	dst := &api_service_protos.TSelect_TWhat{}
 
@@ -48,19 +61,6 @@ func (s sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat)
 	}
 
 	return dst
-}
-
-func (s sqlFormatter) RenderSelectQueryText(
-	parts *rdbms_utils.SelectQueryParts,
-	split *api_service_protos.TSplit,
-) (string, error) {
-	var dst TSplitDescription
-
-	if err := protojson.Unmarshal(split.GetDescription(), &dst); err != nil {
-		return "", fmt.Errorf("unmarshal split description: %w", err)
-	}
-
-	return s.RenderSelectQueryTextForColumnShard(parts, dst.GetYdb().TabletIds)
 }
 
 func NewSQLFormatter(ydbSQLFormatter ydb.SQLFormatter) rdbms_utils.SQLFormatter {

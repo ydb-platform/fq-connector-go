@@ -47,3 +47,9 @@ func (SQLFormatterDefault) FormatContains(_, _ string) (string, error) {
 func (SQLFormatterDefault) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat {
 	return src
 }
+
+func (SQLFormatterDefault) TransformPredicateComparison(
+	src *api_service_protos.TPredicate_TComparison,
+) *api_service_protos.TPredicate_TComparison {
+	return src
+}
