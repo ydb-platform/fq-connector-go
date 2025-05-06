@@ -69,6 +69,7 @@ datasources:
   mongodb:
     <<: *data_source_default_var
     count_docs_to_deduce_schema: 5
+    object_id_yql_type: OBJECT_ID_AS_STRING
 
   redis:
     <<: *data_source_default_var
