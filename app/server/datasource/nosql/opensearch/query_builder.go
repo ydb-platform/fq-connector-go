@@ -7,10 +7,9 @@ import (
 	"io"
 )
 
-type QueryBuilder struct {
-}
+type queryBuilder struct{}
 
-func (*QueryBuilder) BuildInitialSearchQuery(batchSize uint64) (io.Reader, error) {
+func (*queryBuilder) buildInitialSearchQuery(batchSize uint64) (io.Reader, error) {
 	query := map[string]any{
 		"size": batchSize,
 		"query": map[string]any{
