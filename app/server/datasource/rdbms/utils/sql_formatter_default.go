@@ -48,8 +48,7 @@ func (SQLFormatterDefault) TransformSelectWhat(src *api_service_protos.TSelect_T
 	return src
 }
 
-func (SQLFormatterDefault) TransformPredicateComparison(
-	src *api_service_protos.TPredicate_TComparison,
-) *api_service_protos.TPredicate_TComparison {
-	return src
+func (SQLFormatterDefault) TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (
+	*api_service_protos.TPredicate_TComparison, error) {
+	return src, nil
 }

@@ -107,7 +107,8 @@ type SQLFormatter interface {
 	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat
 	// TransformPredicateComparison transforms the comparison predicate
 	// (may be usefull for some special data sources)
-	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) *api_service_protos.TPredicate_TComparison
+	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (
+		*api_service_protos.TPredicate_TComparison, error)
 }
 
 type SchemaProvider interface {

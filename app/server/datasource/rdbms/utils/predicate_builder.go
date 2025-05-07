@@ -276,10 +276,14 @@ func (pb *predicateBuilder) formatExpression(
 }
 
 func (pb *predicateBuilder) formatComparison(
-	comparison *api_service_protos.TPredicate_TComparison,
+	comparisonInitial *api_service_protos.TPredicate_TComparison,
 	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
-	var operation string
+	// transform comparison node taking into account data source specifics
+	comparison, err := pb.formatter.TransformPredicateComparison(comparisonInitial)
+	if err != nil {
+		return "", fmt.Errorf("transform predicate comparison: %w", err)
+	}
 
 	// render left and right operands
 	left, err := pb.formatExpression(comparison.LeftValue, embedBool)
@@ -319,6 +323,8 @@ func (pb *predicateBuilder) formatComparison(
 	}
 
 	// check basic operations
+	var operation string
+
 	switch op := comparison.Operation; op {
 	case api_service_protos.TPredicate_TComparison_L:
 		operation = " < "

@@ -37,17 +37,17 @@ func makeRowTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (pag
 
 				switch **src {
 				case 1:
-					typedBuilder.Append("TRACE")
+					typedBuilder.Append(levelTraceValue)
 				case 2:
-					typedBuilder.Append("DEBUG")
+					typedBuilder.Append(levelDebugValue)
 				case 3:
-					typedBuilder.Append("INFO")
+					typedBuilder.Append(levelInfoValue)
 				case 4:
-					typedBuilder.Append("WARN")
+					typedBuilder.Append(levelWarnValue)
 				case 5:
-					typedBuilder.Append("ERROR")
+					typedBuilder.Append(levelErrorValue)
 				case 6:
-					typedBuilder.Append("FATAL")
+					typedBuilder.Append(levelFatalValue)
 				default:
 					return fmt.Errorf("unexpected level value %d", *src)
 				}
