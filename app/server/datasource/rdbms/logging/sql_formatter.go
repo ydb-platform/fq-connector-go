@@ -69,14 +69,19 @@ func (sqlFormatter) TransformPredicateComparison(
 ) (*api_service_protos.TPredicate_TComparison, error) {
 	dst := proto.Clone(src).(*api_service_protos.TPredicate_TComparison)
 
+	// For the comparison related to `level` field
 	if src.LeftValue.GetColumn() == levelColumnName && src.RightValue.GetTypedValue() != nil {
 		if src.Operation != api_service_protos.TPredicate_TComparison_EQ {
 			return nil, fmt.Errorf("unsupported operation %v for `level` column comparison", src.Operation)
 		}
 
+		// Extract filter value of a string type
+		var levelValue string
 		switch src.RightValue.GetTypedValue().GetType().GetTypeId() {
-		case Ydb.Type_UTF8, Ydb.Type_STRING:
-			break
+		case Ydb.Type_UTF8:
+			levelValue = src.RightValue.GetTypedValue().GetValue().GetTextValue()
+		case Ydb.Type_STRING:
+			levelValue = string(src.RightValue.GetTypedValue().GetValue().GetBytesValue())
 		default:
 			return nil, fmt.Errorf(
 				"unsupported typed value of type %v for `level` column comparison",
@@ -84,7 +89,7 @@ func (sqlFormatter) TransformPredicateComparison(
 			)
 		}
 
-		levelValue := src.RightValue.GetTypedValue().GetValue().GetTextValue()
+		// Replace it with number representation
 		switch levelValue {
 		case levelTraceValue:
 			dst.RightValue.Payload = makeTypedValueForLevel(1)
