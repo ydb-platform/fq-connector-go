@@ -148,8 +148,6 @@ QueryServiceConfig {
 
 #### Запрос в коллекцию `primitives`
 
-В качестве настройки представления типа ObjectId здесь используется значение по умолчанию - YQL String.
-
 Файл с телом запроса
 
 data.yql
@@ -227,7 +225,12 @@ columns {
   type {
     optional_type {
       item {
-        type_id: STRING
+        tagged_type {
+          tag: "ObjectId"
+          type {
+            type_id: STRING
+          }
+        }
       }
     }
   }
@@ -323,14 +326,6 @@ rows {
 ```
 
 #### Запрос в коллекцию `bar`
-
-Меняем представление типа ObjectId на YQL TaggedType<"ObjectId", String> в настройках внешнего источника данных в конфиге fq-connector-go:
-
-```yaml
-mongodb:
-  object_id_yql_type: OBJECT_ID_AS_TAGGED_STRING
-  ...
-```
 
 Файл с телом запроса
 
@@ -435,98 +430,6 @@ rows {
 
 #### Запрос с фильтрацией по первичному ключу типа ObjectId
 
-##### В случае представления ObjectId как YQL String (используется по умолчанию)
-
-Настройки внешнего источника данных в конфиге fq-connector-go:
-
-```yaml
-mongodb:
-  object_id_yql_type: OBJECT_ID_AS_STRING
-  ...
-```
-
-Файл с телом запроса
-
-bar.yql
-```sql
-SELECT * FROM mongodb_external_datasource.bar WHERE _id = '67f3c139171bfd11df51e944';
-```
-
-Команда запроса
-
-```sh
-./ydb/tests/tools/kqprun/kqprun -s ydb/schema.yql -p ydb/bar.yql --app-config=ydb/app_conf.txt --result-format="full-proto"
-```
-
-Вывод результата выполнения команды без логов:
-
-```
-columns {
-  name: "_id"
-  type {
-    optional_type {
-      item {
-        type_id: STRING
-      }
-    }
-  }
-}
-columns {
-  name: "a"
-  type {
-    optional_type {
-      item {
-        type_id: UTF8
-      }
-    }
-  }
-}
-columns {
-  name: "b"
-  type {
-    optional_type {
-      item {
-        type_id: INT32
-      }
-    }
-  }
-}
-columns {
-  name: "c"
-  type {
-    optional_type {
-      item {
-        type_id: INT64
-      }
-    }
-  }
-}
-rows {
-  items {
-    bytes_value: "67f3c139171bfd11df51e944"
-  }
-  items {
-    text_value: "jelly"
-  }
-  items {
-    int32_value: 2000
-  }
-  items {
-    int64_value: 13
-  }
-}
-```
-
-##### В случае представления ObjectId как YQL TaggedType<"ObjectId", String>
-
-Настройки внешнего источника данных в конфиге fq-connector-go:
-
-```yaml
-mongodb:
-  object_id_yql_type: OBJECT_ID_AS_TAGGED_STRING
-  ...
-```
-
 Файл с телом запроса
 
 bar.yql
@@ -627,7 +530,12 @@ columns {
   type {
     optional_type {
       item {
-        type_id: STRING
+        tagged_type {
+          tag: "ObjectId"
+          type {
+            type_id: STRING
+          }
+        }
       }
     }
   }

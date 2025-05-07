@@ -267,23 +267,7 @@ func getComparisonFilter(
 		return nil, fmt.Errorf("format right expression: %v: %w", comparison.RightValue, err)
 	}
 
-	var predicates []bson.D
-
-	for _, pair := range matchValues(left, right) {
-		predicates = append(predicates,
-			bson.D{{Key: operation, Value: bson.A{pair.first, pair.second}}},
-		)
-	}
-
-	// In YDB type system, ObjectId can be represented as a String or Tagged<String>,
-	// but String is also used for binary data, so it doesn't map to a single MongoDB type.
-	// To build accurate filters, we try to interpret each YDB String
-	// as both binary and ObjectId, and if successful,
-	// generate a filter using a logical OR to match both.
-
-	return bson.D{{Key: "$expr",
-		Value: bson.D{{Key: "$or", Value: predicates}},
-	}}, nil
+	return bson.D{{Key: "$expr", Value: bson.D{{Key: operation, Value: bson.A{left, right}}}}}, nil
 }
 
 func getStringComparisonFilter(
@@ -343,12 +327,7 @@ func getInSetFilter(
 			return nil, fmt.Errorf("unsupported expression in In filter's Set: %w", common.ErrUnimplementedExpression)
 		}
 
-		switch e := expr.(type) {
-		case objectIdPair:
-			inSet = append(inSet, e.bytes, e.objectId)
-		default:
-			inSet = append(inSet, expr)
-		}
+		inSet = append(inSet, expr)
 	}
 
 	return bson.D{{Key: fieldName, Value: bson.D{{Key: "$in", Value: inSet}}}}, nil
@@ -376,19 +355,13 @@ func getBetweenFilter(
 		return nil, fmt.Errorf("format greatest expression: %v: %w", between.Greatest, err)
 	}
 
-	var predicates []bson.D
-
-	for _, pair := range matchValues(least, greatest) {
-		predicates = append(predicates, bson.D{{
-			Key: fieldName,
-			Value: bson.D{
-				{Key: "$gte", Value: pair.first},
-				{Key: "$lte", Value: pair.second},
-			},
-		}})
-	}
-
-	return bson.D{{Key: "$or", Value: predicates}}, nil
+	return bson.D{{
+		Key: fieldName,
+		Value: bson.D{
+			{Key: "$gte", Value: least},
+			{Key: "$lte", Value: greatest},
+		},
+	}}, nil
 }
 
 func getRegexFilter(
@@ -434,11 +407,7 @@ func formatTypedValue(expr *Ydb.TypedValue) (any, error) {
 		return nil, fmt.Errorf("got %v of type %T as null trying to format Typed Value expression", v, v)
 	}
 
-	var (
-		value any
-		err   error
-	)
-
+	var value any
 	switch t := v.Value.(type) {
 	case *Ydb.Value_BoolValue:
 		value = t.BoolValue
@@ -462,7 +431,7 @@ func formatTypedValue(expr *Ydb.TypedValue) (any, error) {
 		return nil, fmt.Errorf("%w, type: %T", common.ErrUnimplementedTypedValue, t)
 	}
 
-	value, err = formatValue(ydbType, value)
+	value, err := formatValue(ydbType, value)
 	if err != nil {
 		return nil, fmt.Errorf("%w %w", err, common.ErrUnimplementedTypedValue)
 	}
@@ -472,9 +441,6 @@ func formatTypedValue(expr *Ydb.TypedValue) (any, error) {
 
 func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error) {
 	operands := make([]any, 0, len(expr.Operands))
-	operandsWObjectId := make([]any, 0, len(expr.Operands))
-
-	objectIdPresent := false
 
 	for _, opExpr := range expr.Operands {
 		op, err := formatExpression(opExpr)
@@ -482,31 +448,10 @@ func formatCoalesce(expr *api_service_protos.TExpression_TCoalesce) (any, error)
 			return nil, fmt.Errorf("format coalesce expression: %w", err)
 		}
 
-		switch o := op.(type) {
-		case objectIdPair:
-			objectIdPresent = true
-
-			operands = append(operands, o.bytes)
-			operandsWObjectId = append(operandsWObjectId, o.objectId)
-		default:
-			operands = append(operands, o)
-			operandsWObjectId = append(operandsWObjectId, o)
-		}
+		operands = append(operands, op)
 	}
 
-	if !objectIdPresent {
-		return bson.D{{Key: "$ifNull", Value: operands}}, nil
-	}
-
-	return objectIdPair{
-		bytes:    bson.D{{Key: "$ifNull", Value: operands}},
-		objectId: bson.D{{Key: "$ifNull", Value: operandsWObjectId}},
-	}, nil
-}
-
-type objectIdPair struct {
-	bytes    any
-	objectId any
+	return bson.D{{Key: "$ifNull", Value: operands}}, nil
 }
 
 func formatValue(exprType *Ydb.Type, value any) (any, error) {
@@ -519,23 +464,13 @@ func formatValue(exprType *Ydb.Type, value any) (any, error) {
 		switch t.TypeId {
 		case Ydb.Type_BOOL, Ydb.Type_INT8, Ydb.Type_UINT8, Ydb.Type_INT16,
 			Ydb.Type_UINT16, Ydb.Type_INT32, Ydb.Type_UINT32, Ydb.Type_INT64,
-			Ydb.Type_UINT64, Ydb.Type_FLOAT, Ydb.Type_DOUBLE, Ydb.Type_UTF8:
+			Ydb.Type_UINT64, Ydb.Type_FLOAT, Ydb.Type_DOUBLE, Ydb.Type_STRING, Ydb.Type_UTF8:
 			return value, nil
-		case Ydb.Type_STRING:
-			objectId, err := tryFormatObjectId(value)
-			if err != nil {
-				// YDB String is used for both binary data and ObjectId.
-				// If we can’t convert a value to an ObjectId, it simply means the value
-				// wasn’t one to begin with — which is expected and not an error.
-				return value, nil
-			}
-
-			return objectIdPair{bytes: value, objectId: objectId}, nil
 		default:
 			return nil, fmt.Errorf("unsupported type %T for typed value", t)
 		}
 	case *Ydb.Type_TaggedType:
-		if !common.TypesEqual(exprType, objectIdTaggedType) {
+		if !common.TypesEqual(exprType, objectIdType) {
 			return nil, fmt.Errorf("unknown Tagged type: %T", exprType)
 		}
 
@@ -545,54 +480,18 @@ func formatValue(exprType *Ydb.Type, value any) (any, error) {
 	}
 }
 
-func tryFormatObjectId(value any) (primitive.ObjectID, error) {
+func tryFormatObjectId(value any) (any, error) {
 	switch v := value.(type) {
 	case []byte:
 		hexString := hex.EncodeToString(v)
 
 		objectId, err := primitive.ObjectIDFromHex(hexString)
 		if err != nil {
-			return primitive.NilObjectID, fmt.Errorf("failed to construct ObjectId from %s: %w", hexString, err)
+			return nil, fmt.Errorf("failed to construct ObjectId from %s: %w", hexString, err)
 		}
 
 		return objectId, nil
 	default:
-		return primitive.NilObjectID, fmt.Errorf("wrong value of TypedValue for ObjectId: %v", value)
-	}
-}
-
-type pair struct {
-	first  any
-	second any
-}
-
-func matchValues(left, right any) []pair {
-	switch l := left.(type) {
-	case objectIdPair:
-		switch r := right.(type) {
-		case objectIdPair:
-			return []pair{
-				{first: l.bytes, second: r.bytes},
-				{first: l.objectId, second: r.objectId},
-			}
-		default:
-			return []pair{
-				{first: l.bytes, second: r},
-				{first: l.objectId, second: r},
-			}
-		}
-
-	default:
-		switch r := right.(type) {
-		case objectIdPair:
-			return []pair{
-				{first: l, second: r.bytes},
-				{first: l, second: r.objectId},
-			}
-		default:
-			return []pair{
-				{first: l, second: r},
-			}
-		}
+		return nil, fmt.Errorf("wrong value of TypedValue for ObjectId: %v", value)
 	}
 }
