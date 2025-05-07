@@ -32,7 +32,7 @@ type dataSource struct {
 	cc           conversion.Collection
 	cfg          *config.TOpenSearchConfig
 	queryLogger  common.QueryLogger
-	queryBuilder *QueryBuilder
+	queryBuilder *queryBuilder
 }
 
 func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TOpenSearchConfig, cc conversion.Collection) datasource.DataSource[any] {
@@ -192,7 +192,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 		return fmt.Errorf("scroll id is nil")
 	}
 
-	reader, err := prepareDocumentReader(logger, split, ds.cc)
+	reader, err := prepareDocumentReader(split, ds.cc)
 	if err != nil {
 		return fmt.Errorf("make document reader: %w", err)
 	}
@@ -202,15 +202,24 @@ func (ds *dataSource) doReadSplitSingleConn(
 
 	for {
 		if len(hits.Hits) == 0 {
+			logger.Info("no hits found")
 			break
 		}
 
 		if err := processHitsBatch(logger, hits.Hits, reader, sink); err != nil {
+			if clearErr := clearScroll(ctx, client, *scrollId); clearErr != nil {
+				return fmt.Errorf("clear scroll: %w", clearErr)
+			}
+
 			return fmt.Errorf("process hit: %w", err)
 		}
 
 		nextResp, err := ds.getNextScrollBatch(ctx, logger, client, *scrollId, common.MustDurationFromString(ds.cfg.ScrollTimeout))
 		if err != nil {
+			if clearErr := clearScroll(ctx, client, *scrollId); clearErr != nil {
+				return fmt.Errorf("clear scroll: %w", clearErr)
+			}
+
 			return fmt.Errorf("scroll: %w", err)
 		}
 
@@ -218,7 +227,11 @@ func (ds *dataSource) doReadSplitSingleConn(
 		hits = nextResp.Hits
 	}
 
-	return clearScroll(ctx, client, *scrollId)
+	if clearErr := clearScroll(ctx, client, *scrollId); clearErr != nil {
+		return fmt.Errorf("clear scroll: %w", clearErr)
+	}
+
+	return nil
 }
 
 func (ds *dataSource) initialSearch(
@@ -229,7 +242,7 @@ func (ds *dataSource) initialSearch(
 	batchSize uint64,
 	scrollTimeout time.Duration,
 ) (*opensearchapi.SearchResp, error) {
-	body, err := ds.queryBuilder.BuildInitialSearchQuery(batchSize)
+	body, err := ds.queryBuilder.buildInitialSearchQuery(batchSize)
 	if err != nil {
 		return nil, fmt.Errorf("build query: %w", err)
 	}
@@ -266,34 +279,33 @@ func (ds *dataSource) initialSearch(
 		return nil, fmt.Errorf("search: %w", err)
 	}
 
-	return resp, err
+	return resp, nil
 }
 
 func prepareDocumentReader(
-	logger *zap.Logger,
 	split *api_service_protos.TSplit,
 	cc conversion.Collection,
 ) (*documentReader, error) {
 	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
-	logger.Debug("arrow schema", zap.Any("schema", arrowSchema))
 
 	if err != nil {
 		return nil, fmt.Errorf("select what to Arrow schema: %w", err)
 	}
 
 	ydbSchema, err := common.SelectWhatToYDBTypes(split.Select.What)
-	logger.Debug("ydb schema", zap.Any("schema", ydbSchema))
 
 	if err != nil {
 		return nil, fmt.Errorf("select what to YDB schema: %w", err)
 	}
 
-	transformer, err := makeTransformer(logger, ydbSchema, cc)
+	transformer, err := makeTransformer(ydbSchema, cc)
 	if err != nil {
 		return nil, fmt.Errorf("make transformer: %w", err)
 	}
 
-	return makeDocumentReader(transformer, arrowSchema, ydbSchema)
+	reader := makeDocumentReader(transformer, arrowSchema, ydbSchema)
+
+	return reader, nil
 }
 
 func processHitsBatch(
@@ -303,14 +315,8 @@ func processHitsBatch(
 	sink paging.Sink[any],
 ) error {
 	for _, hit := range hits {
-		logger.Debug("process hit", zap.Any("hit", hit))
-
 		if err := reader.accept(logger, hit); err != nil {
 			return fmt.Errorf("accept document: %w", err)
-		}
-
-		for _, acceptor := range reader.transformer.GetAcceptors() {
-			logger.Debug(fmt.Sprintf("type %T", acceptor), zap.Any("acceptor", acceptor))
 		}
 
 		if err := sink.AddRow(reader.transformer); err != nil {
@@ -321,6 +327,18 @@ func processHitsBatch(
 	return nil
 }
 
+// getNextScrollBatch retrieves the next batch of results using OpenSearch's scroll API.
+//
+// Key guarantees:
+//   - Retries are safe: OpenSearch maintains server-side cursor position, so retrying
+//     with the same scroll ID will continue from the last position without duplicates.
+//   - The scroll ID may change between requests - we always use the most recent one.
+//   - The scroll context has a timeout (scrollTimeout), which must be longer than
+//     the maximum expected retry duration.
+//
+// Returns:
+//   - The next batch of results with updated scroll metadata
+//   - Error if the scroll context expired or after all retries failed
 func (ds *dataSource) getNextScrollBatch(
 	ctx context.Context,
 	logger *zap.Logger,
@@ -345,6 +363,8 @@ func (ds *dataSource) getNextScrollBatch(
 	return resp, err
 }
 
+// Close the search context when you’re done scrolling,
+// because the scroll operation continues to consume computing resources until the timeout
 func clearScroll(
 	ctx context.Context,
 	client *opensearchapi.Client,
