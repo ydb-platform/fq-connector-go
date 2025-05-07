@@ -210,6 +210,13 @@ func convertToMapStringAny(value any, fieldName string) (*map[string]any, error)
 	return &resultMap, nil
 }
 
+var (
+	timeFormats = []string{
+		time.DateOnly + "T" + time.TimeOnly, // "2006-01-02T15:04:05"
+		time.DateOnly + " " + time.TimeOnly, // "2006-01-02 15:04:05"
+	}
+)
+
 func parseTime(value any) (time.Time, error) {
 	if value == nil {
 		return time.Time{}, fmt.Errorf("time value is nil")
@@ -229,11 +236,7 @@ func parseTime(value any) (time.Time, error) {
 			return localTime.UTC(), nil
 		}
 
-		formats := []string{
-			time.DateOnly + "T" + time.TimeOnly,
-			time.DateOnly + " " + time.TimeOnly,
-		}
-		for _, format := range formats {
+		for _, format := range timeFormats {
 			t, err := time.Parse(format, v)
 			if err == nil {
 				return t.UTC(), nil
@@ -454,27 +457,22 @@ func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) e
 
 			switch fb := fieldBuilder.(type) {
 			case *array.Uint8Builder:
-				var val bool
-				if err := convert[bool](&val, fieldValue); err != nil {
-					return fmt.Errorf("field %s: %w", fieldName, err)
+				val, ok := fieldValue.(bool)
+				if !ok {
+					return fmt.Errorf("field %s: %w", fieldName, common.ErrDataTypeNotSupported)
 				}
 
-				if val {
-					fb.Append(uint8(1))
-				} else {
-					fb.Append(uint8(0))
-				}
-
+				fb.Append(uint8Bool(val))
 			case *array.Int32Builder:
-				var val int32
-				if err := convert(&val, fieldValue); err != nil {
+				val, err := anyToInt32(fieldValue)
+				if err != nil {
 					return fmt.Errorf("field %s: %w", fieldName, err)
 				}
 
 				fb.Append(val)
 			case *array.Int64Builder:
-				var val int64
-				if err := convert(&val, fieldValue); err != nil {
+				val, err := anyToInt64(fieldValue)
+				if err != nil {
 					return fmt.Errorf("field %s: %w", fieldName, err)
 				}
 
@@ -492,15 +490,15 @@ func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) e
 
 				fb.Append(in)
 			case *array.Float32Builder:
-				var val float32
-				if err := convert(&val, fieldValue); err != nil {
+				val, err := anyToFloat32(fieldValue)
+				if err != nil {
 					return fmt.Errorf("field %s: %w", fieldName, err)
 				}
 
 				fb.Append(val)
 			case *array.Float64Builder:
-				var val float64
-				if err := convert(&val, fieldValue); err != nil {
+				val, err := anyToFloat64(fieldValue)
+				if err != nil {
 					return fmt.Errorf("field %s: %w", fieldName, err)
 				}
 
@@ -526,6 +524,76 @@ func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) e
 
 		return nil
 	}
+}
+
+func anyToInt32(v any) (int32, error) {
+	switch val := v.(type) {
+	case float64:
+		return int32(val), nil
+	case int32:
+		return val, nil
+	default:
+		var res int32
+		if err := convert(&res, v); err != nil {
+			return 0, fmt.Errorf("cannot convert %T to int32: %w", v, err)
+		}
+
+		return res, nil
+	}
+}
+
+func anyToInt64(v any) (int64, error) {
+	switch val := v.(type) {
+	case float64:
+		return int64(val), nil
+	case int64:
+		return val, nil
+	default:
+		var res int64
+		if err := convert(&res, v); err != nil {
+			return 0, fmt.Errorf("cannot convert %T to int64: %w", v, err)
+		}
+
+		return res, nil
+	}
+}
+
+func anyToFloat32(v any) (float32, error) {
+	switch val := v.(type) {
+	case float64:
+		return float32(val), nil
+	case float32:
+		return val, nil
+	default:
+		var res float32
+		if err := convert(&res, v); err != nil {
+			return 0, fmt.Errorf("cannot convert %T to float32: %w", v, err)
+		}
+
+		return res, nil
+	}
+}
+
+func anyToFloat64(v any) (float64, error) {
+	switch val := v.(type) {
+	case float64:
+		return val, nil
+	default:
+		var res float64
+		if err := convert(&res, v); err != nil {
+			return 0, fmt.Errorf("cannot convert %T to float64: %w", v, err)
+		}
+
+		return res, nil
+	}
+}
+
+func uint8Bool(b bool) uint8 {
+	if b {
+		return 1
+	}
+
+	return 0
 }
 
 func addAcceptorAppenderNonNullable(
