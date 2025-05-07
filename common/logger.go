@@ -121,9 +121,11 @@ func SelectToFields(slct *api_service_protos.TSelect) []zap.Field {
 		*/
 		// NOTE: uncomment this if you want to extract query parameters in deserializable format,
 		// but be careful because it will put sensitive information to logs.
-		zap.String("from", MustProtobufToJSONString(slct.From, false, "")),
-		zap.String("what", MustProtobufToJSONString(slct.What, false, "")),
-		zap.String("where", MustProtobufToJSONString(slct.Where, false, "")),
+		/*
+			zap.String("from", MustProtobufToJSONString(slct.From, false, "")),
+			zap.String("what", MustProtobufToJSONString(slct.What, false, "")),
+			zap.String("where", MustProtobufToJSONString(slct.Where, false, "")),
+		*/
 	}
 
 	return result
