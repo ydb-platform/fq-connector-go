@@ -70,6 +70,26 @@ func SelectWhatToYDBTypes(selectWhat *api_service_protos.TSelect_TWhat) ([]*Ydb.
 	return ydbTypes, nil
 }
 
+func SelectWhatToYDBColumns(selectWhat *api_service_protos.TSelect_TWhat) []*Ydb.Column {
+	var ydbColumns []*Ydb.Column
+
+	for _, item := range selectWhat.Items {
+		ydbColumns = append(ydbColumns, item.GetColumn())
+	}
+
+	return ydbColumns
+}
+
+func YDBColumnsToYDBTypes(ydbColumns []*Ydb.Column) []*Ydb.Type {
+	var ydbTypes []*Ydb.Type
+
+	for _, column := range ydbColumns {
+		ydbTypes = append(ydbTypes, column.Type)
+	}
+
+	return ydbTypes
+}
+
 func YdbTypeToYdbPrimitiveTypeID(ydbType *Ydb.Type) (Ydb.Type_PrimitiveTypeId, error) {
 	switch t := ydbType.Type.(type) {
 	case *Ydb.Type_TypeId:

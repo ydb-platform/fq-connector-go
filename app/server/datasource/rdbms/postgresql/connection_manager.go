@@ -34,7 +34,7 @@ func (r rows) Close() error {
 	return nil
 }
 
-func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r rows) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	fields := r.FieldDescriptions()
 
 	oids := make([]uint32, 0, len(fields))
@@ -42,7 +42,7 @@ func (r rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (p
 		oids = append(oids, field.DataTypeOID)
 	}
 
-	return transformerFromOIDs(oids, ydbTypes, cc)
+	return transformerFromOIDs(oids, common.YDBColumnsToYDBTypes(ydbColumns), cc)
 }
 
 type connection struct {

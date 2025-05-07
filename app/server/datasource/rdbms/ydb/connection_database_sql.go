@@ -23,7 +23,7 @@ type rowsDatabaseSQL struct {
 	*sql.Rows
 }
 
-func (r rowsDatabaseSQL) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r rowsDatabaseSQL) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	columns, err := r.ColumnTypes()
 	if err != nil {
 		return nil, fmt.Errorf("column types: %w", err)
@@ -34,7 +34,7 @@ func (r rowsDatabaseSQL) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Col
 		typeNames = append(typeNames, column.DatabaseTypeName())
 	}
 
-	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes, cc)
+	transformer, err := transformerFromSQLTypes(typeNames, common.YDBColumnsToYDBTypes(ydbColumns), cc)
 	if err != nil {
 		return nil, fmt.Errorf("transformer from sql types: %w", err)
 	}

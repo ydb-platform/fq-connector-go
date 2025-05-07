@@ -206,8 +206,8 @@ func NewDataSourceFactory(
 	dsf.logging = Preset{
 		SQLFormatter:      logging.NewSQLFormatter(ydb.NewSQLFormatter(cfg.Logging.Ydb.Mode, cfg.Logging.Ydb.Pushdown)),
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
-		TypeMapper:        ydbTypeMapper,
-		SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
+		TypeMapper:        nil,
+		SchemaProvider:    logging.NewSchemaProvider(),
 		SplitProvider:     logging.NewSplitProvider(dsf.loggingResolver, ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting)),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),

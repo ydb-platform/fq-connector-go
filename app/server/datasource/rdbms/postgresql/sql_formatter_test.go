@@ -475,7 +475,7 @@ func TestMakeSelectQuery(t *testing.T) {
 
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
 			require.Equal(t, tc.outputArgs, readSplitsQuery.QueryArgs.Values())
-			require.Equal(t, tc.outputYdbTypes, readSplitsQuery.YdbTypes)
+			require.Equal(t, tc.outputYdbTypes, common.YDBColumnsToYDBTypes(readSplitsQuery.YdbColumns))
 		})
 	}
 }

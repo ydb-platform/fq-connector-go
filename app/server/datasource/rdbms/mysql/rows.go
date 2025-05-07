@@ -14,6 +14,7 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
+	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -27,6 +28,8 @@ type rowData struct {
 	row    []fieldValue
 	fields []*mysql.Field
 }
+
+var _ rdbms_utils.Rows = (*rows)(nil)
 
 type rows struct {
 	ctx    context.Context
@@ -274,7 +277,7 @@ func (r *rows) Scan(dest ...any) error {
 	return nil
 }
 
-func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r *rows) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	var (
 		mySQLTypes []uint8
 		ok         bool
@@ -297,5 +300,5 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 		return nil, r.ctx.Err()
 	}
 
-	return transformerFromSQLTypes(mySQLTypes, ydbTypes, cc)
+	return transformerFromSQLTypes(mySQLTypes, common.YDBColumnsToYDBTypes(ydbColumns), cc)
 }
