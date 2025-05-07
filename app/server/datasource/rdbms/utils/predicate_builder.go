@@ -275,6 +275,7 @@ func (pb *predicateBuilder) formatExpression(
 	return result, nil
 }
 
+//nolint:gocyclo
 func (pb *predicateBuilder) formatComparison(
 	comparisonInitial *api_service_protos.TPredicate_TComparison,
 	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed

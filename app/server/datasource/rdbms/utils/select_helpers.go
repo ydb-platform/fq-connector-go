@@ -27,7 +27,7 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 func formatSelectClause(
 	formatter SQLFormatter,
 	src *api_service_protos.TSelect_TWhat,
-) (string, *api_service_protos.TSelect_TWhat, error) {
+) (string, *api_service_protos.TSelect_TWhat) {
 	// Apply necessary transformations to the list of requested items and extract columns
 	dst := formatter.TransformSelectWhat(src)
 	columns := common.SelectWhatToYDBColumns(dst)
@@ -55,5 +55,5 @@ func formatSelectClause(
 		dst = src
 	}
 
-	return sb.String(), dst, nil
+	return sb.String(), dst
 }

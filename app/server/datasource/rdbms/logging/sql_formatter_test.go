@@ -18,7 +18,6 @@ import (
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	rdbms_ydb "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
 )
 
 func mustParseISOTime(timeStr string) time.Time {
@@ -80,7 +79,7 @@ func TestMakeSelectQuery(t *testing.T) {
 			outputArgs: []any{
 				mustParseISOTime("2025-05-06T16:00:00Z"),
 				mustParseISOTime("2025-05-06T16:00:01Z"),
-				ptr.Int32(5), // stands for ERROR
+				int32(5), // stands for ERROR
 			},
 			outputYdbTypes: []*ydb.Type{
 				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
@@ -122,6 +121,7 @@ func TestMakeSelectQuery(t *testing.T) {
 			require.Equal(t, tc.outputQuery, readSplitsQuery.QueryText)
 
 			require.Equal(t, len(tc.outputArgs), readSplitsQuery.QueryArgs.Count())
+
 			for i := range tc.outputArgs {
 				require.Equal(t, tc.outputArgs[i], readSplitsQuery.QueryArgs.Values()[i])
 			}

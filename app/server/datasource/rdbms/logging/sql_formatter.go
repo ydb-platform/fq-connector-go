@@ -6,11 +6,12 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ rdbms_utils.SQLFormatter = (*sqlFormatter)(nil)
@@ -77,6 +78,7 @@ func (sqlFormatter) TransformPredicateComparison(
 
 		// Extract filter value of a string type
 		var levelValue string
+
 		switch src.RightValue.GetTypedValue().GetType().GetTypeId() {
 		case Ydb.Type_UTF8:
 			levelValue = src.RightValue.GetTypedValue().GetValue().GetTextValue()
@@ -114,7 +116,7 @@ func (sqlFormatter) TransformPredicateComparison(
 func makeTypedValueForLevel(level int32) *api_service_protos.TExpression_TypedValue {
 	return &api_service_protos.TExpression_TypedValue{
 		TypedValue: common.MakeTypedValue(
-			common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+			common.MakePrimitiveType(Ydb.Type_INT32),
 			level,
 		),
 	}

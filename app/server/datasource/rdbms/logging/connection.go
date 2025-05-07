@@ -16,7 +16,7 @@ type rowsImpl struct {
 	rdbms_utils.Rows
 }
 
-func (r *rowsImpl) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (rowsImpl) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	return makeRowTransformer(ydbColumns, cc)
 }
 
