@@ -10,6 +10,7 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -18,11 +19,26 @@ var errNull = errors.New("can't determine field type for null")
 
 const objectIdTag string = "ObjectId"
 
-var objectIdType *Ydb.Type = common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING))
+var objectIdTaggedType *Ydb.Type = common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING))
 
 type readingMode = api_common.TMongoDbDataSourceOptions_EReadingMode
+type objectIdType = config.TMongoDbConfig_EObjectIdYqlType
 
-func typeMap(logger *zap.Logger, v bson.RawValue) (*Ydb.Type, error) {
+func typeMapObjectId(objectIdType objectIdType) (*Ydb.Type, error) {
+	asTaggedString := config.TMongoDbConfig_OBJECT_ID_AS_TAGGED_STRING
+	asString := config.TMongoDbConfig_OBJECT_ID_AS_STRING
+
+	switch objectIdType {
+	case asTaggedString:
+		return common.MakeTaggedType(objectIdTag, common.MakePrimitiveType(Ydb.Type_STRING)), nil
+	case asString:
+		return common.MakePrimitiveType(Ydb.Type_STRING), nil
+	default:
+		return nil, fmt.Errorf("unsupported ObjectId YQL Type representation: %s", objectIdType.String())
+	}
+}
+
+func typeMap(logger *zap.Logger, v bson.RawValue, objectIdType objectIdType) (*Ydb.Type, error) {
 	switch v.Type {
 	case bson.TypeInt32:
 		return common.MakePrimitiveType(Ydb.Type_INT32), nil
@@ -37,7 +53,7 @@ func typeMap(logger *zap.Logger, v bson.RawValue) (*Ydb.Type, error) {
 	case bson.TypeBinary:
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
 	case bson.TypeObjectID:
-		return objectIdType, nil
+		return typeMapObjectId(objectIdType)
 	case bson.TypeNull:
 		return nil, errNull
 	default:
@@ -53,6 +69,7 @@ func bsonToYqlColumn(
 	deducedTypes map[string]*Ydb.Type,
 	ambiguousFields, ambiguousArrayFields map[string]struct{},
 	omitUnsupported bool,
+	objectIdType objectIdType,
 ) error {
 	key, err := elem.KeyErr()
 	if err != nil {
@@ -61,7 +78,7 @@ func bsonToYqlColumn(
 
 	prevType, prevTypeExists := deducedTypes[key]
 
-	t, err := typeMap(logger, elem.Value())
+	t, err := typeMap(logger, elem.Value(), objectIdType)
 	if err != nil {
 		if errors.Is(err, errNull) {
 			ambiguousFields[key] = struct{}{}
@@ -111,7 +128,7 @@ func bsonToYqlColumn(
 	return nil
 }
 
-func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported bool) ([]*Ydb.Column, error) {
+func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported bool, objectIdType objectIdType) ([]*Ydb.Column, error) {
 	if len(docs) == 0 {
 		return []*Ydb.Column{}, nil
 	}
@@ -134,6 +151,7 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported bool) ([]*Yd
 				ambiguousFields,
 				ambiguousArrayFields,
 				omitUnsupported,
+				objectIdType,
 			)
 
 			if err != nil {
