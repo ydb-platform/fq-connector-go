@@ -95,10 +95,12 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("cursor: %w", err)
 	}
 
+	objectIdType := ds.cfg.GetObjectIdYqlType()
+
 	omitUnsupported :=
 		mongoDbOptions.UnsupportedTypeDisplayMode == api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT
 
-	columns, err := bsonToYql(logger, docs, omitUnsupported)
+	columns, err := bsonToYql(logger, docs, omitUnsupported, objectIdType)
 	if err != nil {
 		return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
 	}
