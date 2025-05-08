@@ -68,16 +68,16 @@ var hashOnlyTable = &test_utils.Table[[]byte, *array.BinaryBuilder]{
 	Records: []*test_utils.Record[[]byte, *array.BinaryBuilder]{{
 		Columns: map[string]any{
 			redis.KeyColumnName: [][]byte{[]byte("hashOnly:hashKey1"), []byte("hashOnly:hashKey2")},
-			redis.HashColumnName: []map[string]*[]byte{
+			redis.HashColumnName: []map[string]*any{
 				{
-					"field1": ptr.Bytes([]byte("hashValue1")),
-					"field2": ptr.Bytes([]byte("hashValue2")),
+					"field1": ptr.T[any]([]byte("hashValue1")),
+					"field2": ptr.T[any]([]byte("hashValue2")),
 					"field3": nil,
 				},
 				{
-					"field1": ptr.Bytes([]byte("hashValue3")),
-					"field2": ptr.Bytes([]byte("hashValue4")),
-					"field3": ptr.Bytes([]byte("hashValue5")),
+					"field1": ptr.T[any]([]byte("hashValue3")),
+					"field2": ptr.T[any]([]byte("hashValue4")),
+					"field3": ptr.T[any]([]byte("hashValue5")),
 				},
 			},
 		},
@@ -115,10 +115,10 @@ var mixedTable = &test_utils.Table[[]byte, *array.BinaryBuilder]{
 		Columns: map[string]any{
 			redis.KeyColumnName:    [][]byte{[]byte("mixed:hashKey2"), []byte("mixed:stringKey1")},
 			redis.StringColumnName: []*[]byte{nil, ptr.Bytes([]byte("mixedString"))},
-			redis.HashColumnName: []map[string]*[]byte{
+			redis.HashColumnName: []map[string]*any{
 				{
-					"hashField1": ptr.Bytes([]byte("mixedHash1")),
-					"hashField2": ptr.Bytes([]byte("mixedHash2")),
+					"hashField1": ptr.T[any]([]byte("mixedHash1")),
+					"hashField2": ptr.T[any]([]byte("mixedHash2")),
 				},
 				nil,
 			},

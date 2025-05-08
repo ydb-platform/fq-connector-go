@@ -40,6 +40,15 @@ func parseMapping(
 
 	var columns []*Ydb.Column
 
+	// OpenSearch document unique id
+	// output only strings
+	idColumn := &Ydb.Column{
+		Name: "_id",
+		Type: common.MakePrimitiveType(Ydb.Type_UTF8),
+	}
+
+	columns = append([]*Ydb.Column{idColumn}, columns...)
+
 	keys := getSortedKeys(properties)
 
 	for _, fieldName := range keys {
@@ -209,6 +218,8 @@ func typeMap(
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
 	case "keyword", "text":
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
+	case "binary":
+		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
 	case "date":
 		ydbType = common.MakePrimitiveType(Ydb.Type_TIMESTAMP)
 	default:
