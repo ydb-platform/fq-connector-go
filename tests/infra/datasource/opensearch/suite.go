@@ -40,7 +40,7 @@ func (s *Suite) TestPushdownProjection() {
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
 						Name: "_id",
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 					},
 				},
 			},
@@ -97,10 +97,10 @@ func (s *Suite) TestPushdownComparisonEQ() {
 		"ind":      common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(0)),
 		"int32":    common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(64)),
 		"int64":    common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)), int64(23423)),
-		"string":   common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "outer"),
+		"string":   common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "outer"),
 		"double":   common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DOUBLE)), 1.1),
 		"boolean":  common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)), false),
-		"objectid": common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "507f1f77bcf86cd799439011"),
+		"objectid": common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "507f1f77bcf86cd799439011"),
 	}
 
 	for column, value := range testcases {
@@ -120,7 +120,7 @@ func (s *Suite) TestPushdownComparisonEQ() {
 
 func (s *Suite) TestPushdownStringComparison() {
 	fieldName := "a"
-	value := common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "abc")
+	value := common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "abc")
 
 	testCases := map[string]*api_service_protos.TPredicate_Comparison{
 		"strcomp_0": tests_utils.MakePredicateComparisonColumn(
@@ -207,7 +207,7 @@ func (s *Suite) TestPushdownConjunction() {
 							Payload: tests_utils.MakePredicateComparisonColumn(
 								"b",
 								api_service_protos.TPredicate_TComparison_EQ,
-								common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "hello"),
+								common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "hello"),
 							),
 						},
 					},
@@ -236,7 +236,7 @@ func (s *Suite) TestPushdownDisjunction() {
 							Payload: tests_utils.MakePredicateComparisonColumn(
 								"b",
 								api_service_protos.TPredicate_TComparison_EQ,
-								common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "hi")),
+								common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "hi")),
 						},
 					},
 				},
@@ -256,14 +256,14 @@ func (s *Suite) TestPushdownNegation() {
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"string",
 				api_service_protos.TPredicate_TComparison_NE,
-				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "exists2"),
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "exists2"),
 			),
 		},
 		{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"int32",
 				api_service_protos.TPredicate_TComparison_GE,
-				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(42)),
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), int32(42)),
 			),
 		},
 	}
@@ -331,9 +331,9 @@ func (s *Suite) TestPushdownIn() {
 			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(4)),
 		},
 		"b": {
-			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "hi"),
-			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "two"),
-			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)), "four"),
+			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "hi"),
+			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "two"),
+			common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), "four"),
 		},
 	}
 

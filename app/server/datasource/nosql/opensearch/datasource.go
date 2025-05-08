@@ -251,7 +251,7 @@ func (ds *dataSource) initialSearch(
 	batchSize uint64,
 	scrollTimeout time.Duration,
 ) (*opensearchapi.SearchResp, error) {
-	body, params, err := ds.queryBuilder.BuildSearchQuery(
+	body, params, err := ds.queryBuilder.buildSearchQuery(
 		split,
 		request.GetFiltering(),
 		batchSize,
