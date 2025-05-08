@@ -402,7 +402,6 @@ curl -X POST "http://localhost:9200/pushdown_regex/_bulk" -H 'Content-Type: appl
 { "a": "coastal area" }
 '
 
-# Refresh all indices
 echo "Refreshing all indices..."
 curl -X POST "http://localhost:9200/_refresh"
 
