@@ -88,6 +88,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 				Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 			openSearchCfg,
+			dsc.converterCollection,
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -159,6 +160,7 @@ func (dsc *DataSourceCollection) ListSplits(
 					Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 				},
 				openSearchCfg,
+				dsc.converterCollection,
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -240,6 +242,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 				Query:          retry.NewRetrierFromConfig(openSearchCfg.ExponentialBackoff, retry.ErrorCheckerNoop),
 			},
 			openSearchCfg,
+			dsc.converterCollection,
 		)
 
 		return doReadSplit(

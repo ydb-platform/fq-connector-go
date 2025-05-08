@@ -288,6 +288,40 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 		}
 
 		return size, variableSize, nil
+	case *map[string]any:
+		if t == nil {
+			return 0, variableSize, nil
+		}
+
+		var size uint64
+
+		for k, v := range *t {
+			vsize, _, err := sizeOfValueBloated(v)
+			if err != nil {
+				return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
+			}
+
+			size += uint64(len(k)) + vsize
+		}
+
+		return size, variableSize, nil
+	case **map[string]any:
+		if t == nil || *t == nil {
+			return 0, variableSize, nil
+		}
+
+		var size uint64
+
+		for k, v := range **t {
+			vsize, _, err := sizeOfValueBloated(v)
+			if err != nil {
+				return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
+			}
+
+			size += uint64(len(k)) + vsize
+		}
+
+		return size, variableSize, nil
 	default:
 		return 0, 0, fmt.Errorf("value %v of unexpected data type %T: %w", t, t, common.ErrDataTypeNotSupported)
 	}

@@ -37,8 +37,8 @@ Trino поддерживает операции записи во внешний
 [Формат описание схемы](https://trino.io/docs/current/connector/mongodb.html#table-definition)
 
 2. Отображение систем типов
- 
- [Типы Trino](https://trino.io/docs/current/language/types.html#language-types--page-root)
+
+[Типы Trino](https://trino.io/docs/current/language/types.html#language-types--page-root)
 
 ##### MongoDB to Trino type mapping
 
@@ -102,8 +102,8 @@ Trino поддерживает операции записи во внешний
 	- [COMMENT](https://trino.io/docs/current/sql/comment.html)
 
 - Вычленение даты создания документа, которая зашифрована в поле `_id` типа ObjectId ([документация](https://trino.io/docs/current/connector/mongodb.html#objectid) + [код](https://github.com/trinodb/trino/blob/d28b52f21632ad36bb08e36a753b522383013727/plugin/trino-mongodb/src/main/java/io/trino/plugin/mongodb/ObjectIdFunctions.java#L38)) и вспомогательные функции для него:
-    - objectid_timestamp(ObjectId) - вычисляет timestamp с таймзоной
-    - timestamp_objectid(timestamp) - строит ObjectId по timestamp с таймзоной
+	- objectid_timestamp(ObjectId) - вычисляет timestamp с таймзоной
+	- timestamp_objectid(timestamp) - строит ObjectId по timestamp с таймзоной
 
 Подобный функционал позволяет фильтровать документы по дате создания, потому что можно скастовать дату в ObjectId:
 ```
@@ -241,9 +241,9 @@ trino> select * from mongo.test.types;
 	- поля считаются nullable
 - Доп. способ: чтение схемы из [AWS Glue](https://docs.aws.amazon.com/athena/latest/ug/connectors-docdb.html#connectors-docdb-setting-up-databases-and-tables-in-aws-glue)
 
-2. Отображение систем типов 
+2. Отображение систем типов
 
-- [DocDB - Arrow](https://docs.aws.amazon.com/athena/latest/ug/connectors-docdb.html#connectors-docdb-data-type-support) 
+- [DocDB - Arrow](https://docs.aws.amazon.com/athena/latest/ug/connectors-docdb.html#connectors-docdb-data-type-support)
 - [Arrow - Athena](https://github.com/awslabs/aws-athena-query-federation/wiki/Supported-Data-Types)
 
 3. Поддерживаемые сценарии работы
@@ -260,17 +260,17 @@ trino> select * from mongo.test.types;
 
 ```sql
 SELECT * FROM mongodb(
-'mongodb://test_user:password@127.0.0.1:27017/test?connectionTimeoutMS=10000',
-'my_collection',
-'log_type String, host String, command String' -- схема
-)
+		'mongodb://test_user:password@127.0.0.1:27017/test?connectionTimeoutMS=10000',
+		'my_collection',
+		'log_type String, host String, command String' -- схема
+			  )
 ```
 
 Для MongoDB engine используется схема создаваемой в бд таблицы, с которой будут сопоставляться документы из MongoDB. Если поле в документе отсутствует, оно заполняется значением по умолчанию или NULL (для nullable колонок).
 
 ```sql
 CREATE TABLE [IF NOT EXISTS] [db.]table_name (
-    name1 [type1],  
+												 name1 [type1],
 ) ENGINE = MongoDB(host:port, database, collection, user, password);
 ```
 
@@ -283,7 +283,7 @@ CREATE TABLE [IF NOT EXISTS] [db.]table_name (
 
 ## Реализация коннектора в YDB
 
-Обязательный минимум: 
+Обязательный минимум:
 - Извлечение схемы с type inference с помощью маленького скана коллекции. Размер скана задается в конфиге fq-connector-go. При несоответствии типов некоторого поля в различных документах одной коллекции для его представления используются сериализованные значения YQL-типа `Utf8`.
 - `SELECT * FROM ... ` без предикатов
 - Поддержка простых типов: Int32, Int64, Boolean, Double, String, Binary, ObjectID (на стороне YDB они все будут обернуты в Optional)

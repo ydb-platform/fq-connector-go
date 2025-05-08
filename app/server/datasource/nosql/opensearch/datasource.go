@@ -17,6 +17,7 @@ import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -27,12 +28,15 @@ import (
 var _ datasource.DataSource[any] = (*dataSource)(nil)
 
 type dataSource struct {
-	retrierSet *retry.RetrierSet
-	cfg        *config.TOpenSearchConfig
+	retrierSet   *retry.RetrierSet
+	cc           conversion.Collection
+	cfg          *config.TOpenSearchConfig
+	queryLogger  common.QueryLogger
+	queryBuilder *queryBuilder
 }
 
-func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TOpenSearchConfig) datasource.DataSource[any] {
-	return &dataSource{retrierSet: retrierSet, cfg: cfg}
+func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TOpenSearchConfig, cc conversion.Collection) datasource.DataSource[any] {
+	return &dataSource{retrierSet: retrierSet, cfg: cfg, cc: cc}
 }
 
 func (ds *dataSource) DescribeTable(
@@ -115,15 +119,264 @@ func (*dataSource) ListSplits(
 	return nil
 }
 
-func (*dataSource) ReadSplit(
-	_ context.Context,
-	_ *zap.Logger,
+func (ds *dataSource) ReadSplit(
+	ctx context.Context,
+	logger *zap.Logger,
 	_ observation.IncomingQueryID,
 	_ *api_service_protos.TReadSplitsRequest,
-	_ *api_service_protos.TSplit,
-	_ paging.SinkFactory[any],
+	split *api_service_protos.TSplit,
+	sinkFactory paging.SinkFactory[any],
 ) error {
-	return fmt.Errorf("unimplemented")
+	dsi := split.Select.DataSourceInstance
+
+	if dsi.Protocol != api_common.EGenericProtocol_HTTP {
+		return fmt.Errorf("cannot run OpenSearch connection with protocol '%v'", dsi.Protocol)
+	}
+
+	var client *opensearchapi.Client
+
+	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
+		func() error {
+			var err error
+			client, err = ds.makeConnection(ctx, logger, dsi)
+
+			return err
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("make connection: %w", err)
+	}
+
+	if split.Select.From.Table == "" {
+		return common.ErrEmptyTableName
+	}
+
+	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
+
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
+	if err != nil {
+		return fmt.Errorf("make sinks: %w", err)
+	}
+
+	sink := sinks[0]
+
+	if err := ds.doReadSplitSingleConn(ctx, logger, split, sink, client); err != nil {
+		return fmt.Errorf("read split single conn: %w", err)
+	}
+
+	sink.Finish()
+
+	return nil
+}
+
+func (ds *dataSource) doReadSplitSingleConn(
+	ctx context.Context,
+	logger *zap.Logger,
+	split *api_service_protos.TSplit,
+	sink paging.Sink[any],
+	client *opensearchapi.Client,
+) error {
+	searchResp, err := ds.initialSearch(
+		ctx,
+		logger,
+		client,
+		split,
+		ds.cfg.BatchSize,
+		common.MustDurationFromString(ds.cfg.ScrollTimeout),
+	)
+	if err != nil {
+		return fmt.Errorf("initial search: %w", err)
+	}
+
+	if searchResp.ScrollID == nil {
+		return fmt.Errorf("scroll id is nil")
+	}
+
+	reader, err := prepareDocumentReader(split, ds.cc)
+	if err != nil {
+		return fmt.Errorf("make document reader: %w", err)
+	}
+
+	scrollId := searchResp.ScrollID
+	hits := searchResp.Hits
+
+	for {
+		if len(hits.Hits) == 0 {
+			logger.Info("no hits found")
+			break
+		}
+
+		if err := processHitsBatch(logger, hits.Hits, reader, sink); err != nil {
+			if clearErr := clearScroll(ctx, client, *scrollId); clearErr != nil {
+				return fmt.Errorf("clear scroll: %w", clearErr)
+			}
+
+			return fmt.Errorf("process hit: %w", err)
+		}
+
+		nextResp, err := ds.getNextScrollBatch(ctx, logger, client, *scrollId, common.MustDurationFromString(ds.cfg.ScrollTimeout))
+		if err != nil {
+			if clearErr := clearScroll(ctx, client, *scrollId); clearErr != nil {
+				return fmt.Errorf("clear scroll: %w", clearErr)
+			}
+
+			return fmt.Errorf("scroll: %w", err)
+		}
+
+		closeResponseBody(logger, nextResp.Inspect().Response.Body)
+		hits = nextResp.Hits
+	}
+
+	if clearErr := clearScroll(ctx, client, *scrollId); clearErr != nil {
+		return fmt.Errorf("clear scroll: %w", clearErr)
+	}
+
+	return nil
+}
+
+func (ds *dataSource) initialSearch(
+	ctx context.Context,
+	logger *zap.Logger,
+	client *opensearchapi.Client,
+	split *api_service_protos.TSplit,
+	batchSize uint64,
+	scrollTimeout time.Duration,
+) (*opensearchapi.SearchResp, error) {
+	body, err := ds.queryBuilder.buildInitialSearchQuery(batchSize)
+	if err != nil {
+		return nil, fmt.Errorf("build query: %w", err)
+	}
+
+	req := &opensearchapi.SearchReq{
+		Indices: []string{split.Select.From.Table},
+		Body:    body,
+		Params: opensearchapi.SearchParams{
+			Scroll: scrollTimeout,
+		},
+	}
+
+	var (
+		resp      *opensearchapi.SearchResp
+		searchErr error
+	)
+
+	err = ds.retrierSet.Query.Run(
+		ctx,
+		logger,
+		func() error {
+			resp, searchErr = client.Search(ctx, req)
+			if searchErr != nil {
+				return fmt.Errorf("search: %w", searchErr)
+			}
+
+			return nil
+		},
+	)
+
+	closeResponseBody(logger, resp.Inspect().Response.Body)
+
+	if err != nil {
+		return nil, fmt.Errorf("search: %w", err)
+	}
+
+	return resp, nil
+}
+
+func prepareDocumentReader(
+	split *api_service_protos.TSplit,
+	cc conversion.Collection,
+) (*documentReader, error) {
+	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
+
+	if err != nil {
+		return nil, fmt.Errorf("select what to Arrow schema: %w", err)
+	}
+
+	ydbSchema, err := common.SelectWhatToYDBTypes(split.Select.What)
+
+	if err != nil {
+		return nil, fmt.Errorf("select what to YDB schema: %w", err)
+	}
+
+	transformer, err := makeTransformer(ydbSchema, cc)
+	if err != nil {
+		return nil, fmt.Errorf("make transformer: %w", err)
+	}
+
+	reader := makeDocumentReader(transformer, arrowSchema, ydbSchema)
+
+	return reader, nil
+}
+
+func processHitsBatch(
+	logger *zap.Logger,
+	hits []opensearchapi.SearchHit,
+	reader *documentReader,
+	sink paging.Sink[any],
+) error {
+	for _, hit := range hits {
+		if err := reader.accept(logger, hit); err != nil {
+			return fmt.Errorf("accept document: %w", err)
+		}
+
+		if err := sink.AddRow(reader.transformer); err != nil {
+			return fmt.Errorf("add row to sink: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// getNextScrollBatch retrieves the next batch of results using OpenSearch's scroll API.
+//
+// Key guarantees:
+//   - Retries are safe: OpenSearch maintains server-side cursor position, so retrying
+//     with the same scroll ID will continue from the last position without duplicates.
+//   - The scroll ID may change between requests - we always use the most recent one.
+//   - The scroll context has a timeout (scrollTimeout), which must be longer than
+//     the maximum expected retry duration.
+//
+// Returns:
+//   - The next batch of results with updated scroll metadata
+//   - Error if the scroll context expired or after all retries failed
+func (ds *dataSource) getNextScrollBatch(
+	ctx context.Context,
+	logger *zap.Logger,
+	client *opensearchapi.Client,
+	scrollID string,
+	scrollTimeout time.Duration,
+) (*opensearchapi.ScrollGetResp, error) {
+	var resp *opensearchapi.ScrollGetResp
+
+	err := ds.retrierSet.Query.Run(ctx, logger, func() error {
+		var err error
+		resp, err = client.Scroll.Get(ctx, opensearchapi.ScrollGetReq{
+			ScrollID: scrollID,
+			Params: opensearchapi.ScrollGetParams{
+				Scroll: scrollTimeout,
+			},
+		})
+
+		return err
+	})
+
+	return resp, err
+}
+
+// Close the search context when you’re done scrolling,
+// because the scroll operation continues to consume computing resources until the timeout
+func clearScroll(
+	ctx context.Context,
+	client *opensearchapi.Client,
+	scrollID string,
+) error {
+	if _, err := client.Scroll.Delete(ctx, opensearchapi.ScrollDeleteReq{
+		ScrollIDs: []string{scrollID},
+	}); err != nil {
+		return fmt.Errorf("clear scroll: %w", err)
+	}
+
+	return nil
 }
 
 func (ds *dataSource) makeConnection(
