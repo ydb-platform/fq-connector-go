@@ -108,8 +108,8 @@ func (m *RowsMock) Scan(dest ...any) error {
 	return args.Error(0)
 }
 
-func (m *RowsMock) MakeTransformer(ydbType []*Ydb.Type, _ conversion.Collection) (paging.RowTransformer[any], error) {
-	args := m.Called(ydbType)
+func (m *RowsMock) MakeTransformer(columns []*Ydb.Column, _ conversion.Collection) (paging.RowTransformer[any], error) {
+	args := m.Called(columns)
 
 	return args.Get(0).(*RowTransformerMock), args.Error(1)
 }

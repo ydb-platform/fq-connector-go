@@ -29,7 +29,7 @@ func (rowsNative) NextResultSet() bool {
 	return false
 }
 
-func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r *rowsNative) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	columns := r.ColumnTypes()
 
 	typeNames := make([]string, 0, len(columns))
@@ -37,7 +37,7 @@ func (r *rowsNative) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collect
 		typeNames = append(typeNames, column.DatabaseTypeName())
 	}
 
-	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes, cc)
+	transformer, err := transformerFromSQLTypes(typeNames, common.YDBColumnsToYDBTypes(ydbColumns), cc)
 	if err != nil {
 		return nil, fmt.Errorf("transformer from sql types: %w", err)
 	}

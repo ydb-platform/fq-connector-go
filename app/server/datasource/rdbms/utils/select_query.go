@@ -14,8 +14,8 @@ import (
 
 type SelectQuery struct {
 	QueryParams
-	// Types of the columns that will be returned by the query in terms of YDB type system.
-	YdbTypes []*Ydb.Type
+	// Types and names of the columns that will be returned by the query in terms of YDB type system.
+	YdbColumns []*Ydb.Column
 }
 
 func MakeSelectQuery(
@@ -33,15 +33,8 @@ func MakeSelectQuery(
 	)
 
 	// Render SELECT clause
-	parts.SelectClause, modifiedWhat, err = formatSelectClause(formatter, split.Select.What, true)
-	if err != nil {
-		return nil, fmt.Errorf("format select clause: %w", err)
-	}
-
-	ydbTypes, err := common.SelectWhatToYDBTypes(modifiedWhat)
-	if err != nil {
-		return nil, fmt.Errorf("convert Select.What to Ydb types: %w", err)
-	}
+	parts.SelectClause, modifiedWhat = formatSelectClause(formatter, split.Select.What)
+	ydbColumns := common.SelectWhatToYDBColumns(modifiedWhat)
 
 	// Render FROM clause
 	if tableName == "" {
@@ -79,6 +72,6 @@ func MakeSelectQuery(
 			QueryText: queryText,
 			QueryArgs: queryArgs,
 		},
-		YdbTypes: ydbTypes,
+		YdbColumns: ydbColumns,
 	}, nil
 }

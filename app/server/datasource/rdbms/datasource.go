@@ -246,7 +246,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	defer common.LogCloserError(logger, rows, "close rows")
 
-	transformer, err := rows.MakeTransformer(query.YdbTypes, ds.converterCollection)
+	transformer, err := rows.MakeTransformer(query.YdbColumns, ds.converterCollection)
 	if err != nil {
 		return 0, fmt.Errorf("make transformer: %w", err)
 	}

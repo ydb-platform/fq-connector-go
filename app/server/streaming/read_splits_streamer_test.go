@@ -187,9 +187,15 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	if tc.scanErr == nil {
 		rows.On(
 			"MakeTransformer",
-			[]*Ydb.Type{
-				common.MakePrimitiveType(Ydb.Type_INT32),
-				common.MakePrimitiveType(Ydb.Type_STRING),
+			[]*Ydb.Column{
+				{
+					Name: "col0",
+					Type: common.MakePrimitiveType(Ydb.Type_INT32),
+				},
+				{
+					Name: "col1",
+					Type: common.MakePrimitiveType(Ydb.Type_STRING),
+				},
 			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData))
 		rows.On("Next").Return(false).Once()
@@ -199,9 +205,15 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		rows.On("NextResultSet").Return(false).Once()
 	} else {
 		rows.On("MakeTransformer",
-			[]*Ydb.Type{
-				common.MakePrimitiveType(Ydb.Type_INT32),
-				common.MakePrimitiveType(Ydb.Type_STRING),
+			[]*Ydb.Column{
+				{
+					Name: "col0",
+					Type: common.MakePrimitiveType(Ydb.Type_INT32),
+				},
+				{
+					Name: "col1",
+					Type: common.MakePrimitiveType(Ydb.Type_STRING),
+				},
 			}).Return(transformer, nil).Once()
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData) + 1)
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))

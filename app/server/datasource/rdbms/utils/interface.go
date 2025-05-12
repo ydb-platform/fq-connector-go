@@ -43,7 +43,7 @@ type Rows interface {
 	Next() bool
 	NextResultSet() bool
 	Scan(dest ...any) error
-	MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error)
+	MakeTransformer(columns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
 //go:generate stringer -type=QueryPhase
@@ -102,6 +102,13 @@ type SQLFormatter interface {
 	// RenderSelectQueryText composes final query text from the given clauses.
 	// Particular implementation may mix-in some additional parts into the query.
 	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)
+	// TransformSelectWhat transforms the list of requested items
+	// (may be useful for some special data sources)
+	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat
+	// TransformPredicateComparison transforms the comparison predicate
+	// (may be useful for some special data sources)
+	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (
+		*api_service_protos.TPredicate_TComparison, error)
 }
 
 type SchemaProvider interface {

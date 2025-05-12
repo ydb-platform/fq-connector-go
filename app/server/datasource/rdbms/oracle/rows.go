@@ -191,7 +191,7 @@ func (r *rows) Close() error {
 	return r.rows.Close()
 }
 
-func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func (r *rows) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	// got from golang standart library, source:
 	// https://cs.opensource.google/go/go/+/refs/tags/go1.22.5:src/database/sql/sql.go;l=3244
 	prop, ok := r.rows.(driver.RowsColumnTypeDatabaseTypeName)
@@ -204,7 +204,7 @@ func (r *rows) MakeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (
 		typeNames = append(typeNames, prop.ColumnTypeDatabaseTypeName(i))
 	}
 
-	transformer, err := transformerFromSQLTypes(typeNames, ydbTypes, cc)
+	transformer, err := transformerFromSQLTypes(typeNames, common.YDBColumnsToYDBTypes(ydbColumns), cc)
 	if err != nil {
 		return nil, fmt.Errorf("transformer from sql types: %w", err)
 	}
