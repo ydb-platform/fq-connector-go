@@ -20,7 +20,7 @@ import (
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
-	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder
+	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder | *array.StringBuilder
 	Append(ID)
 	NewArray() arrow.Array
 	Release()
@@ -142,6 +142,8 @@ func (c arrowIDCol[ID]) mustValue(i int) ID {
 		return any(col.Value(i)).(ID)
 	case *array.Binary:
 		return any(col.Value(i)).(ID)
+	case *array.String:
+		return any(col.Value(i)).(ID)
 	default:
 		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
 	}
@@ -209,10 +211,24 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 						} else {
 							// Получаем значение в зависимости от типа поля
 							switch field := col.Field(fieldIdx).(type) {
+							case *array.Uint8:
+								structData[fieldName] = field.Value(rowIdx)
+							case *array.Int32:
+								structData[fieldName] = field.Value(rowIdx)
+							case *array.Int64:
+								structData[fieldName] = field.Value(rowIdx)
+							case *array.Uint64:
+								structData[fieldName] = field.Value(rowIdx)
+							case *array.Float32:
+								structData[fieldName] = field.Value(rowIdx)
+							case *array.Float64:
+								structData[fieldName] = field.Value(rowIdx)
+							case *array.String:
+								structData[fieldName] = field.Value(rowIdx)
 							case *array.Binary:
 								structData[fieldName] = field.Value(rowIdx)
 							default:
-								panic(fmt.Sprintf("Expected fieldBuilder to have *array.BinaryBuilder type but got %T", field))
+								panic(fmt.Sprintf("Expected fieldBuilder to have supported types but got %T", field))
 							}
 						}
 					}
@@ -343,6 +359,55 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 						}
 
 						switch fb := fieldBuilder.(type) {
+						case *array.Uint8Builder:
+							uint8val, ok := fieldValue.(uint8)
+							if !ok {
+								panic(fmt.Sprintf("Expected uint8 but got %T", uint8val))
+							}
+
+							fb.Append(uint8val)
+						case *array.Int32Builder:
+							int32val, ok := fieldValue.(int32)
+							if !ok {
+								panic(fmt.Sprintf("Expected int32 but got %T", int32val))
+							}
+
+							fb.Append(int32val)
+						case *array.Int64Builder:
+							int64val, ok := fieldValue.(int64)
+							if !ok {
+								panic(fmt.Sprintf("Expected int64 but got %T", int64val))
+							}
+
+							fb.Append(int64val)
+						case *array.Uint64Builder:
+							uint64val, ok := fieldValue.(uint64)
+							if !ok {
+								panic(fmt.Sprintf("Expected uint64 but got %T", uint64val))
+							}
+
+							fb.Append(uint64val)
+						case *array.Float32Builder:
+							float32val, ok := fieldValue.(float32)
+							if !ok {
+								panic(fmt.Sprintf("Expected float32 but got %T", float32val))
+							}
+
+							fb.Append(float32val)
+						case *array.Float64Builder:
+							float64val, ok := fieldValue.(float64)
+							if !ok {
+								panic(fmt.Sprintf("Expected float64 but got %T", float64val))
+							}
+
+							fb.Append(float64val)
+						case *array.StringBuilder:
+							strval, ok := fieldValue.(string)
+							if !ok {
+								panic(fmt.Sprintf("Expected string but got %T", strval))
+							}
+
+							fb.Append(strval)
 						case *array.BinaryBuilder:
 							bval, ok := fieldValue.([]byte)
 							if !ok {
@@ -351,7 +416,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 
 							fb.Append(bval)
 						default:
-							panic(fmt.Sprintf("Expected fieldBuilder to have *array.BinaryBuilder type but got %T", fb))
+							panic(fmt.Sprintf("Expected fieldBuilder to have supported types but got %T", fb))
 						}
 					}
 				}
@@ -438,11 +503,11 @@ func matchStructArrays(
 	}
 
 	// Для структурных типов мы проверяем каждое поле отдельно
-	expectedStructsBytes, ok := expectedRaw.([]map[string]*[]byte)
-	require.True(t, ok, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]*[]byte, got %T",
+	expectedStructsBytes, ok := expectedRaw.([]map[string]*any)
+	require.True(t, ok, fmt.Sprintf("invalid type for struct column %v: expected=[]map[string]any, got %T",
 		columnName, expectedRaw))
 
-	// Новый формат - []map[string]*[]byte
+	// Новый формат - []map[string]any
 	require.Equal(t, len(expectedStructsBytes), actual.Len(),
 		fmt.Sprintf("struct column:  %v\nexpected length: %d\nactual length:  %d\n",
 			columnName, len(expectedStructsBytes), actual.Len()),
@@ -479,6 +544,27 @@ func matchStructArrays(
 
 			// Проверяем значение в зависимости от типа поля
 			switch field := fieldArray.(type) {
+			case *array.Uint8:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+			case *array.Int32:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+			case *array.Int64:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+			case *array.Uint64:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+			case *array.Float32:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+			case *array.Float64:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
+			case *array.String:
+				require.Equal(t, *expectedFieldValue, field.Value(i),
+					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))
 			case *array.Binary:
 				require.Equal(t, *expectedFieldValue, field.Value(i),
 					fmt.Sprintf("Field %s values mismatch at row %d", fieldName, i))

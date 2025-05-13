@@ -117,5 +117,5 @@ func TestRedis(t *testing.T) {
 
 func TestOpenSearch(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
-	testify_suite.Run(t, opensearch.NewSuite(suite.NewBase[int32, *array.Int32Builder](t, state, "OpenSearch")))
+	testify_suite.Run(t, opensearch.NewSuite(suite.NewBase[string, *array.StringBuilder](t, state, "OpenSearch")))
 }

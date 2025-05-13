@@ -19,21 +19,24 @@ curl -X PUT "http://localhost:9200/simple" -H 'Content-Type: application/json' -
 {
   "mappings": {
     "properties": {
-      "id": { "type": "integer" },
-      "a": { "type": "keyword" },
-      "b": { "type": "integer" },
-      "c": { "type": "long" }
+      "bool_field": { "type": "boolean" },
+      "int32_field": { "type": "integer" },
+      "int64_field": { "type": "long" },
+      "float_field": { "type": "float" },
+      "double_field": { "type": "double" },
+      "string_field": { "type": "keyword" },
+      "timestamp_field": { "type": "date" }
     }
   }
 }'
 
 curl -X POST "http://localhost:9200/simple/_bulk" -H 'Content-Type: application/json' -d'
 { "index": { "_id": "0" } }
-{ "id": 0, "a": "jelly", "b": 2000, "c": 13 }
+{ "bool_field": true, "int32_field": 42, "int64_field": 1234567890123, "float_field": 1.5, "double_field": 2.71828, "string_field": "text_value1", "timestamp_field": "2023-01-01T00:00:00Z" }
 { "index": { "_id": "1" } }
-{ "id": 1, "a": "butter", "b": -20021, "c": 0 }
+{ "bool_field": false, "int32_field": -100, "int64_field": -987654321, "float_field": -3.14, "double_field": 0.0, "string_field": "text_value2", "timestamp_field": "2023-02-15T12:00:00Z" }
 { "index": { "_id": "2" } }
-{ "id": 2, "a": "toast", "b": 2076, "c": 2076 }
+{ "bool_field": true, "int32_field": 0, "int64_field": 0, "float_field": 0.0, "double_field": -1.2345, "string_field": "text_value3", "timestamp_field": "2023-03-20T18:30:00Z" }
 '
 
 echo "==============================="
@@ -44,7 +47,6 @@ curl -X PUT "http://localhost:9200/list" -H 'Content-Type: application/json' -d'
 {
   "mappings": {
     "properties": {
-      "id": { "type": "integer" },
       "name": { "type": "keyword" },
       "tags": { "type": "keyword" }
     },
@@ -56,9 +58,9 @@ curl -X PUT "http://localhost:9200/list" -H 'Content-Type: application/json' -d'
 
 curl -X POST "http://localhost:9200/list/_bulk" -H 'Content-Type: application/json' -d'
 { "index": { "_id": "0" } }
-{ "id": 0, "name": "Alice", "tags": ["developer", "engineer"] }
+{ "name": "Alice", "tags": ["developer", "engineer"] }
 { "index": { "_id": "1" } }
-{ "id": 1, "name": "Bob", "tags": ["designer"] }
+{ "name": "Bob", "tags": ["designer"] }
 '
 
 echo "==============================="
@@ -69,24 +71,30 @@ curl -X PUT "http://localhost:9200/nested" -H 'Content-Type: application/json' -
 {
   "mappings": {
     "properties": {
-      "id": { "type": "integer" },
       "name": { "type": "keyword" },
-      "address": {
+      "nested": {
         "type": "object",
         "properties": {
-          "city": { "type": "keyword" },
-          "country": { "type": "keyword" }
+          "bool_field": { "type": "boolean" },
+          "int32_field": { "type": "integer" },
+          "int64_field": { "type": "long" },
+          "float_field": { "type": "float" },
+          "double_field": { "type": "double" },
+          "string_field": { "type": "keyword" },
+          "timestamp_field": { "type": "date" },
+          "binary_field": { "type": "binary" }
         }
       }
     }
   }
 }'
 
+
 curl -X POST "http://localhost:9200/nested/_bulk" -H 'Content-Type: application/json' -d'
 { "index": { "_id": "0" } }
-{ "id": 0, "name": "Alice", "address": { "city": "New York", "country": "USA" } }
+{ "name": "Alice", "nested": { "bool_field": true, "int32_field": 42, "int64_field": 1234567890123, "float_field": 3.14, "double_field": 3.1415926535912345678910101, "string_field": "value1", "timestamp_field": "2023-07-20T12:00:00Z", "binary_field": "SGVsbG8gQWxpY2U=" } }
 { "index": { "_id": "1" } }
-{ "id": 1, "name": "Bob", "address": { "city": "San Francisco", "country": "USA" } }
+{ "name": "Bob", "nested": { "bool_field": false, "int32_field": 24, "int64_field": 9876543210987, "float_field": 2.71, "double_field": 2.7182818284512345678910101, "string_field": "value2", "timestamp_field": "2023-07-21T15:30:00Z", "binary_field": "SGVsbG8gQm9i" } }
 '
 
 echo "==============================="
@@ -101,7 +109,6 @@ curl -X PUT "http://localhost:9200/nested_list" -H 'Content-Type: application/js
         "employees.skills": "list"
     },
     "properties": {
-      "id": { "type": "integer" },
       "company": { "type": "keyword" },
       "employees": {
         "type": "nested",
@@ -124,7 +131,6 @@ curl -X PUT "http://localhost:9200/nested_list" -H 'Content-Type: application/js
 curl -X POST "http://localhost:9200/nested_list/_bulk" -H 'Content-Type: application/json' -d'
 { "index": { "_id": "1" } }
 {
-  "id": 0,
   "company": "Tech Corp",
   "employees": [
     {
@@ -147,7 +153,6 @@ curl -X POST "http://localhost:9200/nested_list/_bulk" -H 'Content-Type: applica
 }
 { "index": { "_id": "2" } }
 {
-  "id": 1,
   "company": "Dev Inc",
   "employees": [
     {
@@ -170,7 +175,6 @@ curl -X PUT "http://localhost:9200/optional" -H 'Content-Type: application/json'
 {
   "mappings": {
     "properties": {
-      "id": { "type": "integer" },
       "a": { "type": "keyword" },
       "b": { "type": "integer" }
     }
@@ -179,13 +183,35 @@ curl -X PUT "http://localhost:9200/optional" -H 'Content-Type: application/json'
 
 curl -X POST "http://localhost:9200/optional/_bulk" -H 'Content-Type: application/json' -d'
 { "index": { "_id": "1" } }
-{ "id": 1, "a": "value1", "b": 10 }
+{ "a": "value1", "b": 10 }
 { "index": { "_id": "2" } }
-{ "id": 2, "a": "value2", "b": 20, "c": "new_field" }
+{ "a": "value2", "b": 20, "c": "new_field" }
 { "index": { "_id": "3" } }
-{ "id": 3, "a": "value3", "b": 30, "d": 3.14 }
+{ "a": "value3", "b": 30, "d": 3.14 }
 { "index": { "_id": "4" } }
-{ "id": 4, "a": "value4", "c": "another_value", "d": 2.71 }
+{ "a": "value4", "c": "another_value", "d": 2.71 }
+'
+
+echo "==============================="
+echo "Ids demo"
+echo "==============================="
+
+curl -X PUT "http://localhost:9200/ids" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "type": { "type": "keyword" },
+    }
+  }
+}'
+
+curl -X POST "http://localhost:9200/ids/_bulk" -H 'Content-Type: application/json' -d'
+{ "index": { "_id": 1 } }
+{ "type": "int" }
+{ "index": { "_id": 0.1 } }
+{ "type": "double" }
+{ "index": { "_id": "string" } }
+{ "type": "string" }
 '
 
 echo "==============================="
