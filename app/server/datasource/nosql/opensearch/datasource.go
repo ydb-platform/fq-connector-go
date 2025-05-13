@@ -31,12 +31,18 @@ type dataSource struct {
 	retrierSet   *retry.RetrierSet
 	cc           conversion.Collection
 	cfg          *config.TOpenSearchConfig
+	logger       *zap.Logger
 	queryLogger  common.QueryLogger
 	queryBuilder *queryBuilder
 }
 
-func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TOpenSearchConfig, cc conversion.Collection) datasource.DataSource[any] {
-	return &dataSource{retrierSet: retrierSet, cfg: cfg, cc: cc}
+func NewDataSource(
+	retrierSet *retry.RetrierSet,
+	cfg *config.TOpenSearchConfig,
+	logger *zap.Logger,
+	cc conversion.Collection,
+) datasource.DataSource[any] {
+	return &dataSource{retrierSet: retrierSet, cc: cc, cfg: cfg, logger: logger, queryBuilder: newQueryBuilder(logger)}
 }
 
 func (ds *dataSource) DescribeTable(
@@ -123,7 +129,7 @@ func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
 	_ observation.IncomingQueryID,
-	_ *api_service_protos.TReadSplitsRequest,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
 ) error {
@@ -160,7 +166,7 @@ func (ds *dataSource) ReadSplit(
 
 	sink := sinks[0]
 
-	if err := ds.doReadSplitSingleConn(ctx, logger, split, sink, client); err != nil {
+	if err := ds.doReadSplitSingleConn(ctx, logger, request, split, sink, client); err != nil {
 		return fmt.Errorf("read split single conn: %w", err)
 	}
 
@@ -172,6 +178,7 @@ func (ds *dataSource) ReadSplit(
 func (ds *dataSource) doReadSplitSingleConn(
 	ctx context.Context,
 	logger *zap.Logger,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sink paging.Sink[any],
 	client *opensearchapi.Client,
@@ -180,6 +187,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 		ctx,
 		logger,
 		client,
+		request,
 		split,
 		ds.cfg.BatchSize,
 		common.MustDurationFromString(ds.cfg.ScrollTimeout),
@@ -238,11 +246,17 @@ func (ds *dataSource) initialSearch(
 	ctx context.Context,
 	logger *zap.Logger,
 	client *opensearchapi.Client,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	batchSize uint64,
 	scrollTimeout time.Duration,
 ) (*opensearchapi.SearchResp, error) {
-	body, err := ds.queryBuilder.buildInitialSearchQuery(batchSize)
+	body, params, err := ds.queryBuilder.buildSearchQuery(
+		split,
+		request.GetFiltering(),
+		batchSize,
+		scrollTimeout,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("build query: %w", err)
 	}
@@ -250,9 +264,7 @@ func (ds *dataSource) initialSearch(
 	req := &opensearchapi.SearchReq{
 		Indices: []string{split.Select.From.Table},
 		Body:    body,
-		Params: opensearchapi.SearchParams{
-			Scroll: scrollTimeout,
-		},
+		Params:  *params,
 	}
 
 	var (
