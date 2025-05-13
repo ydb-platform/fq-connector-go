@@ -260,17 +260,17 @@ trino> select * from mongo.test.types;
 
 ```sql
 SELECT * FROM mongodb(
-		'mongodb://test_user:password@127.0.0.1:27017/test?connectionTimeoutMS=10000',
-		'my_collection',
-		'log_type String, host String, command String' -- схема
-			  )
+'mongodb://test_user:password@127.0.0.1:27017/test?connectionTimeoutMS=10000',
+'my_collection',
+'log_type String, host String, command String' -- схема
+)
 ```
 
 Для MongoDB engine используется схема создаваемой в бд таблицы, с которой будут сопоставляться документы из MongoDB. Если поле в документе отсутствует, оно заполняется значением по умолчанию или NULL (для nullable колонок).
 
 ```sql
 CREATE TABLE [IF NOT EXISTS] [db.]table_name (
-												 name1 [type1],
+    name1 [type1],  
 ) ENGINE = MongoDB(host:port, database, collection, user, password);
 ```
 
