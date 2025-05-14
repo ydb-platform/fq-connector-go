@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
@@ -655,7 +656,7 @@ func (ds *dataSource) makeConnection(
 	return client, nil
 }
 
-func (t *redisRowTransformer) AppendToArrowBuilders(builders []array.Builder) error {
+func (t *redisRowTransformer) AppendToArrowBuilders(_ *arrow.Schema, builders []array.Builder) error {
 	for i, item := range t.items {
 		column := item.GetColumn()
 		if column == nil {

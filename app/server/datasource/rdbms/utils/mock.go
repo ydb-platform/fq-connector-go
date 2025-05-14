@@ -3,7 +3,7 @@ package utils
 import (
 	"context"
 
-	"github.com/apache/arrow/go/arrow"
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"

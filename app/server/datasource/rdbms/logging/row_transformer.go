@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/apache/arrow/go/arrow"
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
-
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ paging.RowTransformer[any] = (*rowTransformer)(nil)
@@ -18,22 +17,22 @@ var _ paging.RowTransformer[any] = (*rowTransformer)(nil)
 type rowTransformer struct {
 	acceptors                       []any
 	internalColumnNameToAcceptorsIx map[string]int
+	cc                              conversion.Collection
 }
 
 func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders []array.Builder) error {
 	// these are external fields
-	for _, field := range schema.Fields() {
-		externalColumnName := field.Name()
-
+	for i, field := range schema.Fields() {
+		externalColumnName := field.Name
 		internalColumnName, exists := externalToInternalColumnName[externalColumnName]
 		if !exists {
 			return fmt.Errorf("uenxpected external column name '%s'", &externalColumnName)
 		}
 
+		ix := rt.internalColumnNameToAcceptorsIx[internalColumnName]
+
 		switch externalColumnName {
 		case levelColumnName:
-			ix := rt.internalColumnNameToAcceptorsIx[internalColumnName]
-
 			src, ok := rt.acceptors[ix].(**int32)
 			if !ok {
 				return fmt.Errorf("unexpected acceptor type %T", src)
@@ -65,14 +64,27 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 			default:
 				return fmt.Errorf("unexpected level value %d", *src)
 			}
+		case messageColumnName:
+			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[i], builders[i], rt.cc.String())
+			if err != nil {
+				return fmt.Errorf("append value to arrow builder nullable for field '%s': %v", externalColumnName, err)
+			}
+		case timestampColumnName:
+			err := utils.AppendValueToArrowBuilderNullable[time.Time, uint64, *array.Uint64Builder](rt.acceptors[i], builders[i], rt.cc.Timestamp())
+			if err != nil {
+				return fmt.Errorf("append value to arrow builder nullable for field '%s': %v", externalColumnName, err)
+			}
+		case jsonPayloadColumnName:
+			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[i], builders[i], rt.cc.String())
+			if err != nil {
+				return fmt.Errorf("append value to arrow builder nullable for field '%s': %v", externalColumnName, err)
+			}
+		default:
+			return fmt.Errorf("unexpected external field name '%s'", externalColumnName)
 		}
 	}
 
 	return nil
-}
-
-func (rt *rowTransformer) maybeInitAppenders() error {
-
 }
 
 func (rt *rowTransformer) GetAcceptors() []any {
