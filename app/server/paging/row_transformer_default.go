@@ -3,6 +3,7 @@ package paging
 import (
 	"fmt"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 )
 
@@ -16,7 +17,7 @@ type RowTransformerDefault[T Acceptor] struct {
 	wantedColumnIDs []int
 }
 
-func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(builders []array.Builder) error {
+func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(_ *arrow.Schema, builders []array.Builder) error {
 	if len(rt.wantedColumnIDs) != 0 {
 		for i, columnID := range rt.wantedColumnIDs {
 			if err := rt.appenders[i](rt.acceptors[columnID], builders[i]); err != nil {

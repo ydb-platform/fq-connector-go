@@ -2,6 +2,7 @@ package logging
 
 import (
 	"fmt"
+	"sort"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -33,36 +34,50 @@ func (s sqlFormatter) RenderSelectQueryText(
 	return s.RenderSelectQueryTextForColumnShard(parts, dst.GetYdb().TabletIds)
 }
 
-func (sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat {
+func (sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) (*api_service_protos.TSelect_TWhat, error) {
 	dst := &api_service_protos.TSelect_TWhat{}
 
+	// collect internal column names
+	internalColumnNamesSet := make(map[string]struct{}, 4)
+
 	for _, item := range src.GetItems() {
-		name := item.GetColumn().Name
-		switch name {
-		case metaColumnName:
-			dst.Items = append(dst.Items, &api_service_protos.TSelect_TWhat_TItem{
-				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-					Column: &Ydb.Column{
-						Name: jsonPayloadColumnName,
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
-					},
-				},
-			})
-		case levelColumnName:
-			dst.Items = append(dst.Items, &api_service_protos.TSelect_TWhat_TItem{
-				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-					Column: &Ydb.Column{
-						Name: levelColumnName,
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
-					},
-				},
-			})
-		default:
-			dst.Items = append(dst.Items, item)
+		externalName := item.GetColumn().Name
+
+		internalName, ok := externalToInternalColumnName[externalName]
+		if !ok {
+			return nil, fmt.Errorf("unknown external column name: %s", externalName)
 		}
+
+		internalColumnNamesSet[internalName] = struct{}{}
 	}
 
-	return dst
+	// get unique internal column names and sort them to increase the degree of determinism
+	internalColumnNamesOrdered := make([]string, 0, len(internalColumnNamesSet))
+
+	for internalName := range internalColumnNamesSet {
+		internalColumnNamesOrdered = append(internalColumnNamesOrdered, internalName)
+	}
+
+	sort.Strings(internalColumnNamesOrdered)
+
+	for _, internalName := range internalColumnNamesOrdered {
+		internalType, ok := internalColumnTypes[internalName]
+
+		if !ok {
+			return nil, fmt.Errorf("unknown internal column name: %s", internalName)
+		}
+
+		dst.Items = append(dst.Items, &api_service_protos.TSelect_TWhat_TItem{
+			Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+				Column: &Ydb.Column{
+					Name: internalName,
+					Type: internalType,
+				},
+			},
+		})
+	}
+
+	return dst, nil
 }
 
 func (sqlFormatter) TransformPredicateComparison(

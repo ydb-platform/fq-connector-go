@@ -32,7 +32,7 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTrans
 			len(cb.builders), len(transformer.GetAcceptors()))
 	}
 
-	if err := transformer.AppendToArrowBuilders(cb.builders); err != nil {
+	if err := transformer.AppendToArrowBuilders(cb.schema, cb.builders); err != nil {
 		return fmt.Errorf("append values to arrow builders: %w", err)
 	}
 

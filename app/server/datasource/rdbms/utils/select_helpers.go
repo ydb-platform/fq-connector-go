@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -27,9 +28,13 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 func formatSelectClause(
 	formatter SQLFormatter,
 	src *api_service_protos.TSelect_TWhat,
-) (string, *api_service_protos.TSelect_TWhat) {
+) (string, *api_service_protos.TSelect_TWhat, error) {
 	// Apply necessary transformations to the list of requested items and extract columns
-	dst := formatter.TransformSelectWhat(src)
+	dst, err := formatter.TransformSelectWhat(src)
+	if err != nil {
+		return "", nil, fmt.Errorf("transform select what: %w", err)
+	}
+
 	columns := common.SelectWhatToYDBColumns(dst)
 
 	// This buffer will hold the part of SELECT query that occures between SELECT and FROM keywords
@@ -55,5 +60,5 @@ func formatSelectClause(
 		dst = src
 	}
 
-	return sb.String(), dst
+	return sb.String(), dst, nil
 }

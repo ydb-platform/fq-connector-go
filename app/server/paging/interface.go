@@ -3,6 +3,7 @@ package paging
 import (
 	"go.uber.org/zap"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
@@ -15,7 +16,7 @@ type Acceptor interface {
 // RowTransformer is a container for values taken extracted from a single table row.
 // RowTransformer also knows how to convert them into columnar reprsentation with Arrow builders.
 type RowTransformer[T Acceptor] interface {
-	AppendToArrowBuilders(builders []array.Builder) error
+	AppendToArrowBuilders(schema *arrow.Schema, builders []array.Builder) error
 	SetAcceptors(acceptors []T)
 	GetAcceptors() []T
 }

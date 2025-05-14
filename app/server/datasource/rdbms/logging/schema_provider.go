@@ -20,7 +20,7 @@ var loggingVirtualSchema = &api_service_protos.TSchema{
 		{Name: projectColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8))},
 		{Name: clusterColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8))},
 		{Name: serviceColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8))},
-		{Name: metaColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON))},
+		{Name: jsonPayloadColumnName, Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON))},
 	},
 }
 

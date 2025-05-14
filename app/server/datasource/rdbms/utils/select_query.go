@@ -33,7 +33,11 @@ func MakeSelectQuery(
 	)
 
 	// Render SELECT clause
-	parts.SelectClause, modifiedWhat = formatSelectClause(formatter, split.Select.What)
+	parts.SelectClause, modifiedWhat, err = formatSelectClause(formatter, split.Select.What)
+	if err != nil {
+		return nil, fmt.Errorf("format select clause: %w", err)
+	}
+
 	ydbColumns := common.SelectWhatToYDBColumns(modifiedWhat)
 
 	// Render FROM clause
