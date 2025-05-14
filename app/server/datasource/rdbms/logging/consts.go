@@ -6,6 +6,9 @@ const (
 	messageColumnName     = "message"
 	metaColumnName        = "meta"
 	jsonPayloadColumnName = "json_payload"
+	projectColumnName     = "project"
+	clusterColumnName     = "cluster"
+	serviceColumnName     = "service"
 
 	levelTraceValue = "TRACE"
 	levelDebugValue = "DEBUG"

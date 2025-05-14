@@ -43,7 +43,7 @@ func (sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *
 			dst.Items = append(dst.Items, &api_service_protos.TSelect_TWhat_TItem{
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
-						Name: "json_payload",
+						Name: jsonPayloadColumnName,
 						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 					},
 				},
@@ -52,7 +52,7 @@ func (sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *
 			dst.Items = append(dst.Items, &api_service_protos.TSelect_TWhat_TItem{
 				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
 					Column: &Ydb.Column{
-						Name: "level",
+						Name: levelColumnName,
 						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
 					},
 				},
