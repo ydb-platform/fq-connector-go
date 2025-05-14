@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -21,12 +22,22 @@ type rowTransformer struct {
 }
 
 func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders []array.Builder) error {
+	// json_payload internal columns contains various fields that are usefull
+	// for construction of different columns
+	var jsonPayloadParsed map[string]any
+	jsonPayloadIx, exists := rt.internalColumnNameToAcceptorsIx[jsonPayloadColumnName]
+	if exists {
+		if err := json.Unmarshal([]byte(*(rt.acceptors[jsonPayloadIx]).(*string)), &jsonPayloadParsed); err != nil {
+			return fmt.Errorf("json unmarshal column '%s': %w", jsonPayloadColumnName, err)
+		}
+	}
+
 	// these are external fields
 	for i, field := range schema.Fields() {
 		externalColumnName := field.Name
 		internalColumnName, exists := externalToInternalColumnName[externalColumnName]
 		if !exists {
-			return fmt.Errorf("uenxpected external column name '%s'", &externalColumnName)
+			return fmt.Errorf("uenxpected external column name '%s'", externalColumnName)
 		}
 
 		ix := rt.internalColumnNameToAcceptorsIx[internalColumnName]
@@ -67,22 +78,49 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 		case messageColumnName:
 			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[i], builders[i], rt.cc.String())
 			if err != nil {
-				return fmt.Errorf("append value to arrow builder nullable for field '%s': %v", externalColumnName, err)
+				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
 		case timestampColumnName:
 			err := utils.AppendValueToArrowBuilderNullable[time.Time, uint64, *array.Uint64Builder](rt.acceptors[i], builders[i], rt.cc.Timestamp())
 			if err != nil {
-				return fmt.Errorf("append value to arrow builder nullable for field '%s': %v", externalColumnName, err)
+				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
+			}
+		case projectColumnName, serviceColumnName, clusterColumnName:
+			err := appendJsonPayloadField(jsonPayloadParsed, builders[i], externalColumnName)
+			if err != nil {
+				return fmt.Errorf("append json payload field '%s': %v", externalColumnName, err)
 			}
 		case jsonPayloadColumnName:
 			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[i], builders[i], rt.cc.String())
 			if err != nil {
-				return fmt.Errorf("append value to arrow builder nullable for field '%s': %v", externalColumnName, err)
+				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
 		default:
 			return fmt.Errorf("unexpected external field name '%s'", externalColumnName)
 		}
 	}
+
+	return nil
+}
+
+func appendJsonPayloadField(jsonPayloadParsed map[string]any, builderUntyped array.Builder, fieldName string) error {
+	builder, ok := builderUntyped.(*array.StringBuilder)
+	if !ok {
+		return fmt.Errorf("builder of an invalid type %T for column '%s'", builderUntyped, projectColumnName)
+	}
+
+	valueUntyped, exists := jsonPayloadParsed[projectColumnName]
+	if !exists {
+		builder.AppendNull()
+		return nil
+	}
+
+	value, ok := valueUntyped.(string)
+	if !ok {
+		return fmt.Errorf("value of an invalid type %T for column '%s'", valueUntyped, projectColumnName)
+	}
+
+	builder.Append(value)
 
 	return nil
 }
@@ -95,8 +133,17 @@ func (rt *rowTransformer) SetAcceptors(_ []any) {
 	panic("implementation error")
 }
 
-func makeRowTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
+func makeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbColumns))
+
+	fmt.Println(">>> makeTransformer", ydbColumns)
+
+	// var internalColumnNames map[string]struct{}
+
+	// for _, ydbColumn := range ydbColumns {
+	// 	internalColumnNames[ydbColumn.Name] = struct{}{}
+	// }
+
 	internalColumnNamesToAcceptorsIx := make(map[string]int, len(ydbColumns))
 
 	for i, ydbColumn := range ydbColumns {
@@ -107,15 +154,12 @@ func makeRowTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (pag
 		case messageColumnName:
 			acceptors = append(acceptors, new(*string))
 			internalColumnNamesToAcceptorsIx[messageColumnName] = i
-			// appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		case timestampColumnName:
 			acceptors = append(acceptors, new(*time.Time))
 			internalColumnNamesToAcceptorsIx[timestampColumnName] = i
-			// appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
 		case jsonPayloadColumnName:
 			acceptors = append(acceptors, new(*string))
 			internalColumnNamesToAcceptorsIx[jsonPayloadColumnName] = i
-			// appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
 		default:
 			return nil, fmt.Errorf("unexpected column name '%s'", ydbColumn.Name)
 		}

@@ -56,8 +56,6 @@ func formatSelectClause(
 				sb.WriteString(", ")
 			}
 		}
-
-		dst = src
 	}
 
 	return sb.String(), dst, nil
