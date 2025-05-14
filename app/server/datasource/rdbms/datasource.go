@@ -156,18 +156,12 @@ func (ds *dataSourceImpl) ReadSplit(
 		}
 	}
 
-	// Prepare sinks that will accept the data from the connections.
-	sinks, err := sinkFactory.MakeSinks(sinkParams)
-	if err != nil {
-		return fmt.Errorf("make sinks: %w", err)
-	}
-
 	// Read data from every connection in a distinct goroutine.
 	group := errgroup.Group{}
 
 	for i, conn := range cs {
 		conn := conn
-		sink := sinks[i]
+		params := sinkParams[i]
 
 		group.Go(func() error {
 			// generate SQL query
@@ -181,6 +175,12 @@ func (ds *dataSourceImpl) ReadSplit(
 			)
 			if err != nil {
 				return fmt.Errorf("make select query: %w", err)
+			}
+
+			// Prepare sinks that will accept the data from the connections.
+			sink, err := sinkFactory.MakeSink(params)
+			if err != nil {
+				return fmt.Errorf("make sink: %w", err)
 			}
 
 			// register outgoing request in storage

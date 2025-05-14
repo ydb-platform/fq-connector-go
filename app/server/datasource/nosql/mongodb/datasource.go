@@ -167,12 +167,12 @@ func (ds *dataSource) ReadSplit(
 		}
 	}()
 
-	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
+	sink, err := sinkFactory.MakeSink(&paging.SinkParams{Logger: logger})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}
 
-	return ds.doReadSplitSingleConn(ctx, logger, dsi, mongoDbOptions, request, split, sinks[0], conn)
+	return ds.doReadSplitSingleConn(ctx, logger, dsi, mongoDbOptions, request, split, sink, conn)
 }
 
 func (ds *dataSource) makeConnection(

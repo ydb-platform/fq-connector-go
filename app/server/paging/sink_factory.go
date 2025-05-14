@@ -89,24 +89,28 @@ func (f *sinkFactoryImpl[T]) Finish() {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 
+	if f.state != sinkFactoryOperational {
+		panic(fmt.Sprintf("unexpected state %v", f.state))
+	}
+
 	terminatedSinks := 0
 
 	for {
 		select {
-		case sink := <-terminateChan:
+		case sink := <-f.terminateChan:
 			terminatedSinks++
 
 			sink.Logger().Info(
 				"sink terminated",
-				zap.Int("total_sinks", f.totalSinks),
+				zap.Int("total_sinks", len(f.children)),
 				zap.Int("terminated_sinks", terminatedSinks),
 			)
 
-			if terminatedSinks == f.totalSinks {
+			if terminatedSinks == len(f.children) {
 				// notify reader about the end of data
 				f.logger.Info("all sinks terminated")
 				close(f.resultQueue)
-				f.state = sinkFactoryFinished
+				f.state = sinkFactoryTerminated
 
 				return
 			}
@@ -128,7 +132,7 @@ func NewSinkFactory[T Acceptor](
 		bufferFactory: columnarBufferFactory,
 		readLimiter:   readLimiter,
 		resultQueue:   make(chan *ReadResult[T], cfg.PrefetchQueueCapacity),
-		terminateChan: make(chan Sink[T]),
+		terminateChan: make(chan *sinkImpl[T]),
 		cfg:           cfg,
 		ctx:           ctx,
 		logger:        logger,

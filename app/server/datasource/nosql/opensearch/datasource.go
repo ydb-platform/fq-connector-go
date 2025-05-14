@@ -153,12 +153,10 @@ func (ds *dataSource) ReadSplit(
 
 	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
 
-	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
+	sink, err := sinkFactory.MakeSink(&paging.SinkParams{Logger: logger})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}
-
-	sink := sinks[0]
 
 	if err := ds.doReadSplitSingleConn(ctx, logger, split, sink, client); err != nil {
 		return fmt.Errorf("read split single conn: %w", err)

@@ -89,12 +89,10 @@ func (*dataSource) doReadSplit(
 
 	csvReader := csv.NewReader(response.Body)
 
-	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
+	sink, err := sinkFactory.MakeSink(&paging.SinkParams{Logger: logger})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}
-
-	sink := sinks[0]
 
 	if err := transformCSV(split.Select.What, split.Select.PredefinedSchema, csvReader, sink); err != nil {
 		return fmt.Errorf("transform csv: %w", err)
