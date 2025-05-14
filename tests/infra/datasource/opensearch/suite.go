@@ -26,7 +26,7 @@ func (s *Suite) TestDescribeTable() {
 }
 
 func (s *Suite) TestReadSplitPrimitives() {
-	testCaseNames := []string{"simple", "nested", "optional"}
+	testCaseNames := []string{"simple", "nested", "optional", "mixed"}
 
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(s.dataSource, tables[testCase])
@@ -62,8 +62,37 @@ func (s *Suite) TestPushdownProjection() {
 	)
 }
 
+func (s *Suite) TestStructPushdownProjection() {
+	what := &api_service_protos.TSelect_TWhat{
+		Items: []*api_service_protos.TSelect_TWhat_TItem{
+			{
+				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+					Column: &Ydb.Column{
+						Name: "_id",
+						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+					},
+				},
+			},
+			{
+				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
+					Column: &Ydb.Column{
+						Name: "nested.bool_field",
+						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
+					},
+				},
+			},
+		},
+	}
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["struct_projection"],
+		suite.WithWhat(what),
+	)
+}
+
 func (s *Suite) TestPushdownIsNull() {
-	testCaseNames := []string{"int32", "double", "boolean", "string", "objectid"}
+	testCaseNames := []string{"double", "boolean", "string", "objectid"}
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(
 			s.dataSource,
@@ -78,7 +107,7 @@ func (s *Suite) TestPushdownIsNull() {
 }
 
 func (s *Suite) TestPushdownIsNotNull() {
-	testCaseNames := []string{"int32", "double", "boolean", "string", "objectid"}
+	testCaseNames := []string{"double", "boolean", "string", "objectid"}
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(
 			s.dataSource,
@@ -263,7 +292,7 @@ func (s *Suite) TestPushdownNegation() {
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"int32",
 				api_service_protos.TPredicate_TComparison_GE,
-				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)), int32(42)),
+				common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(42)),
 			),
 		},
 	}

@@ -24,6 +24,18 @@ func newQueryBuilder(logger *zap.Logger) *queryBuilder {
 	return &queryBuilder{logger: logger}
 }
 
+// buildSearchQuery constructs OpenSearch query with support for:
+//   - Projection: specify exact fields to return from documents.
+//     Format: []string{"field", "nested.field", "deep.nested.field"}
+//     Examples:
+//     ["user.name"] - return only 'name' from 'user' object
+//     ["meta.tags"] - return 'tags' array from 'meta' object
+//     Note:
+//   - OpenSearch requires full path to nested fields
+//   - Wildcards (e.g., "user.*") are NOT supported here
+//   - Invalid fields will be silently ignored by OpenSearch
+//   - Predicate pushdown: filter documents at source
+//   - Pagination: control batch size via scroll API
 func (qb *queryBuilder) buildSearchQuery(
 	split *api_service_protos.TSplit,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
@@ -39,6 +51,7 @@ func (qb *queryBuilder) buildSearchQuery(
 		return nil, nil, fmt.Errorf("not specified columns to query in Select.What")
 	}
 
+	// TODO (Test for top to bottom struct projection)
 	var projection []string
 	for _, item := range what.GetItems() {
 		projection = append(projection, item.GetColumn().Name)
@@ -65,13 +78,12 @@ func (qb *queryBuilder) buildSearchQuery(
 	if where != nil && where.FilterTyped != nil {
 		var err error
 
-		filter, err = qb.makePredicateFilter(where.FilterTyped)
+		filter, err = qb.makePredicateFilter(where.FilterTyped, true)
 		if err != nil {
 			switch filtering {
 			case api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY:
 				return nil, nil, fmt.Errorf("make predicate filter: %w", err)
-			case api_service_protos.TReadSplitsRequest_FILTERING_UNSPECIFIED,
-				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
+			case api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
 				if common.OptionalFilteringAllowedErrors.Match(err) {
 					qb.logger.Warn("considering pushdown error as acceptable", zap.Error(err))
 				} else {
@@ -97,107 +109,143 @@ func (qb *queryBuilder) buildSearchQuery(
 	return &buf, params, nil
 }
 
-func (qb *queryBuilder) makePredicateFilter(predicate *api_service_protos.TPredicate) (map[string]any, error) {
+//nolint:funlen,gocyclo
+func (qb *queryBuilder) makePredicateFilter(
+	predicate *api_service_protos.TPredicate,
+	topLevel bool,
+) (map[string]any, error) {
 	switch p := predicate.Payload.(type) {
 	case *api_service_protos.TPredicate_IsNull:
-		return qb.makeIsNullFilter(p.IsNull.GetValue())
+		filter, err := qb.makeIsNullFilter(p.IsNull.GetValue())
+		if err != nil {
+			return nil, fmt.Errorf("make is null filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_IsNotNull:
-		return qb.makeIsNotNullFilter(p.IsNotNull.GetValue())
+		filter, err := qb.makeIsNotNullFilter(p.IsNotNull.GetValue())
+		if err != nil {
+			return nil, fmt.Errorf("make is not null filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_Negation:
-		return qb.makeNegationFilter(p.Negation)
+		filter, err := qb.makeNegationFilter(p.Negation)
+		if err != nil {
+			return nil, fmt.Errorf("make negation filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_Conjunction:
-		return qb.makeConjunctionFilter(p.Conjunction)
+		filter, err := qb.makeConjunctionFilter(p.Conjunction, topLevel)
+		if err != nil {
+			return nil, fmt.Errorf("make conjunction filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_Disjunction:
-		return qb.makeDisjunctionFilter(p.Disjunction)
+		filter, err := qb.makeDisjunctionFilter(p.Disjunction)
+		if err != nil {
+			return nil, fmt.Errorf("make disjunction filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_Comparison:
-		return qb.makeComparisonFilter(p.Comparison)
+		filter, err := qb.makeComparisonFilter(p.Comparison)
+		if err != nil {
+			return nil, fmt.Errorf("make comparison filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_BoolExpression:
-		return qb.makeBooleanFilter(p.BoolExpression)
+		filter, err := qb.makeBooleanFilter(p.BoolExpression)
+		if err != nil {
+			return nil, fmt.Errorf("make bool expression filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_In:
-		return qb.makeInSetFilter(p.In)
+		filter, err := qb.makeInSetFilter(p.In)
+		if err != nil {
+			return nil, fmt.Errorf("make in set filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_Between:
-		return qb.makeBetweenFilter(p.Between)
+		filter, err := qb.makeBetweenFilter(p.Between)
+		if err != nil {
+			return nil, fmt.Errorf("make between filter: %w", err)
+		}
+
+		return filter, nil
 	case *api_service_protos.TPredicate_Regexp:
-		return qb.makeRegexFilter(p.Regexp)
+		filter, err := qb.makeRegexFilter(p.Regexp)
+		if err != nil {
+			return nil, fmt.Errorf("make regex filter: %w", err)
+		}
+
+		return filter, nil
 	default:
 		return nil, fmt.Errorf("%w: %T", common.ErrUnimplementedPredicateType, p)
 	}
 }
-
 func (qb *queryBuilder) makeNegationFilter(negation *api_service_protos.TPredicate_TNegation) (map[string]any, error) {
-	if cmp, ok := negation.Operand.Payload.(*api_service_protos.TPredicate_Comparison); ok {
-		invertedOp, err := qb.invertComparisonOperation(cmp.Comparison.Operation)
-		if err != nil {
-			return nil, fmt.Errorf("invert comparison operation: %w", err)
-		}
-
-		return qb.makeComparisonFilter(&api_service_protos.TPredicate_TComparison{
-			LeftValue:  cmp.Comparison.LeftValue,
-			Operation:  invertedOp,
-			RightValue: cmp.Comparison.RightValue,
-		})
-	}
-
-	filter, err := qb.makePredicateFilter(negation.Operand)
+	filter, err := qb.makePredicateFilter(negation.Operand, false)
 	if err != nil {
-		return nil, fmt.Errorf("make negation filter: %w", err)
+		return nil, fmt.Errorf("make predicate filter: %w", err)
 	}
 
 	return map[string]any{
 		"bool": map[string]any{
-			"must_not": filter,
+			"must_not": []any{filter},
 		},
 	}, nil
-}
-
-func (*queryBuilder) invertComparisonOperation(
-	op api_service_protos.TPredicate_TComparison_EOperation,
-) (api_service_protos.TPredicate_TComparison_EOperation, error) {
-	switch op {
-	case api_service_protos.TPredicate_TComparison_EQ:
-		return api_service_protos.TPredicate_TComparison_NE, nil
-	case api_service_protos.TPredicate_TComparison_NE:
-		return api_service_protos.TPredicate_TComparison_EQ, nil
-	case api_service_protos.TPredicate_TComparison_L:
-		return api_service_protos.TPredicate_TComparison_GE, nil
-	case api_service_protos.TPredicate_TComparison_LE:
-		return api_service_protos.TPredicate_TComparison_G, nil
-	case api_service_protos.TPredicate_TComparison_G:
-		return api_service_protos.TPredicate_TComparison_LE, nil
-	case api_service_protos.TPredicate_TComparison_GE:
-		return api_service_protos.TPredicate_TComparison_L, nil
-	default:
-		return 0, fmt.Errorf("cannot invert operation %v", op)
-	}
 }
 
 func (qb *queryBuilder) makeBooleanFilter(boolExpr *api_service_protos.TPredicate_TBoolExpression) (map[string]any, error) {
 	field, err := qb.getFieldName(boolExpr.Value)
 	if err != nil {
-		return nil, fmt.Errorf("make boolean filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
 
 	return map[string]any{
 		"bool": map[string]any{
-			"must": map[string]any{
-				"term": map[string]any{
-					field: true,
+			"must": []any{
+				map[string]any{
+					"term": map[string]any{
+						field: true,
+					},
 				},
 			},
 		},
 	}, nil
 }
 
-func (qb *queryBuilder) makeConjunctionFilter(conjunction *api_service_protos.TPredicate_TConjunction) (map[string]any, error) {
-	var must []map[string]any
+func (qb *queryBuilder) makeConjunctionFilter(
+	conjunction *api_service_protos.TPredicate_TConjunction,
+	topLevel bool,
+) (map[string]any, error) {
+	var (
+		must []map[string]any
+		errs []error
+	)
 
 	for _, op := range conjunction.Operands {
-		filter, err := qb.makePredicateFilter(op)
+		filter, err := qb.makePredicateFilter(op, false)
 		if err != nil {
-			return nil, fmt.Errorf("make conjunction filter: %w", err)
+			if topLevel {
+				errs = append(errs, fmt.Errorf("operand error: %w", err))
+				continue
+			}
+
+			return nil, fmt.Errorf("make predicate filter: %w", err)
 		}
 
 		must = append(must, filter)
+	}
+
+	if topLevel && len(errs) > 0 {
+		return nil, fmt.Errorf("%d errors in conjunction: %v", len(errs), errs)
 	}
 
 	return map[string]any{
@@ -211,14 +259,20 @@ func (qb *queryBuilder) makeDisjunctionFilter(disjunction *api_service_protos.TP
 	var should []map[string]any
 
 	for _, op := range disjunction.Operands {
-		filter, err := qb.makePredicateFilter(op)
+		filter, err := qb.makePredicateFilter(op, false)
 		if err != nil {
-			return nil, fmt.Errorf("make disjunction filter: %w", err)
+			return nil, fmt.Errorf("make predicate filter: %w", err)
 		}
 
 		should = append(should, filter)
 	}
 
+	// Logical or operator. The results must match at least one of the queries.
+	// Matching more should clauses increases the document’s relevance score.
+	// You can set the minimum number of queries that must match using the minimum_should_match parameter.
+	// If a query contains a must or filter clause, the default minimum_should_match value is 0.
+	// Otherwise, the default minimum_should_match value is 1.
+	// https://docs.opensearch.org/docs/latest/query-dsl/compound/bool/
 	return map[string]any{
 		"bool": map[string]any{
 			"should":               should,
@@ -230,14 +284,16 @@ func (qb *queryBuilder) makeDisjunctionFilter(disjunction *api_service_protos.TP
 func (qb *queryBuilder) makeIsNullFilter(expr *api_service_protos.TExpression) (map[string]any, error) {
 	field, err := qb.getFieldName(expr)
 	if err != nil {
-		return nil, fmt.Errorf("make is null filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
 
 	return map[string]any{
 		"bool": map[string]any{
-			"must_not": map[string]any{
-				"exists": map[string]any{
-					"field": field,
+			"must_not": []any{
+				map[string]any{
+					"exists": map[string]any{
+						"field": field,
+					},
 				},
 			},
 		},
@@ -247,7 +303,7 @@ func (qb *queryBuilder) makeIsNullFilter(expr *api_service_protos.TExpression) (
 func (qb *queryBuilder) makeIsNotNullFilter(expr *api_service_protos.TExpression) (map[string]any, error) {
 	field, err := qb.getFieldName(expr)
 	if err != nil {
-		return nil, fmt.Errorf("make is not null filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
 
 	return map[string]any{
@@ -260,17 +316,13 @@ func (qb *queryBuilder) makeIsNotNullFilter(expr *api_service_protos.TExpression
 func (qb *queryBuilder) makeComparisonFilter(comparison *api_service_protos.TPredicate_TComparison) (map[string]any, error) {
 	field, err := qb.getFieldName(comparison.LeftValue)
 	if err != nil {
-		return nil, fmt.Errorf("make comparison filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
-
-	qb.logger.Debug("makeComparisonFilter", zap.Any("field", field))
 
 	value, err := qb.makeExpressionValue(comparison.RightValue)
 	if err != nil {
-		return nil, fmt.Errorf("make comparison filter: %w", err)
+		return nil, fmt.Errorf("make expression value: %w", err)
 	}
-
-	qb.logger.Debug("makeComparisonFilter", zap.Any("value", value))
 
 	switch comparison.Operation {
 	case api_service_protos.TPredicate_TComparison_EQ:
@@ -282,9 +334,11 @@ func (qb *queryBuilder) makeComparisonFilter(comparison *api_service_protos.TPre
 	case api_service_protos.TPredicate_TComparison_NE:
 		return map[string]any{
 			"bool": map[string]any{
-				"must_not": map[string]any{
-					"term": map[string]any{
-						field: value,
+				"must_not": []any{
+					map[string]any{
+						"term": map[string]any{
+							field: value,
+						},
 					},
 				},
 			},
@@ -353,7 +407,7 @@ func (qb *queryBuilder) makeComparisonFilter(comparison *api_service_protos.TPre
 func (qb *queryBuilder) makeInSetFilter(in *api_service_protos.TPredicate_TIn) (map[string]any, error) {
 	field, err := qb.getFieldName(in.Value)
 	if err != nil {
-		return nil, fmt.Errorf("make in set filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
 
 	var values []any
@@ -361,7 +415,7 @@ func (qb *queryBuilder) makeInSetFilter(in *api_service_protos.TPredicate_TIn) (
 	for _, item := range in.Set {
 		value, err := qb.makeExpressionValue(item)
 		if err != nil {
-			return nil, fmt.Errorf("make in set filter: %w", err)
+			return nil, fmt.Errorf("make expression value: %w", err)
 		}
 
 		values = append(values, value)
@@ -377,17 +431,17 @@ func (qb *queryBuilder) makeInSetFilter(in *api_service_protos.TPredicate_TIn) (
 func (qb *queryBuilder) makeBetweenFilter(between *api_service_protos.TPredicate_TBetween) (map[string]any, error) {
 	field, err := qb.getFieldName(between.Value)
 	if err != nil {
-		return nil, fmt.Errorf("make between filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
 
 	mn, err := qb.makeExpressionValue(between.Least)
 	if err != nil {
-		return nil, fmt.Errorf("make between filter: %w", err)
+		return nil, fmt.Errorf("make expression value: %w", err)
 	}
 
 	mx, err := qb.makeExpressionValue(between.Greatest)
 	if err != nil {
-		return nil, fmt.Errorf("make between filter: %w", err)
+		return nil, fmt.Errorf("make expression value: %w", err)
 	}
 
 	return map[string]any{
@@ -403,12 +457,12 @@ func (qb *queryBuilder) makeBetweenFilter(between *api_service_protos.TPredicate
 func (qb *queryBuilder) makeRegexFilter(regex *api_service_protos.TPredicate_TRegexp) (map[string]any, error) {
 	field, err := qb.getFieldName(regex.Value)
 	if err != nil {
-		return nil, fmt.Errorf("make regex filter: %w", err)
+		return nil, fmt.Errorf("get field name: %w", err)
 	}
 
 	pattern, err := qb.makeExpressionValue(regex.Pattern)
 	if err != nil {
-		return nil, fmt.Errorf("make regex filter: %w", err)
+		return nil, fmt.Errorf("make expression value: %w", err)
 	}
 
 	return map[string]any{
@@ -446,8 +500,16 @@ func (qb *queryBuilder) makeTypedValue(expr *Ydb.TypedValue) (any, error) {
 	v := expr.GetValue()
 	ydbType := expr.GetType()
 
-	if v == nil || v.Value == nil || ydbType == nil {
-		return nil, fmt.Errorf("got %v of type %T as null trying to format Typed Value expression", v, v)
+	if v == nil {
+		return nil, fmt.Errorf("typed value container is nil")
+	}
+
+	if v.Value == nil {
+		return nil, fmt.Errorf("typed value content is nil (container type: %T)", v)
+	}
+
+	if ydbType == nil {
+		return nil, fmt.Errorf("YDB type descriptor is nil (value container: %+v)", v)
 	}
 
 	var value any
@@ -458,6 +520,10 @@ func (qb *queryBuilder) makeTypedValue(expr *Ydb.TypedValue) (any, error) {
 		value = t.Int32Value
 	case *Ydb.Value_Int64Value:
 		value = t.Int64Value
+	case *Ydb.Value_Uint32Value:
+		value = t.Uint32Value
+	case *Ydb.Value_Uint64Value:
+		value = t.Uint64Value
 	case *Ydb.Value_FloatValue:
 		value = t.FloatValue
 	case *Ydb.Value_DoubleValue:
@@ -486,7 +552,9 @@ func (*queryBuilder) formatValue(exprType *Ydb.Type, value any) (any, error) {
 	switch t := exprType.Type.(type) {
 	case *Ydb.Type_TypeId:
 		switch t.TypeId {
-		case Ydb.Type_BOOL, Ydb.Type_INT32, Ydb.Type_INT64, Ydb.Type_FLOAT, Ydb.Type_DOUBLE, Ydb.Type_STRING, Ydb.Type_UTF8:
+		case Ydb.Type_BOOL, Ydb.Type_UINT32, Ydb.Type_UINT64, Ydb.Type_INT32,
+			Ydb.Type_INT64, Ydb.Type_FLOAT, Ydb.Type_DOUBLE,
+			Ydb.Type_STRING, Ydb.Type_UTF8:
 			return value, nil
 		default:
 			return nil, fmt.Errorf("unsupported type %T for typed value", t)

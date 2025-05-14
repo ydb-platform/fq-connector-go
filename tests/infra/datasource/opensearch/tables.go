@@ -189,6 +189,32 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 			},
 		}},
 	},
+	"mixed": {
+		Name:                  "mixed_docs",
+		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":        testIdType,
+				"int_field":  common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"text_field": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"bool_field": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
+			},
+		},
+		Records: []*test_utils.Record[string, *array.StringBuilder]{{
+			Columns: map[string]any{
+				"_id":       []string{"1", "2", "3", "4", "5"},
+				"int_field": []*int32{ptr.Int32(42), nil, ptr.Int32(-100), nil, ptr.Int32(0)},
+				"text_field": []*string{
+					ptr.String("full"),
+					nil,
+					ptr.String("restored"),
+					nil,
+					ptr.String("final"),
+				},
+				"bool_field": []*uint8{ptr.Uint8(1), nil, ptr.Uint8(0), nil, ptr.Uint8(1)},
+			},
+		}},
+	},
 	"pushdown_projection": {
 		Name:                  "pushdown_projection",
 		IDArrayBuilderFactory: newStringIDArrayBuilder(memPool),
@@ -228,7 +254,7 @@ var tables = map[string]*test_utils.Table[string, *array.StringBuilder]{
 		Records: []*test_utils.Record[string, *array.StringBuilder]{{
 			Columns: map[string]any{
 				"_id":      []string{"1"},
-				"int32":    []*int32{nil},
+				"int32":    []*int32{ptr.Int32(62)},
 				"double":   []*float64{nil},
 				"boolean":  []*uint8{nil},
 				"int64":    []*int64{ptr.Int64(456)},

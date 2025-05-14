@@ -192,6 +192,34 @@ curl -X POST "http://localhost:9200/optional/_bulk" -H 'Content-Type: applicatio
 { "a": "value4", "c": "another_value", "d": 2.71 }
 '
 
+echo "==============================="
+echo "Mixed filled/empty documents"
+echo "==============================="
+
+curl -X PUT "http://localhost:9200/mixed_docs" -H 'Content-Type: application/json' -d'
+{
+  "mappings": {
+    "properties": {
+      "int_field": { "type": "integer" },
+      "text_field": { "type": "keyword" },
+      "bool_field": { "type": "boolean" }
+    }
+  }
+}'
+
+curl -X POST "http://localhost:9200/mixed_docs/_bulk" -H 'Content-Type: application/json' -d'
+{ "index": { "_id": "1" } }
+{ "int_field": 42, "text_field": "full", "bool_field": true}
+{ "index": { "_id": "2" } }
+{}
+{ "index": { "_id": "3" } }
+{ "int_field": -100, "text_field": "restored", "bool_field": false}
+{ "index": { "_id": "4" } }
+{ "int_field": null, "text_field": null, "bool_field": null}
+{ "index": { "_id": "5" } }
+{ "int_field": 0, "text_field": "final", "bool_field": true }
+'
+
 echo "========================================="
 echo "Setting up OpenSearch test data for pushdowns"
 echo "========================================="
@@ -242,7 +270,7 @@ curl -X POST "http://localhost:9200/pushdown_null_checks/_bulk" -H 'Content-Type
 { "index": { "_id": "0" } }
 { "int32": 42, "double": 1.1, "boolean": true, "int64": 123, "string": "exists", "objectid": "507f1f77bcf86cd799439011" }
 { "index": { "_id": "1" } }
-{ "int32": null, "double": null, "boolean": null, "int64": 456, "string": null, "objectid": null }
+{ "int32": 62, "double": null, "boolean": null, "int64": 456, "string": null, "objectid": null }
 { "index": { "_id": "2" } }
 { "int32": 24, "double": 2.2, "boolean": false, "int64": null, "string": "exists2", "objectid": "507f1f77bcf86cd799439012" }
 '
