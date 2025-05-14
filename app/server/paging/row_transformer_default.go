@@ -6,19 +6,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 )
 
-// Acceptor is a fundamental type class that is used during data extraction from the data source
-type Acceptor interface {
-	any | string
-}
-
-// RowTransformer is a container for values taken extracted from a single table row.
-// RowTransformer also knows how to convert them into columnar reprsentation with Arrow builders.
-type RowTransformer[T Acceptor] interface {
-	AppendToArrowBuilders(builders []array.Builder) error
-	SetAcceptors(acceptors []T)
-	GetAcceptors() []T
-}
-
 type RowTransformerDefault[T Acceptor] struct {
 	// The row data itself.
 	acceptors []T
