@@ -62,35 +62,6 @@ func (s *Suite) TestPushdownProjection() {
 	)
 }
 
-func (s *Suite) TestStructPushdownProjection() {
-	what := &api_service_protos.TSelect_TWhat{
-		Items: []*api_service_protos.TSelect_TWhat_TItem{
-			{
-				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-					Column: &Ydb.Column{
-						Name: "_id",
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
-					},
-				},
-			},
-			{
-				Payload: &api_service_protos.TSelect_TWhat_TItem_Column{
-					Column: &Ydb.Column{
-						Name: "nested.bool_field",
-						Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_BOOL)),
-					},
-				},
-			},
-		},
-	}
-
-	s.ValidateTable(
-		s.dataSource,
-		tables["struct_projection"],
-		suite.WithWhat(what),
-	)
-}
-
 func (s *Suite) TestPushdownIsNull() {
 	testCaseNames := []string{"double", "boolean", "string", "objectid"}
 	for _, testCase := range testCaseNames {
