@@ -149,6 +149,11 @@ func (ds *dataSourceImpl) ReadSplit(
 
 	defer ds.connectionManager.Release(ctx, logger, cs)
 
+	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
+	if err != nil {
+		return fmt.Errorf("select what to YDB types: %w", err)
+	}
+
 	// Read data from every connection in a distinct goroutine.
 	group := errgroup.Group{}
 
@@ -168,8 +173,6 @@ func (ds *dataSourceImpl) ReadSplit(
 			if err != nil {
 				return fmt.Errorf("make select query: %w", err)
 			}
-
-			ydbTypes := common.YDBColumnsToYDBTypes(query.YdbColumns)
 
 			// Prepare sink that will accept the data from the connections.
 			sink, err := sinkFactory.MakeSink(logger, ydbTypes)

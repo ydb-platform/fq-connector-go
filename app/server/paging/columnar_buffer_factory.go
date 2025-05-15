@@ -30,12 +30,6 @@ func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer(ydbTypes []*Ydb.Type) (Colum
 			return nil, fmt.Errorf("convert Select.What to arrow.Schema: %w", err)
 		}
 
-		fmt.Println(">>> YDB TYPES", ydbTypes)
-		fmt.Println(">>> BUILDERS", builders)
-		for _, b := range builders {
-			fmt.Println(">>> BUILDER TYPE", b.Type())
-		}
-
 		if len(ydbTypes) == 0 {
 			return &columnarBufferArrowIPCStreamingEmptyColumns[T]{
 				arrowAllocator: cbf.arrowAllocator,

@@ -35,12 +35,16 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 		}
 	}
 
+	fmt.Println(">>> BUILDERS", len(builders))
+	for _, b := range builders {
+		fmt.Println(">>> BUILDER TYPE", b.Type())
+	}
 	fmt.Println(">>> SCHEMA FIELDS", schema.Fields())
 	fmt.Println(">>> ACCEPTORS", rt.acceptors, rt.internalColumnNameToAcceptorsIx)
 
 	// these are external fields
 	for i, field := range schema.Fields() {
-		fmt.Println(">>> FIELD", i, field)
+		// fmt.Println(">>> FIELD", i, field)
 		externalColumnName := field.Name
 		internalColumnName, exists := externalToInternalColumnName[externalColumnName]
 		if !exists {
@@ -56,7 +60,7 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 				return fmt.Errorf("unexpected acceptor type %T", src)
 			}
 
-			typedBuilder, ok := builders[ix].(*array.StringBuilder)
+			typedBuilder, ok := builders[i].(*array.StringBuilder)
 			if !ok {
 				return fmt.Errorf("unexpected builder type %T", builders[ix])
 			}
