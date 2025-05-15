@@ -104,7 +104,7 @@ type SQLFormatter interface {
 	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)
 	// TransformSelectWhat transforms the list of requested items
 	// (may be useful for some special data sources)
-	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) *api_service_protos.TSelect_TWhat
+	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) (*api_service_protos.TSelect_TWhat, error)
 	// TransformPredicateComparison transforms the comparison predicate
 	// (may be useful for some special data sources)
 	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (

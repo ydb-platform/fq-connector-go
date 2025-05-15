@@ -17,7 +17,7 @@ type rowsImpl struct {
 }
 
 func (rowsImpl) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
-	return makeRowTransformer(ydbColumns, cc)
+	return makeTransformer(ydbColumns, cc)
 }
 
 var _ rdbms_utils.Connection = (*connectionImpl)(nil)

@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"io"
+	"os"
 	"testing"
 
 	"go.uber.org/zap"
@@ -112,20 +113,16 @@ func NewTestLogger(t *testing.T) *zap.Logger { return zaptest.NewLogger(t) }
 
 //nolint:revive
 func SelectToFields(slct *api_service_protos.TSelect) []zap.Field {
-	result := []zap.Field{
-		// Uncomment this when you want requests to be dumped.
-		/*
-			zap.Any("from", slct.From),
-			zap.Any("what", slct.What),
-			zap.Any("where", slct.Where),
-		*/
-		// NOTE: uncomment this if you want to extract query parameters in deserializable format,
-		// but be careful because it will put sensitive information to logs.
-		/*
+	result := []zap.Field{}
+
+	// NOTE: use this only if you want to extract query parameters in deserializable format,
+	// but be careful because it will put sensitive information into logs.
+	if os.Getenv("DUMP_SELECT_FIELDS") != "" {
+		result = append(result,
 			zap.String("from", MustProtobufToJSONString(slct.From, false, "")),
 			zap.String("what", MustProtobufToJSONString(slct.What, false, "")),
 			zap.String("where", MustProtobufToJSONString(slct.Where, false, "")),
-		*/
+		)
 	}
 
 	return result

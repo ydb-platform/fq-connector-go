@@ -26,13 +26,7 @@ type columnarBufferArrowIPCStreamingDefault[T Acceptor] struct {
 //
 //nolint:unused
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTransformer[T]) error {
-	if len(cb.builders) != len(transformer.GetAcceptors()) {
-		return fmt.Errorf(
-			"expected %v values in a row, got %v instead",
-			len(cb.builders), len(transformer.GetAcceptors()))
-	}
-
-	if err := transformer.AppendToArrowBuilders(cb.builders); err != nil {
+	if err := transformer.AppendToArrowBuilders(cb.schema, cb.builders); err != nil {
 		return fmt.Errorf("append values to arrow builders: %w", err)
 	}
 

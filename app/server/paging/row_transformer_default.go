@@ -3,21 +3,9 @@ package paging
 import (
 	"fmt"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 )
-
-// Acceptor is a fundamental type class that is used during data extraction from the data source
-type Acceptor interface {
-	any | string
-}
-
-// RowTransformer is a container for values taken extracted from a single table row.
-// RowTransformer also knows how to convert them into columnar reprsentation with Arrow builders.
-type RowTransformer[T Acceptor] interface {
-	AppendToArrowBuilders(builders []array.Builder) error
-	SetAcceptors(acceptors []T)
-	GetAcceptors() []T
-}
 
 type RowTransformerDefault[T Acceptor] struct {
 	// The row data itself.
@@ -29,7 +17,7 @@ type RowTransformerDefault[T Acceptor] struct {
 	wantedColumnIDs []int
 }
 
-func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(builders []array.Builder) error {
+func (rt *RowTransformerDefault[T]) AppendToArrowBuilders(_ *arrow.Schema, builders []array.Builder) error {
 	if len(rt.wantedColumnIDs) != 0 {
 		for i, columnID := range rt.wantedColumnIDs {
 			if err := rt.appenders[i](rt.acceptors[columnID], builders[i]); err != nil {
