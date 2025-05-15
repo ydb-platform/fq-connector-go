@@ -13,24 +13,23 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-var _ ColumnarBufferFactory[Acceptor] = (*columnarBufferFactoryImpl[Acceptor])(nil)
-
 type columnarBufferFactoryImpl[T Acceptor] struct {
 	arrowAllocator memory.Allocator
 	logger         *zap.Logger
 	format         api_service_protos.TReadSplitsRequest_EFormat
 	schema         *arrow.Schema
+	ydbTypes       []*Ydb.Type
 }
 
-func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer(ydbTypes []*Ydb.Type) (ColumnarBuffer[T], error) {
+func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer() (ColumnarBuffer[T], error) {
 	switch cbf.format {
 	case api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING:
-		builders, err := common.YdbTypesToArrowBuilders(ydbTypes, cbf.arrowAllocator)
+		builders, err := common.YdbTypesToArrowBuilders(cbf.ydbTypes, cbf.arrowAllocator)
 		if err != nil {
 			return nil, fmt.Errorf("convert Select.What to arrow.Schema: %w", err)
 		}
 
-		if len(ydbTypes) == 0 {
+		if len(cbf.ydbTypes) == 0 {
 			return &columnarBufferArrowIPCStreamingEmptyColumns[T]{
 				arrowAllocator: cbf.arrowAllocator,
 				schema:         cbf.schema,
@@ -55,6 +54,11 @@ func NewColumnarBufferFactory[T Acceptor](
 	format api_service_protos.TReadSplitsRequest_EFormat,
 	selectWhat *api_service_protos.TSelect_TWhat,
 ) (ColumnarBufferFactory[T], error) {
+	ydbTypes, err := common.SelectWhatToYDBTypes(selectWhat)
+	if err != nil {
+		return nil, fmt.Errorf("convert Select.What to Ydb types: %w", err)
+	}
+
 	schema, err := common.SelectWhatToArrowSchema(selectWhat)
 	if err != nil {
 		return nil, fmt.Errorf("convert Select.What to Arrow schema: %w", err)
@@ -65,6 +69,7 @@ func NewColumnarBufferFactory[T Acceptor](
 		arrowAllocator: arrowAllocator,
 		format:         format,
 		schema:         schema,
+		ydbTypes:       ydbTypes,
 	}
 
 	return cbf, nil

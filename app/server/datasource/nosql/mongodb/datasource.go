@@ -167,12 +167,7 @@ func (ds *dataSource) ReadSplit(
 		}
 	}()
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
-	if err != nil {
-		return fmt.Errorf("select what to YDB types: %w", err)
-	}
-
-	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger, YdbTypes: ydbTypes}})
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger}})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}

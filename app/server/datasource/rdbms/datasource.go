@@ -149,16 +149,10 @@ func (ds *dataSourceImpl) ReadSplit(
 
 	defer ds.connectionManager.Release(ctx, logger, cs)
 
-	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
-	if err != nil {
-		return fmt.Errorf("select what to YDB types: %w", err)
-	}
-
 	sinkParams := make([]*paging.SinkParams, len(cs))
 	for i, conn := range cs {
 		sinkParams[i] = &paging.SinkParams{
-			Logger:   conn.Logger(),
-			YdbTypes: ydbTypes,
+			Logger: conn.Logger(),
 		}
 	}
 

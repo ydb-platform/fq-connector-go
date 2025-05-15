@@ -5,8 +5,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"go.uber.org/zap"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
-
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -35,7 +33,7 @@ type ColumnarBuffer[T Acceptor] interface {
 }
 
 type ColumnarBufferFactory[T Acceptor] interface {
-	MakeBuffer(ydbTypes []*Ydb.Type) (ColumnarBuffer[T], error)
+	MakeBuffer() (ColumnarBuffer[T], error)
 }
 
 // ReadResult is an algebraic data type containing:
@@ -65,8 +63,7 @@ type Sink[T Acceptor] interface {
 	Logger() *zap.Logger
 }
 type SinkParams struct {
-	Logger   *zap.Logger
-	YdbTypes []*Ydb.Type
+	Logger *zap.Logger
 }
 
 // SinkFactory should be instantiated once for each ReadSplits request.

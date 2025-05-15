@@ -51,7 +51,7 @@ func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) 
 	terminateChan := make(chan Sink[T], f.totalSinks)
 
 	for i := 0; i < f.totalSinks; i++ {
-		buffer, err := f.bufferFactory.MakeBuffer(params[i].YdbTypes)
+		buffer, err := f.bufferFactory.MakeBuffer()
 		if err != nil {
 			f.state = sinkFactoryFailed
 			return nil, fmt.Errorf("make buffer: %w", err)
@@ -69,7 +69,6 @@ func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) 
 			trafficTracker: trafficTracker,
 			currBuffer:     buffer,
 			logger:         params[i].Logger,
-			ydbTypes:       params[i].YdbTypes,
 			state:          sinkOperational,
 			ctx:            f.ctx,
 		}

@@ -24,7 +24,7 @@ type columnarBufferArrowIPCStreamingDefault[T Acceptor] struct {
 
 // AddRow saves a row obtained from the datasource into the buffer
 //
-//nolint:unused // false negative
+//nolint:unused
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTransformer[T]) error {
 	if err := transformer.AppendToArrowBuilders(cb.schema, cb.builders); err != nil {
 		return fmt.Errorf("append values to arrow builders: %w", err)
