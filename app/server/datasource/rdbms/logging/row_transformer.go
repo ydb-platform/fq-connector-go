@@ -7,10 +7,12 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ paging.RowTransformer[any] = (*rowTransformer)(nil)
@@ -21,10 +23,12 @@ type rowTransformer struct {
 	cc                              conversion.Collection
 }
 
+//nolint:gocyclo
 func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders []array.Builder) error {
-	// json_payload internal columns contains various fields that are usefull
-	// for construction of different columns
+	// 'json_payload' internal column contains various fields
+	// that are useful for construction of different virtual columns
 	var jsonPayloadParsed map[string]any
+
 	jsonPayloadIx, exists := rt.internalColumnNameToAcceptorsIx[jsonPayloadColumnName]
 	if exists {
 		acceptor := (rt.acceptors[jsonPayloadIx]).(**string)
@@ -35,17 +39,10 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 		}
 	}
 
-	fmt.Println(">>> BUILDERS", len(builders))
-	for _, b := range builders {
-		fmt.Println(">>> BUILDER TYPE", b.Type())
-	}
-	fmt.Println(">>> SCHEMA FIELDS", schema.Fields())
-	fmt.Println(">>> ACCEPTORS", rt.acceptors, rt.internalColumnNameToAcceptorsIx)
-
-	// these are external fields
+	// iterate over external fields, but some of them will be extracted from the internal fields
 	for i, field := range schema.Fields() {
-		// fmt.Println(">>> FIELD", i, field)
 		externalColumnName := field.Name
+
 		internalColumnName, exists := externalToInternalColumnName[externalColumnName]
 		if !exists {
 			return fmt.Errorf("uenxpected external column name '%s'", externalColumnName)
@@ -87,22 +84,25 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 				return fmt.Errorf("unexpected level value %d", *src)
 			}
 		case messageColumnName:
-			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[ix], builders[i], rt.cc.String())
+			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](
+				rt.acceptors[ix], builders[i], rt.cc.String())
 			if err != nil {
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
 		case timestampColumnName:
-			err := utils.AppendValueToArrowBuilderNullable[time.Time, uint64, *array.Uint64Builder](rt.acceptors[ix], builders[i], rt.cc.Timestamp())
+			err := utils.AppendValueToArrowBuilderNullable[time.Time, uint64, *array.Uint64Builder](
+				rt.acceptors[ix], builders[i], rt.cc.Timestamp())
 			if err != nil {
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
 		case projectColumnName, serviceColumnName, clusterColumnName:
-			err := appendJsonPayloadField(jsonPayloadParsed, builders[i], externalColumnName)
+			err := appendJSONPayloadField(jsonPayloadParsed, builders[i], externalColumnName)
 			if err != nil {
 				return fmt.Errorf("append json payload field '%s': %v", externalColumnName, err)
 			}
 		case jsonPayloadColumnName:
-			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[ix], builders[i], rt.cc.String())
+			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](
+				rt.acceptors[ix], builders[i], rt.cc.String())
 			if err != nil {
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
@@ -114,13 +114,13 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 	return nil
 }
 
-func appendJsonPayloadField(jsonPayloadParsed map[string]any, builderUntyped array.Builder, fieldName string) error {
+func appendJSONPayloadField(jsonPayloadParsed map[string]any, builderUntyped array.Builder, fieldName string) error {
 	builder, ok := builderUntyped.(*array.StringBuilder)
 	if !ok {
-		return fmt.Errorf("builder of an invalid type %T for column '%s'", builderUntyped, projectColumnName)
+		return fmt.Errorf("builder of an invalid type %T for column '%s'", builderUntyped, fieldName)
 	}
 
-	valueUntyped, exists := jsonPayloadParsed[projectColumnName]
+	valueUntyped, exists := jsonPayloadParsed[fieldName]
 	if !exists {
 		builder.AppendNull()
 		return nil
@@ -128,7 +128,7 @@ func appendJsonPayloadField(jsonPayloadParsed map[string]any, builderUntyped arr
 
 	value, ok := valueUntyped.(string)
 	if !ok {
-		return fmt.Errorf("value of an invalid type %T for column '%s'", valueUntyped, projectColumnName)
+		return fmt.Errorf("value of an invalid type %T for column '%s'", valueUntyped, fieldName)
 	}
 
 	builder.Append(value)
@@ -140,7 +140,7 @@ func (rt *rowTransformer) GetAcceptors() []any {
 	return rt.acceptors
 }
 
-func (rt *rowTransformer) SetAcceptors(_ []any) {
+func (rowTransformer) SetAcceptors(_ []any) {
 	panic("implementation error")
 }
 

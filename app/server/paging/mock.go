@@ -5,7 +5,6 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ Sink[any] = (*SinkMock)(nil)
@@ -42,10 +41,10 @@ type SinkFactoryMock struct {
 	mock.Mock
 }
 
-func (m *SinkFactoryMock) MakeSink(logger *zap.Logger, types []*Ydb.Type) (Sink[any], error) {
-	args := m.Called(logger, types)
+func (m *SinkFactoryMock) MakeSinks(params []*SinkParams) ([]Sink[any], error) {
+	args := m.Called(params)
 
-	return args.Get(0).(Sink[any]), args.Error(1)
+	return args.Get(0).([]Sink[any]), args.Error(1)
 }
 
 func (m *SinkFactoryMock) ResultQueue() <-chan *ReadResult[any] {
@@ -54,10 +53,6 @@ func (m *SinkFactoryMock) ResultQueue() <-chan *ReadResult[any] {
 
 func (m *SinkFactoryMock) FinalStats() *api_service_protos.TReadSplitsResponse_TStats {
 	return m.Called().Get(0).(*api_service_protos.TReadSplitsResponse_TStats)
-}
-
-func (m *SinkFactoryMock) Finish() {
-	m.Called()
 }
 
 var _ ColumnarBuffer[any] = (*ColumnarBufferMock)(nil)

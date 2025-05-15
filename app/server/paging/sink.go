@@ -7,9 +7,10 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type sinkState int8
@@ -26,7 +27,7 @@ var _ Sink[string] = (*sinkImpl[string])(nil)
 type sinkImpl[T Acceptor] struct {
 	currBuffer     ColumnarBuffer[T]        // accumulates incoming rows
 	resultQueue    chan *ReadResult[T]      // outgoing buffer queue
-	terminateChan  chan<- *sinkImpl[T]      // notify factory when the data reading is finished via this channel
+	terminateChan  chan<- Sink[T]           // notify factory when the data reading is finished via this channel
 	bufferFactory  ColumnarBufferFactory[T] // creates new buffer
 	trafficTracker *trafficTracker[T]       // tracks the amount of data passed through the sink
 	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request

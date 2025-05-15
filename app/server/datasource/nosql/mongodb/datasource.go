@@ -172,12 +172,12 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("select what to YDB types: %w", err)
 	}
 
-	sink, err := sinkFactory.MakeSink(logger, ydbTypes)
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger, YdbTypes: ydbTypes}})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}
 
-	return ds.doReadSplitSingleConn(ctx, logger, dsi, mongoDbOptions, request, split, sink, conn)
+	return ds.doReadSplitSingleConn(ctx, logger, dsi, mongoDbOptions, request, split, sinks[0], conn)
 }
 
 func (ds *dataSource) makeConnection(

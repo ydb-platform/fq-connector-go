@@ -397,10 +397,12 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("select what to YDB types: %w", err)
 	}
 
-	sink, err := sinkFactory.MakeSink(logger, ydbTypes)
+	sinks, err := sinkFactory.MakeSinks([]*paging.SinkParams{{Logger: logger, YdbTypes: ydbTypes}})
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}
+
+	sink := sinks[0]
 
 	transformer, err := newRedisRowTransformer(split.Select.What.GetItems())
 	if err != nil {

@@ -128,7 +128,7 @@ func (*RowTransformerMock) SetAcceptors([]any) {
 	panic("not implemented")
 }
 
-func (t *RowTransformerMock) AppendToArrowBuilders(schema *arrow.Schema, builder []array.Builder) error {
+func (t *RowTransformerMock) AppendToArrowBuilders(_ *arrow.Schema, builder []array.Builder) error {
 	builder[0].(*array.Int32Builder).Append(**t.Acceptors[0].(**int32))
 
 	cast := **t.Acceptors[1].(**string)
