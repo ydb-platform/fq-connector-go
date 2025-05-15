@@ -14,6 +14,8 @@ var externalToInternalColumnName = map[string]string{
 	serviceColumnName:     jsonPayloadColumnName,
 	clusterColumnName:     jsonPayloadColumnName,
 	jsonPayloadColumnName: jsonPayloadColumnName,
+	labelsColumnName:      jsonPayloadColumnName,
+	metaColumnName:        jsonPayloadColumnName,
 }
 
 var internalColumnTypes = map[string]*Ydb.Type{

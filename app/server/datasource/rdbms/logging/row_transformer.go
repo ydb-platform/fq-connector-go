@@ -3,7 +3,9 @@ package logging
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
+	"unsafe"
 
 	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -23,18 +25,48 @@ type rowTransformer struct {
 	cc                              conversion.Collection
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,funlen
 func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders []array.Builder) error {
 	// 'json_payload' internal column contains various fields
 	// that are useful for construction of different virtual columns
-	var jsonPayloadParsed map[string]any
+	var (
+		jsonPayloadValue map[string]any
+	)
 
 	jsonPayloadIx, exists := rt.internalColumnNameToAcceptorsIx[jsonPayloadColumnName]
 	if exists {
 		acceptor := (rt.acceptors[jsonPayloadIx]).(**string)
 		if *acceptor != nil {
-			if err := json.Unmarshal([]byte(**acceptor), &jsonPayloadParsed); err != nil {
+			if err := json.Unmarshal([]byte(**acceptor), &jsonPayloadValue); err != nil {
 				return fmt.Errorf("json unmarshal column '%s': %w", jsonPayloadColumnName, err)
+			}
+		}
+	}
+
+	var (
+		metaValue   map[string]any
+		labelsValue map[string]any
+	)
+
+	needMetaColumn := schema.HasField(metaColumnName)
+	needLabelsColumn := schema.HasField(labelsColumnName)
+
+	if len(jsonPayloadValue) != 0 && (needMetaColumn || needLabelsColumn) {
+		// now fill meta and labels with fields from json_payload
+		for key, val := range jsonPayloadValue {
+			switch {
+			case needLabelsColumn && strings.HasPrefix(key, labelsPrefix):
+				if labelsValue == nil {
+					labelsValue = make(map[string]any)
+				}
+
+				labelsValue[strings.TrimPrefix(key, labelsPrefix)] = val
+			case needMetaColumn && strings.HasPrefix(key, metaPrefix):
+				if metaValue == nil {
+					metaValue = make(map[string]any)
+				}
+
+				metaValue[strings.TrimPrefix(key, metaPrefix)] = val
 			}
 		}
 	}
@@ -96,7 +128,17 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
 		case projectColumnName, serviceColumnName, clusterColumnName:
-			err := appendJSONPayloadField(jsonPayloadParsed, builders[i], externalColumnName)
+			err := appendJSONPayloadField(jsonPayloadValue, builders[i], externalColumnName)
+			if err != nil {
+				return fmt.Errorf("append json payload field '%s': %v", externalColumnName, err)
+			}
+		case metaColumnName:
+			err := appendJSONDict(metaValue, builders[i])
+			if err != nil {
+				return fmt.Errorf("append json payload field '%s': %v", externalColumnName, err)
+			}
+		case labelsColumnName:
+			err := appendJSONDict(labelsValue, builders[i])
 			if err != nil {
 				return fmt.Errorf("append json payload field '%s': %v", externalColumnName, err)
 			}
@@ -117,7 +159,7 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 func appendJSONPayloadField(jsonPayloadParsed map[string]any, builderUntyped array.Builder, fieldName string) error {
 	builder, ok := builderUntyped.(*array.StringBuilder)
 	if !ok {
-		return fmt.Errorf("builder of an invalid type %T for column '%s'", builderUntyped, fieldName)
+		return fmt.Errorf("builder of an invalid type %T", builderUntyped)
 	}
 
 	valueUntyped, exists := jsonPayloadParsed[fieldName]
@@ -132,6 +174,28 @@ func appendJSONPayloadField(jsonPayloadParsed map[string]any, builderUntyped arr
 	}
 
 	builder.Append(value)
+
+	return nil
+}
+
+func appendJSONDict(value map[string]any, builderUntyped array.Builder) error {
+	builder, ok := builderUntyped.(*array.StringBuilder)
+	if !ok {
+		return fmt.Errorf("builder of an invalid type %T", builderUntyped)
+	}
+
+	if len(value) == 0 {
+		builder.AppendNull()
+
+		return nil
+	}
+
+	dump, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("json marshal: %w", err)
+	}
+
+	builder.Append(unsafe.String(unsafe.SliceData(dump), len(dump)))
 
 	return nil
 }

@@ -1,14 +1,18 @@
 package logging
 
 const (
+	clusterColumnName     = "cluster"
+	jsonPayloadColumnName = "json_payload"
+	labelsColumnName      = "labels"
 	levelColumnName       = "level"
-	timestampColumnName   = "timestamp"
 	messageColumnName     = "message"
 	metaColumnName        = "meta"
-	jsonPayloadColumnName = "json_payload"
 	projectColumnName     = "project"
-	clusterColumnName     = "cluster"
 	serviceColumnName     = "service"
+	timestampColumnName   = "timestamp"
+
+	labelsPrefix = "labels."
+	metaPrefix   = "meta."
 
 	levelTraceValue = "TRACE"
 	levelDebugValue = "DEBUG"
