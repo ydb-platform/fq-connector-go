@@ -27,13 +27,20 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 	var jsonPayloadParsed map[string]any
 	jsonPayloadIx, exists := rt.internalColumnNameToAcceptorsIx[jsonPayloadColumnName]
 	if exists {
-		if err := json.Unmarshal([]byte(*(rt.acceptors[jsonPayloadIx]).(*string)), &jsonPayloadParsed); err != nil {
-			return fmt.Errorf("json unmarshal column '%s': %w", jsonPayloadColumnName, err)
+		acceptor := (rt.acceptors[jsonPayloadIx]).(**string)
+		if *acceptor != nil {
+			if err := json.Unmarshal([]byte(**acceptor), &jsonPayloadParsed); err != nil {
+				return fmt.Errorf("json unmarshal column '%s': %w", jsonPayloadColumnName, err)
+			}
 		}
 	}
 
+	fmt.Println(">>> SCHEMA FIELDS", schema.Fields())
+	fmt.Println(">>> ACCEPTORS", rt.acceptors, rt.internalColumnNameToAcceptorsIx)
+
 	// these are external fields
 	for i, field := range schema.Fields() {
+		fmt.Println(">>> FIELD", i, field)
 		externalColumnName := field.Name
 		internalColumnName, exists := externalToInternalColumnName[externalColumnName]
 		if !exists {
@@ -76,12 +83,12 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 				return fmt.Errorf("unexpected level value %d", *src)
 			}
 		case messageColumnName:
-			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[i], builders[i], rt.cc.String())
+			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[ix], builders[i], rt.cc.String())
 			if err != nil {
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
 		case timestampColumnName:
-			err := utils.AppendValueToArrowBuilderNullable[time.Time, uint64, *array.Uint64Builder](rt.acceptors[i], builders[i], rt.cc.Timestamp())
+			err := utils.AppendValueToArrowBuilderNullable[time.Time, uint64, *array.Uint64Builder](rt.acceptors[ix], builders[i], rt.cc.Timestamp())
 			if err != nil {
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
@@ -91,7 +98,7 @@ func (rt *rowTransformer) AppendToArrowBuilders(schema *arrow.Schema, builders [
 				return fmt.Errorf("append json payload field '%s': %v", externalColumnName, err)
 			}
 		case jsonPayloadColumnName:
-			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[i], builders[i], rt.cc.String())
+			err := utils.AppendValueToArrowBuilderNullable[string, string, *array.StringBuilder](rt.acceptors[ix], builders[i], rt.cc.String())
 			if err != nil {
 				return fmt.Errorf("append value to arrow builder nullable for column '%s': %v", externalColumnName, err)
 			}
@@ -136,14 +143,6 @@ func (rt *rowTransformer) SetAcceptors(_ []any) {
 func makeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	acceptors := make([]any, 0, len(ydbColumns))
 
-	fmt.Println(">>> makeTransformer", ydbColumns)
-
-	// var internalColumnNames map[string]struct{}
-
-	// for _, ydbColumn := range ydbColumns {
-	// 	internalColumnNames[ydbColumn.Name] = struct{}{}
-	// }
-
 	internalColumnNamesToAcceptorsIx := make(map[string]int, len(ydbColumns))
 
 	for i, ydbColumn := range ydbColumns {
@@ -168,5 +167,6 @@ func makeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging
 	return &rowTransformer{
 		acceptors:                       acceptors,
 		internalColumnNameToAcceptorsIx: internalColumnNamesToAcceptorsIx,
+		cc:                              cc,
 	}, nil
 }

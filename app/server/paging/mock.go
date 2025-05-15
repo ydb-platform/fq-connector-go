@@ -5,6 +5,7 @@ import (
 	"go.uber.org/zap"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 var _ Sink[any] = (*SinkMock)(nil)
@@ -41,8 +42,8 @@ type SinkFactoryMock struct {
 	mock.Mock
 }
 
-func (m *SinkFactoryMock) MakeSink(params *SinkParams) (Sink[any], error) {
-	args := m.Called(params)
+func (m *SinkFactoryMock) MakeSink(logger *zap.Logger, types []*Ydb.Type) (Sink[any], error) {
+	args := m.Called(logger, types)
 
 	return args.Get(0).(Sink[any]), args.Error(1)
 }

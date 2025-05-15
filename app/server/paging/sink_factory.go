@@ -9,12 +9,15 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
+//go:generate stringer -type=sinkFactoryState
 type sinkFactoryState int8
 
 const (
 	sinkFactoryOperational sinkFactoryState = iota
+	sinkFactoryTerminating
 	sinkFactoryTerminated
 )
 
@@ -28,21 +31,21 @@ type sinkFactoryImpl[T Acceptor] struct {
 	terminateChan chan *sinkImpl[T]        // used by Sinks to notify factory about their termination
 	bufferFactory ColumnarBufferFactory[T] // factory responsible for ColumnarBuffer generation
 	readLimiter   ReadLimiter              // helps to restrict the number of rows read in every request
-	children      []*sinkImpl[T]
-	state         sinkFactoryState
-	mutex         sync.RWMutex
+
+	// mutable fields with synchronized access
+	totalSinks uint8
+	children   map[*sinkImpl[T]]struct{}
+	state      sinkFactoryState
+	mutex      sync.Mutex
 }
 
 // MakeSink is used to generate Sink objects, one per each data source connection.
-func (f *sinkFactoryImpl[T]) MakeSink(params *SinkParams) (Sink[T], error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
+func (f *sinkFactoryImpl[T]) MakeSink(logger *zap.Logger, ydbTypes []*Ydb.Type) (Sink[T], error) {
 	if f.state != sinkFactoryOperational {
-		return nil, fmt.Errorf("sink factory is not operational")
+		return nil, fmt.Errorf("unexpected sink factory state: %s", f.state)
 	}
 
-	buffer, err := f.bufferFactory.MakeBuffer()
+	buffer, err := f.bufferFactory.MakeBuffer(ydbTypes)
 	if err != nil {
 		return nil, fmt.Errorf("make buffer: %w", err)
 	}
@@ -54,12 +57,14 @@ func (f *sinkFactoryImpl[T]) MakeSink(params *SinkParams) (Sink[T], error) {
 		terminateChan:  f.terminateChan,
 		trafficTracker: newTrafficTracker[T](f.cfg),
 		currBuffer:     buffer,
-		logger:         params.Logger,
+		logger:         logger,
+		ydbTypes:       ydbTypes,
 		state:          sinkOperational,
 		ctx:            f.ctx,
 	}
 
-	f.children = append(f.children, sink)
+	f.totalSinks++
+	f.children[sink] = struct{}{}
 
 	return sink, nil
 }
@@ -71,12 +76,12 @@ func (f *sinkFactoryImpl[T]) ResultQueue() <-chan *ReadResult[T] {
 
 // FinalStats returns the overall statistics collected during the request processing.
 func (f *sinkFactoryImpl[T]) FinalStats() *api_service_protos.TReadSplitsResponse_TStats {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
 
 	overallStats := &api_service_protos.TReadSplitsResponse_TStats{}
 
-	for _, sink := range f.children {
+	for sink := range f.children {
 		partialStats := sink.trafficTracker.DumpStats(true)
 		overallStats.Rows += partialStats.Rows
 		overallStats.Bytes += partialStats.Bytes
@@ -85,39 +90,40 @@ func (f *sinkFactoryImpl[T]) FinalStats() *api_service_protos.TReadSplitsRespons
 	return overallStats
 }
 
-func (f *sinkFactoryImpl[T]) Finish() {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-
-	if f.state != sinkFactoryOperational {
-		panic(fmt.Sprintf("unexpected state %v", f.state))
-	}
-
-	terminatedSinks := 0
-
+// Waiting in the background for the children termination in order to close the result queue.
+func (f *sinkFactoryImpl[T]) awaitTermination() {
 	for {
 		select {
 		case sink := <-f.terminateChan:
-			terminatedSinks++
-
-			sink.Logger().Info(
-				"sink terminated",
-				zap.Int("total_sinks", len(f.children)),
-				zap.Int("terminated_sinks", terminatedSinks),
-			)
-
-			if terminatedSinks == len(f.children) {
-				// notify reader about the end of data
-				f.logger.Info("all sinks terminated")
-				close(f.resultQueue)
-				f.state = sinkFactoryTerminated
-
-				return
-			}
-
+			f.handleTerminationEvent(sink)
 		case <-f.ctx.Done():
 			return
 		}
+	}
+}
+
+func (f *sinkFactoryImpl[T]) handleTerminationEvent(sink *sinkImpl[T]) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	switch f.state {
+	case sinkFactoryOperational:
+		f.state = sinkFactoryTerminating
+	case sinkFactoryTerminating:
+		break
+	case sinkFactoryTerminated:
+		panic("impossible state")
+	}
+
+	delete(f.children, sink)
+
+	sink.logger.Debug("sink terminated", zap.Int("total_sinks", int(f.totalSinks)), zap.Int("sinks_left", len(f.children)))
+
+	if len(f.children) == 0 {
+		// notify reader about the end of data
+		f.logger.Info("all sinks terminated")
+		close(f.resultQueue)
+		f.state = sinkFactoryTerminated
 	}
 }
 
@@ -132,11 +138,15 @@ func NewSinkFactory[T Acceptor](
 		bufferFactory: columnarBufferFactory,
 		readLimiter:   readLimiter,
 		resultQueue:   make(chan *ReadResult[T], cfg.PrefetchQueueCapacity),
+		totalSinks:    0,
 		terminateChan: make(chan *sinkImpl[T]),
+		children:      make(map[*sinkImpl[T]]struct{}),
 		cfg:           cfg,
 		ctx:           ctx,
 		logger:        logger,
 	}
+
+	go sf.awaitTermination()
 
 	return sf
 }

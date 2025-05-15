@@ -392,7 +392,12 @@ func (ds *dataSource) ReadSplit(
 
 	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
 
-	sink, err := sinkFactory.MakeSink(&paging.SinkParams{Logger: logger})
+	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
+	if err != nil {
+		return fmt.Errorf("select what to YDB types: %w", err)
+	}
+
+	sink, err := sinkFactory.MakeSink(logger, ydbTypes)
 	if err != nil {
 		return fmt.Errorf("make sinks: %w", err)
 	}

@@ -9,6 +9,7 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 )
 
 type sinkState int8
@@ -30,6 +31,7 @@ type sinkImpl[T Acceptor] struct {
 	trafficTracker *trafficTracker[T]       // tracks the amount of data passed through the sink
 	readLimiter    ReadLimiter              // helps to restrict the number of rows read in every request
 	logger         *zap.Logger              // annotated logger
+	ydbTypes       []*Ydb.Type              // YDB types of accepted data
 	state          sinkState                // flag showing if it's ready to return data
 	ctx            context.Context          // client context
 }
@@ -87,7 +89,7 @@ func (s *sinkImpl[T]) flush(makeNewBuffer bool, isTerminalMessage bool) error {
 	if makeNewBuffer {
 		var err error
 
-		s.currBuffer, err = s.bufferFactory.MakeBuffer()
+		s.currBuffer, err = s.bufferFactory.MakeBuffer(s.ydbTypes)
 		if err != nil {
 			return fmt.Errorf("make buffer: %w", err)
 		}

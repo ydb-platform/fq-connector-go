@@ -149,19 +149,11 @@ func (ds *dataSourceImpl) ReadSplit(
 
 	defer ds.connectionManager.Release(ctx, logger, cs)
 
-	sinkParams := make([]*paging.SinkParams, len(cs))
-	for i, conn := range cs {
-		sinkParams[i] = &paging.SinkParams{
-			Logger: conn.Logger(),
-		}
-	}
-
 	// Read data from every connection in a distinct goroutine.
 	group := errgroup.Group{}
 
-	for i, conn := range cs {
+	for _, conn := range cs {
 		conn := conn
-		params := sinkParams[i]
 
 		group.Go(func() error {
 			// generate SQL query
@@ -177,12 +169,13 @@ func (ds *dataSourceImpl) ReadSplit(
 				return fmt.Errorf("make select query: %w", err)
 			}
 
-			// Prepare sinks that will accept the data from the connections.
-			sink, err := sinkFactory.MakeSink(params)
+			ydbTypes := common.YDBColumnsToYDBTypes(query.YdbColumns)
+
+			// Prepare sink that will accept the data from the connections.
+			sink, err := sinkFactory.MakeSink(logger, ydbTypes)
 			if err != nil {
 				return fmt.Errorf("make sink: %w", err)
 			}
-
 			// register outgoing request in storage
 			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(
 				logger, incomingQueryID, conn.DataSourceInstance(), query.QueryText, query.QueryArgs.Values())
