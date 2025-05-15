@@ -56,9 +56,6 @@ func TestReadSplit(t *testing.T) {
 			},
 		},
 	}
-	ydbTypes, err := common.SelectWhatToYDBTypes(split.Select.What)
-	require.NoError(t, err)
-
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})
 
 	t.Run("positive", func(t *testing.T) {
@@ -119,7 +116,7 @@ func TestReadSplit(t *testing.T) {
 		sink.On("Finish").Return().Once()
 
 		sinkFactory := &paging.SinkFactoryMock{}
-		sinkFactory.On("MakeSinks", logger, ydbTypes).Return([]paging.Sink[any]{sink}, nil).Once()
+		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		// FIXME: mock
 		observationStorage, err := observation.NewStorage(logger, nil)
@@ -190,7 +187,7 @@ func TestReadSplit(t *testing.T) {
 		sink.On("AddRow", transformer).Return(nil).Once()
 
 		sinkFactory := &paging.SinkFactoryMock{}
-		sinkFactory.On("MakeSinks", logger, ydbTypes).Return([]paging.Sink[any]{sink}, nil).Once()
+		sinkFactory.On("MakeSinks", []*paging.SinkParams{{Logger: logger}}).Return([]paging.Sink[any]{sink}, nil).Once()
 
 		// FIXME: mock
 		observationStorage, err := observation.NewStorage(logger, nil)
