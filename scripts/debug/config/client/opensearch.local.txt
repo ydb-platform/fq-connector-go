@@ -1,0 +1,25 @@
+connector_server_endpoint {
+    host: "localhost"
+    port: 2130
+}
+
+metrics_server_endpoint {
+    host: "localhost"
+    port: 8766
+}
+
+data_source_instance {
+    kind: OPENSEARCH
+    endpoint {
+        host: "localhost"
+        port: 9200
+    }
+    database: "connector"
+    credentials {
+        basic {
+            username: "admin"
+            password: "password"
+        }
+    }
+    protocol: HTTP
+}
