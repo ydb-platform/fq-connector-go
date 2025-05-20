@@ -23,13 +23,19 @@ import (
 var _ datasource.DataSource[any] = (*dataSource)(nil)
 
 type dataSource struct {
-	retrierSet *retry.RetrierSet
-	cc         conversion.Collection
-	cfg        *config.TMongoDbConfig
+	retrierSet  *retry.RetrierSet
+	cc          conversion.Collection
+	cfg         *config.TMongoDbConfig
+	queryLogger common.QueryLogger
 }
 
-func NewDataSource(retrierSet *retry.RetrierSet, cc conversion.Collection, cfg *config.TMongoDbConfig) datasource.DataSource[any] {
-	return &dataSource{retrierSet: retrierSet, cc: cc, cfg: cfg}
+func NewDataSource(
+	retrierSet *retry.RetrierSet,
+	cc conversion.Collection,
+	cfg *config.TMongoDbConfig,
+	queryLogger common.QueryLogger,
+) datasource.DataSource[any] {
+	return &dataSource{retrierSet: retrierSet, cc: cc, cfg: cfg, queryLogger: queryLogger}
 }
 
 func (ds *dataSource) DescribeTable(
@@ -228,12 +234,14 @@ func (ds *dataSource) doReadSplitSingleConn(
 ) error {
 	collection := conn.Database(dsi.Database).Collection(split.Select.From.Table)
 
+	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
+
 	filter, opts, err := makeFilter(logger, split, request.GetFiltering())
 	if err != nil {
 		return fmt.Errorf("failed to make filter: %w", err)
 	}
 
-	logger.Debug("Query filter", zap.Any("filter", filter))
+	ds.queryLogger.Dump("Query filter: ", zap.Any("filter", filter))
 
 	var cursor *mongo.Cursor
 
