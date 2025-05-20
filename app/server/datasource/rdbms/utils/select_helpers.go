@@ -25,7 +25,7 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 	}
 }
 
-func formatSelectClause(
+func formatWhat(
 	formatter SQLFormatter,
 	src *api_service_protos.TSelect_TWhat,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
@@ -51,7 +51,7 @@ func formatSelectClause(
 	return out, src, nil
 }
 
-func FormatSelectDefault(formatter SQLFormatter, src *api_service_protos.TSelect_TWhat) string {
+func FormatWhatDefault(formatter SQLFormatter, src *api_service_protos.TSelect_TWhat) string {
 	var sb strings.Builder
 
 	for i, item := range src.Items {

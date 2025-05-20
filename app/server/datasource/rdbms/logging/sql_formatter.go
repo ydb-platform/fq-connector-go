@@ -3,6 +3,7 @@ package logging
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -22,16 +23,58 @@ type sqlFormatter struct {
 }
 
 const queryPrefix = `
-	$build_labels = ($j) -> {
-		$a = DictItems(Yson::ConvertToDict($j));
-		$f = ListFilter($a, ($x) -> { return StartsWith($x.0, "labels.") });
-		$g = ListMap($f, ($x) -> { return (substring($x.0, 7), $x.1) });
-		return Yson::SerializeJson(Yson::From(ToDict($g)));
-	};
+$build_labels = ($j) -> {
+	$y = Yson::ParseJson(CAST ($j as STRING));
+	$a = DictItems(Yson::ConvertToDict($y));
+	$f = ListFilter($a, ($x) -> { return StartsWith($x.0, "labels.") });
+	$g = ListMap($f, ($x) -> { return (substring($x.0, 7), $x.1) });
+	return Yson::SerializeJson(Yson::From(ToDict($g)));
+};
+
+$build_level = ($src) -> {
+RETURN CAST(
+	CASE $src
+		WHEN 1 THEN "TRACE"
+		WHEN 2 THEN "DEBUG"
+		WHEN 3 THEN "INFO"
+		WHEN 4 THEN "WARN"
+		WHEN 5 THEN "ERROR"
+		WHEN 6 THEN "FATAL"
+		ELSE "UNKNOWN"
+	END AS Utf8
+	);
+};
 `
 
 func (sqlFormatter) FormatWhat(src *api_service_protos.TSelect_TWhat) (string, error) {
-	return "", nil
+	var buf strings.Builder
+
+	for i, item := range src.GetItems() {
+		switch item.GetColumn().GetName() {
+		case clusterColumnName:
+		case jsonPayloadColumnName:
+			buf.WriteString(jsonPayloadColumnName)
+		case labelsColumnName:
+			buf.WriteString("$build_labels(json_payload) as labels")
+		case levelColumnName:
+			buf.WriteString("$build_level(level) as level")
+		case messageColumnName:
+			buf.WriteString(messageColumnName)
+		case metaColumnName:
+		case projectColumnName:
+		case serviceColumnName:
+		case timestampColumnName:
+			buf.WriteString(timestampColumnName)
+		default:
+			return "", fmt.Errorf("unexpected column name: %s", item.GetColumn().Name)
+		}
+
+		if i != len(src.GetItems())-1 {
+			buf.WriteString(", ")
+		}
+	}
+
+	return buf.String(), nil
 }
 
 func (s sqlFormatter) RenderSelectQueryText(
@@ -44,7 +87,19 @@ func (s sqlFormatter) RenderSelectQueryText(
 		return "", fmt.Errorf("unmarshal split description: %w", err)
 	}
 
-	return s.RenderSelectQueryTextForColumnShard(parts, dst.GetYdb().TabletIds)
+	var sb strings.Builder
+
+	sb.WriteString(queryPrefix)
+	sb.WriteString("\n")
+
+	body, err := s.RenderSelectQueryTextForColumnShard(parts, dst.GetYdb().TabletIds)
+	if err != nil {
+		return "", fmt.Errorf("render select query text for column shard: %w", err)
+	}
+
+	sb.WriteString(body)
+
+	return sb.String(), nil
 }
 
 func (sqlFormatter) TransformSelectWhat(src *api_service_protos.TSelect_TWhat) (*api_service_protos.TSelect_TWhat, error) {

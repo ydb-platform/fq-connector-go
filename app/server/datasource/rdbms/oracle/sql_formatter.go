@@ -89,7 +89,7 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 }
 
 func (f sqlFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat) (string, error) {
-	return rdbms_utils.FormatSelectDefault(f, what), nil
+	return rdbms_utils.FormatWhatDefault(f, what), nil
 }
 
 func (f sqlFormatter) FormatFrom(tableName string) string {

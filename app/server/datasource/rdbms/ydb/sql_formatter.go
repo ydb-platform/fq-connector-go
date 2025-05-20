@@ -198,7 +198,7 @@ func (SQLFormatter) FormatContains(left, right string) (string, error) {
 }
 
 func (f SQLFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat) (string, error) {
-	return rdbms_utils.FormatSelectDefault(f, what), nil
+	return rdbms_utils.FormatWhatDefault(f, what), nil
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {
