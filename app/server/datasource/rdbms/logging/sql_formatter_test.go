@@ -53,7 +53,7 @@ func TestMakeSelectQuery(t *testing.T) {
 		//nolint:revive
 		{
 			/*
-				SELECT *
+				SELECT ...some columns...
 				FROM external_data_source.`cloud-trail`
 				WHERE timestamp >= Timestamp("2025-05-06T16:00:00Z")
 				  AND timestamp <= Timestamp("2025-05-06T16:00:01Z")
@@ -75,15 +75,22 @@ func TestMakeSelectQuery(t *testing.T) {
 					},
 				},
 			},
-			outputQuery: "SELECT `json_payload`, `level`, `message`, `timestamp` FROM `logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3731rdp83d8gd8fjcv` WITH TabletId='72075186234644944' WHERE (COALESCE((`timestamp` >= $p0), false) AND COALESCE((`timestamp` <= $p1), false) AND COALESCE((`level` = $p2), false))",
+			outputQuery: queryPrefix +
+				"\n" +
+				`SELECT CAST("aoe3cidh5dfee2s6cqu5" AS Utf8) AS cluster, json_payload, $build_level(level) AS level, message, CAST("aoeoqusjtbo4m549jrom" AS Utf8) AS project, CAST("af3731rdp83d8gd8fjcv" AS Utf8) AS service, timestamp ` +
+				"FROM `logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3731rdp83d8gd8fjcv` WITH TabletId='72075186234644944' " +
+				"WHERE (COALESCE((`timestamp` >= $p0), false) AND COALESCE((`timestamp` <= $p1), false) AND COALESCE((`level` = $p2), false))",
 			outputArgs: []any{
 				mustParseISOTime("2025-05-06T16:00:00Z"),
 				mustParseISOTime("2025-05-06T16:00:01Z"),
 				int32(5), // stands for ERROR
 			},
 			outputYdbTypes: []*ydb.Type{
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
 				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_JSON)),
-				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_INT32)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
 				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
 				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_TIMESTAMP)),
 			},
@@ -98,16 +105,18 @@ func TestMakeSelectQuery(t *testing.T) {
 			splitDescriptionBytes, err := protojson.Marshal(tc.splitDescription)
 			require.NoError(t, err)
 
+			split := &api_service_protos.TSplit{
+				Select: tc.selectReq,
+				Payload: &api_service_protos.TSplit_Description{
+					Description: splitDescriptionBytes,
+				},
+			}
+
 			readSplitsQuery, err := rdbms_utils.MakeSelectQuery(
 				context.Background(),
 				logger,
 				formatter,
-				&api_service_protos.TSplit{
-					Select: tc.selectReq,
-					Payload: &api_service_protos.TSplit_Description{
-						Description: splitDescriptionBytes,
-					},
-				},
+				split,
 				api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
 				tc.splitDescription.GetYdb().GetTableName(),
 			)

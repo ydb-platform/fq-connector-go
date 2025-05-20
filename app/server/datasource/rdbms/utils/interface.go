@@ -64,7 +64,7 @@ type ConnectionParams struct {
 	QueryPhase         QueryPhase                             // mandatory
 
 	// Split field may be filled when making a connection for the ReadSplits request,
-	// because different table splits can require to connect different database instances.
+	// because different table splits can require the connection different database instances.
 	Split *api_service_protos.TSplit // optional
 }
 
@@ -96,15 +96,14 @@ type SQLFormatter interface {
 	FormatEndsWith(left, right string) (string, error)
 	// Checks support for `left LIKE "%right%"` predicate pushdown
 	FormatContains(left, right string) (string, error)
+	// FormatWhat builds a substring containing the SELECT clause.
+	FormatWhat(src *api_service_protos.TSelect_TWhat, tableName string) (string, error)
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
 	FormatFrom(tableName string) string
 	// RenderSelectQueryText composes final query text from the given clauses.
 	// Particular implementation may mix-in some additional parts into the query.
 	RenderSelectQueryText(parts *SelectQueryParts, split *api_service_protos.TSplit) (string, error)
-	// TransformSelectWhat transforms the list of requested items
-	// (may be useful for some special data sources)
-	TransformSelectWhat(src *api_service_protos.TSelect_TWhat) (*api_service_protos.TSelect_TWhat, error)
 	// TransformPredicateComparison transforms the comparison predicate
 	// (may be useful for some special data sources)
 	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (
