@@ -30,7 +30,7 @@ const queryPrefix = `
 	};
 `
 
-func (sqlFormatter) FormatSelect(src *api_service_protos.TSelect_TWhat) (string, error) {
+func (sqlFormatter) FormatWhat(src *api_service_protos.TSelect_TWhat) (string, error) {
 	return "", nil
 }
 

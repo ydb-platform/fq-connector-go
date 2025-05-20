@@ -43,7 +43,7 @@ func formatSelectClause(
 		return "0", dst, nil
 	}
 
-	out, err := formatter.FormatSelect(src)
+	out, err := formatter.FormatWhat(src)
 	if err != nil {
 		return "", nil, fmt.Errorf("format select: %w", err)
 	}
