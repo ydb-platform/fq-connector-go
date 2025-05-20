@@ -32,6 +32,7 @@ type DataSourceCollection struct {
 	converterCollection conversion.Collection
 	observationStorage  observation.Storage
 	cfg                 *config.TServerConfig
+	queryLoggerFactory  common.QueryLoggerFactory
 }
 
 func (dsc *DataSourceCollection) DescribeTable(
@@ -65,6 +66,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 			},
 			dsc.converterCollection,
 			mongoDbCfg,
+			dsc.queryLoggerFactory.Make(logger),
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -77,6 +79,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 			},
 			redisCfg,
 			dsc.converterCollection,
+			dsc.queryLoggerFactory.Make(logger),
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -90,6 +93,7 @@ func (dsc *DataSourceCollection) DescribeTable(
 			openSearchCfg,
 			logger,
 			dsc.converterCollection,
+			dsc.queryLoggerFactory.Make(logger),
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
@@ -130,6 +134,7 @@ func (dsc *DataSourceCollection) ListSplits(
 				},
 				dsc.converterCollection,
 				mongoDbCfg,
+				dsc.queryLoggerFactory.Make(logger),
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -146,6 +151,7 @@ func (dsc *DataSourceCollection) ListSplits(
 				},
 				redisCfg,
 				dsc.converterCollection,
+				dsc.queryLoggerFactory.Make(logger),
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -163,6 +169,7 @@ func (dsc *DataSourceCollection) ListSplits(
 				openSearchCfg,
 				logger,
 				dsc.converterCollection,
+				dsc.queryLoggerFactory.Make(logger),
 			)
 
 			streamer := streaming.NewListSplitsStreamer(logger, stream, ds, request, slct)
@@ -218,6 +225,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 			},
 			dsc.converterCollection,
 			mongoDbCfg,
+			dsc.queryLoggerFactory.Make(logger),
 		)
 
 		return doReadSplit(
@@ -232,6 +240,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 			},
 			redisCfg,
 			dsc.converterCollection,
+			dsc.queryLoggerFactory.Make(logger),
 		)
 
 		return doReadSplit(
@@ -246,6 +255,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 			openSearchCfg,
 			logger,
 			dsc.converterCollection,
+			dsc.queryLoggerFactory.Make(logger),
 		)
 
 		return doReadSplit(
@@ -352,5 +362,6 @@ func NewDataSourceCollection(
 		converterCollection: converterCollection,
 		observationStorage:  observationStorage,
 		cfg:                 cfg,
+		queryLoggerFactory:  queryLoggerFactory,
 	}, nil
 }

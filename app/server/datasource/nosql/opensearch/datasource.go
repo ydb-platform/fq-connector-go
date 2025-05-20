@@ -41,8 +41,16 @@ func NewDataSource(
 	cfg *config.TOpenSearchConfig,
 	logger *zap.Logger,
 	cc conversion.Collection,
+	queryLogger common.QueryLogger,
 ) datasource.DataSource[any] {
-	return &dataSource{retrierSet: retrierSet, cc: cc, cfg: cfg, logger: logger, queryBuilder: newQueryBuilder(logger)}
+	return &dataSource{
+		retrierSet:   retrierSet,
+		cc:           cc,
+		cfg:          cfg,
+		logger:       logger,
+		queryLogger:  queryLogger,
+		queryBuilder: newQueryBuilder(logger),
+	}
 }
 
 func (ds *dataSource) DescribeTable(

@@ -84,11 +84,17 @@ func (t *redisRowTransformer) clean() {
 	t.hashVal = nil
 }
 
-func NewDataSource(retrierSet *retry.RetrierSet, cfg *config.TRedisConfig, cc conversion.Collection) datasource.DataSource[any] {
+func NewDataSource(
+	retrierSet *retry.RetrierSet,
+	cfg *config.TRedisConfig,
+	cc conversion.Collection,
+	queryLogger common.QueryLogger,
+) datasource.DataSource[any] {
 	return &dataSource{
-		retrierSet: retrierSet,
-		cfg:        cfg,
-		cc:         cc,
+		retrierSet:  retrierSet,
+		cfg:         cfg,
+		cc:          cc,
+		queryLogger: queryLogger,
 	}
 }
 
