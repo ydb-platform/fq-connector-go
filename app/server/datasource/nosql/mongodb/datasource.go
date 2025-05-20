@@ -241,7 +241,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 		return fmt.Errorf("failed to make filter: %w", err)
 	}
 
-	ds.queryLogger.Dump("Query filter: ", zap.Any("filter", filter))
+	ds.queryLogger.Dump("Query filter", zap.Any("filter", filter))
 
 	var cursor *mongo.Cursor
 
