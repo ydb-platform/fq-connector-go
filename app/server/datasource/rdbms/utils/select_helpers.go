@@ -34,7 +34,6 @@ func formatWhat(
 
 	// If no columns were requested, select some constant to construct valid SQL statement
 	if len(columns) == 0 {
-
 		// YQ-3314: is needed only in select COUNT(*) for ydb datasource.
 		// 		In PostgreSQL or ClickHouse type_mapper is based on typeNames that are extracted
 		// 		from column.DatabaseTypeName().
