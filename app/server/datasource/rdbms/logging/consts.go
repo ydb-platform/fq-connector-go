@@ -11,6 +11,8 @@ const (
 	serviceColumnName     = "service"
 	timestampColumnName   = "timestamp"
 	hostnameColumnName    = "hostname"
+	spanIDColumnName      = "span.id"
+	traceIDColumnName     = "trace.id"
 
 	levelTraceValue = "TRACE"
 	levelDebugValue = "DEBUG"

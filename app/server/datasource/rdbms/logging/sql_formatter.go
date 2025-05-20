@@ -84,6 +84,20 @@ $build_hostname = ($j) -> {
     return CAST(Yson::ConvertToString($f[0].1) AS Utf8);
 };
 
+$build_span_id = ($j) -> {
+    $y = Yson::ParseJson(CAST ($j as STRING));
+	$a = DictItems(Yson::ConvertToDict($y));
+	$f = ListFilter($a, ($x) -> { return $x.0 IN $span_id_keys });
+    return CAST(Yson::ConvertToString($f[0].1) AS Utf8);
+};
+
+$build_trace_id = ($j) -> {
+    $y = Yson::ParseJson(CAST ($j as STRING));
+	$a = DictItems(Yson::ConvertToDict($y));
+	$f = ListFilter($a, ($x) -> { return $x.0 IN $trace_id_keys });
+    return CAST(Yson::ConvertToString($f[0].1) AS Utf8);
+};
+
 $build_level = ($src) -> {
     RETURN CAST(
         CASE $src
@@ -99,6 +113,7 @@ $build_level = ($src) -> {
 };
 `
 
+//nolint:gocyclo
 func (sqlFormatter) FormatWhat(src *api_service_protos.TSelect_TWhat, tableName string) (string, error) {
 	items := strings.Split(tableName, "/")
 	if len(items) != 5 {
@@ -132,8 +147,12 @@ func (sqlFormatter) FormatWhat(src *api_service_protos.TSelect_TWhat, tableName 
 			buf.WriteString(fmt.Sprintf("CAST(\"%s\" AS Utf8) AS project", project))
 		case serviceColumnName:
 			buf.WriteString(fmt.Sprintf("CAST(\"%s\" AS Utf8) AS service", service))
+		case spanIDColumnName:
+			buf.WriteString("$build_span_id(json_payload) AS span_id")
 		case timestampColumnName:
 			buf.WriteString(timestampColumnName)
+		case traceIDColumnName:
+			buf.WriteString("$build_trace_id(json_payload) AS trace_id")
 		default:
 			return "", fmt.Errorf("unexpected column name: %s", item.GetColumn().Name)
 		}
