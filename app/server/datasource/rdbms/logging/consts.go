@@ -10,9 +10,7 @@ const (
 	projectColumnName     = "project"
 	serviceColumnName     = "service"
 	timestampColumnName   = "timestamp"
-
-	labelsPrefix = "labels."
-	metaPrefix   = "meta."
+	hostnameColumnName    = "hostname"
 
 	levelTraceValue = "TRACE"
 	levelDebugValue = "DEBUG"

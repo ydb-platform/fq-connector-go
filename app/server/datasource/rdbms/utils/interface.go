@@ -101,7 +101,7 @@ type SQLFormatter interface {
 	// Checks support for `left LIKE "%right%"` predicate pushdown
 	FormatContains(left, right string) (string, error)
 	// FormatWhat builds a substring containing the SELECT clause.
-	FormatWhat(src *api_service_protos.TSelect_TWhat) (string, error)
+	FormatWhat(src *api_service_protos.TSelect_TWhat, tableName string) (string, error)
 	// FormatFrom builds a substring containing the literals
 	// that must be placed after FROM (`SELECT ... FROM <this>`).
 	FormatFrom(tableName string) string

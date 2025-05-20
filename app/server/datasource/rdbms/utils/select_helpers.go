@@ -28,6 +28,7 @@ func makeTSelectTWhatForEmptyColumnsRequest() *api_service_protos.TSelect_TWhat 
 func formatWhat(
 	formatter SQLFormatter,
 	src *api_service_protos.TSelect_TWhat,
+	tableName string,
 ) (string, *api_service_protos.TSelect_TWhat, error) {
 	columns := common.SelectWhatToYDBColumns(src)
 
@@ -43,7 +44,7 @@ func formatWhat(
 		return "0", dst, nil
 	}
 
-	out, err := formatter.FormatWhat(src)
+	out, err := formatter.FormatWhat(src, tableName)
 	if err != nil {
 		return "", nil, fmt.Errorf("format select: %w", err)
 	}

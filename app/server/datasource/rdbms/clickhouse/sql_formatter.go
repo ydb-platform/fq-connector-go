@@ -88,7 +88,7 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return sanitizedIdent
 }
 
-func (f sqlFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat) (string, error) {
+func (f sqlFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat, _ string) (string, error) {
 	return rdbms_utils.FormatWhatDefault(f, what), nil
 }
 

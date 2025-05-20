@@ -197,7 +197,7 @@ func (SQLFormatter) FormatContains(left, right string) (string, error) {
 	return fmt.Sprintf("(String::Contains(%s, %s))", left, right), nil
 }
 
-func (f SQLFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat) (string, error) {
+func (f SQLFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat, _ string) (string, error) {
 	return rdbms_utils.FormatWhatDefault(f, what), nil
 }
 
