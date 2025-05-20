@@ -66,10 +66,6 @@ type ConnectionParams struct {
 	// Split field may be filled when making a connection for the ReadSplits request,
 	// because different table splits can require the connection different database instances.
 	Split *api_service_protos.TSplit // optional
-
-	// For certain data sources this query prefix may be placed into each request.
-	// This could be useful for making the request
-	QueryPrefix string // optional
 }
 
 type ConnectionManager interface {
