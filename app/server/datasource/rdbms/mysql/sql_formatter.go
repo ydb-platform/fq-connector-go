@@ -83,6 +83,10 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	return fmt.Sprintf("`%s`", strings.Replace(ident, "`", "``", -1))
 }
 
+func (f sqlFormatter) FormatSelect(what *api_service_protos.TSelect_TWhat) (string, error) {
+	return rdbms_utils.FormatSelectDefault(f, what), nil
+}
+
 func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
 }

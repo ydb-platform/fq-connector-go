@@ -197,6 +197,10 @@ func (SQLFormatter) FormatContains(left, right string) (string, error) {
 	return fmt.Sprintf("(String::Contains(%s, %s))", left, right), nil
 }
 
+func (f SQLFormatter) FormatSelect(what *api_service_protos.TSelect_TWhat) (string, error) {
+	return rdbms_utils.FormatSelectDefault(f, what), nil
+}
+
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {
 	return SQLFormatter{
 		mode: mode,

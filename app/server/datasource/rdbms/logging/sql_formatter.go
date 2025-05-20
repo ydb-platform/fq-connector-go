@@ -21,6 +21,19 @@ type sqlFormatter struct {
 	ydb.SQLFormatter
 }
 
+const queryPrefix = `
+	$build_labels = ($j) -> {
+		$a = DictItems(Yson::ConvertToDict($j));
+		$f = ListFilter($a, ($x) -> { return StartsWith($x.0, "labels.") });
+		$g = ListMap($f, ($x) -> { return (substring($x.0, 7), $x.1) });
+		return Yson::SerializeJson(Yson::From(ToDict($g)));
+	};
+`
+
+func (sqlFormatter) FormatSelect(src *api_service_protos.TSelect_TWhat) (string, error) {
+	return "", nil
+}
+
 func (s sqlFormatter) RenderSelectQueryText(
 	parts *rdbms_utils.SelectQueryParts,
 	split *api_service_protos.TSplit,
