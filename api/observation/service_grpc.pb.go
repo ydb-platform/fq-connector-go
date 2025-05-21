@@ -19,27 +19,18 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	ObservationService_ListIncomingQueries_FullMethodName                          = "/NYql.Connector.Observation.ObservationService/ListIncomingQueries"
-	ObservationService_ListRunningIncomingQueries_FullMethodName                   = "/NYql.Connector.Observation.ObservationService/ListRunningIncomingQueries"
-	ObservationService_ListOutgoingQueries_FullMethodName                          = "/NYql.Connector.Observation.ObservationService/ListOutgoingQueries"
-	ObservationService_ListRunningOutgoingQueries_FullMethodName                   = "/NYql.Connector.Observation.ObservationService/ListRunningOutgoingQueries"
-	ObservationService_ListSimilarOutgoingQueriesWithDifferentStats_FullMethodName = "/NYql.Connector.Observation.ObservationService/ListSimilarOutgoingQueriesWithDifferentStats"
+	ObservationService_ListIncomingQueries_FullMethodName = "/NYql.Connector.Observation.ObservationService/ListIncomingQueries"
+	ObservationService_ListOutgoingQueries_FullMethodName = "/NYql.Connector.Observation.ObservationService/ListOutgoingQueries"
 )
 
 // ObservationServiceClient is the client API for ObservationService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ObservationServiceClient interface {
-	// ListIncomingQueries retrieves a list of incoming queries with pagination
-	ListIncomingQueries(ctx context.Context, in *ListIncomingQueriesRequest, opts ...grpc.CallOption) (*ListIncomingQueriesResponse, error)
-	// ListRunningIncomingQueries retrieves all currently running incoming queries
-	ListRunningIncomingQueries(ctx context.Context, in *ListRunningIncomingQueriesRequest, opts ...grpc.CallOption) (*ListIncomingQueriesResponse, error)
-	// ListOutgoingQueries retrieves a list of outgoing queries with pagination
-	ListOutgoingQueries(ctx context.Context, in *ListOutgoingQueriesRequest, opts ...grpc.CallOption) (*ListOutgoingQueriesResponse, error)
-	// ListRunningOutgoingQueries retrieves all currently running outgoing queries
-	ListRunningOutgoingQueries(ctx context.Context, in *ListRunningOutgoingQueriesRequest, opts ...grpc.CallOption) (*ListOutgoingQueriesResponse, error)
-	// ListSimilarOutgoingQueriesWithDifferentStats finds groups of similar outgoing queries with different row counts
-	ListSimilarOutgoingQueriesWithDifferentStats(ctx context.Context, in *ListSimilarOutgoingQueriesWithDifferentStatsRequest, opts ...grpc.CallOption) (*ListSimilarOutgoingQueriesWithDifferentStatsResponse, error)
+	// ListIncomingQueries retrieves a stream of incoming queries based on filter criteria
+	ListIncomingQueries(ctx context.Context, in *ListIncomingQueriesRequest, opts ...grpc.CallOption) (ObservationService_ListIncomingQueriesClient, error)
+	// ListOutgoingQueries retrieves a stream of outgoing queries based on filter criteria
+	ListOutgoingQueries(ctx context.Context, in *ListOutgoingQueriesRequest, opts ...grpc.CallOption) (ObservationService_ListOutgoingQueriesClient, error)
 }
 
 type observationServiceClient struct {
@@ -50,65 +41,78 @@ func NewObservationServiceClient(cc grpc.ClientConnInterface) ObservationService
 	return &observationServiceClient{cc}
 }
 
-func (c *observationServiceClient) ListIncomingQueries(ctx context.Context, in *ListIncomingQueriesRequest, opts ...grpc.CallOption) (*ListIncomingQueriesResponse, error) {
-	out := new(ListIncomingQueriesResponse)
-	err := c.cc.Invoke(ctx, ObservationService_ListIncomingQueries_FullMethodName, in, out, opts...)
+func (c *observationServiceClient) ListIncomingQueries(ctx context.Context, in *ListIncomingQueriesRequest, opts ...grpc.CallOption) (ObservationService_ListIncomingQueriesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ObservationService_ServiceDesc.Streams[0], ObservationService_ListIncomingQueries_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &observationServiceListIncomingQueriesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *observationServiceClient) ListRunningIncomingQueries(ctx context.Context, in *ListRunningIncomingQueriesRequest, opts ...grpc.CallOption) (*ListIncomingQueriesResponse, error) {
-	out := new(ListIncomingQueriesResponse)
-	err := c.cc.Invoke(ctx, ObservationService_ListRunningIncomingQueries_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+type ObservationService_ListIncomingQueriesClient interface {
+	Recv() (*IncomingQuery, error)
+	grpc.ClientStream
 }
 
-func (c *observationServiceClient) ListOutgoingQueries(ctx context.Context, in *ListOutgoingQueriesRequest, opts ...grpc.CallOption) (*ListOutgoingQueriesResponse, error) {
-	out := new(ListOutgoingQueriesResponse)
-	err := c.cc.Invoke(ctx, ObservationService_ListOutgoingQueries_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
+type observationServiceListIncomingQueriesClient struct {
+	grpc.ClientStream
 }
 
-func (c *observationServiceClient) ListRunningOutgoingQueries(ctx context.Context, in *ListRunningOutgoingQueriesRequest, opts ...grpc.CallOption) (*ListOutgoingQueriesResponse, error) {
-	out := new(ListOutgoingQueriesResponse)
-	err := c.cc.Invoke(ctx, ObservationService_ListRunningOutgoingQueries_FullMethodName, in, out, opts...)
-	if err != nil {
+func (x *observationServiceListIncomingQueriesClient) Recv() (*IncomingQuery, error) {
+	m := new(IncomingQuery)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
-	return out, nil
+	return m, nil
 }
 
-func (c *observationServiceClient) ListSimilarOutgoingQueriesWithDifferentStats(ctx context.Context, in *ListSimilarOutgoingQueriesWithDifferentStatsRequest, opts ...grpc.CallOption) (*ListSimilarOutgoingQueriesWithDifferentStatsResponse, error) {
-	out := new(ListSimilarOutgoingQueriesWithDifferentStatsResponse)
-	err := c.cc.Invoke(ctx, ObservationService_ListSimilarOutgoingQueriesWithDifferentStats_FullMethodName, in, out, opts...)
+func (c *observationServiceClient) ListOutgoingQueries(ctx context.Context, in *ListOutgoingQueriesRequest, opts ...grpc.CallOption) (ObservationService_ListOutgoingQueriesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &ObservationService_ServiceDesc.Streams[1], ObservationService_ListOutgoingQueries_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &observationServiceListOutgoingQueriesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type ObservationService_ListOutgoingQueriesClient interface {
+	Recv() (*OutgoingQuery, error)
+	grpc.ClientStream
+}
+
+type observationServiceListOutgoingQueriesClient struct {
+	grpc.ClientStream
+}
+
+func (x *observationServiceListOutgoingQueriesClient) Recv() (*OutgoingQuery, error) {
+	m := new(OutgoingQuery)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // ObservationServiceServer is the server API for ObservationService service.
 // All implementations must embed UnimplementedObservationServiceServer
 // for forward compatibility
 type ObservationServiceServer interface {
-	// ListIncomingQueries retrieves a list of incoming queries with pagination
-	ListIncomingQueries(context.Context, *ListIncomingQueriesRequest) (*ListIncomingQueriesResponse, error)
-	// ListRunningIncomingQueries retrieves all currently running incoming queries
-	ListRunningIncomingQueries(context.Context, *ListRunningIncomingQueriesRequest) (*ListIncomingQueriesResponse, error)
-	// ListOutgoingQueries retrieves a list of outgoing queries with pagination
-	ListOutgoingQueries(context.Context, *ListOutgoingQueriesRequest) (*ListOutgoingQueriesResponse, error)
-	// ListRunningOutgoingQueries retrieves all currently running outgoing queries
-	ListRunningOutgoingQueries(context.Context, *ListRunningOutgoingQueriesRequest) (*ListOutgoingQueriesResponse, error)
-	// ListSimilarOutgoingQueriesWithDifferentStats finds groups of similar outgoing queries with different row counts
-	ListSimilarOutgoingQueriesWithDifferentStats(context.Context, *ListSimilarOutgoingQueriesWithDifferentStatsRequest) (*ListSimilarOutgoingQueriesWithDifferentStatsResponse, error)
+	// ListIncomingQueries retrieves a stream of incoming queries based on filter criteria
+	ListIncomingQueries(*ListIncomingQueriesRequest, ObservationService_ListIncomingQueriesServer) error
+	// ListOutgoingQueries retrieves a stream of outgoing queries based on filter criteria
+	ListOutgoingQueries(*ListOutgoingQueriesRequest, ObservationService_ListOutgoingQueriesServer) error
 	mustEmbedUnimplementedObservationServiceServer()
 }
 
@@ -116,20 +120,11 @@ type ObservationServiceServer interface {
 type UnimplementedObservationServiceServer struct {
 }
 
-func (UnimplementedObservationServiceServer) ListIncomingQueries(context.Context, *ListIncomingQueriesRequest) (*ListIncomingQueriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListIncomingQueries not implemented")
+func (UnimplementedObservationServiceServer) ListIncomingQueries(*ListIncomingQueriesRequest, ObservationService_ListIncomingQueriesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListIncomingQueries not implemented")
 }
-func (UnimplementedObservationServiceServer) ListRunningIncomingQueries(context.Context, *ListRunningIncomingQueriesRequest) (*ListIncomingQueriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRunningIncomingQueries not implemented")
-}
-func (UnimplementedObservationServiceServer) ListOutgoingQueries(context.Context, *ListOutgoingQueriesRequest) (*ListOutgoingQueriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListOutgoingQueries not implemented")
-}
-func (UnimplementedObservationServiceServer) ListRunningOutgoingQueries(context.Context, *ListRunningOutgoingQueriesRequest) (*ListOutgoingQueriesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListRunningOutgoingQueries not implemented")
-}
-func (UnimplementedObservationServiceServer) ListSimilarOutgoingQueriesWithDifferentStats(context.Context, *ListSimilarOutgoingQueriesWithDifferentStatsRequest) (*ListSimilarOutgoingQueriesWithDifferentStatsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListSimilarOutgoingQueriesWithDifferentStats not implemented")
+func (UnimplementedObservationServiceServer) ListOutgoingQueries(*ListOutgoingQueriesRequest, ObservationService_ListOutgoingQueriesServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListOutgoingQueries not implemented")
 }
 func (UnimplementedObservationServiceServer) mustEmbedUnimplementedObservationServiceServer() {}
 
@@ -144,94 +139,46 @@ func RegisterObservationServiceServer(s grpc.ServiceRegistrar, srv ObservationSe
 	s.RegisterService(&ObservationService_ServiceDesc, srv)
 }
 
-func _ObservationService_ListIncomingQueries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListIncomingQueriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _ObservationService_ListIncomingQueries_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListIncomingQueriesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(ObservationServiceServer).ListIncomingQueries(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ObservationService_ListIncomingQueries_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObservationServiceServer).ListIncomingQueries(ctx, req.(*ListIncomingQueriesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(ObservationServiceServer).ListIncomingQueries(m, &observationServiceListIncomingQueriesServer{stream})
 }
 
-func _ObservationService_ListRunningIncomingQueries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListRunningIncomingQueriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObservationServiceServer).ListRunningIncomingQueries(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ObservationService_ListRunningIncomingQueries_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObservationServiceServer).ListRunningIncomingQueries(ctx, req.(*ListRunningIncomingQueriesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+type ObservationService_ListIncomingQueriesServer interface {
+	Send(*IncomingQuery) error
+	grpc.ServerStream
 }
 
-func _ObservationService_ListOutgoingQueries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListOutgoingQueriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObservationServiceServer).ListOutgoingQueries(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ObservationService_ListOutgoingQueries_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObservationServiceServer).ListOutgoingQueries(ctx, req.(*ListOutgoingQueriesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+type observationServiceListIncomingQueriesServer struct {
+	grpc.ServerStream
 }
 
-func _ObservationService_ListRunningOutgoingQueries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListRunningOutgoingQueriesRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ObservationServiceServer).ListRunningOutgoingQueries(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ObservationService_ListRunningOutgoingQueries_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObservationServiceServer).ListRunningOutgoingQueries(ctx, req.(*ListRunningOutgoingQueriesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+func (x *observationServiceListIncomingQueriesServer) Send(m *IncomingQuery) error {
+	return x.ServerStream.SendMsg(m)
 }
 
-func _ObservationService_ListSimilarOutgoingQueriesWithDifferentStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListSimilarOutgoingQueriesWithDifferentStatsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _ObservationService_ListOutgoingQueries_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ListOutgoingQueriesRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(ObservationServiceServer).ListSimilarOutgoingQueriesWithDifferentStats(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: ObservationService_ListSimilarOutgoingQueriesWithDifferentStats_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ObservationServiceServer).ListSimilarOutgoingQueriesWithDifferentStats(ctx, req.(*ListSimilarOutgoingQueriesWithDifferentStatsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(ObservationServiceServer).ListOutgoingQueries(m, &observationServiceListOutgoingQueriesServer{stream})
+}
+
+type ObservationService_ListOutgoingQueriesServer interface {
+	Send(*OutgoingQuery) error
+	grpc.ServerStream
+}
+
+type observationServiceListOutgoingQueriesServer struct {
+	grpc.ServerStream
+}
+
+func (x *observationServiceListOutgoingQueriesServer) Send(m *OutgoingQuery) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // ObservationService_ServiceDesc is the grpc.ServiceDesc for ObservationService service.
@@ -240,28 +187,18 @@ func _ObservationService_ListSimilarOutgoingQueriesWithDifferentStats_Handler(sr
 var ObservationService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "NYql.Connector.Observation.ObservationService",
 	HandlerType: (*ObservationServiceServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "ListIncomingQueries",
-			Handler:    _ObservationService_ListIncomingQueries_Handler,
+			StreamName:    "ListIncomingQueries",
+			Handler:       _ObservationService_ListIncomingQueries_Handler,
+			ServerStreams: true,
 		},
 		{
-			MethodName: "ListRunningIncomingQueries",
-			Handler:    _ObservationService_ListRunningIncomingQueries_Handler,
-		},
-		{
-			MethodName: "ListOutgoingQueries",
-			Handler:    _ObservationService_ListOutgoingQueries_Handler,
-		},
-		{
-			MethodName: "ListRunningOutgoingQueries",
-			Handler:    _ObservationService_ListRunningOutgoingQueries_Handler,
-		},
-		{
-			MethodName: "ListSimilarOutgoingQueriesWithDifferentStats",
-			Handler:    _ObservationService_ListSimilarOutgoingQueriesWithDifferentStats_Handler,
+			StreamName:    "ListOutgoingQueries",
+			Handler:       _ObservationService_ListOutgoingQueries_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "api/observation/service.proto",
 }
