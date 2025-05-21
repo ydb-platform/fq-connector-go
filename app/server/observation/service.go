@@ -1,7 +1,6 @@
 package observation
 
 import (
-	"context"
 	"fmt"
 	"net"
 
@@ -133,11 +132,11 @@ func convertOutgoingQuery(q *OutgoingQuery) *observation.OutgoingQuery {
 	return result
 }
 
-// ListIncomingQueries implements the gRPC method to list incoming queries
+// ListIncomingQueries implements the gRPC method to stream incoming queries
 func (s *serviceImpl) ListIncomingQueries(
-	ctx context.Context,
 	req *observation.ListIncomingQueriesRequest,
-) (*observation.ListIncomingQueriesResponse, error) {
+	stream observation.ObservationService_ListIncomingQueriesServer,
+) error {
 	logger := s.logger.With(
 		zap.Int32("limit", req.Limit),
 		zap.Int32("offset", req.Offset),
@@ -156,28 +155,27 @@ func (s *serviceImpl) ListIncomingQueries(
 	queries, err := s.storage.ListIncomingQueries(stateParam, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list incoming queries", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "failed to list incoming queries: %v", err)
+		return status.Errorf(codes.Internal, "failed to list incoming queries: %v", err)
 	}
 
-	protoQueries := make([]*observation.IncomingQuery, len(queries))
-	for i, q := range queries {
-		protoQueries[i] = convertIncomingQuery(q)
+	// Stream each query to the client
+	for _, q := range queries {
+		protoQuery := convertIncomingQuery(q)
+		if err := stream.Send(protoQuery); err != nil {
+			logger.Error("Failed to send query to client", zap.Error(err))
+			return status.Errorf(codes.Internal, "failed to send query to client: %v", err)
+		}
 	}
 
-	response := &observation.ListIncomingQueriesResponse{
-		Queries:    protoQueries,
-		TotalCount: int32(len(queries)),
-	}
-
-	logger.Info("ListIncomingQueries request handling finished", zap.Int("queries_count", len(queries)))
-	return response, nil
+	logger.Info("ListIncomingQueries request handling finished", zap.Int("queries_sent", len(queries)))
+	return nil
 }
 
-// ListOutgoingQueries implements the gRPC method to list outgoing queries
+// ListOutgoingQueries implements the gRPC method to stream outgoing queries
 func (s *serviceImpl) ListOutgoingQueries(
-	ctx context.Context,
 	req *observation.ListOutgoingQueriesRequest,
-) (*observation.ListOutgoingQueriesResponse, error) {
+	stream observation.ObservationService_ListOutgoingQueriesServer,
+) error {
 	logger := s.logger.With(
 		zap.Uint64("incoming_query_id", req.IncomingQueryId),
 		zap.Int32("limit", req.Limit),
@@ -203,90 +201,20 @@ func (s *serviceImpl) ListOutgoingQueries(
 	queries, err := s.storage.ListOutgoingQueries(incomingQueryIDParam, stateParam, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list outgoing queries", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "failed to list outgoing queries: %v", err)
+		return status.Errorf(codes.Internal, "failed to list outgoing queries: %v", err)
 	}
 
-	protoQueries := make([]*observation.OutgoingQuery, len(queries))
-	for i, q := range queries {
-		protoQueries[i] = convertOutgoingQuery(q)
+	// Stream each query to the client
+	for _, q := range queries {
+		protoQuery := convertOutgoingQuery(q)
+		if err := stream.Send(protoQuery); err != nil {
+			logger.Error("Failed to send query to client", zap.Error(err))
+			return status.Errorf(codes.Internal, "failed to send query to client: %v", err)
+		}
 	}
 
-	response := &observation.ListOutgoingQueriesResponse{
-		Queries:    protoQueries,
-		TotalCount: int32(len(queries)),
-	}
-
-	logger.Info("ListOutgoingQueries request handling finished", zap.Int("queries_count", len(queries)))
-	return response, nil
-}
-
-// ListRunningIncomingQueries implements the gRPC method to list running incoming queries
-func (s *serviceImpl) ListRunningIncomingQueries(
-	ctx context.Context,
-	req *observation.ListRunningIncomingQueriesRequest,
-) (*observation.ListIncomingQueriesResponse, error) {
-	logger := s.logger
-	logger.Info("ListRunningIncomingQueries request handling started")
-
-	state := QueryStateRunning
-	queries, err := s.storage.ListIncomingQueries(&state, 1000, 0)
-	if err != nil {
-		logger.Error("Failed to list running incoming queries", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "failed to list running incoming queries: %v", err)
-	}
-
-	protoQueries := make([]*observation.IncomingQuery, len(queries))
-	for i, q := range queries {
-		protoQueries[i] = convertIncomingQuery(q)
-	}
-
-	response := &observation.ListIncomingQueriesResponse{
-		Queries:    protoQueries,
-		TotalCount: int32(len(queries)),
-	}
-
-	logger.Info("ListRunningIncomingQueries request handling finished", zap.Int("queries_count", len(queries)))
-	return response, nil
-}
-
-// ListRunningOutgoingQueries implements the gRPC method to list running outgoing queries
-func (s *serviceImpl) ListRunningOutgoingQueries(
-	ctx context.Context,
-	req *observation.ListRunningOutgoingQueriesRequest,
-) (*observation.ListOutgoingQueriesResponse, error) {
-	logger := s.logger
-	logger.Info("ListRunningOutgoingQueries request handling started")
-
-	state := QueryStateRunning
-	queries, err := s.storage.ListOutgoingQueries(nil, &state, 1000, 0)
-	if err != nil {
-		logger.Error("Failed to list running outgoing queries", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "failed to list running outgoing queries: %v", err)
-	}
-
-	protoQueries := make([]*observation.OutgoingQuery, len(queries))
-	for i, q := range queries {
-		protoQueries[i] = convertOutgoingQuery(q)
-	}
-
-	response := &observation.ListOutgoingQueriesResponse{
-		Queries:    protoQueries,
-		TotalCount: int32(len(queries)),
-	}
-
-	logger.Info("ListRunningOutgoingQueries request handling finished", zap.Int("queries_count", len(queries)))
-	return response, nil
-}
-
-// ListSimilarOutgoingQueriesWithDifferentStats implements the gRPC method to find similar outgoing queries with different stats
-func (s *serviceImpl) ListSimilarOutgoingQueriesWithDifferentStats(
-	ctx context.Context,
-	req *observation.ListSimilarOutgoingQueriesWithDifferentStatsRequest,
-) (*observation.ListSimilarOutgoingQueriesWithDifferentStatsResponse, error) {
-	s.logger.Info("ListSimilarOutgoingQueriesWithDifferentStats request handling started")
-
-	// This method is deprecated and will be removed in the future
-	return &observation.ListSimilarOutgoingQueriesWithDifferentStatsResponse{}, nil
+	logger.Info("ListOutgoingQueries request handling finished", zap.Int("queries_sent", len(queries)))
+	return nil
 }
 
 // NewService creates a new gRPC observation service instance.
