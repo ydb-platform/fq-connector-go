@@ -328,7 +328,7 @@ def main():
             ).rglob("*.proto"),
             connector_github_root.joinpath("api"),
             "github.com/ydb-platform/fq-connector-go/api",
-            [connector_github_root, protobuf_includes],
+            [ydb_github_root, connector_github_root, protobuf_includes],
             True,
         )
 

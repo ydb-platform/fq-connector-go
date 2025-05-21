@@ -3,6 +3,7 @@ syntax = "proto3";
 package NYql.Connector.Observation;
 
 import "google/protobuf/timestamp.proto";
+import "ydb/library/yql/providers/generic/connector/api/service/protos/connector.proto";
 
 option go_package = "github.com/ydb-platform/fq-connector-go/api/observation";
 
@@ -10,10 +11,10 @@ option go_package = "github.com/ydb-platform/fq-connector-go/api/observation";
 // processed by the connector service.
 service ObservationService {
     // ListIncomingQueries retrieves a stream of incoming queries based on filter criteria
-    rpc ListIncomingQueries(ListIncomingQueriesRequest) returns (stream IncomingQuery) {}
+    rpc ListIncomingQueries(ListIncomingQueriesRequest) returns (stream ListIncomingQueriesResponse) {}
     
     // ListOutgoingQueries retrieves a stream of outgoing queries based on filter criteria
-    rpc ListOutgoingQueries(ListOutgoingQueriesRequest) returns (stream OutgoingQuery) {}
+    rpc ListOutgoingQueries(ListOutgoingQueriesRequest) returns (stream ListOutgoingQueriesResponse) {}
 }
 
 // QueryState represents the state of a query
@@ -101,6 +102,15 @@ message ListIncomingQueriesRequest {
     int32 offset = 3;
 }
 
+// IncomingQueryResponse is the response message for a single incoming query
+message ListIncomingQueriesResponse {
+    // The incoming query
+    IncomingQuery query = 1;
+    
+    // Error information if there was a problem retrieving the query
+    NYql.NConnector.NApi.TError error = 2;
+}
+
 // ListOutgoingQueriesRequest is the request message for ListOutgoingQueries
 message ListOutgoingQueriesRequest {
     // Filter by parent incoming query ID
@@ -117,4 +127,13 @@ message ListOutgoingQueriesRequest {
     
     // Number of queries to skip
     int32 offset = 4;
+}
+
+// OutgoingQueryResponse is the response message for a single outgoing query
+message ListOutgoingQueriesResponse {
+    // The outgoing query
+    OutgoingQuery query = 1;
+    
+    // Error information if there was a problem retrieving the query
+    NYql.NConnector.NApi.TError error = 2;
 }

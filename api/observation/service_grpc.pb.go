@@ -57,7 +57,7 @@ func (c *observationServiceClient) ListIncomingQueries(ctx context.Context, in *
 }
 
 type ObservationService_ListIncomingQueriesClient interface {
-	Recv() (*IncomingQuery, error)
+	Recv() (*ListIncomingQueriesResponse, error)
 	grpc.ClientStream
 }
 
@@ -65,8 +65,8 @@ type observationServiceListIncomingQueriesClient struct {
 	grpc.ClientStream
 }
 
-func (x *observationServiceListIncomingQueriesClient) Recv() (*IncomingQuery, error) {
-	m := new(IncomingQuery)
+func (x *observationServiceListIncomingQueriesClient) Recv() (*ListIncomingQueriesResponse, error) {
+	m := new(ListIncomingQueriesResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func (c *observationServiceClient) ListOutgoingQueries(ctx context.Context, in *
 }
 
 type ObservationService_ListOutgoingQueriesClient interface {
-	Recv() (*OutgoingQuery, error)
+	Recv() (*ListOutgoingQueriesResponse, error)
 	grpc.ClientStream
 }
 
@@ -97,8 +97,8 @@ type observationServiceListOutgoingQueriesClient struct {
 	grpc.ClientStream
 }
 
-func (x *observationServiceListOutgoingQueriesClient) Recv() (*OutgoingQuery, error) {
-	m := new(OutgoingQuery)
+func (x *observationServiceListOutgoingQueriesClient) Recv() (*ListOutgoingQueriesResponse, error) {
+	m := new(ListOutgoingQueriesResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func _ObservationService_ListIncomingQueries_Handler(srv interface{}, stream grp
 }
 
 type ObservationService_ListIncomingQueriesServer interface {
-	Send(*IncomingQuery) error
+	Send(*ListIncomingQueriesResponse) error
 	grpc.ServerStream
 }
 
@@ -156,7 +156,7 @@ type observationServiceListIncomingQueriesServer struct {
 	grpc.ServerStream
 }
 
-func (x *observationServiceListIncomingQueriesServer) Send(m *IncomingQuery) error {
+func (x *observationServiceListIncomingQueriesServer) Send(m *ListIncomingQueriesResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -169,7 +169,7 @@ func _ObservationService_ListOutgoingQueries_Handler(srv interface{}, stream grp
 }
 
 type ObservationService_ListOutgoingQueriesServer interface {
-	Send(*OutgoingQuery) error
+	Send(*ListOutgoingQueriesResponse) error
 	grpc.ServerStream
 }
 
@@ -177,7 +177,7 @@ type observationServiceListOutgoingQueriesServer struct {
 	grpc.ServerStream
 }
 
-func (x *observationServiceListOutgoingQueriesServer) Send(m *OutgoingQuery) error {
+func (x *observationServiceListOutgoingQueriesServer) Send(m *ListOutgoingQueriesResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 

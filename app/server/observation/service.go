@@ -16,6 +16,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 
 	observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 // serviceImpl represents the gRPC service implementation
@@ -132,6 +133,22 @@ func convertOutgoingQuery(q *OutgoingQuery) *observation.OutgoingQuery {
 	return result
 }
 
+// createSuccessError creates a success TError
+func createSuccessError() *protos.TError {
+	return &protos.TError{
+		Status:  0, // SUCCESS
+		Message: "Success",
+	}
+}
+
+// createErrorFromErr creates a TError from an error
+func createErrorFromErr(err error) *protos.TError {
+	return &protos.TError{
+		Status:  1, // GENERIC_ERROR
+		Message: err.Error(),
+	}
+}
+
 // ListIncomingQueries implements the gRPC method to stream incoming queries
 func (s *serviceImpl) ListIncomingQueries(
 	req *observation.ListIncomingQueriesRequest,
@@ -155,13 +172,25 @@ func (s *serviceImpl) ListIncomingQueries(
 	queries, err := s.storage.ListIncomingQueries(stateParam, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list incoming queries", zap.Error(err))
+		// Send an error response
+		errResponse := &observation.ListIncomingQueriesResponse{
+			Query: nil,
+			Error: createErrorFromErr(err),
+		}
+		if sendErr := stream.Send(errResponse); sendErr != nil {
+			logger.Error("Failed to send error response", zap.Error(sendErr))
+		}
 		return status.Errorf(codes.Internal, "failed to list incoming queries: %v", err)
 	}
 
 	// Stream each query to the client
 	for _, q := range queries {
 		protoQuery := convertIncomingQuery(q)
-		if err := stream.Send(protoQuery); err != nil {
+		response := &observation.ListIncomingQueriesResponse{
+			Query: protoQuery,
+			Error: createSuccessError(),
+		}
+		if err := stream.Send(response); err != nil {
 			logger.Error("Failed to send query to client", zap.Error(err))
 			return status.Errorf(codes.Internal, "failed to send query to client: %v", err)
 		}
@@ -201,13 +230,25 @@ func (s *serviceImpl) ListOutgoingQueries(
 	queries, err := s.storage.ListOutgoingQueries(incomingQueryIDParam, stateParam, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list outgoing queries", zap.Error(err))
+		// Send an error response
+		errResponse := &observation.ListOutgoingQueriesResponse{
+			Query: nil,
+			Error: createErrorFromErr(err),
+		}
+		if sendErr := stream.Send(errResponse); sendErr != nil {
+			logger.Error("Failed to send error response", zap.Error(sendErr))
+		}
 		return status.Errorf(codes.Internal, "failed to list outgoing queries: %v", err)
 	}
 
 	// Stream each query to the client
 	for _, q := range queries {
 		protoQuery := convertOutgoingQuery(q)
-		if err := stream.Send(protoQuery); err != nil {
+		response := &observation.ListOutgoingQueriesResponse{
+			Query: protoQuery,
+			Error: createSuccessError(),
+		}
+		if err := stream.Send(response); err != nil {
 			logger.Error("Failed to send query to client", zap.Error(err))
 			return status.Errorf(codes.Internal, "failed to send query to client: %v", err)
 		}
