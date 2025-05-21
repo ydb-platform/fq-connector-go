@@ -110,12 +110,13 @@ func (r *rowsNative) Close() error {
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
-	dsi         *api_common.TGenericDataSourceInstance
-	queryLogger common.QueryLogger
-	ctx         context.Context
-	driver      *ydb_sdk.Driver
-	tableName   string
-	formatter   rdbms_utils.SQLFormatter
+	dsi          *api_common.TGenericDataSourceInstance
+	queryLogger  common.QueryLogger
+	ctx          context.Context
+	driver       *ydb_sdk.Driver
+	tableName    string
+	formatter    rdbms_utils.SQLFormatter
+	resourcePool string
 }
 
 // nolint: gocyclo
@@ -215,7 +216,9 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			streamResult, err := session.Query(
 				ctx,
 				queryRewritten,
-				ydb_sdk_query.WithParameters(paramsBuilder.Build()))
+				ydb_sdk_query.WithParameters(paramsBuilder.Build()),
+				ydb_sdk_query.WithResourcePool(c.resourcePool),
+			)
 			if err != nil {
 				return fmt.Errorf("session query: %w", err)
 			}
@@ -332,13 +335,15 @@ func newConnectionNative(
 	tableName string,
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
+	resourcePool string,
 ) Connection {
 	return &connectionNative{
-		ctx:         ctx,
-		driver:      driver,
-		queryLogger: queryLogger,
-		dsi:         dsi,
-		tableName:   tableName,
-		formatter:   formatter,
+		ctx:          ctx,
+		driver:       driver,
+		queryLogger:  queryLogger,
+		dsi:          dsi,
+		tableName:    tableName,
+		formatter:    formatter,
+		resourcePool: resourcePool,
 	}
 }

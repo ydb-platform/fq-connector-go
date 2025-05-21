@@ -316,6 +316,11 @@ message TYdbConfig {
 
     TSplitting splitting = 7;
 
+    // Resoure pool name to be used during query execution.
+    // Appliable only if mode is MODE_QUERY_SERVICE_NATIVE,
+    // with "default" as the default value.
+    string resource_pool = 8;
+
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;
 }

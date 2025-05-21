@@ -138,13 +138,14 @@ func NewQueryLoggerFactory(cfg *config.TLoggerConfig) QueryLoggerFactory {
 	return QueryLoggerFactory{enableQueryLogging: enabled}
 }
 
-func (f *QueryLoggerFactory) Make(logger *zap.Logger) QueryLogger {
-	return QueryLogger{Logger: logger, enabled: f.enableQueryLogging}
+func (f *QueryLoggerFactory) Make(logger *zap.Logger, fields ...zap.Field) QueryLogger {
+	return QueryLogger{Logger: logger, enabled: f.enableQueryLogging, fields: fields}
 }
 
 type QueryLogger struct {
 	*zap.Logger
 	enabled bool
+	fields  []zap.Field // some additional request-specific fields
 }
 
 func (ql *QueryLogger) Dump(query string, args ...any) {
@@ -156,6 +157,9 @@ func (ql *QueryLogger) Dump(query string, args ...any) {
 	if len(args) > 0 {
 		logFields = append(logFields, zap.Any("args", args))
 	}
+
+	// add additional fields
+	logFields = append(logFields, ql.fields...)
 
 	ql.Info("execute SQL query", logFields...)
 }

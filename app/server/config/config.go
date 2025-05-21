@@ -239,7 +239,7 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 	}
 
 	if c.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
-		c.Mode = config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES
+		c.Mode = config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE
 	}
 
 	if c.ExponentialBackoff == nil {
@@ -263,6 +263,10 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 		c.Splitting = &config.TYdbConfig_TSplitting{
 			EnabledOnColumnShards: false,
 		}
+	}
+
+	if c.Mode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE && c.ResourcePool == "" {
+		c.ResourcePool = "default"
 	}
 }
 
@@ -496,7 +500,16 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 		return fmt.Errorf("validate `ping_connection_timeout`: %v", err)
 	}
 
-	if c.Mode == config.TYdbConfig_MODE_UNSPECIFIED {
+	switch c.Mode {
+	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
+		if c.ResourcePool == "" {
+			return fmt.Errorf("you must set `resource_pool` if `mode` is `query_service_native`")
+		}
+	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
+		if c.ResourcePool != "" {
+			return fmt.Errorf("you must not set `resource_pool` if `mode` is `table_service_stdlib_scan_queries`")
+		}
+	default:
 		return fmt.Errorf("invalid `mode` value: %v", c.Mode)
 	}
 
