@@ -521,12 +521,17 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("failed to get storage size before cleanup", zap.Error(err))
 	}
 
-	_, err = s.db.Exec(`
+	result, err := s.db.Exec(`
         DELETE FROM incoming_queries WHERE created_at < ?;
         DELETE FROM outgoing_queries WHERE created_at < ?;
     `, cutoff, cutoff)
 	if err != nil {
 		logger.Error("failed to clean up old queries", zap.Error(err))
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		logger.Error("failed to get rows affected by garbage collection", zap.Error(err))
 	}
 
 	// Log storage size after cleanup
@@ -535,7 +540,7 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("failed to get storage size after cleanup", zap.Error(err))
 	}
 
-	logger.Info("garbage collection completed", zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
+	logger.Info("garbage collection completed", zap.Int64("rows_affected", rowsAffected), zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
 }
 
 func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Duration, gcPeriod time.Duration) {
@@ -556,23 +561,20 @@ func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Durat
 
 // newStorageSQLite creates a new Storage instance
 func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
-	db, err := sql.Open("sqlite3", cfg.Path)
+	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=exclusive&_journal=WAL&_sync=FULL&_secure_delete=TRUE&_mutex=full")
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
 
-	db.SetMaxOpenConns(1) // Limit to 1 connection for SQLite
+	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(time.Hour)
 
 	// Set pragmas for better performance
 	pragmas := []string{
-		"PRAGMA journal_mode=WAL",
-		"PRAGMA synchronous=NORMAL",
-		"PRAGMA cache_size=5000",
-		"PRAGMA temp_store=MEMORY",
-		"PRAGMA mmap_size=30000000000",
-		"PRAGMA busy_timeout=5000",
+		"PRAGMA synchronous = FULL",
+		"PRAGMA journal_mode = WAL",
+		"PRAGMA locking_mode = EXCLUSIVE",
+		"PRAGMA busy_timeout = 5000",
 	}
 
 	for _, pragma := range pragmas {

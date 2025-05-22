@@ -203,7 +203,7 @@ func (ds *dataSourceImpl) ReadSplit(
 
 			// register success
 			if err := ds.observationStorage.FinishOutgoingQuery(outgoingQueryID, rowsRead); err != nil {
-				logger.Error("finish outgoing query: %w", zap.Error(err))
+				return fmt.Errorf("finish outgoing query: %w", err)
 			}
 
 			return nil
