@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 	"github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -114,10 +114,11 @@ func getClient(cmd *cobra.Command) (observation.ObservationServiceClient, *grpc.
 
 	// Create a client
 	client := observation.NewObservationServiceClient(conn)
+
 	return client, conn, nil
 }
 
-func listIncomingQueries(cmd *cobra.Command, args []string, state observation.QueryState) error {
+func listIncomingQueries(cmd *cobra.Command, _ []string, state observation.QueryState) error {
 	client, conn, err := getClient(cmd)
 	if err != nil {
 		return err
@@ -146,12 +147,14 @@ func listIncomingQueries(cmd *cobra.Command, args []string, state observation.Qu
 		"ID", "Data Source", "Rows Read", "Bytes Read", "State", "Created At", "Finished At", "Error")
 
 	count := 0
+
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
 			if err.Error() == "EOF" {
 				break
 			}
+
 			return fmt.Errorf("error receiving response: %w", err)
 		}
 
@@ -163,6 +166,7 @@ func listIncomingQueries(cmd *cobra.Command, args []string, state observation.Qu
 		if resp.Query != nil {
 			query := resp.Query
 			finishedAt := ""
+
 			if query.FinishedAt != nil {
 				finishedAt = query.FinishedAt.AsTime().Format(time.RFC3339)
 			}
@@ -182,10 +186,11 @@ func listIncomingQueries(cmd *cobra.Command, args []string, state observation.Qu
 	}
 
 	fmt.Printf("\nTotal: %d queries\n", count)
+
 	return nil
 }
 
-func listOutgoingQueries(cmd *cobra.Command, args []string, state observation.QueryState) error {
+func listOutgoingQueries(cmd *cobra.Command, _ []string, state observation.QueryState) error {
 	client, conn, err := getClient(cmd)
 	if err != nil {
 		return err
@@ -214,12 +219,14 @@ func listOutgoingQueries(cmd *cobra.Command, args []string, state observation.Qu
 		"ID", "Parent ID", "Database", "Endpoint", "State", "Created At", "Finished At", "Error")
 
 	count := 0
+
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
 			if err.Error() == "EOF" {
 				break
 			}
+
 			return fmt.Errorf("error receiving response: %w", err)
 		}
 
@@ -231,6 +238,7 @@ func listOutgoingQueries(cmd *cobra.Command, args []string, state observation.Qu
 		if resp.Query != nil {
 			query := resp.Query
 			finishedAt := ""
+
 			if query.FinishedAt != nil {
 				finishedAt = query.FinishedAt.AsTime().Format(time.RFC3339)
 			}
@@ -250,12 +258,15 @@ func listOutgoingQueries(cmd *cobra.Command, args []string, state observation.Qu
 	}
 
 	fmt.Printf("\nTotal: %d queries\n", count)
+
 	return nil
 }
 
+// nolint: unused
 func formatError(err *protos.TError) string {
 	if err == nil {
 		return ""
 	}
+
 	return fmt.Sprintf("%s (status: %d)", err.Message, err.Status)
 }

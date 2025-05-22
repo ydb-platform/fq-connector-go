@@ -8,13 +8,16 @@ import (
 	"net/http"
 	"strings"
 
-	observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 )
 
 //go:embed templates/* assets/*
+//nolint:unused
 var embeddedFiles embed.FS
 
 // getTemplates loads templates from the embedded files
+//
+//nolint:unused
 func getTemplates() (*template.Template, error) {
 	// Create a new template with function map
 	tmpl := template.New("").Funcs(template.FuncMap{
@@ -58,6 +61,8 @@ func getTemplates() (*template.Template, error) {
 }
 
 // getAssetHandler returns an HTTP handler for serving static assets
+//
+//nolint:unused
 func getAssetHandler() http.Handler {
 	// Create a sub-filesystem containing only assets
 	assets, _ := fs.Sub(embeddedFiles, "assets")

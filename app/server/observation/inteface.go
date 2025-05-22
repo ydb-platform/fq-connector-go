@@ -7,7 +7,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -44,6 +44,7 @@ func ProtoTimestampToTime(ts *timestamppb.Timestamp) time.Time {
 	if ts == nil {
 		return time.Time{}
 	}
+
 	return ts.AsTime()
 }
 
@@ -51,5 +52,6 @@ func TimePointerToProtoTimestamp(t *time.Time) *timestamppb.Timestamp {
 	if t == nil {
 		return nil
 	}
+
 	return timestamppb.New(*t)
 }

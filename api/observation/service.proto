@@ -22,7 +22,7 @@ enum QueryState {
     QUERY_STATE_UNSPECIFIED = 0;
     QUERY_STATE_RUNNING = 1;
     QUERY_STATE_FINISHED = 2;
-    QUERY_STATE_CANCELLED = 3;
+    QUERY_STATE_CANCELED = 3;
 }
 
 // IncomingQuery represents an incoming query from a client

@@ -10,12 +10,11 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 
+	"github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
-
-	observation "github.com/ydb-platform/fq-connector-go/api/observation"
-	"github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 // serviceImpl represents the gRPC service implementation
@@ -102,6 +101,7 @@ func (s *serviceImpl) ListIncomingQueries(
 		if sendErr := stream.Send(errResponse); sendErr != nil {
 			logger.Error("Failed to send error response", zap.Error(sendErr))
 		}
+
 		return status.Errorf(codes.Internal, "failed to list incoming queries: %v", err)
 	}
 
@@ -118,6 +118,7 @@ func (s *serviceImpl) ListIncomingQueries(
 	}
 
 	logger.Info("ListIncomingQueries request handling finished", zap.Int("queries_sent", len(queries)))
+
 	return nil
 }
 
@@ -135,6 +136,7 @@ func (s *serviceImpl) ListOutgoingQueries(
 	logger.Info("ListOutgoingQueries request handling started")
 
 	var incomingQueryIDParam *uint64
+
 	if req.IncomingQueryId != 0 {
 		id := req.IncomingQueryId
 		incomingQueryIDParam = &id
@@ -157,6 +159,7 @@ func (s *serviceImpl) ListOutgoingQueries(
 		if sendErr := stream.Send(errResponse); sendErr != nil {
 			logger.Error("Failed to send error response", zap.Error(sendErr))
 		}
+
 		return status.Errorf(codes.Internal, "failed to list outgoing queries: %v", err)
 	}
 
@@ -173,6 +176,7 @@ func (s *serviceImpl) ListOutgoingQueries(
 	}
 
 	logger.Info("ListOutgoingQueries request handling finished", zap.Int("queries_sent", len(queries)))
+
 	return nil
 }
 
@@ -185,6 +189,7 @@ func NewService(
 	// Create a listener
 	addr := common.EndpointToString(cfg.Server.GetEndpoint())
 	listener, err := net.Listen("tcp", addr)
+
 	if err != nil {
 		return nil, fmt.Errorf("net listen: %w", err)
 	}

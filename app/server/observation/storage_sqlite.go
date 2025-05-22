@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -96,7 +96,7 @@ func stateToString(state observation.QueryState) string {
 		return "running"
 	case observation.QueryState_QUERY_STATE_FINISHED:
 		return "finished"
-	case observation.QueryState_QUERY_STATE_CANCELLED:
+	case observation.QueryState_QUERY_STATE_CANCELED:
 		return "canceled"
 	default:
 		return "unknown"
@@ -111,7 +111,7 @@ func stringToState(state string) observation.QueryState {
 	case "finished":
 		return observation.QueryState_QUERY_STATE_FINISHED
 	case "canceled":
-		return observation.QueryState_QUERY_STATE_CANCELLED
+		return observation.QueryState_QUERY_STATE_CANCELED
 	default:
 		return observation.QueryState_QUERY_STATE_UNSPECIFIED
 	}
@@ -172,7 +172,7 @@ func (s *storageSQLite) CancelIncomingQuery(
 
 	result, err := s.db.Exec(
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
-		stateToString(observation.QueryState_QUERY_STATE_CANCELLED), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
+		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
 	)
 	if err != nil {
 		return fmt.Errorf("canceling incoming query: %w", err)
@@ -359,7 +359,7 @@ func (s *storageSQLite) CancelOutgoingQuery(id uint64, errorMsg string) error {
 
 	result, err := s.db.Exec(
 		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?",
-		stateToString(observation.QueryState_QUERY_STATE_CANCELLED), finishedAt, errorMsg, id,
+		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, id,
 	)
 	if err != nil {
 		return fmt.Errorf("canceling outgoing query: %w", err)

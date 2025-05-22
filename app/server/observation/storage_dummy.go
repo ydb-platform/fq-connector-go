@@ -4,7 +4,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
