@@ -20,8 +20,9 @@ var _ Storage = (*storageSQLite)(nil)
 
 // storageSQLite handles storing and retrieving query data
 type storageSQLite struct {
-	db   *sql.DB
-	path string
+	db     *sql.DB
+	path   string
+	stopGC chan struct{}
 }
 
 // initialize creates the necessary tables if they don't exist
@@ -494,10 +495,52 @@ func (s *storageSQLite) ListOutgoingQueries(
 // Close closes the database connection
 func (s *storageSQLite) Close() error {
 	if s.db != nil {
+		close(s.stopGC) // Signal the garbage collector to stop
+
 		return s.db.Close()
 	}
 
 	return nil
+}
+
+// newStorageSQLite creates a new Storage instance
+func (s *storageSQLite) garbageCollector(logger *zap.Logger, ttl time.Duration) {
+	cutoff := time.Now().Add(-ttl)
+
+	// Log storage size before cleanup
+	var sizeBefore int64
+	err := s.db.QueryRow(`SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();`).Scan(&sizeBefore)
+	if err != nil {
+		logger.Error("failed to get storage size before cleanup", zap.Error(err))
+	}
+
+	_, err = s.db.Exec(`
+        DELETE FROM incoming_queries WHERE finished_at IS NOT NULL AND finished_at < ?;
+        DELETE FROM outgoing_queries WHERE finished_at IS NOT NULL AND finished_at < ?;
+    `, cutoff, cutoff)
+	if err != nil {
+		logger.Error("failed to clean up old queries", zap.Error(err))
+	}
+
+	// Log storage size after cleanup
+	var sizeAfter int64
+	err = s.db.QueryRow(`SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();`).Scan(&sizeAfter)
+	if err != nil {
+		logger.Error("failed to get storage size after cleanup", zap.Error(err))
+	}
+
+	logger.Info("garbage collection completed", zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
+}
+
+func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Duration) {
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+
+		for range ticker.C {
+			s.garbageCollector(logger, ttl)
+		}
+	}()
 }
 
 // newStorageSQLite creates a new Storage instance
@@ -527,8 +570,8 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 		}
 	}
 
+	// Initialize storage
 	storage := &storageSQLite{
-		db:   db,
 		path: cfg.Path,
 	}
 
@@ -536,6 +579,15 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 		common.LogCloserError(logger, db, "close SQLite database")
 		return nil, fmt.Errorf("initialize: %w", err)
 	}
+
+	// Parse the TTL value
+	ttl, err := common.DurationFromString(cfg.RequestTtl)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request TTL: %w", err)
+	}
+
+	// Start the garbage collector
+	storage.startGarbageCollector(logger, ttl)
 
 	return storage, nil
 }
