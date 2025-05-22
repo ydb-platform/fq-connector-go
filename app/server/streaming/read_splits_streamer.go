@@ -11,6 +11,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type ReadSplitsStreamer[T paging.Acceptor] struct {
@@ -46,65 +47,88 @@ func (s *ReadSplitsStreamer[T]) writeDataToStream() error {
 			if err := s.sendResultToStream(result); err != nil {
 				return fmt.Errorf("send buffer to stream: %w", err)
 			}
-
-		case err, ok := <-s.errorChan:
-			if !ok {
-				// error channel was closed, but no error was sent
-				return nil
+		case err := <-s.errorChan:
+			// an error occurred during reading
+			if err != nil {
+				return fmt.Errorf("error: %w", err)
 			}
-
-			return fmt.Errorf("read split: %w", err)
-
-		case <-s.ctx.Done():
-			return s.ctx.Err()
+		case <-s.stream.Context().Done():
+			// handle request termination
+			return s.stream.Context().Err()
 		}
 	}
 }
 
 func (s *ReadSplitsStreamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
-	response, err := result.ColumnarBuffer.ToResponse()
+	// buffer must be explicitly marked as unused,
+	// otherwise memory will leak
+	defer result.ColumnarBuffer.Release()
+
+	resp, err := result.ColumnarBuffer.ToResponse()
 	if err != nil {
-		return fmt.Errorf("convert to response: %w", err)
+		return fmt.Errorf("buffer to response: %w", err)
 	}
 
-	if err := s.stream.Send(response); err != nil {
+	resp.Stats = result.Stats
+
+	// if stream is finished, assign successful operation code
+	if result.IsTerminalMessage {
+		resp.Error = common.NewSuccess()
+	}
+
+	dumpReadSplitsResponse(result.Logger, resp)
+
+	if err := s.stream.Send(resp); err != nil {
 		return fmt.Errorf("stream send: %w", err)
 	}
 
 	return nil
 }
 
-func (s *ReadSplitsStreamer[T]) readDataFromSource() {
-	defer close(s.errorChan)
+func dumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSplitsResponse) {
+	switch t := resp.GetPayload().(type) {
+	case *api_service_protos.TReadSplitsResponse_ArrowIpcStreaming:
+		if dump := resp.GetArrowIpcStreaming(); dump != nil {
+			logger.Debug("response",
+				zap.Uint64("rows", resp.GetStats().Rows),
+				zap.Uint64("bytes", resp.GetStats().Bytes),
+				zap.Int("arrow_blob_size", len(dump)))
+		}
+	case *api_service_protos.TReadSplitsResponse_ColumnSet:
+		for i := range t.ColumnSet.Data {
+			data := t.ColumnSet.Data[i]
+			meta := t.ColumnSet.Meta[i]
 
-	err := s.dataSource.ReadSplit(
-		s.ctx,
-		s.logger,
-		s.queryID,
-		s.request,
-		s.split,
-		s.sinkFactory,
-	)
-	if err != nil {
-		s.errorChan <- fmt.Errorf("read split: %w", err)
+			logger.Debug("response", zap.Int("column_id", i), zap.String("meta", meta.String()), zap.String("data", data.String()))
+		}
+	default:
+		panic(fmt.Sprintf("unexpected message type %v", t))
 	}
 }
 
 func (s *ReadSplitsStreamer[T]) Run() error {
-	var wg sync.WaitGroup
-
+	wg := &sync.WaitGroup{}
 	wg.Add(1)
+
+	defer wg.Wait()
+
+	// Launch reading from the data source.
+	// Subscriber goroutine controls publisher goroutine lifetime.
 	go func() {
 		defer wg.Done()
-		s.readDataFromSource()
+
+		select {
+		case s.errorChan <- s.dataSource.ReadSplit(s.ctx, s.logger, s.queryID, s.request, s.split, s.sinkFactory):
+		case <-s.ctx.Done():
+		}
 	}()
 
-	err := s.writeDataToStream()
+	// Pass received blocks into the GRPC channel
+	if err := s.writeDataToStream(); err != nil {
+		return fmt.Errorf("write data to stream: %w", err)
+	}
 
-	// wait for publisher to finish
-	wg.Wait()
-
-	return err
+	return nil
 }
 
 func NewReadSplitsStreamer[T paging.Acceptor](
@@ -123,10 +147,10 @@ func NewReadSplitsStreamer[T paging.Acceptor](
 		request:     request,
 		stream:      stream,
 		split:       split,
-		sinkFactory: sinkFactory,
 		dataSource:  dataSource,
+		sinkFactory: sinkFactory,
 		queryID:     queryID,
-		errorChan:   make(chan error, 1),
+		errorChan:   make(chan error),
 		ctx:         ctx,
 		cancel:      cancel,
 	}
