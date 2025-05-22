@@ -111,7 +111,7 @@ func (ds *dataSourceImpl) ListSplits(
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	incomingQueryID uint64,
+	incomingQueryID string,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
@@ -183,7 +183,6 @@ func (ds *dataSourceImpl) ReadSplit(
 				return fmt.Errorf("make select query: %w", err)
 			}
 
-			// register outgoing request in storage
 			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(
 				ctx,
 				logger, incomingQueryID, conn.DataSourceInstance(), query.QueryText, query.QueryArgs.Values())

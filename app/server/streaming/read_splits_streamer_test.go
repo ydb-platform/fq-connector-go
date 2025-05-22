@@ -281,7 +281,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	sinkFactory := paging.NewSinkFactory(ctx, logger, pagingCfg, columnarBufferFactory, readLimiter)
 
 	request := &api_service_protos.TReadSplitsRequest{}
-	streamer := NewReadSplitsStreamer(logger, uint64(0), stream, request, split, sinkFactory, dataSource)
+	streamer := NewReadSplitsStreamer(logger, "test-query-id", stream, request, split, sinkFactory, dataSource)
 
 	err = streamer.Run()
 

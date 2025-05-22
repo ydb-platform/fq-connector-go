@@ -129,18 +129,17 @@ func (s *serviceImpl) ListOutgoingQueries(
 	stream observation.ObservationService_ListOutgoingQueriesServer,
 ) error {
 	logger := s.logger.With(
-		zap.Uint64("incoming_query_id", req.IncomingQueryId),
+		zap.String("incoming_query_id", req.IncomingQueryId),
 		zap.Int32("limit", req.Limit),
 		zap.Int32("offset", req.Offset),
 		zap.String("state", req.State.String()),
 	)
 	logger.Info("ListOutgoingQueries request handling started")
 
-	var incomingQueryIDParam *uint64
+	var incomingQueryIDParam *string
 
-	if req.IncomingQueryId != 0 {
-		id := req.IncomingQueryId
-		incomingQueryIDParam = &id
+	if req.IncomingQueryId != "" {
+		incomingQueryIDParam = &req.IncomingQueryId
 	}
 
 	// Set default limit if not specified

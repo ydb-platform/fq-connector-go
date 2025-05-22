@@ -35,12 +35,12 @@ func (*DataSourceMock[T]) ListSplits(
 }
 
 func (m *DataSourceMock[T]) ReadSplit(
-	_ context.Context,
-	_ *zap.Logger,
-	_ uint64,
-	_ *api_service_protos.TReadSplitsRequest,
+	ctx context.Context,
+	logger *zap.Logger,
+	queryID string,
+	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[T],
 ) error {
-	return m.Called(split, sinkFactory).Error(0)
+	return m.Called(ctx, logger, queryID, request, split, sinkFactory).Error(0)
 }

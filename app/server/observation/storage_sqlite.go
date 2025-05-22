@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -30,7 +31,7 @@ func (s *storageSQLite) initialize() error {
 	// Create the incoming_queries table
 	createIncomingTableSQL := `
 	CREATE TABLE IF NOT EXISTS incoming_queries (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id TEXT PRIMARY KEY,
 		data_source_kind TEXT NOT NULL,
 		rows_read INTEGER NOT NULL DEFAULT 0,
 		bytes_read INTEGER NOT NULL DEFAULT 0,
@@ -48,8 +49,8 @@ func (s *storageSQLite) initialize() error {
 	// Create the outgoing_queries table with foreign key
 	createOutgoingTableSQL := `
 	CREATE TABLE IF NOT EXISTS outgoing_queries (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		incoming_query_id INTEGER NOT NULL,
+		id TEXT PRIMARY KEY,
+		incoming_query_id TEXT NOT NULL,
 		database_name TEXT NOT NULL,
 		database_endpoint TEXT NOT NULL,
 		query_text TEXT,
@@ -123,31 +124,26 @@ func (s *storageSQLite) CreateIncomingQuery(
 	ctx context.Context,
 	logger *zap.Logger,
 	dataSourceKind api_common.EGenericDataSourceKind,
-) (uint64, error) {
+) (string, error) {
 	now := time.Now().UTC()
+	id := uuid.NewString()
 
-	result, err := s.db.ExecContext(ctx,
-		"INSERT INTO incoming_queries (data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?)",
-		dataSourceKind.String(), now, 0, 0, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
+	_, err := s.db.ExecContext(ctx,
+		"INSERT INTO incoming_queries (id, data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?, ?)",
+		id, dataSourceKind.String(), now, 0, 0, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("creating incoming query: %w", err)
+		return "", fmt.Errorf("creating incoming query: %w", err)
 	}
 
-	// Get the auto-generated ID
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("retrieving generated ID: %w", err)
-	}
+	logger.Debug("created incoming query", zap.String("id", id))
 
-	logger.Debug("created incoming query", zap.Uint64("id", uint64(id)))
-
-	return uint64(id), nil
+	return id, nil
 }
 
 // FinishIncomingQuery marks an incoming query as finished with final stats
 func (s *storageSQLite) FinishIncomingQuery(
-	ctx context.Context, logger *zap.Logger, id uint64, stats *api_service_protos.TReadSplitsResponse_TStats) error {
+	ctx context.Context, logger *zap.Logger, id string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.ExecContext(ctx,
@@ -164,17 +160,17 @@ func (s *storageSQLite) FinishIncomingQuery(
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("incoming query not found: %d", id)
+		return fmt.Errorf("incoming query not found: %s", id)
 	}
 
-	logger.Debug("finished incoming query", zap.Uint64("id", id))
+	logger.Debug("finished incoming query", zap.String("id", id))
 
 	return nil
 }
 
 // CancelIncomingQuery marks an incoming query as canceled with an error message
 func (s *storageSQLite) CancelIncomingQuery(ctx context.Context, logger *zap.Logger,
-	id uint64,
+	id string,
 	errorMsg string,
 	stats *api_service_protos.TReadSplitsResponse_TStats,
 ) error {
@@ -194,10 +190,10 @@ func (s *storageSQLite) CancelIncomingQuery(ctx context.Context, logger *zap.Log
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("incoming query not found: %d", id)
+		return fmt.Errorf("incoming query not found: %s", id)
 	}
 
-	logger.Debug("canceled incoming query", zap.Uint64("id", id))
+	logger.Debug("canceled incoming query", zap.String("id", id))
 
 	return nil
 }
@@ -233,7 +229,7 @@ func (s *storageSQLite) ListIncomingQueries(
 
 	for rows.Next() {
 		var (
-			id             uint64
+			id             string
 			dataSourceKind string
 			rowsRead       int64
 			bytesRead      int64
@@ -281,15 +277,15 @@ func (s *storageSQLite) ListIncomingQueries(
 func (s *storageSQLite) CreateOutgoingQuery(
 	ctx context.Context,
 	logger *zap.Logger,
-	incomingQueryID uint64,
+	incomingQueryID string,
 	dsi *api_common.TGenericDataSourceInstance,
 	queryText string,
 	queryArgs []any,
-) (uint64, error) {
+) (string, error) {
 	// Start a transaction
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, fmt.Errorf("starting transaction: %w", err)
+		return "", fmt.Errorf("starting transaction: %w", err)
 	}
 
 	// Define a function to rollback if needed
@@ -305,49 +301,43 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
 	if err != nil {
 		rollback()
-		return 0, fmt.Errorf("checking incoming query existence: %w", err)
+		return "", fmt.Errorf("checking incoming query existence: %w", err)
 	}
 
 	if !exists {
 		rollback()
-		return 0, fmt.Errorf("incoming query not found: %d", incomingQueryID)
+		return "", fmt.Errorf("incoming query not found: %s", incomingQueryID)
 	}
 
 	now := time.Now().UTC()
+	id := uuid.NewString()
 
 	// Execute the insert within the transaction
-	result, err := tx.ExecContext(ctx,
-		`INSERT INTO outgoing_queries 
-		(incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		incomingQueryID, dsi.Database, common.EndpointToString(dsi.Endpoint),
+	_, err = tx.ExecContext(ctx,
+		`INSERT INTO outgoing_queries
+		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, incomingQueryID, dsi.Database, common.EndpointToString(dsi.Endpoint),
 		0, queryText, fmt.Sprint(queryArgs), now, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
 	if err != nil {
 		rollback()
-		return 0, fmt.Errorf("creating outgoing query: %w", err)
-	}
-
-	// Get the auto-generated ID
-	id, err := result.LastInsertId()
-	if err != nil {
-		rollback()
-		return 0, fmt.Errorf("retrieving generated ID: %w", err)
+		return "", fmt.Errorf("creating outgoing query: %w", err)
 	}
 
 	// Commit the transaction
 	if err = tx.Commit(); err != nil {
 		rollback()
-		return 0, fmt.Errorf("committing transaction: %w", err)
+		return "", fmt.Errorf("committing transaction: %w", err)
 	}
 
-	logger.Debug("created outgoing query", zap.Uint64("id", uint64(id)))
+	logger.Debug("created outgoing query", zap.String("id", id))
 
-	return uint64(id), nil
+	return id, nil
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
-func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logger, id uint64, rowsRead int64) error {
+func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logger, id string, rowsRead int64) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -364,16 +354,16 @@ func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logge
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("outgoing query not found: %d", id)
+		return fmt.Errorf("outgoing query not found: %s", id)
 	}
 
-	logger.Debug("finished outgoing query", zap.Uint64("id", id))
+	logger.Debug("finished outgoing query", zap.String("id", id))
 
 	return nil
 }
 
 // CancelOutgoingQuery marks an outgoing query as canceled with an error message
-func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logger, id uint64, errorMsg string) error {
+func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logger, id string, errorMsg string) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -390,17 +380,17 @@ func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logge
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("outgoing query not found: %d", id)
+		return fmt.Errorf("outgoing query not found: %s", id)
 	}
 
-	logger.Debug("canceled outgoing query", zap.Uint64("id", id))
+	logger.Debug("canceled outgoing query", zap.String("id", id))
 
 	return nil
 }
 
 // ListOutgoingQueries retrieves a list of outgoing queries with optional filtering
 func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
-	incomingQueryID *uint64,
+	incomingQueryID *string,
 	state *observation.QueryState,
 	limit, offset int,
 ) ([]*observation.OutgoingQuery, error) {
@@ -417,20 +407,20 @@ func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
 	// Build the query based on which filters are provided
 	if incomingQueryID != nil && stateStr != "" {
 		querySQL = `
-			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
+			SELECT id, incoming_query_id, database_name, database_endpoint, query_text,
 			       query_args, state, created_at, finished_at, error, rows_read
-			FROM outgoing_queries 
-			WHERE incoming_query_id = ? AND state = ? 
+			FROM outgoing_queries
+			WHERE incoming_query_id = ? AND state = ?
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
 		args = []any{*incomingQueryID, stateStr, limit, offset}
 	} else if incomingQueryID != nil {
 		querySQL = `
-			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
+			SELECT id, incoming_query_id, database_name, database_endpoint, query_text,
 			       query_args, state, created_at, finished_at, error, rows_read
-			FROM outgoing_queries 
-			WHERE incoming_query_id = ? 
+			FROM outgoing_queries
+			WHERE incoming_query_id = ?
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []any{*incomingQueryID, limit, offset}
+		args = []any{fmt.Sprint(*incomingQueryID), limit, offset}
 	} else if stateStr != "" {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
@@ -458,8 +448,8 @@ func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
 
 	for rows.Next() {
 		var (
-			id                             uint64
-			incomingQueryID                uint64
+			id                             string
+			incomingQueryID                string
 			databaseName                   string
 			databaseEndpoint               string
 			stateStr                       string
@@ -478,7 +468,7 @@ func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
 
 		query := &observation.OutgoingQuery{
 			Id:               id,
-			IncomingQueryId:  incomingQueryID,
+			IncomingQueryId:  incomingQueryID, // Convert string to uint64
 			DatabaseName:     databaseName,
 			DatabaseEndpoint: databaseEndpoint,
 			State:            stringToState(stateStr),

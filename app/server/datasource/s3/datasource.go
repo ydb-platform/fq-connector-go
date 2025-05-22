@@ -47,7 +47,7 @@ func (*dataSource) ListSplits(
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	_ uint64,
+	_ string,
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[string]) error {

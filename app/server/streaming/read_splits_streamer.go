@@ -20,7 +20,7 @@ type ReadSplitsStreamer[T paging.Acceptor] struct {
 	request     *api_service_protos.TReadSplitsRequest
 	split       *api_service_protos.TSplit
 	sinkFactory paging.SinkFactory[T]
-	queryID     uint64
+	queryID     string
 	logger      *zap.Logger
 	errorChan   chan error      // notifies about errors happened during reading process
 	ctx         context.Context // clone of a stream context
@@ -133,7 +133,7 @@ func (s *ReadSplitsStreamer[T]) Run() error {
 
 func NewReadSplitsStreamer[T paging.Acceptor](
 	logger *zap.Logger,
-	queryID uint64,
+	queryID string,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,

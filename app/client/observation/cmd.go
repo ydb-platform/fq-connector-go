@@ -170,7 +170,7 @@ func listIncomingQueries(cmd *cobra.Command, _ []string, state observation.Query
 			}
 
 			fmt.Println("Query:")
-			fmt.Printf("  ID: %d\n", query.Id)
+			fmt.Printf("  ID: %s\n", query.Id)
 			fmt.Printf("  Data Source: %s\n", query.DataSourceKind)
 			fmt.Printf("  Rows Read: %d\n", query.RowsRead)
 			fmt.Printf("  Bytes Read: %d\n", query.BytesRead)
@@ -241,8 +241,8 @@ func listOutgoingQueries(cmd *cobra.Command, _ []string, state observation.Query
 			}
 
 			fmt.Println("Query:")
-			fmt.Printf("  ID: %d\n", query.Id)
-			fmt.Printf("  Parent ID: %d\n", query.IncomingQueryId)
+			fmt.Printf("  ID: %s\n", query.Id)
+			fmt.Printf("  Parent ID: %s\n", query.IncomingQueryId)
 			fmt.Printf("  Database: %s\n", query.DatabaseName)
 			fmt.Printf("  Endpoint: %s\n", query.DatabaseEndpoint)
 			fmt.Printf("  Query Text: %s\n", query.QueryText)

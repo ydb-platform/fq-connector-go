@@ -16,11 +16,11 @@ import (
 type Storage interface {
 	// Incoming query operations
 	CreateIncomingQuery(
-		ctx context.Context, logger *zap.Logger, dataSourceKind api_common.EGenericDataSourceKind) (uint64, error)
+		ctx context.Context, logger *zap.Logger, dataSourceKind api_common.EGenericDataSourceKind) (string, error)
 	FinishIncomingQuery(
-		ctx context.Context, logger *zap.Logger, id uint64, stats *api_service_protos.TReadSplitsResponse_TStats) error
+		ctx context.Context, logger *zap.Logger, id string, stats *api_service_protos.TReadSplitsResponse_TStats) error
 	CancelIncomingQuery(
-		ctx context.Context, logger *zap.Logger, id uint64, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error
+		ctx context.Context, logger *zap.Logger, id string, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error
 	ListIncomingQueries(
 		ctx context.Context, logger *zap.Logger, state *observation.QueryState, limit, offset int,
 	) ([]*observation.IncomingQuery, error)
@@ -29,17 +29,17 @@ type Storage interface {
 	CreateOutgoingQuery(
 		ctx context.Context,
 		logger *zap.Logger,
-		incomingQueryID uint64,
+		incomingQueryID string,
 		dsi *api_common.TGenericDataSourceInstance,
 		queryText string,
 		queryArgs []any,
-	) (uint64, error)
+	) (string, error)
 	FinishOutgoingQuery(
-		ctx context.Context, logger *zap.Logger, id uint64, rowsRead int64) error
+		ctx context.Context, logger *zap.Logger, id string, rowsRead int64) error
 	CancelOutgoingQuery(
-		ctx context.Context, logger *zap.Logger, id uint64, errorMsg string) error
+		ctx context.Context, logger *zap.Logger, id string, errorMsg string) error
 	ListOutgoingQueries(
-		ctx context.Context, logger *zap.Logger, incomingQueryID *uint64, state *observation.QueryState, limit, offset int,
+		ctx context.Context, logger *zap.Logger, incomingQueryID *string, state *observation.QueryState, limit, offset int,
 	) ([]*observation.OutgoingQuery, error)
 
 	Close(ctx context.Context) error

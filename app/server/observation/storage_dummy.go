@@ -16,17 +16,17 @@ type storageDummyImpl struct {
 }
 
 // Incoming query operations
-func (storageDummyImpl) CreateIncomingQuery(_ context.Context, _ *zap.Logger, _ api_common.EGenericDataSourceKind) (uint64, error) {
-	return 0, nil
+func (storageDummyImpl) CreateIncomingQuery(_ context.Context, _ *zap.Logger, _ api_common.EGenericDataSourceKind) (string, error) {
+	return "", nil
 }
 
 func (storageDummyImpl) FinishIncomingQuery(
-	_ context.Context, _ *zap.Logger, _ uint64, _ *api_service_protos.TReadSplitsResponse_TStats) error {
+	_ context.Context, _ *zap.Logger, _ string, _ *api_service_protos.TReadSplitsResponse_TStats) error {
 	return nil
 }
 
 func (storageDummyImpl) CancelIncomingQuery(
-	_ context.Context, _ *zap.Logger, _ uint64, _ string, _ *api_service_protos.TReadSplitsResponse_TStats) error {
+	_ context.Context, _ *zap.Logger, _ string, _ string, _ *api_service_protos.TReadSplitsResponse_TStats) error {
 	return nil
 }
 
@@ -39,24 +39,24 @@ func (storageDummyImpl) ListIncomingQueries(
 func (storageDummyImpl) CreateOutgoingQuery(
 	_ context.Context,
 	_ *zap.Logger,
-	_ uint64,
+	_ string,
 	_ *api_common.TGenericDataSourceInstance,
 	_ string,
 	_ []any,
-) (uint64, error) {
-	return 0, nil
+) (string, error) {
+	return "", nil
 }
 
-func (storageDummyImpl) FinishOutgoingQuery(_ context.Context, _ *zap.Logger, _ uint64, _ int64) error {
+func (storageDummyImpl) FinishOutgoingQuery(_ context.Context, _ *zap.Logger, _ string, _ int64) error {
 	return nil
 }
 
-func (storageDummyImpl) CancelOutgoingQuery(_ context.Context, _ *zap.Logger, _ uint64, _ string) error {
+func (storageDummyImpl) CancelOutgoingQuery(_ context.Context, _ *zap.Logger, _ string, _ string) error {
 	return nil
 }
 
 func (storageDummyImpl) ListOutgoingQueries(
-	_ context.Context, _ *zap.Logger, _ *uint64, _ *observation.QueryState, _ int, _ int) ([]*observation.OutgoingQuery, error) {
+	_ context.Context, _ *zap.Logger, _ *string, _ *observation.QueryState, _ int, _ int) ([]*observation.OutgoingQuery, error) {
 	return nil, nil
 }
 

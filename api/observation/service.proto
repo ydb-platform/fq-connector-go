@@ -28,7 +28,7 @@ enum QueryState {
 // IncomingQuery represents an incoming query from a client
 message IncomingQuery {
     // Unique identifier for the incoming query
-    uint64 id = 1;
+    string id = 1;
     
     // Type of data source being queried
     string data_source_kind = 2;
@@ -55,10 +55,10 @@ message IncomingQuery {
 // OutgoingQuery represents an outgoing query to a data source
 message OutgoingQuery {
     // Unique identifier for the outgoing query
-    uint64 id = 1;
+    string id = 1;
     
     // ID of the parent incoming query
-    uint64 incoming_query_id = 2;
+    string incoming_query_id = 2;
     
     // Name of the database being queried
     string database_name = 3;
@@ -115,7 +115,7 @@ message ListIncomingQueriesResponse {
 message ListOutgoingQueriesRequest {
     // Filter by parent incoming query ID
     // If 0, return queries for all incoming queries
-    uint64 incoming_query_id = 1;
+    string incoming_query_id = 1;
     
     // Filter by query state
     // If QUERY_STATE_UNSPECIFIED, return queries in any state
