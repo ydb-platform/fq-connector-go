@@ -143,8 +143,6 @@ func listIncomingQueries(cmd *cobra.Command, _ []string, state observation.Query
 
 	fmt.Println("Incoming Queries:")
 	fmt.Println("----------------")
-	fmt.Printf("%-10s %-20s %-15s %-15s %-15s %-30s %-30s %s\n",
-		"ID", "Data Source", "Rows Read", "Bytes Read", "State", "Created At", "Finished At", "Error")
 
 	count := 0
 
@@ -171,15 +169,16 @@ func listIncomingQueries(cmd *cobra.Command, _ []string, state observation.Query
 				finishedAt = query.FinishedAt.AsTime().Format(time.RFC3339)
 			}
 
-			fmt.Printf("%-10d %-20s %-15d %-15d %-15s %-30s %-30s %s\n",
-				query.Id,
-				query.DataSourceKind,
-				query.RowsRead,
-				query.BytesRead,
-				query.State.String(),
-				query.CreatedAt.AsTime().Format(time.RFC3339),
-				finishedAt,
-				query.Error)
+			fmt.Println("Query:")
+			fmt.Printf("  ID: %d\n", query.Id)
+			fmt.Printf("  Data Source: %s\n", query.DataSourceKind)
+			fmt.Printf("  Rows Read: %d\n", query.RowsRead)
+			fmt.Printf("  Bytes Read: %d\n", query.BytesRead)
+			fmt.Printf("  State: %s\n", query.State.String())
+			fmt.Printf("  Created At: %s\n", query.CreatedAt.AsTime().Format(time.RFC3339))
+			fmt.Printf("  Finished At: %s\n", finishedAt)
+			fmt.Printf("  Error: %s\n", query.Error)
+			fmt.Println("----------------")
 
 			count++
 		}
@@ -215,8 +214,6 @@ func listOutgoingQueries(cmd *cobra.Command, _ []string, state observation.Query
 
 	fmt.Println("Outgoing Queries:")
 	fmt.Println("----------------")
-	fmt.Printf("%-10s %-10s %-20s %-20s %-15s %-30s %-30s %s\n",
-		"ID", "Parent ID", "Database", "Endpoint", "State", "Created At", "Finished At", "Error")
 
 	count := 0
 
@@ -243,15 +240,19 @@ func listOutgoingQueries(cmd *cobra.Command, _ []string, state observation.Query
 				finishedAt = query.FinishedAt.AsTime().Format(time.RFC3339)
 			}
 
-			fmt.Printf("%-10d %-10d %-20s %-20s %-15s %-30s %-30s %s\n",
-				query.Id,
-				query.IncomingQueryId,
-				query.DatabaseName,
-				query.DatabaseEndpoint,
-				query.State.String(),
-				query.CreatedAt.AsTime().Format(time.RFC3339),
-				finishedAt,
-				query.Error)
+			fmt.Println("Query:")
+			fmt.Printf("  ID: %d\n", query.Id)
+			fmt.Printf("  Parent ID: %d\n", query.IncomingQueryId)
+			fmt.Printf("  Database: %s\n", query.DatabaseName)
+			fmt.Printf("  Endpoint: %s\n", query.DatabaseEndpoint)
+			fmt.Printf("  Query Text: %s\n", query.QueryText)
+			fmt.Printf("  Query Args: %s\n", query.QueryArgs)
+			fmt.Printf("  Rows Read: %d\n", query.RowsRead)
+			fmt.Printf("  State: %s\n", query.State.String())
+			fmt.Printf("  Created At: %s\n", query.CreatedAt.AsTime().Format(time.RFC3339))
+			fmt.Printf("  Finished At: %s\n", finishedAt)
+			fmt.Printf("  Error: %s\n", query.Error)
+			fmt.Println("----------------")
 
 			count++
 		}

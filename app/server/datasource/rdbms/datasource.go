@@ -233,7 +233,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 			var queryErr error
 
 			if rows, queryErr = conn.Query(&query.QueryParams); queryErr != nil {
-				return fmt.Errorf("query '%s' error: %w", query.QueryText, queryErr)
+				return fmt.Errorf("query error: %w", queryErr)
 			}
 
 			return nil
