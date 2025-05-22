@@ -9,7 +9,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
@@ -58,81 +57,6 @@ func (s *serviceImpl) Stop() {
 	}
 }
 
-// convertQueryState converts the internal QueryState to the proto QueryState
-func convertQueryState(state QueryState) observation.QueryState {
-	switch state {
-	case QueryStateRunning:
-		return observation.QueryState_QUERY_STATE_RUNNING
-	case QueryStateFinished:
-		return observation.QueryState_QUERY_STATE_FINISHED
-	case QueryStateCancelled:
-		return observation.QueryState_QUERY_STATE_CANCELLED
-	default:
-		return observation.QueryState_QUERY_STATE_UNSPECIFIED
-	}
-}
-
-// convertProtoQueryState converts the proto QueryState to the internal QueryState
-func convertProtoQueryState(state observation.QueryState) *QueryState {
-	var result QueryState
-	switch state {
-	case observation.QueryState_QUERY_STATE_RUNNING:
-		result = QueryStateRunning
-		return &result
-	case observation.QueryState_QUERY_STATE_FINISHED:
-		result = QueryStateFinished
-		return &result
-	case observation.QueryState_QUERY_STATE_CANCELLED:
-		result = QueryStateCancelled
-		return &result
-	case observation.QueryState_QUERY_STATE_UNSPECIFIED:
-		return nil
-	default:
-		return nil
-	}
-}
-
-// convertIncomingQuery converts an internal IncomingQuery to a proto IncomingQuery
-func convertIncomingQuery(q *IncomingQuery) *observation.IncomingQuery {
-	result := &observation.IncomingQuery{
-		Id:             uint64(q.ID),
-		DataSourceKind: q.DataSourceKind,
-		RowsRead:       q.RowsRead,
-		BytesRead:      q.BytesRead,
-		State:          convertQueryState(q.State),
-		CreatedAt:      timestamppb.New(q.CreatedAt),
-		Error:          q.Error,
-	}
-
-	if q.FinishedAt != nil {
-		result.FinishedAt = timestamppb.New(*q.FinishedAt)
-	}
-
-	return result
-}
-
-// convertOutgoingQuery converts an internal OutgoingQuery to a proto OutgoingQuery
-func convertOutgoingQuery(q *OutgoingQuery) *observation.OutgoingQuery {
-	result := &observation.OutgoingQuery{
-		Id:               uint64(q.ID),
-		IncomingQueryId:  uint64(q.IncomingQueryID),
-		DatabaseName:     q.DatabaseName,
-		DatabaseEndpoint: q.DatabaseEndpoint,
-		QueryText:        q.QueryText,
-		QueryArgs:        q.QueryArgs,
-		State:            convertQueryState(q.State),
-		CreatedAt:        timestamppb.New(q.CreatedAt),
-		RowsRead:         q.RowsRead,
-		Error:            q.Error,
-	}
-
-	if q.FinishedAt != nil {
-		result.FinishedAt = timestamppb.New(*q.FinishedAt)
-	}
-
-	return result
-}
-
 // createSuccessError creates a success TError
 func createSuccessError() *protos.TError {
 	return &protos.TError{
@@ -161,15 +85,13 @@ func (s *serviceImpl) ListIncomingQueries(
 	)
 	logger.Info("ListIncomingQueries request handling started")
 
-	stateParam := convertProtoQueryState(req.State)
-
 	// Set default limit if not specified
 	limit := int(req.Limit)
 	if limit <= 0 {
 		limit = 1000 // Use a reasonable default
 	}
 
-	queries, err := s.storage.ListIncomingQueries(stateParam, limit, int(req.Offset))
+	queries, err := s.storage.ListIncomingQueries(&req.State, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list incoming queries", zap.Error(err))
 		// Send an error response
@@ -185,9 +107,8 @@ func (s *serviceImpl) ListIncomingQueries(
 
 	// Stream each query to the client
 	for _, q := range queries {
-		protoQuery := convertIncomingQuery(q)
 		response := &observation.ListIncomingQueriesResponse{
-			Query: protoQuery,
+			Query: q,
 			Error: createSuccessError(),
 		}
 		if err := stream.Send(response); err != nil {
@@ -213,13 +134,11 @@ func (s *serviceImpl) ListOutgoingQueries(
 	)
 	logger.Info("ListOutgoingQueries request handling started")
 
-	var incomingQueryIDParam *IncomingQueryID
+	var incomingQueryIDParam *uint64
 	if req.IncomingQueryId != 0 {
-		id := IncomingQueryID(req.IncomingQueryId)
+		id := req.IncomingQueryId
 		incomingQueryIDParam = &id
 	}
-
-	stateParam := convertProtoQueryState(req.State)
 
 	// Set default limit if not specified
 	limit := int(req.Limit)
@@ -227,7 +146,7 @@ func (s *serviceImpl) ListOutgoingQueries(
 		limit = 1000 // Use a reasonable default
 	}
 
-	queries, err := s.storage.ListOutgoingQueries(incomingQueryIDParam, stateParam, limit, int(req.Offset))
+	queries, err := s.storage.ListOutgoingQueries(incomingQueryIDParam, &req.State, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list outgoing queries", zap.Error(err))
 		// Send an error response
@@ -243,9 +162,8 @@ func (s *serviceImpl) ListOutgoingQueries(
 
 	// Stream each query to the client
 	for _, q := range queries {
-		protoQuery := convertOutgoingQuery(q)
 		response := &observation.ListOutgoingQueriesResponse{
-			Query: protoQuery,
+			Query: q,
 			Error: createSuccessError(),
 		}
 		if err := stream.Send(response); err != nil {

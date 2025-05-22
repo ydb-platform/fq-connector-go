@@ -23,8 +23,14 @@ var Cmd = &cobra.Command{
 	Short: "Client for Observation GRPC API",
 }
 
-var allIncomingCmd = &cobra.Command{
-	Use:   "all-incoming",
+// Incoming queries commands
+var incomingCmd = &cobra.Command{
+	Use:   "incoming",
+	Short: "Commands for incoming queries",
+}
+
+var incomingAllCmd = &cobra.Command{
+	Use:   "all",
 	Short: "List all incoming queries",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := listIncomingQueries(cmd, args, observation.QueryState_QUERY_STATE_UNSPECIFIED); err != nil {
@@ -34,8 +40,8 @@ var allIncomingCmd = &cobra.Command{
 	},
 }
 
-var runningIncomingCmd = &cobra.Command{
-	Use:   "running-incoming",
+var incomingRunningCmd = &cobra.Command{
+	Use:   "running",
 	Short: "List running incoming queries",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := listIncomingQueries(cmd, args, observation.QueryState_QUERY_STATE_RUNNING); err != nil {
@@ -45,8 +51,14 @@ var runningIncomingCmd = &cobra.Command{
 	},
 }
 
-var allOutgoingCmd = &cobra.Command{
-	Use:   "all-outgoing",
+// Outgoing queries commands
+var outgoingCmd = &cobra.Command{
+	Use:   "outgoing",
+	Short: "Commands for outgoing queries",
+}
+
+var outgoingAllCmd = &cobra.Command{
+	Use:   "all",
 	Short: "List all outgoing queries",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := listOutgoingQueries(cmd, args, observation.QueryState_QUERY_STATE_UNSPECIFIED); err != nil {
@@ -56,8 +68,8 @@ var allOutgoingCmd = &cobra.Command{
 	},
 }
 
-var runningOutgoingCmd = &cobra.Command{
-	Use:   "running-outgoing",
+var outgoingRunningCmd = &cobra.Command{
+	Use:   "running",
 	Short: "List running outgoing queries",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := listOutgoingQueries(cmd, args, observation.QueryState_QUERY_STATE_RUNNING); err != nil {
@@ -68,19 +80,24 @@ var runningOutgoingCmd = &cobra.Command{
 }
 
 func init() {
-	Cmd.AddCommand(allIncomingCmd)
-	Cmd.AddCommand(runningIncomingCmd)
-	Cmd.AddCommand(allOutgoingCmd)
-	Cmd.AddCommand(runningOutgoingCmd)
+	// Add incoming subcommands
+	incomingCmd.AddCommand(incomingAllCmd)
+	incomingCmd.AddCommand(incomingRunningCmd)
+
+	// Add outgoing subcommands
+	outgoingCmd.AddCommand(outgoingAllCmd)
+	outgoingCmd.AddCommand(outgoingRunningCmd)
+
+	// Add main subcommands to the root command
+	Cmd.AddCommand(incomingCmd)
+	Cmd.AddCommand(outgoingCmd)
 
 	// Add endpoint flag to the main command
 	Cmd.PersistentFlags().StringP(endpointFlag, "e", "localhost:2135", "gRPC endpoint to connect to")
 
-	// Inherit parent flags for subcommands
-	allIncomingCmd.Flags().AddFlagSet(Cmd.PersistentFlags())
-	runningIncomingCmd.Flags().AddFlagSet(Cmd.PersistentFlags())
-	allOutgoingCmd.Flags().AddFlagSet(Cmd.PersistentFlags())
-	runningOutgoingCmd.Flags().AddFlagSet(Cmd.PersistentFlags())
+	// Propagate flags to all subcommands
+	incomingCmd.PersistentFlags().AddFlagSet(Cmd.PersistentFlags())
+	outgoingCmd.PersistentFlags().AddFlagSet(Cmd.PersistentFlags())
 }
 
 func getClient(cmd *cobra.Command) (observation.ObservationServiceClient, *grpc.ClientConn, error) {

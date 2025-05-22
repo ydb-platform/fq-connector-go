@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	observation "github.com/ydb-platform/fq-connector-go/api/observation"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
@@ -13,47 +14,42 @@ type storageDummyImpl struct {
 }
 
 // Incoming query operations
-func (storageDummyImpl) CreateIncomingQuery(_ api_common.EGenericDataSourceKind) (IncomingQueryID, error) {
+func (storageDummyImpl) CreateIncomingQuery(_ api_common.EGenericDataSourceKind) (uint64, error) {
 	return 0, nil
 }
 
-func (storageDummyImpl) FinishIncomingQuery(_ IncomingQueryID, _ *api_service_protos.TReadSplitsResponse_TStats) error {
+func (storageDummyImpl) FinishIncomingQuery(_ uint64, _ *api_service_protos.TReadSplitsResponse_TStats) error {
 	return nil
 }
 
-func (storageDummyImpl) CancelIncomingQuery(_ IncomingQueryID, _ string, _ *api_service_protos.TReadSplitsResponse_TStats) error {
+func (storageDummyImpl) CancelIncomingQuery(_ uint64, _ string, _ *api_service_protos.TReadSplitsResponse_TStats) error {
 	return nil
 }
 
-func (storageDummyImpl) ListIncomingQueries(_ *QueryState, _ int, _ int) ([]*IncomingQuery, error) {
+func (storageDummyImpl) ListIncomingQueries(_ *observation.QueryState, _ int, _ int) ([]*observation.IncomingQuery, error) {
 	return nil, nil
 }
 
 // Outgoing query operations
 func (storageDummyImpl) CreateOutgoingQuery(
 	_ *zap.Logger,
-	_ IncomingQueryID,
+	_ uint64,
 	_ *api_common.TGenericDataSourceInstance,
 	_ string,
 	_ []any,
-) (OutgoingQueryID, error) {
+) (uint64, error) {
 	return 0, nil
 }
 
-func (storageDummyImpl) FinishOutgoingQuery(_ OutgoingQueryID, _ int64) error {
+func (storageDummyImpl) FinishOutgoingQuery(_ uint64, _ int64) error {
 	return nil
 }
 
-func (storageDummyImpl) CancelOutgoingQuery(_ OutgoingQueryID, _ string) error {
+func (storageDummyImpl) CancelOutgoingQuery(_ uint64, _ string) error {
 	return nil
 }
 
-func (storageDummyImpl) ListOutgoingQueries(_ *IncomingQueryID, _ *QueryState, _ int, _ int) ([]*OutgoingQuery, error) {
-	return nil, nil
-}
-
-// Analysis operations
-func (storageDummyImpl) ListSimilarOutgoingQueriesWithDifferentStats(_ *zap.Logger) ([][]*OutgoingQuery, error) {
+func (storageDummyImpl) ListOutgoingQueries(_ *uint64, _ *observation.QueryState, _ int, _ int) ([]*observation.OutgoingQuery, error) {
 	return nil, nil
 }
 

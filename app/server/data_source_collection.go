@@ -269,7 +269,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 //nolint:revive
 func doReadSplit[T paging.Acceptor](
 	logger *zap.Logger,
-	queryID observation.IncomingQueryID,
+	queryID uint64,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,

@@ -7,6 +7,8 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+
+	observation "github.com/ydb-platform/fq-connector-go/api/observation"
 )
 
 //go:embed templates/* assets/*
@@ -24,8 +26,8 @@ func getTemplates() (*template.Template, error) {
 			switch value := v.(type) {
 			case string:
 				return strings.ToLower(value)
-			case QueryState:
-				return strings.ToLower(string(value))
+			case observation.QueryState:
+				return strings.ToLower(value.String())
 			default:
 				return strings.ToLower(fmt.Sprintf("%v", v))
 			}

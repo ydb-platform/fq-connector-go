@@ -111,7 +111,7 @@ func (ds *dataSourceImpl) ListSplits(
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	incomingQueryID observation.IncomingQueryID,
+	incomingQueryID uint64,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
