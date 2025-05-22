@@ -1,6 +1,7 @@
 package observation
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -118,10 +119,14 @@ func stringToState(state string) observation.QueryState {
 }
 
 // CreateIncomingQuery creates a new incoming query record
-func (s *storageSQLite) CreateIncomingQuery(dataSourceKind api_common.EGenericDataSourceKind) (uint64, error) {
+func (s *storageSQLite) CreateIncomingQuery(
+	ctx context.Context,
+	logger *zap.Logger,
+	dataSourceKind api_common.EGenericDataSourceKind,
+) (uint64, error) {
 	now := time.Now().UTC()
 
-	result, err := s.db.Exec(
+	result, err := s.db.ExecContext(ctx,
 		"INSERT INTO incoming_queries (data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?)",
 		dataSourceKind.String(), now, 0, 0, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
@@ -135,14 +140,17 @@ func (s *storageSQLite) CreateIncomingQuery(dataSourceKind api_common.EGenericDa
 		return 0, fmt.Errorf("retrieving generated ID: %w", err)
 	}
 
+	logger.Debug("created incoming query", zap.Uint64("id", uint64(id)))
+
 	return uint64(id), nil
 }
 
 // FinishIncomingQuery marks an incoming query as finished with final stats
-func (s *storageSQLite) FinishIncomingQuery(id uint64, stats *api_service_protos.TReadSplitsResponse_TStats) error {
+func (s *storageSQLite) FinishIncomingQuery(
+	ctx context.Context, logger *zap.Logger, id uint64, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
+	result, err := s.db.ExecContext(ctx,
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
 		stateToString(observation.QueryState_QUERY_STATE_FINISHED), finishedAt, stats.Rows, stats.Bytes, id,
 	)
@@ -159,18 +167,20 @@ func (s *storageSQLite) FinishIncomingQuery(id uint64, stats *api_service_protos
 		return fmt.Errorf("incoming query not found: %d", id)
 	}
 
+	logger.Debug("finished incoming query", zap.Uint64("id", id))
+
 	return nil
 }
 
 // CancelIncomingQuery marks an incoming query as canceled with an error message
-func (s *storageSQLite) CancelIncomingQuery(
+func (s *storageSQLite) CancelIncomingQuery(ctx context.Context, logger *zap.Logger,
 	id uint64,
 	errorMsg string,
 	stats *api_service_protos.TReadSplitsResponse_TStats,
 ) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
+	result, err := s.db.ExecContext(ctx,
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
 		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
 	)
@@ -187,11 +197,15 @@ func (s *storageSQLite) CancelIncomingQuery(
 		return fmt.Errorf("incoming query not found: %d", id)
 	}
 
+	logger.Debug("canceled incoming query", zap.Uint64("id", id))
+
 	return nil
 }
 
 // ListIncomingQueries retrieves a list of incoming queries with optional filtering
-func (s *storageSQLite) ListIncomingQueries(state *observation.QueryState, limit, offset int) ([]*observation.IncomingQuery, error) {
+func (s *storageSQLite) ListIncomingQueries(
+	ctx context.Context, _ *zap.Logger, state *observation.QueryState, limit, offset int,
+) ([]*observation.IncomingQuery, error) {
 	var (
 		querySQL string
 		args     []any
@@ -209,7 +223,7 @@ func (s *storageSQLite) ListIncomingQueries(state *observation.QueryState, limit
 		args = []any{stateToString(*state), limit, offset}
 	}
 
-	rows, err := s.db.Query(querySQL, args...)
+	rows, err := s.db.QueryContext(ctx, querySQL, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing incoming queries: %w", err)
 	}
@@ -265,6 +279,7 @@ func (s *storageSQLite) ListIncomingQueries(state *observation.QueryState, limit
 
 // CreateOutgoingQuery creates a new outgoing query associated with an incoming query
 func (s *storageSQLite) CreateOutgoingQuery(
+	ctx context.Context,
 	logger *zap.Logger,
 	incomingQueryID uint64,
 	dsi *api_common.TGenericDataSourceInstance,
@@ -272,7 +287,7 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	queryArgs []any,
 ) (uint64, error) {
 	// Start a transaction
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("starting transaction: %w", err)
 	}
@@ -287,7 +302,7 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	// First check if the incoming query exists
 	var exists bool
 
-	err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
+	err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
 	if err != nil {
 		rollback()
 		return 0, fmt.Errorf("checking incoming query existence: %w", err)
@@ -301,7 +316,7 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	now := time.Now().UTC()
 
 	// Execute the insert within the transaction
-	result, err := tx.Exec(
+	result, err := tx.ExecContext(ctx,
 		`INSERT INTO outgoing_queries 
 		(incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state) 
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -326,11 +341,13 @@ func (s *storageSQLite) CreateOutgoingQuery(
 		return 0, fmt.Errorf("committing transaction: %w", err)
 	}
 
+	logger.Debug("created outgoing query", zap.Uint64("id", uint64(id)))
+
 	return uint64(id), nil
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
-func (s *storageSQLite) FinishOutgoingQuery(id uint64, rowsRead int64) error {
+func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logger, id uint64, rowsRead int64) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -350,11 +367,13 @@ func (s *storageSQLite) FinishOutgoingQuery(id uint64, rowsRead int64) error {
 		return fmt.Errorf("outgoing query not found: %d", id)
 	}
 
+	logger.Debug("finished outgoing query", zap.Uint64("id", id))
+
 	return nil
 }
 
 // CancelOutgoingQuery marks an outgoing query as canceled with an error message
-func (s *storageSQLite) CancelOutgoingQuery(id uint64, errorMsg string) error {
+func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logger, id uint64, errorMsg string) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
@@ -374,11 +393,13 @@ func (s *storageSQLite) CancelOutgoingQuery(id uint64, errorMsg string) error {
 		return fmt.Errorf("outgoing query not found: %d", id)
 	}
 
+	logger.Debug("canceled outgoing query", zap.Uint64("id", id))
+
 	return nil
 }
 
 // ListOutgoingQueries retrieves a list of outgoing queries with optional filtering
-func (s *storageSQLite) ListOutgoingQueries(
+func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
 	incomingQueryID *uint64,
 	state *observation.QueryState,
 	limit, offset int,
@@ -492,7 +513,7 @@ func (s *storageSQLite) ListOutgoingQueries(
 }
 
 // Close closes the database connection
-func (s *storageSQLite) Close() error {
+func (s *storageSQLite) Close(_ context.Context) error {
 	if s.db != nil {
 		close(s.exitChan) // Signal the garbage collector to stop
 
@@ -505,15 +526,17 @@ func (s *storageSQLite) Close() error {
 // newStorageSQLite creates a new Storage instance
 func (s *storageSQLite) getDatabaseSize() (int64, error) {
 	var size int64
+
 	err := s.db.QueryRow(`SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();`).Scan(&size)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get database size: %w", err)
 	}
+
 	return size, nil
 }
 
 func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
-	cutoff := time.Now().Add(-ttl)
+	cutoff := time.Now().Add(-ttl).UTC()
 
 	// Log storage size before cleanup
 	sizeBefore, err := s.getDatabaseSize()
@@ -521,7 +544,7 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("failed to get storage size before cleanup", zap.Error(err))
 	}
 
-	result, err := s.db.Exec(`
+	_, err = s.db.Exec(`
         DELETE FROM incoming_queries WHERE created_at < ?;
         DELETE FROM outgoing_queries WHERE created_at < ?;
     `, cutoff, cutoff)
@@ -529,9 +552,9 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("failed to clean up old queries", zap.Error(err))
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	_, err = s.db.Exec(` VACUUM; `)
 	if err != nil {
-		logger.Error("failed to get rows affected by garbage collection", zap.Error(err))
+		logger.Error("failed to vacuum database", zap.Error(err))
 	}
 
 	// Log storage size after cleanup
@@ -540,7 +563,7 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("failed to get storage size after cleanup", zap.Error(err))
 	}
 
-	logger.Info("garbage collection completed", zap.Int64("rows_affected", rowsAffected), zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
+	logger.Info("garbage collection completed", zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
 }
 
 func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Duration, gcPeriod time.Duration) {
@@ -578,7 +601,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 	}
 
 	for _, pragma := range pragmas {
-		if _, err := db.Exec(pragma); err != nil {
+		if _, err = db.Exec(pragma); err != nil {
 			return nil, fmt.Errorf("setting pragma %s: %w", pragma, err)
 		}
 	}
@@ -589,7 +612,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 		exitChan: make(chan struct{}),
 	}
 
-	if err := storage.initialize(); err != nil {
+	if err = storage.initialize(); err != nil {
 		common.LogCloserError(logger, db, "close SQLite database")
 		return nil, fmt.Errorf("initialize: %w", err)
 	}

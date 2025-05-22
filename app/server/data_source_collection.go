@@ -193,12 +193,6 @@ func (dsc *DataSourceCollection) ReadSplit(
 ) error {
 	kind := split.GetSelect().GetDataSourceInstance().GetKind()
 
-	// Register query for further analysis
-	queryID, err := dsc.observationStorage.CreateIncomingQuery(kind)
-	if err != nil {
-		return fmt.Errorf("create query: %w", err)
-	}
-
 	switch kind {
 	case api_common.EGenericDataSourceKind_CLICKHOUSE, api_common.EGenericDataSourceKind_POSTGRESQL,
 		api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_MS_SQL_SERVER,
@@ -210,12 +204,12 @@ func (dsc *DataSourceCollection) ReadSplit(
 		}
 
 		return doReadSplit[any](
-			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_S3:
 		ds := s3.NewDataSource()
 
 		return doReadSplit[string](
-			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
 		ds := mongodb.NewDataSource(
@@ -229,7 +223,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(
-			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 
 	case api_common.EGenericDataSourceKind_REDIS:
 		redisCfg := dsc.cfg.Datasources.Redis
@@ -244,7 +238,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(
-			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
 		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
@@ -259,7 +253,7 @@ func (dsc *DataSourceCollection) ReadSplit(
 		)
 
 		return doReadSplit(
-			logger, queryID, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
+			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 
 	default:
 		return fmt.Errorf("unsupported data source type '%v': %w", kind, common.ErrDataSourceNotSupported)
@@ -269,7 +263,6 @@ func (dsc *DataSourceCollection) ReadSplit(
 //nolint:revive
 func doReadSplit[T paging.Acceptor](
 	logger *zap.Logger,
-	queryID uint64,
 	stream api_service.Connector_ReadSplitsServer,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
@@ -280,6 +273,12 @@ func doReadSplit[T paging.Acceptor](
 	cfg *config.TServerConfig,
 ) error {
 	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
+
+	// Register query for further analysis
+	queryID, err := observationStorage.CreateIncomingQuery(stream.Context(), logger, split.Select.DataSourceInstance.Kind)
+	if err != nil {
+		return fmt.Errorf("create query: %w", err)
+	}
 
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](
 		logger,
@@ -311,9 +310,9 @@ func doReadSplit[T paging.Acceptor](
 	// Run streaming reading
 	if err = streamer.Run(); err != nil {
 		// Register query error
-		cancelQueryErr := observationStorage.CancelIncomingQuery(queryID, err.Error(), sinkFactory.FinalStats())
+		cancelQueryErr := observationStorage.CancelIncomingQuery(context.Background(), logger, queryID, err.Error(), sinkFactory.FinalStats())
 		if cancelQueryErr != nil {
-			logger.Error("observation storage cancel query", zap.Error(cancelQueryErr))
+			logger.Error("observation storage cancel incoming query", zap.Error(cancelQueryErr))
 		}
 
 		return fmt.Errorf("run paging streamer: %w", err)
@@ -330,9 +329,9 @@ func doReadSplit[T paging.Acceptor](
 	logger.Debug("split reading finished", fields...)
 
 	// Register query success
-	err = observationStorage.FinishIncomingQuery(queryID, readStats)
+	err = observationStorage.FinishIncomingQuery(context.Background(), logger, queryID, readStats)
 	if err != nil {
-		return fmt.Errorf("observation storage finish query: %w", err)
+		return fmt.Errorf("observation storage finish incoming query: %w", err)
 	}
 
 	return nil

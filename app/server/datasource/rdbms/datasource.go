@@ -185,6 +185,7 @@ func (ds *dataSourceImpl) ReadSplit(
 
 			// register outgoing request in storage
 			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(
+				ctx,
 				logger, incomingQueryID, conn.DataSourceInstance(), query.QueryText, query.QueryArgs.Values())
 			if err != nil {
 				return fmt.Errorf("create outgoing query: %w", err)
@@ -194,7 +195,9 @@ func (ds *dataSourceImpl) ReadSplit(
 			rowsRead, err := ds.doReadSplitSingleConn(ctx, logger, query, sink, conn)
 			if err != nil {
 				// register error
-				if cancelErr := ds.observationStorage.CancelOutgoingQuery(outgoingQueryID, err.Error()); cancelErr != nil {
+				cancelErr := ds.observationStorage.CancelOutgoingQuery(
+					context.Background(), logger, outgoingQueryID, err.Error())
+				if cancelErr != nil {
 					logger.Error("cancel outgoing query: %w", zap.Error(cancelErr))
 				}
 
@@ -202,7 +205,7 @@ func (ds *dataSourceImpl) ReadSplit(
 			}
 
 			// register success
-			if err := ds.observationStorage.FinishOutgoingQuery(outgoingQueryID, rowsRead); err != nil {
+			if err := ds.observationStorage.FinishOutgoingQuery(context.Background(), logger, outgoingQueryID, rowsRead); err != nil {
 				return fmt.Errorf("finish outgoing query: %w", err)
 			}
 

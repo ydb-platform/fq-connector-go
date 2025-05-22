@@ -90,3 +90,5 @@ observation:
   storage:
     sqlite:
       path: /tmp/connector.sqlite
+      gc_period: 1h
+      request_ttl: 24h

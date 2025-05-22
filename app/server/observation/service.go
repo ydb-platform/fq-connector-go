@@ -1,6 +1,7 @@
 package observation
 
 import (
+	"context"
 	"fmt"
 	"net"
 
@@ -48,7 +49,7 @@ func (s *serviceImpl) Stop() {
 		}
 	}
 
-	err := s.storage.Close()
+	err := s.storage.Close(context.Background())
 	if err != nil {
 		s.logger.Error("Error closing storage", zap.Error(err))
 	} else {
@@ -90,7 +91,7 @@ func (s *serviceImpl) ListIncomingQueries(
 		limit = 1000 // Use a reasonable default
 	}
 
-	queries, err := s.storage.ListIncomingQueries(&req.State, limit, int(req.Offset))
+	queries, err := s.storage.ListIncomingQueries(stream.Context(), logger, &req.State, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list incoming queries", zap.Error(err))
 		// Send an error response
@@ -148,7 +149,7 @@ func (s *serviceImpl) ListOutgoingQueries(
 		limit = 1000 // Use a reasonable default
 	}
 
-	queries, err := s.storage.ListOutgoingQueries(incomingQueryIDParam, &req.State, limit, int(req.Offset))
+	queries, err := s.storage.ListOutgoingQueries(stream.Context(), logger, incomingQueryIDParam, &req.State, limit, int(req.Offset))
 	if err != nil {
 		logger.Error("Failed to list outgoing queries", zap.Error(err))
 		// Send an error response

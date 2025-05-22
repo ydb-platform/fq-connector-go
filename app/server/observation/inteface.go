@@ -1,6 +1,7 @@
 package observation
 
 import (
+	"context"
 	"time"
 
 	"go.uber.org/zap"
@@ -14,25 +15,34 @@ import (
 // Storage interface defines methods for query storage
 type Storage interface {
 	// Incoming query operations
-	CreateIncomingQuery(dataSourceKind api_common.EGenericDataSourceKind) (uint64, error)
-	FinishIncomingQuery(id uint64, stats *api_service_protos.TReadSplitsResponse_TStats) error
-	CancelIncomingQuery(id uint64, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error
-	ListIncomingQueries(state *observation.QueryState, limit, offset int) ([]*observation.IncomingQuery, error)
+	CreateIncomingQuery(
+		ctx context.Context, logger *zap.Logger, dataSourceKind api_common.EGenericDataSourceKind) (uint64, error)
+	FinishIncomingQuery(
+		ctx context.Context, logger *zap.Logger, id uint64, stats *api_service_protos.TReadSplitsResponse_TStats) error
+	CancelIncomingQuery(
+		ctx context.Context, logger *zap.Logger, id uint64, errorMsg string, stats *api_service_protos.TReadSplitsResponse_TStats) error
+	ListIncomingQueries(
+		ctx context.Context, logger *zap.Logger, state *observation.QueryState, limit, offset int,
+	) ([]*observation.IncomingQuery, error)
 
 	// Outgoing query operations
 	CreateOutgoingQuery(
+		ctx context.Context,
 		logger *zap.Logger,
 		incomingQueryID uint64,
 		dsi *api_common.TGenericDataSourceInstance,
 		queryText string,
 		queryArgs []any,
 	) (uint64, error)
-	FinishOutgoingQuery(id uint64, rowsRead int64) error
-	CancelOutgoingQuery(id uint64, errorMsg string) error
-	ListOutgoingQueries(incomingQueryID *uint64, state *observation.QueryState, limit, offset int) ([]*observation.OutgoingQuery, error)
+	FinishOutgoingQuery(
+		ctx context.Context, logger *zap.Logger, id uint64, rowsRead int64) error
+	CancelOutgoingQuery(
+		ctx context.Context, logger *zap.Logger, id uint64, errorMsg string) error
+	ListOutgoingQueries(
+		ctx context.Context, logger *zap.Logger, incomingQueryID *uint64, state *observation.QueryState, limit, offset int,
+	) ([]*observation.OutgoingQuery, error)
 
-	// Lifecycle
-	Close() error
+	Close(ctx context.Context) error
 }
 
 // Helper functions for timestamp conversion
