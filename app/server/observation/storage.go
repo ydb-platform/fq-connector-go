@@ -10,7 +10,7 @@ import (
 
 func NewStorage(logger *zap.Logger, cfg *config.TObservationConfig) (Storage, error) {
 	if cfg == nil {
-		return storageDummyImpl{}, nil
+		return &storageDummyImpl{}, nil
 	}
 
 	storage, err := newStorageSQLite(logger, cfg.Storage.GetSqlite())

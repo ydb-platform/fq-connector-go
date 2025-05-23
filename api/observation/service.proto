@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package NYql.Connector.Observation;
+
+import "google/protobuf/timestamp.proto";
+import "ydb/library/yql/providers/generic/connector/api/service/protos/connector.proto";
+
+option go_package = "github.com/ydb-platform/fq-connector-go/api/observation";
+
+// ObservationService provides methods to observe and analyze queries
+// processed by the connector service.
+service ObservationService {
+    // ListIncomingQueries retrieves a stream of incoming queries based on filter criteria
+    rpc ListIncomingQueries(ListIncomingQueriesRequest) returns (stream ListIncomingQueriesResponse) {}
+    
+    // ListOutgoingQueries retrieves a stream of outgoing queries based on filter criteria
+    rpc ListOutgoingQueries(ListOutgoingQueriesRequest) returns (stream ListOutgoingQueriesResponse) {}
+}
+
+// QueryState represents the state of a query
+enum QueryState {
+    QUERY_STATE_UNSPECIFIED = 0;
+    QUERY_STATE_RUNNING = 1;
+    QUERY_STATE_FINISHED = 2;
+    QUERY_STATE_CANCELED = 3;
+}
+
+// IncomingQuery represents an incoming query from a client
+message IncomingQuery {
+    // Unique identifier for the incoming query
+    string id = 1;
+    
+    // Type of data source being queried
+    string data_source_kind = 2;
+    
+    // Number of rows read by this query
+    int64 rows_read = 3;
+    
+    // Number of bytes read by this query
+    int64 bytes_read = 4;
+    
+    // Current state of the query
+    QueryState state = 5;
+    
+    // When the query was created
+    google.protobuf.Timestamp created_at = 6;
+    
+    // When the query finished (if applicable)
+    google.protobuf.Timestamp finished_at = 7;
+    
+    // Error message if the query failed
+    string error = 8;
+}
+
+// OutgoingQuery represents an outgoing query to a data source
+message OutgoingQuery {
+    // Unique identifier for the outgoing query
+    string id = 1;
+    
+    // ID of the parent incoming query
+    string incoming_query_id = 2;
+    
+    // Name of the database being queried
+    string database_name = 3;
+    
+    // Endpoint of the database being queried
+    string database_endpoint = 4;
+    
+    // The actual query text sent to the data source
+    string query_text = 5;
+    
+    // Arguments passed with the query (serialized)
+    string query_args = 6;
+    
+    // Current state of the query
+    QueryState state = 7;
+    
+    // When the query was created
+    google.protobuf.Timestamp created_at = 8;
+    
+    // When the query finished (if applicable)
+    google.protobuf.Timestamp finished_at = 9;
+    
+    // Number of rows read by this query
+    int64 rows_read = 10;
+    
+    // Error message if the query failed
+    string error = 11;
+}
+
+// ListIncomingQueriesRequest is the request message for ListIncomingQueries
+message ListIncomingQueriesRequest {
+    // Filter by query state
+    // If QUERY_STATE_UNSPECIFIED, return queries in any state
+    QueryState state = 1;
+    
+    // Maximum number of queries to return
+    // If 0, no limit is applied
+    int32 limit = 2;
+    
+    // Number of queries to skip
+    int32 offset = 3;
+}
+
+// IncomingQueryResponse is the response message for a single incoming query
+message ListIncomingQueriesResponse {
+    // The incoming query
+    IncomingQuery query = 1;
+    
+    // Error information if there was a problem retrieving the query
+    NYql.NConnector.NApi.TError error = 2;
+}
+
+// ListOutgoingQueriesRequest is the request message for ListOutgoingQueries
+message ListOutgoingQueriesRequest {
+    // Filter by parent incoming query ID
+    // If 0, return queries for all incoming queries
+    string incoming_query_id = 1;
+    
+    // Filter by query state
+    // If QUERY_STATE_UNSPECIFIED, return queries in any state
+    QueryState state = 2;
+    
+    // Maximum number of queries to return
+    // If 0, no limit is applied
+    int32 limit = 3;
+    
+    // Number of queries to skip
+    int32 offset = 4;
+}
+
+// OutgoingQueryResponse is the response message for a single outgoing query
+message ListOutgoingQueriesResponse {
+    // The outgoing query
+    OutgoingQuery query = 1;
+    
+    // Error information if there was a problem retrieving the query
+    NYql.NConnector.NApi.TError error = 2;
+}

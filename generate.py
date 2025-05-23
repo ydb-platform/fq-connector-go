@@ -311,6 +311,7 @@ def main():
             [connector_github_root, protobuf_includes],
             False,
         )
+        # Generate Cloud Logging protofiles 
         run_protoc(
             connector_github_root.joinpath("app/server/datasource/rdbms/logging").rglob(
                 "*.proto"
@@ -319,6 +320,16 @@ def main():
             "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/logging",
             [ydb_github_root, connector_github_root, protobuf_includes],
             False,
+        )
+        # Generate Connector Observation API
+        run_protoc(
+            connector_github_root.joinpath(
+                "api/observation"
+            ).rglob("*.proto"),
+            connector_github_root.joinpath("api"),
+            "github.com/ydb-platform/fq-connector-go/api",
+            [ydb_github_root, connector_github_root, protobuf_includes],
+            True,
         )
 
     finally:

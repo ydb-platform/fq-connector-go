@@ -7,12 +7,17 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 )
 
 //go:embed templates/* assets/*
+//nolint:unused
 var embeddedFiles embed.FS
 
 // getTemplates loads templates from the embedded files
+//
+//nolint:unused
 func getTemplates() (*template.Template, error) {
 	// Create a new template with function map
 	tmpl := template.New("").Funcs(template.FuncMap{
@@ -24,8 +29,8 @@ func getTemplates() (*template.Template, error) {
 			switch value := v.(type) {
 			case string:
 				return strings.ToLower(value)
-			case QueryState:
-				return strings.ToLower(string(value))
+			case observation.QueryState:
+				return strings.ToLower(value.String())
 			default:
 				return strings.ToLower(fmt.Sprintf("%v", v))
 			}
@@ -56,6 +61,8 @@ func getTemplates() (*template.Template, error) {
 }
 
 // getAssetHandler returns an HTTP handler for serving static assets
+//
+//nolint:unused
 func getAssetHandler() http.Handler {
 	// Create a sub-filesystem containing only assets
 	assets, _ := fs.Sub(embeddedFiles, "assets")

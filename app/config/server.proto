@@ -399,8 +399,14 @@ message TObservationConfig {
     message TStorage {
         // TSQLite contains settings specific for SQLite storage of the query observation system.
         message TSQLite {
-            // database path
+            // Database path on the filesystem
             string path = 1;
+            // Frequency of the garbage collector launching.
+            // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+            string gc_period = 2;
+            // Time after which the request will be removed from the storage by the garbage collector.
+            // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+            string request_ttl = 3;
         }
 
         oneof payload {

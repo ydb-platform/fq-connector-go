@@ -17,7 +17,6 @@ import (
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
-	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -48,7 +47,7 @@ func (*dataSource) ListSplits(
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	_ observation.IncomingQueryID,
+	_ string,
 	_ *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[string]) error {

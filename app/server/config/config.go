@@ -761,6 +761,14 @@ func validateObservationStorageConfig(c *config.TObservationConfig_TStorage) err
 		if storage.Path == "" {
 			return fmt.Errorf("empty `sqlite.path`")
 		}
+
+		if _, err := common.DurationFromString(storage.GcPeriod); err != nil {
+			return fmt.Errorf("validate `gc_period`: %v", err)
+		}
+
+		if _, err := common.DurationFromString(storage.RequestTtl); err != nil {
+			return fmt.Errorf("validate `request_ttl`: %v", err)
+		}
 	}
 
 	return nil

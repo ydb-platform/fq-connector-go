@@ -10,7 +10,6 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 )
 
@@ -52,7 +51,7 @@ type DataSource[T paging.Acceptor] interface {
 	ReadSplit(
 		ctx context.Context,
 		logger *zap.Logger,
-		queryID observation.IncomingQueryID,
+		queryID string,
 		request *api_service_protos.TReadSplitsRequest,
 		split *api_service_protos.TSplit,
 		sinkFactory paging.SinkFactory[T],

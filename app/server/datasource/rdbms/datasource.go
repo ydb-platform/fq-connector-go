@@ -111,7 +111,7 @@ func (ds *dataSourceImpl) ListSplits(
 func (ds *dataSourceImpl) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
-	incomingQueryID observation.IncomingQueryID,
+	incomingQueryID string,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
@@ -183,8 +183,8 @@ func (ds *dataSourceImpl) ReadSplit(
 				return fmt.Errorf("make select query: %w", err)
 			}
 
-			// register outgoing request in storage
 			outgoingQueryID, err := ds.observationStorage.CreateOutgoingQuery(
+				ctx,
 				logger, incomingQueryID, conn.DataSourceInstance(), query.QueryText, query.QueryArgs.Values())
 			if err != nil {
 				return fmt.Errorf("create outgoing query: %w", err)
@@ -194,7 +194,9 @@ func (ds *dataSourceImpl) ReadSplit(
 			rowsRead, err := ds.doReadSplitSingleConn(ctx, logger, query, sink, conn)
 			if err != nil {
 				// register error
-				if cancelErr := ds.observationStorage.CancelOutgoingQuery(outgoingQueryID, err.Error()); cancelErr != nil {
+				cancelErr := ds.observationStorage.CancelOutgoingQuery(
+					context.Background(), logger, outgoingQueryID, err.Error())
+				if cancelErr != nil {
 					logger.Error("cancel outgoing query: %w", zap.Error(cancelErr))
 				}
 
@@ -202,8 +204,8 @@ func (ds *dataSourceImpl) ReadSplit(
 			}
 
 			// register success
-			if err := ds.observationStorage.FinishOutgoingQuery(outgoingQueryID, rowsRead); err != nil {
-				logger.Error("finish outgoing query: %w", zap.Error(err))
+			if err := ds.observationStorage.FinishOutgoingQuery(context.Background(), logger, outgoingQueryID, rowsRead); err != nil {
+				return fmt.Errorf("finish outgoing query: %w", err)
 			}
 
 			return nil
@@ -233,7 +235,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 			var queryErr error
 
 			if rows, queryErr = conn.Query(&query.QueryParams); queryErr != nil {
-				return fmt.Errorf("query '%s' error: %w", query.QueryText, queryErr)
+				return fmt.Errorf("query error: %w", queryErr)
 			}
 
 			return nil

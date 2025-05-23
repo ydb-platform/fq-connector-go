@@ -124,7 +124,7 @@ func TestReadSplit(t *testing.T) {
 
 		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
 
-		queryID := observation.IncomingQueryID(0)
+		queryID := "test-query-id"
 		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.NoError(t, err)
 
@@ -195,7 +195,7 @@ func TestReadSplit(t *testing.T) {
 
 		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
 
-		queryID := observation.IncomingQueryID(0)
+		queryID := "test-query-id"
 		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.True(t, errors.Is(err, scanErr))
 

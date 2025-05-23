@@ -186,7 +186,7 @@ func (s SplitProvider) listSplitsColumnShard(
 const getColumnShardsTabletIDsQueryTimeout = 10 * time.Second
 
 func (SplitProvider) GetColumnShardTabletIDs(
-	ctx context.Context,
+	parentCtx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 ) ([]uint64, error) {
@@ -195,7 +195,7 @@ func (SplitProvider) GetColumnShardTabletIDs(
 
 	var tabletIDs []uint64
 
-	ctx, cancel := context.WithTimeout(ctx, getColumnShardsTabletIDsQueryTimeout)
+	ctx, cancel := context.WithTimeout(parentCtx, getColumnShardsTabletIDsQueryTimeout)
 	defer cancel()
 
 	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {

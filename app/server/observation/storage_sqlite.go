@@ -1,14 +1,18 @@
 package observation
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/api/observation"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -18,8 +22,8 @@ var _ Storage = (*storageSQLite)(nil)
 
 // storageSQLite handles storing and retrieving query data
 type storageSQLite struct {
-	db   *sql.DB
-	path string
+	db       *sql.DB
+	exitChan chan struct{}
 }
 
 // initialize creates the necessary tables if they don't exist
@@ -27,7 +31,7 @@ func (s *storageSQLite) initialize() error {
 	// Create the incoming_queries table
 	createIncomingTableSQL := `
 	CREATE TABLE IF NOT EXISTS incoming_queries (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		id TEXT PRIMARY KEY,
 		data_source_kind TEXT NOT NULL,
 		rows_read INTEGER NOT NULL DEFAULT 0,
 		bytes_read INTEGER NOT NULL DEFAULT 0,
@@ -45,8 +49,8 @@ func (s *storageSQLite) initialize() error {
 	// Create the outgoing_queries table with foreign key
 	createOutgoingTableSQL := `
 	CREATE TABLE IF NOT EXISTS outgoing_queries (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		incoming_query_id INTEGER NOT NULL,
+		id TEXT PRIMARY KEY,
+		incoming_query_id TEXT NOT NULL,
 		database_name TEXT NOT NULL,
 		database_endpoint TEXT NOT NULL,
 		query_text TEXT,
@@ -87,40 +91,64 @@ func (s *storageSQLite) initialize() error {
 	return nil
 }
 
-// CreateIncomingQuery creates a new incoming query record
-func (s *storageSQLite) CreateIncomingQuery(dataSourceKind api_common.EGenericDataSourceKind) (IncomingQueryID, error) {
-	query := &IncomingQuery{
-		DataSourceKind: dataSourceKind.String(),
-		CreatedAt:      time.Now().UTC(),
-		RowsRead:       0,
-		BytesRead:      0,
-		State:          QueryStateRunning,
+// Helper function to convert state enum to string
+func stateToString(state observation.QueryState) string {
+	switch state {
+	case observation.QueryState_QUERY_STATE_RUNNING:
+		return "running"
+	case observation.QueryState_QUERY_STATE_FINISHED:
+		return "finished"
+	case observation.QueryState_QUERY_STATE_CANCELED:
+		return "canceled"
+	default:
+		return "unknown"
 	}
+}
 
-	result, err := s.db.Exec(
-		"INSERT INTO incoming_queries (data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?)",
-		query.DataSourceKind, query.CreatedAt, query.RowsRead, query.BytesRead, string(query.State),
+// Helper function to convert string to state enum
+func stringToState(state string) observation.QueryState {
+	switch state {
+	case "running":
+		return observation.QueryState_QUERY_STATE_RUNNING
+	case "finished":
+		return observation.QueryState_QUERY_STATE_FINISHED
+	case "canceled":
+		return observation.QueryState_QUERY_STATE_CANCELED
+	default:
+		return observation.QueryState_QUERY_STATE_UNSPECIFIED
+	}
+}
+
+// CreateIncomingQuery creates a new incoming query record
+func (s *storageSQLite) CreateIncomingQuery(
+	ctx context.Context,
+	logger *zap.Logger,
+	dataSourceKind api_common.EGenericDataSourceKind,
+) (string, error) {
+	now := time.Now().UTC()
+	id := uuid.NewString()
+
+	_, err := s.db.ExecContext(ctx,
+		"INSERT INTO incoming_queries (id, data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?, ?)",
+		id, dataSourceKind.String(), now, 0, 0, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("creating incoming query: %w", err)
+		return "", fmt.Errorf("creating incoming query: %w", err)
 	}
 
-	// Get the auto-generated ID
-	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("retrieving generated ID: %w", err)
-	}
+	logger.Debug("created incoming query", zap.String("id", id))
 
-	return IncomingQueryID(id), nil
+	return id, nil
 }
 
 // FinishIncomingQuery marks an incoming query as finished with final stats
-func (s *storageSQLite) FinishIncomingQuery(id IncomingQueryID, stats *api_service_protos.TReadSplitsResponse_TStats) error {
+func (s *storageSQLite) FinishIncomingQuery(
+	ctx context.Context, logger *zap.Logger, id string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
+	result, err := s.db.ExecContext(ctx,
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
-		string(QueryStateFinished), finishedAt, stats.Rows, stats.Bytes, id,
+		stateToString(observation.QueryState_QUERY_STATE_FINISHED), finishedAt, stats.Rows, stats.Bytes, id,
 	)
 	if err != nil {
 		return fmt.Errorf("marking incoming query as finished: %w", err)
@@ -132,23 +160,25 @@ func (s *storageSQLite) FinishIncomingQuery(id IncomingQueryID, stats *api_servi
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("incoming query not found: %d", id)
+		return fmt.Errorf("incoming query not found: %s", id)
 	}
+
+	logger.Debug("finished incoming query", zap.String("id", id))
 
 	return nil
 }
 
 // CancelIncomingQuery marks an incoming query as canceled with an error message
-func (s *storageSQLite) CancelIncomingQuery(
-	id IncomingQueryID,
+func (s *storageSQLite) CancelIncomingQuery(ctx context.Context, logger *zap.Logger,
+	id string,
 	errorMsg string,
 	stats *api_service_protos.TReadSplitsResponse_TStats,
 ) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
+	result, err := s.db.ExecContext(ctx,
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
-		string(QueryStateCancelled), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
+		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
 	)
 	if err != nil {
 		return fmt.Errorf("canceling incoming query: %w", err)
@@ -160,20 +190,24 @@ func (s *storageSQLite) CancelIncomingQuery(
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("incoming query not found: %d", id)
+		return fmt.Errorf("incoming query not found: %s", id)
 	}
+
+	logger.Debug("canceled incoming query", zap.String("id", id))
 
 	return nil
 }
 
 // ListIncomingQueries retrieves a list of incoming queries with optional filtering
-func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int) ([]*IncomingQuery, error) {
+func (s *storageSQLite) ListIncomingQueries(
+	ctx context.Context, _ *zap.Logger, state *observation.QueryState, limit, offset int,
+) ([]*observation.IncomingQuery, error) {
 	var (
 		querySQL string
 		args     []any
 	)
 
-	if state == nil {
+	if state == nil || *state == observation.QueryState_QUERY_STATE_UNSPECIFIED {
 		querySQL = `
 			SELECT id, data_source_kind, rows_read, bytes_read, state, created_at, finished_at, error
 			FROM incoming_queries ORDER BY created_at DESC LIMIT ? OFFSET ?`
@@ -182,29 +216,43 @@ func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int
 		querySQL = `
 			SELECT id, data_source_kind, rows_read, bytes_read, state, created_at, finished_at, error
 			FROM incoming_queries WHERE state = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []any{string(*state), limit, offset}
+		args = []any{stateToString(*state), limit, offset}
 	}
 
-	rows, err := s.db.Query(querySQL, args...)
+	rows, err := s.db.QueryContext(ctx, querySQL, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing incoming queries: %w", err)
 	}
 	defer rows.Close()
 
-	var queries []*IncomingQuery
+	var queries []*observation.IncomingQuery
 
 	for rows.Next() {
 		var (
-			query      IncomingQuery
-			finishedAt sql.NullTime
-			errorMsg   sql.NullString
+			id             string
+			dataSourceKind string
+			rowsRead       int64
+			bytesRead      int64
+			stateStr       string
+			createdAt      time.Time
+			finishedAt     sql.NullTime
+			errorMsg       sql.NullString
 		)
 
 		if err := rows.Scan(
-			&query.ID, &query.DataSourceKind, &query.RowsRead, &query.BytesRead,
-			&query.State, &query.CreatedAt, &finishedAt, &errorMsg,
+			&id, &dataSourceKind, &rowsRead, &bytesRead,
+			&stateStr, &createdAt, &finishedAt, &errorMsg,
 		); err != nil {
 			return nil, fmt.Errorf("scanning incoming query: %w", err)
+		}
+
+		query := &observation.IncomingQuery{
+			Id:             id,
+			DataSourceKind: dataSourceKind,
+			RowsRead:       rowsRead,
+			BytesRead:      bytesRead,
+			State:          stringToState(stateStr),
+			CreatedAt:      timestamppb.New(createdAt),
 		}
 
 		if errorMsg.Valid {
@@ -212,10 +260,10 @@ func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int
 		}
 
 		if finishedAt.Valid {
-			query.FinishedAt = &finishedAt.Time
+			query.FinishedAt = timestamppb.New(finishedAt.Time)
 		}
 
-		queries = append(queries, &query)
+		queries = append(queries, query)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -227,16 +275,17 @@ func (s *storageSQLite) ListIncomingQueries(state *QueryState, limit, offset int
 
 // CreateOutgoingQuery creates a new outgoing query associated with an incoming query
 func (s *storageSQLite) CreateOutgoingQuery(
+	ctx context.Context,
 	logger *zap.Logger,
-	incomingQueryID IncomingQueryID,
+	incomingQueryID string,
 	dsi *api_common.TGenericDataSourceInstance,
 	queryText string,
 	queryArgs []any,
-) (OutgoingQueryID, error) {
+) (string, error) {
 	// Start a transaction
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, fmt.Errorf("starting transaction: %w", err)
+		return "", fmt.Errorf("starting transaction: %w", err)
 	}
 
 	// Define a function to rollback if needed
@@ -249,64 +298,51 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	// First check if the incoming query exists
 	var exists bool
 
-	err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
+	err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
 	if err != nil {
 		rollback()
-		return 0, fmt.Errorf("checking incoming query existence: %w", err)
+		return "", fmt.Errorf("checking incoming query existence: %w", err)
 	}
 
 	if !exists {
 		rollback()
-		return 0, fmt.Errorf("incoming query not found: %d", incomingQueryID)
+		return "", fmt.Errorf("incoming query not found: %s", incomingQueryID)
 	}
 
-	query := &OutgoingQuery{
-		IncomingQueryID:  incomingQueryID,
-		DatabaseName:     dsi.Database,
-		DatabaseEndpoint: common.EndpointToString(dsi.Endpoint),
-		RowsRead:         0,
-		QueryText:        queryText,
-		QueryArgs:        fmt.Sprint(queryArgs),
-		CreatedAt:        time.Now().UTC(),
-		State:            QueryStateRunning,
-	}
+	now := time.Now().UTC()
+	id := uuid.NewString()
 
 	// Execute the insert within the transaction
-	result, err := tx.Exec(
-		`INSERT INTO outgoing_queries 
-		(incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		query.IncomingQueryID, query.DatabaseName, query.DatabaseEndpoint,
-		query.RowsRead, query.QueryText, query.QueryArgs, query.CreatedAt, string(query.State),
+	_, err = tx.ExecContext(ctx,
+		`INSERT INTO outgoing_queries
+		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, incomingQueryID, dsi.Database, common.EndpointToString(dsi.Endpoint),
+		0, queryText, fmt.Sprint(queryArgs), now, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
 	if err != nil {
 		rollback()
-		return 0, fmt.Errorf("creating outgoing query: %w", err)
-	}
-
-	// Get the auto-generated ID
-	id, err := result.LastInsertId()
-	if err != nil {
-		rollback()
-		return 0, fmt.Errorf("retrieving generated ID: %w", err)
+		return "", fmt.Errorf("creating outgoing query: %w", err)
 	}
 
 	// Commit the transaction
 	if err = tx.Commit(); err != nil {
 		rollback()
-		return 0, fmt.Errorf("committing transaction: %w", err)
+		return "", fmt.Errorf("committing transaction: %w", err)
 	}
 
-	return OutgoingQueryID(id), nil
+	logger.Debug("created outgoing query", zap.String("id", id))
+
+	return id, nil
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
-func (s *storageSQLite) FinishOutgoingQuery(id OutgoingQueryID, rowsRead int64) error {
+func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logger, id string, rowsRead int64) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
 		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?",
-		string(QueryStateFinished), finishedAt, rowsRead, id,
+		stateToString(observation.QueryState_QUERY_STATE_FINISHED), finishedAt, rowsRead, id,
 	)
 	if err != nil {
 		return fmt.Errorf("marking outgoing query as finished: %w", err)
@@ -318,19 +354,21 @@ func (s *storageSQLite) FinishOutgoingQuery(id OutgoingQueryID, rowsRead int64) 
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("outgoing query not found: %d", id)
+		return fmt.Errorf("outgoing query not found: %s", id)
 	}
+
+	logger.Debug("finished outgoing query", zap.String("id", id))
 
 	return nil
 }
 
 // CancelOutgoingQuery marks an outgoing query as canceled with an error message
-func (s *storageSQLite) CancelOutgoingQuery(id OutgoingQueryID, errorMsg string) error {
+func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logger, id string, errorMsg string) error {
 	finishedAt := time.Now().UTC()
 
 	result, err := s.db.Exec(
 		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?",
-		string(QueryStateCancelled), finishedAt, errorMsg, id,
+		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, id,
 	)
 	if err != nil {
 		return fmt.Errorf("canceling outgoing query: %w", err)
@@ -342,48 +380,55 @@ func (s *storageSQLite) CancelOutgoingQuery(id OutgoingQueryID, errorMsg string)
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("outgoing query not found: %d", id)
+		return fmt.Errorf("outgoing query not found: %s", id)
 	}
+
+	logger.Debug("canceled outgoing query", zap.String("id", id))
 
 	return nil
 }
 
 // ListOutgoingQueries retrieves a list of outgoing queries with optional filtering
-func (s *storageSQLite) ListOutgoingQueries(
-	incomingQueryID *IncomingQueryID,
-	state *QueryState,
+func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
+	incomingQueryID *string,
+	state *observation.QueryState,
 	limit, offset int,
-) ([]*OutgoingQuery, error) {
+) ([]*observation.OutgoingQuery, error) {
 	var (
 		querySQL string
 		args     []any
 	)
 
+	stateStr := ""
+	if state != nil && *state != observation.QueryState_QUERY_STATE_UNSPECIFIED {
+		stateStr = stateToString(*state)
+	}
+
 	// Build the query based on which filters are provided
-	if incomingQueryID != nil && state != nil {
+	if incomingQueryID != nil && stateStr != "" {
 		querySQL = `
-			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
+			SELECT id, incoming_query_id, database_name, database_endpoint, query_text,
 			       query_args, state, created_at, finished_at, error, rows_read
-			FROM outgoing_queries 
-			WHERE incoming_query_id = ? AND state = ? 
+			FROM outgoing_queries
+			WHERE incoming_query_id = ? AND state = ?
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []any{*incomingQueryID, string(*state), limit, offset}
+		args = []any{*incomingQueryID, stateStr, limit, offset}
 	} else if incomingQueryID != nil {
 		querySQL = `
-			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
+			SELECT id, incoming_query_id, database_name, database_endpoint, query_text,
 			       query_args, state, created_at, finished_at, error, rows_read
-			FROM outgoing_queries 
-			WHERE incoming_query_id = ? 
+			FROM outgoing_queries
+			WHERE incoming_query_id = ?
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []any{*incomingQueryID, limit, offset}
-	} else if state != nil {
+		args = []any{fmt.Sprint(*incomingQueryID), limit, offset}
+	} else if stateStr != "" {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
 			       query_args, state, created_at, finished_at, error, rows_read
 			FROM outgoing_queries 
 			WHERE state = ? 
 			ORDER BY created_at DESC LIMIT ? OFFSET ?`
-		args = []any{string(*state), limit, offset}
+		args = []any{stateStr, limit, offset}
 	} else {
 		querySQL = `
 			SELECT id, incoming_query_id, database_name, database_endpoint, query_text, 
@@ -399,20 +444,36 @@ func (s *storageSQLite) ListOutgoingQueries(
 	}
 	defer rows.Close()
 
-	var queries []*OutgoingQuery
+	var queries []*observation.OutgoingQuery
 
 	for rows.Next() {
 		var (
-			query                          OutgoingQuery
+			id                             string
+			incomingQueryID                string
+			databaseName                   string
+			databaseEndpoint               string
+			stateStr                       string
+			createdAt                      time.Time
+			rowsRead                       int64
 			finishedAt                     sql.NullTime
 			queryText, queryArgs, errorMsg sql.NullString
 		)
 
 		if err := rows.Scan(
-			&query.ID, &query.IncomingQueryID, &query.DatabaseName, &query.DatabaseEndpoint,
-			&queryText, &queryArgs, &query.State, &query.CreatedAt, &finishedAt, &errorMsg, &query.RowsRead,
+			&id, &incomingQueryID, &databaseName, &databaseEndpoint,
+			&queryText, &queryArgs, &stateStr, &createdAt, &finishedAt, &errorMsg, &rowsRead,
 		); err != nil {
 			return nil, fmt.Errorf("scanning outgoing query: %w", err)
+		}
+
+		query := &observation.OutgoingQuery{
+			Id:               id,
+			IncomingQueryId:  incomingQueryID, // Convert string to uint64
+			DatabaseName:     databaseName,
+			DatabaseEndpoint: databaseEndpoint,
+			State:            stringToState(stateStr),
+			CreatedAt:        timestamppb.New(createdAt),
+			RowsRead:         rowsRead,
 		}
 
 		if queryText.Valid {
@@ -428,10 +489,10 @@ func (s *storageSQLite) ListOutgoingQueries(
 		}
 
 		if finishedAt.Valid {
-			query.FinishedAt = &finishedAt.Time
+			query.FinishedAt = timestamppb.New(finishedAt.Time)
 		}
 
-		queries = append(queries, &query)
+		queries = append(queries, query)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -441,169 +502,11 @@ func (s *storageSQLite) ListOutgoingQueries(
 	return queries, nil
 }
 
-// ListSimilarOutgoingQueriesWithDifferentStats finds outgoing queries with the same characteristics but different resource usage
-//
-//nolint:gocyclo
-func (s *storageSQLite) ListSimilarOutgoingQueriesWithDifferentStats(logger *zap.Logger) ([][]*OutgoingQuery, error) {
-	// Step 1: Find groups of outgoing queries with the same database, endpoint, query text, and args
-	findSimilarSQL := `
-    WITH query_groups AS (
-        SELECT 
-            database_name, 
-            database_endpoint, 
-            query_text, 
-            query_args,
-            COUNT(*) as count,
-            COUNT(DISTINCT rows_read) as distinct_rows
-        FROM 
-            outgoing_queries
-        WHERE 
-            query_text IS NOT NULL AND
-            query_text != '' AND
-            state = ? 
-        GROUP BY 
-            database_name, database_endpoint, query_text, query_args
-        HAVING 
-            count > 1 AND
-            distinct_rows > 1
-    )
-    SELECT 
-        database_name, database_endpoint, query_text, query_args
-    FROM 
-        query_groups
-    ORDER BY
-        count DESC
-    LIMIT 100;
-    `
-
-	rows1, err := s.db.Query(findSimilarSQL, string(QueryStateFinished))
-	if err != nil {
-		return nil, fmt.Errorf("finding similar outgoing queries: %w", err)
-	}
-	defer rows1.Close()
-
-	// Store query characteristics
-	type queryKey struct {
-		databaseName string
-		endpoint     string
-		text         string
-		args         string
-	}
-
-	var keys []queryKey
-
-	for rows1.Next() {
-		var key queryKey
-		if err := rows1.Scan(&key.databaseName, &key.endpoint, &key.text, &key.args); err != nil {
-			return nil, fmt.Errorf("scanning query key: %w", err)
-		}
-
-		keys = append(keys, key)
-	}
-
-	if err := rows1.Err(); err != nil {
-		return nil, fmt.Errorf("iterating query keys: %w", err)
-	}
-
-	// Step 2: For each unique combination, fetch all matching outgoing queries
-	var result [][]*OutgoingQuery
-
-	for _, key := range keys {
-		fetchSQL := `
-        SELECT 
-            id, incoming_query_id, database_name, database_endpoint, 
-            query_text, query_args, rows_read, state, created_at, 
-            finished_at, error
-        FROM 
-            outgoing_queries
-        WHERE 
-            database_name = ? AND
-            database_endpoint = ? AND
-            query_text = ? AND
-            query_args = ? AND
-            state = ?
-        ORDER BY 
-            rows_read DESC, created_at DESC
-        `
-
-		rows2, err := s.db.Query(fetchSQL, key.databaseName, key.endpoint, key.text, key.args, string(QueryStateFinished))
-		if err != nil {
-			return nil, fmt.Errorf("fetching query group: %w", err)
-		}
-
-		var group []*OutgoingQuery
-
-		for rows2.Next() {
-			var (
-				query                          OutgoingQuery
-				finishedAt                     sql.NullTime
-				queryText, queryArgs, errorMsg sql.NullString
-				rowsRead                       int64
-			)
-
-			if err := rows2.Scan(
-				&query.ID, &query.IncomingQueryID, &query.DatabaseName, &query.DatabaseEndpoint,
-				&queryText, &queryArgs, &rowsRead, &query.State, &query.CreatedAt,
-				&finishedAt, &errorMsg,
-			); err != nil {
-				common.LogCloserError(logger, rows2, "rows close")
-
-				return nil, fmt.Errorf("scanning outgoing query: %w", err)
-			}
-
-			if queryText.Valid {
-				query.QueryText = queryText.String
-			}
-
-			if queryArgs.Valid {
-				query.QueryArgs = queryArgs.String
-			}
-
-			if errorMsg.Valid {
-				query.Error = errorMsg.String
-			}
-
-			if finishedAt.Valid {
-				query.FinishedAt = &finishedAt.Time
-			}
-
-			// Set the rows_read value
-			query.RowsRead = rowsRead
-
-			group = append(group, &query)
-		}
-
-		common.LogCloserError(logger, rows2, "close rows")
-
-		if err := rows2.Err(); err != nil {
-			return nil, fmt.Errorf("iterating outgoing query group: %w", err)
-		}
-
-		// Only add groups with more than one query and different rows_read values
-		if len(group) > 1 {
-			// Check if there are actual differences in rows_read
-			hasDifferentRowsRead := false
-			firstRowsRead := group[0].RowsRead
-
-			for i := 1; i < len(group); i++ {
-				if group[i].RowsRead != firstRowsRead {
-					hasDifferentRowsRead = true
-					break
-				}
-			}
-
-			if hasDifferentRowsRead {
-				result = append(result, group)
-			}
-		}
-	}
-
-	return result, nil
-}
-
 // Close closes the database connection
-func (s *storageSQLite) Close() error {
+func (s *storageSQLite) Close(_ context.Context) error {
 	if s.db != nil {
+		close(s.exitChan) // Signal the garbage collector to stop
+
 		return s.db.Close()
 	}
 
@@ -611,41 +514,111 @@ func (s *storageSQLite) Close() error {
 }
 
 // newStorageSQLite creates a new Storage instance
+func (s *storageSQLite) getDatabaseSize() (int64, error) {
+	var size int64
+
+	err := s.db.QueryRow(`SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();`).Scan(&size)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database size: %w", err)
+	}
+
+	return size, nil
+}
+
+func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
+	cutoff := time.Now().Add(-ttl).UTC()
+
+	// Log storage size before cleanup
+	sizeBefore, err := s.getDatabaseSize()
+	if err != nil {
+		logger.Error("failed to get storage size before cleanup", zap.Error(err))
+	}
+
+	_, err = s.db.Exec(`
+        DELETE FROM incoming_queries WHERE created_at < ?;
+        DELETE FROM outgoing_queries WHERE created_at < ?;
+    `, cutoff, cutoff)
+	if err != nil {
+		logger.Error("failed to clean up old queries", zap.Error(err))
+	}
+
+	_, err = s.db.Exec(` VACUUM; `)
+	if err != nil {
+		logger.Error("failed to vacuum database", zap.Error(err))
+	}
+
+	// Log storage size after cleanup
+	sizeAfter, err := s.getDatabaseSize()
+	if err != nil {
+		logger.Error("failed to get storage size after cleanup", zap.Error(err))
+	}
+
+	logger.Info("garbage collection completed", zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
+}
+
+func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Duration, gcPeriod time.Duration) {
+	go func() {
+		ticker := time.NewTicker(gcPeriod)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-s.exitChan:
+				return
+			case <-ticker.C:
+				s.collectGarbage(logger, ttl)
+			}
+		}
+	}()
+}
+
+// newStorageSQLite creates a new Storage instance
 func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
-	db, err := sql.Open("sqlite3", cfg.Path)
+	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=exclusive&_journal=WAL&_sync=FULL&_secure_delete=TRUE&_mutex=full")
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
 
-	db.SetMaxOpenConns(1) // Limit to 1 connection for SQLite
+	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(time.Hour)
 
 	// Set pragmas for better performance
 	pragmas := []string{
-		"PRAGMA journal_mode=WAL",
-		"PRAGMA synchronous=NORMAL",
-		"PRAGMA cache_size=5000",
-		"PRAGMA temp_store=MEMORY",
-		"PRAGMA mmap_size=30000000000",
-		"PRAGMA busy_timeout=5000",
+		"PRAGMA synchronous = FULL",
+		"PRAGMA journal_mode = WAL",
+		"PRAGMA locking_mode = EXCLUSIVE",
+		"PRAGMA busy_timeout = 5000",
 	}
 
 	for _, pragma := range pragmas {
-		if _, err := db.Exec(pragma); err != nil {
+		if _, err = db.Exec(pragma); err != nil {
 			return nil, fmt.Errorf("setting pragma %s: %w", pragma, err)
 		}
 	}
 
+	// Initialize storage
 	storage := &storageSQLite{
-		db:   db,
-		path: cfg.Path,
+		db:       db,
+		exitChan: make(chan struct{}),
 	}
 
-	if err := storage.initialize(); err != nil {
+	if err = storage.initialize(); err != nil {
 		common.LogCloserError(logger, db, "close SQLite database")
 		return nil, fmt.Errorf("initialize: %w", err)
 	}
+
+	// Initialize garbage collector
+	requestTTL, err := common.DurationFromString(cfg.RequestTtl)
+	if err != nil {
+		return nil, fmt.Errorf("invalid request TTL: %w", err)
+	}
+
+	gcPeriod, err := common.DurationFromString(cfg.GcPeriod)
+	if err != nil {
+		return nil, fmt.Errorf("invalid GC period: %w", err)
+	}
+
+	storage.startGarbageCollector(logger, requestTTL, gcPeriod)
 
 	return storage, nil
 }
