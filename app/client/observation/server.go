@@ -16,22 +16,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/api/observation"
 )
 
-// queryStateToString converts QueryState enum to human-readable string
-func queryStateToString(state observation.QueryState) string {
-	switch state {
-	case observation.QueryState_QUERY_STATE_UNSPECIFIED:
-		return "UNSPECIFIED"
-	case observation.QueryState_QUERY_STATE_RUNNING:
-		return "RUNNING"
-	case observation.QueryState_QUERY_STATE_FINISHED:
-		return "FINISHED"
-	case observation.QueryState_QUERY_STATE_CANCELED:
-		return "CANCELED"
-	default:
-		return "UNKNOWN"
-	}
-}
-
 const (
 	defaultPort   = 8081
 	defaultPeriod = 5 * time.Second
