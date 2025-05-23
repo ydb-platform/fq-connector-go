@@ -7,43 +7,6 @@
         body { font-family: Arial, sans-serif; margin: 20px; }
         h1 { color: #333; }
         .endpoint { margin-bottom: 30px; }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 10px;
-            table-layout: fixed;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-            vertical-align: top;
-        }
-        th {
-            background-color: #f2f2f2;
-            position: sticky;
-            top: 0;
-        }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-        .error { color: #dc3545; font-weight: bold; }
-        .query-text, .query-args, .error-text {
-            max-width: 300px;
-            max-height: 150px;
-            overflow: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: monospace;
-            font-size: 0.85em;
-        }
-        
-        .error-text {
-            color: #dc3545;
-        }
-        pre {
-            margin: 0;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
         
         /* Connection status */
         #connection-status {
@@ -60,11 +23,41 @@
         .status-running { color: #28a745; font-weight: bold; }
         .status-finished { color: #17a2b8; }
         .status-unknown { color: #6c757d; }
+        
+        /* Query args styling */
+        .query-args {
+            max-width: 300px;
+            max-height: 150px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        
+        .error-text {
+            color: #dc3545;
+        }
+        
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
     </style>
 </head>
 <body>
     <h1>Connector Query Dashboard</h1>
     <div id="endpoints"></div>
+    
+    <!-- Modal for displaying full query text -->
+    <div id="queryModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Query Text</h3>
+            <div id="modalQueryText" class="query-full-text"></div>
+        </div>
+    </div>
 
     <script>
         // Helper function to convert QueryState enum to human-readable string
@@ -102,10 +95,33 @@
             statusDiv.className = 'status-disconnected';
         };
 
+        // Modal functionality
+        const modal = document.getElementById('queryModal');
+        const modalText = document.getElementById('modalQueryText');
+        const closeModal = document.getElementsByClassName('close-modal')[0];
+        
+        closeModal.onclick = function() {
+            modal.style.display = "none";
+        }
+        
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+        
+        function showQueryText(text) {
+            modalText.textContent = text;
+            modal.style.display = "block";
+        }
+        
         socket.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
                 endpointsContainer.innerHTML = '';
+                
+                // Track total queries across all endpoints
+                let totalQueriesAllEndpoints = 0;
 
                 for (const [endpoint, queries] of Object.entries(data)) {
                     const endpointDiv = document.createElement('div');
@@ -114,6 +130,15 @@
                     const endpointHeader = document.createElement('h2');
                     endpointHeader.textContent = `Endpoint: ${endpoint}`;
                     endpointDiv.appendChild(endpointHeader);
+                    
+                    // Add stats counter for this endpoint
+                    const queriesCount = Array.isArray(queries) ? queries.length : 0;
+                    totalQueriesAllEndpoints += queriesCount;
+                    
+                    const statsDiv = document.createElement('div');
+                    statsDiv.className = 'endpoint-stats';
+                    statsDiv.textContent = `Running Queries: ${queriesCount}`;
+                    endpointDiv.appendChild(statsDiv);
 
                     if (!Array.isArray(queries)) {
                         const errorMsg = document.createElement('p');
@@ -168,12 +193,15 @@
                                 
                                 // Query Text
                                 const queryCell = row.insertCell();
-                                queryCell.className = 'query-text';
                                 const queryText = query.query_text || query.queryText;
                                 if (queryText) {
-                                    const pre = document.createElement('pre');
-                                    pre.textContent = queryText;
-                                    queryCell.appendChild(pre);
+                                    const queryLink = document.createElement('span');
+                                    queryLink.className = 'query-text';
+                                    queryLink.textContent = "View";
+                                    queryLink.onclick = function() {
+                                        showQueryText(queryText);
+                                    };
+                                    queryCell.appendChild(queryLink);
                                 } else {
                                     queryCell.textContent = 'N/A';
                                 }
@@ -208,6 +236,14 @@
                     }
 
                     endpointsContainer.appendChild(endpointDiv);
+                }
+                
+                // Add total queries counter at the top
+                if (Object.keys(data).length > 0) {
+                    const totalStatsDiv = document.createElement('div');
+                    totalStatsDiv.className = 'total-stats';
+                    totalStatsDiv.textContent = `Total Running Queries Across All Endpoints: ${totalQueriesAllEndpoints}`;
+                    endpointsContainer.prepend(totalStatsDiv);
                 }
             } catch (e) {
                 console.error('Error processing WebSocket message:', e);
