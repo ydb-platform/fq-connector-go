@@ -167,6 +167,7 @@
                             'Query Text',
                             'Query Args',
                             'Created At',
+                            'Elapsed Time',
                             'Rows Read'
                         ].forEach(text => {
                             const th = document.createElement('th');
@@ -175,6 +176,41 @@
                         });
     
                         const body = table.createTBody();
+                        
+                        // Calculate elapsed time for each query and add it to the query object
+                        queries.forEach(query => {
+                            if (query.created_at || query.createdAt) {
+                                const createdAtSeconds = query.created_at?.seconds || query.createdAt?.seconds;
+                                if (createdAtSeconds) {
+                                    const createdTime = new Date(createdAtSeconds * 1000);
+                                    const now = new Date();
+                                    const elapsedMs = now - createdTime;
+                                    query._elapsedMs = elapsedMs;
+                                    
+                                    // Format elapsed time
+                                    const seconds = Math.floor(elapsedMs / 1000) % 60;
+                                    const minutes = Math.floor(elapsedMs / (1000 * 60)) % 60;
+                                    const hours = Math.floor(elapsedMs / (1000 * 60 * 60));
+                                    
+                                    if (hours > 0) {
+                                        query._elapsedFormatted = `${hours}h ${minutes}m ${seconds}s`;
+                                    } else if (minutes > 0) {
+                                        query._elapsedFormatted = `${minutes}m ${seconds}s`;
+                                    } else {
+                                        query._elapsedFormatted = `${seconds}s`;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // Sort queries by elapsed time (oldest first)
+                        queries.sort((a, b) => {
+                            const aElapsed = a._elapsedMs || 0;
+                            const bElapsed = b._elapsedMs || 0;
+                            return bElapsed - aElapsed; // Descending order (oldest first)
+                        });
+                        
+                        // Render sorted queries
                         queries.forEach(query => {
                             try {
                                 const row = body.insertRow();
@@ -224,6 +260,30 @@
                                 const createdAt = query.created_at || query.createdAt;
                                 createdAtCell.textContent = createdAt?.seconds ?
                                     new Date(createdAt.seconds * 1000).toLocaleString() : 'N/A';
+                                
+                                // Elapsed Time
+                                const elapsedCell = row.insertCell();
+                                if (query._elapsedFormatted) {
+                                    const elapsedSpan = document.createElement('span');
+                                    elapsedSpan.textContent = query._elapsedFormatted;
+                                    elapsedSpan.className = 'elapsed-time';
+                                    
+                                    // Add class based on elapsed time
+                                    const elapsedMs = query._elapsedMs || 0;
+                                    if (elapsedMs > 3600000) { // > 1 hour
+                                        elapsedSpan.classList.add('elapsed-very-long');
+                                    } else if (elapsedMs > 600000) { // > 10 minutes
+                                        elapsedSpan.classList.add('elapsed-long');
+                                    } else if (elapsedMs > 60000) { // > 1 minute
+                                        elapsedSpan.classList.add('elapsed-medium');
+                                    } else {
+                                        elapsedSpan.classList.add('elapsed-short');
+                                    }
+                                    
+                                    elapsedCell.appendChild(elapsedSpan);
+                                } else {
+                                    elapsedCell.textContent = 'N/A';
+                                }
                                 
                                 // Rows Read
                                 row.insertCell().textContent = query.rows_read || query.rowsRead || 0;
