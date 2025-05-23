@@ -1,0 +1,88 @@
+/* Additional styles for the dashboard */
+body {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+}
+
+.query-text {
+    max-width: 300px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+.query-text:hover {
+    white-space: normal;
+    overflow: visible;
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    padding: 5px;
+    z-index: 100;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.status-running {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status-finished {
+    color: #007bff;
+}
+
+.status-canceled {
+    color: #6c757d;
+}
+
+.status-error {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.endpoint {
+    margin-bottom: 30px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+}
+
+th, td {
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+h1 {
+    color: #343a40;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #495057;
+    margin-bottom: 15px;
+}
+
+.error {
+    color: #dc3545;
+    font-weight: bold;
+}

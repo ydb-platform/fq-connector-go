@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connector Query Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .endpoint { margin-bottom: 30px; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 10px;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f2f2f2;
+            position: sticky;
+            top: 0;
+        }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .error { color: #dc3545; font-weight: bold; }
+        .query-text, .query-args, .error-text {
+            max-width: 300px;
+            max-height: 150px;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        
+        .error-text {
+            color: #dc3545;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        /* Connection status */
+        #connection-status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status-connected { background-color: #d4edda; color: #155724; }
+        .status-disconnected { background-color: #fff3cd; color: #856404; }
+        .status-error { background-color: #f8d7da; color: #721c24; }
+        
+        /* Query states */
+        .status-running { color: #28a745; font-weight: bold; }
+        .status-finished { color: #17a2b8; }
+        .status-unknown { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <h1>Connector Query Dashboard</h1>
+    <div id="endpoints"></div>
+
+    <script>
+        // Helper function to convert QueryState enum to human-readable string
+        function queryStateToString(state) {
+            if (!state) return 'UNKNOWN';
+            
+            // Remove prefix and convert to lowercase
+            const stateStr = state.toString().replace('QUERY_STATE_', '').toLowerCase();
+            
+            // Map to display values
+            const displayMap = {
+                'unspecified': 'UNSPECIFIED',
+                'running': 'RUNNING',
+                'finished': 'FINISHED',
+                'canceled': 'CANCELED'
+            };
+            
+            return displayMap[stateStr] || 'UNKNOWN';
+        }
+
+        const socket = new WebSocket(`ws://${window.location.host}/ws`);
+        const endpointsContainer = document.getElementById('endpoints');
+        const statusDiv = document.createElement('div');
+        statusDiv.id = 'connection-status';
+        document.body.prepend(statusDiv);
+
+        // Connection status handling
+        socket.onopen = () => {
+            statusDiv.textContent = 'Connected to WebSocket server';
+            statusDiv.className = 'status-connected';
+        };
+
+        socket.onclose = () => {
+            statusDiv.textContent = 'Disconnected from WebSocket server';
+            statusDiv.className = 'status-disconnected';
+        };
+
+        socket.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                endpointsContainer.innerHTML = '';
+
+                for (const [endpoint, queries] of Object.entries(data)) {
+                    const endpointDiv = document.createElement('div');
+                    endpointDiv.className = 'endpoint';
+                    
+                    const endpointHeader = document.createElement('h2');
+                    endpointHeader.textContent = `Endpoint: ${endpoint}`;
+                    endpointDiv.appendChild(endpointHeader);
+
+                    if (!Array.isArray(queries)) {
+                        const errorMsg = document.createElement('p');
+                        errorMsg.className = 'error';
+                        errorMsg.textContent = 'Invalid query data format';
+                        endpointDiv.appendChild(errorMsg);
+                        endpointsContainer.appendChild(endpointDiv);
+                        continue;
+                    }
+
+                    if (queries.length === 0) {
+                        const noQueries = document.createElement('p');
+                        noQueries.textContent = 'No running queries';
+                        endpointDiv.appendChild(noQueries);
+                    } else {
+                        const table = document.createElement('table');
+                        const header = table.createTHead();
+                        const headerRow = header.insertRow();
+                        
+                        // Table headers for RUNNING queries
+                        [
+                            'ID',
+                            'Incoming Query ID',
+                            'Database',
+                            'Endpoint',
+                            'Query Text',
+                            'Query Args',
+                            'Created At',
+                            'Rows Read'
+                        ].forEach(text => {
+                            const th = document.createElement('th');
+                            th.textContent = text;
+                            headerRow.appendChild(th);
+                        });
+    
+                        const body = table.createTBody();
+                        queries.forEach(query => {
+                            try {
+                                const row = body.insertRow();
+                                
+                                // ID
+                                row.insertCell().textContent = query.id || query.id || 'N/A';
+                                
+                                // Incoming Query ID
+                                row.insertCell().textContent = query.incoming_query_id || query.incomingQueryId || 'N/A';
+                                
+                                // Database
+                                row.insertCell().textContent = query.database_name || query.databaseName || 'N/A';
+                                
+                                // Endpoint
+                                row.insertCell().textContent = query.database_endpoint || query.databaseEndpoint || 'N/A';
+                                
+                                // Query Text
+                                const queryCell = row.insertCell();
+                                queryCell.className = 'query-text';
+                                const queryText = query.query_text || query.queryText;
+                                if (queryText) {
+                                    const pre = document.createElement('pre');
+                                    pre.textContent = queryText;
+                                    queryCell.appendChild(pre);
+                                } else {
+                                    queryCell.textContent = 'N/A';
+                                }
+                                
+                                // Query Args
+                                const argsCell = row.insertCell();
+                                argsCell.className = 'query-args';
+                                console.log('Query args data:', query.query_args || query.queryArgs); // Debug log
+                                const queryArgs = query.query_args || query.queryArgs;
+                                if (queryArgs) {
+                                    const pre = document.createElement('pre');
+                                    pre.textContent = queryArgs;
+                                    argsCell.appendChild(pre);
+                                } else {
+                                    argsCell.textContent = 'N/A';
+                                }
+                                
+                                // Created At
+                                const createdAtCell = row.insertCell();
+                                const createdAt = query.created_at || query.createdAt;
+                                createdAtCell.textContent = createdAt?.seconds ?
+                                    new Date(createdAt.seconds * 1000).toLocaleString() : 'N/A';
+                                
+                                // Rows Read
+                                row.insertCell().textContent = query.rows_read || query.rowsRead || 0;
+                            } catch (e) {
+                                console.error('Error rendering query row:', e);
+                            }
+                        });
+
+                        endpointDiv.appendChild(table);
+                    }
+
+                    endpointsContainer.appendChild(endpointDiv);
+                }
+            } catch (e) {
+                console.error('Error processing WebSocket message:', e);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error';
+                errorDiv.textContent = 'Error displaying data - check console for details';
+                endpointsContainer.appendChild(errorDiv);
+            }
+        };
+
+        socket.onerror = function(error) {
+            statusDiv.textContent = 'WebSocket error - check console';
+            statusDiv.className = 'status-error';
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+</html>
