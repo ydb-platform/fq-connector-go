@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -15,7 +16,10 @@ import (
 )
 
 const (
-	endpointFlag = "endpoint"
+	endpointFlag  = "endpoint"  // For incoming/outgoing commands
+	endpointsFlag = "endpoints" // For aggregate command
+	portFlag      = "port"
+	periodFlag    = "period"
 )
 
 var Cmd = &cobra.Command{
@@ -79,6 +83,18 @@ var outgoingRunningCmd = &cobra.Command{
 	},
 }
 
+// Aggregate command
+var aggregateCmd = &cobra.Command{
+	Use:   "aggregate",
+	Short: "Aggregate outgoing queries from multiple connectors",
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := startAggregationServer(cmd); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	// Add incoming subcommands
 	incomingCmd.AddCommand(incomingAllCmd)
@@ -91,17 +107,25 @@ func init() {
 	// Add main subcommands to the root command
 	Cmd.AddCommand(incomingCmd)
 	Cmd.AddCommand(outgoingCmd)
+	Cmd.AddCommand(aggregateCmd)
 
-	// Add endpoint flag to the main command
-	Cmd.PersistentFlags().StringP(endpointFlag, "e", "localhost:2135", "gRPC endpoint to connect to")
+	// Remove endpoint flag from main command
 
-	// Propagate flags to all subcommands
-	incomingCmd.PersistentFlags().AddFlagSet(Cmd.PersistentFlags())
-	outgoingCmd.PersistentFlags().AddFlagSet(Cmd.PersistentFlags())
+	// Add flags for aggregate command
+	aggregateCmd.Flags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to monitor (required)")
+	aggregateCmd.Flags().Int(portFlag, 8081, "Port to serve dashboard on")
+	aggregateCmd.Flags().Duration(periodFlag, 5*time.Second, "Polling period")
+
+	// Mark required flags
+	aggregateCmd.MarkFlagRequired(endpointsFlag)
+
+	// Add endpoint flag to incoming/outgoing commands
+	incomingCmd.PersistentFlags().StringP(endpointFlag, "e", "localhost:2135", "gRPC endpoint to connect to")
+	outgoingCmd.PersistentFlags().StringP(endpointFlag, "e", "localhost:2135", "gRPC endpoint to connect to")
 }
 
 func getClient(cmd *cobra.Command) (observation.ObservationServiceClient, *grpc.ClientConn, error) {
-	endpoint, err := cmd.Flags().GetString(endpointFlag)
+	endpoint, err := cmd.Flags().GetString("endpoint")
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get endpoint flag: %w", err)
 	}
@@ -270,4 +294,34 @@ func formatError(err *protos.TError) string {
 	}
 
 	return fmt.Sprintf("%s (status: %d)", err.Message, err.Status)
+}
+
+func startAggregationServer(cmd *cobra.Command) error {
+	endpoints, err := cmd.Flags().GetString(endpointsFlag)
+	if err != nil {
+		return fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	port, err := cmd.Flags().GetInt(portFlag)
+	if err != nil {
+		return fmt.Errorf("failed to get port: %w", err)
+	}
+
+	period, err := cmd.Flags().GetDuration(periodFlag)
+	if err != nil {
+		return fmt.Errorf("failed to get period: %w", err)
+	}
+
+	// Split endpoints
+	endpointList := strings.Split(endpoints, ",")
+	if len(endpointList) == 0 {
+		return fmt.Errorf("no endpoints provided")
+	}
+
+	// Create server
+	server := NewAggregationServer(endpointList, period)
+
+	// Start HTTP server
+	fmt.Printf("Starting aggregation server on :%d\n", port)
+	return server.Start(port)
 }
