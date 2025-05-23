@@ -4,16 +4,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 const (
@@ -23,18 +22,8 @@ const (
 
 // NewAggregationServer creates a new aggregation server instance
 func NewAggregationServer(endpoints []string, period time.Duration) *AggregationServer {
-	// Configure production-style logging
-	encoderCfg := zap.NewProductionEncoderConfig()
-	encoderCfg.TimeKey = "timestamp"
-	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderCfg),
-		zapcore.Lock(os.Stdout),
-		zap.NewAtomicLevelAt(zapcore.DebugLevel),
-	)
-
-	logger := zap.New(core, zap.AddCaller()).Named("observation")
+	logger := common.NewDefaultLogger()
 
 	return &AggregationServer{
 		endpoints: endpoints,

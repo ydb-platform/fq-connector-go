@@ -130,6 +130,31 @@ body {
     font-size: 1.3em;
 }
 
+/* Elapsed time styling */
+.elapsed-time {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.elapsed-short {
+    color: #28a745; /* green */
+}
+
+.elapsed-medium {
+    color: #ffc107; /* yellow */
+}
+
+.elapsed-long {
+    color: #fd7e14; /* orange */
+}
+
+.elapsed-very-long {
+    color: #dc3545; /* red */
+}
+
 .status-running {
     color: #28a745;
     font-weight: bold;
@@ -171,14 +196,15 @@ th, td {
 }
 
 /* Column widths */
-table th:nth-child(1), table td:nth-child(1) { width: 10%; } /* ID */
-table th:nth-child(2), table td:nth-child(2) { width: 10%; } /* Incoming Query ID */
-table th:nth-child(3), table td:nth-child(3) { width: 15%; } /* Database */
-table th:nth-child(4), table td:nth-child(4) { width: 20%; } /* Endpoint */
-table th:nth-child(5), table td:nth-child(5) { width: 10%; } /* Query Text */
-table th:nth-child(6), table td:nth-child(6) { width: 15%; } /* Query Args */
+table th:nth-child(1), table td:nth-child(1) { width: 9%; } /* ID */
+table th:nth-child(2), table td:nth-child(2) { width: 9%; } /* Incoming Query ID */
+table th:nth-child(3), table td:nth-child(3) { width: 12%; } /* Database */
+table th:nth-child(4), table td:nth-child(4) { width: 18%; } /* Endpoint */
+table th:nth-child(5), table td:nth-child(5) { width: 8%; } /* Query Text */
+table th:nth-child(6), table td:nth-child(6) { width: 12%; } /* Query Args */
 table th:nth-child(7), table td:nth-child(7) { width: 12%; } /* Created At */
-table th:nth-child(8), table td:nth-child(8) { width: 8%; } /* Rows Read */
+table th:nth-child(8), table td:nth-child(8) { width: 12%; } /* Elapsed Time */
+table th:nth-child(9), table td:nth-child(9) { width: 8%; } /* Rows Read */
 
 th {
     background-color: #f8f9fa;
