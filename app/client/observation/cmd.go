@@ -647,6 +647,7 @@ func writeIncomingQueriesToCSV(queries []*IncomingQueryWithEndpoint, outputPath 
 		"state",
 		"created_at",
 		"finished_at",
+		"elapsed_time_ms",
 		"error",
 		"connector_endpoint",
 	}
@@ -658,12 +659,21 @@ func writeIncomingQueriesToCSV(queries []*IncomingQueryWithEndpoint, outputPath 
 	for _, q := range queries {
 		createdAt := ""
 		if q.CreatedAt != nil {
-			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339)
+			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339Nano)
 		}
 
 		finishedAt := ""
 		if q.FinishedAt != nil {
-			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339)
+			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339Nano)
+		}
+
+		// Calculate elapsed time
+		var elapsedTimeMs string
+		if q.CreatedAt != nil && q.FinishedAt != nil {
+			elapsedTime := q.FinishedAt.AsTime().Sub(q.CreatedAt.AsTime())
+			elapsedTimeMs = strconv.FormatInt(elapsedTime.Milliseconds(), 10)
+		} else {
+			elapsedTimeMs = ""
 		}
 
 		row := []string{
@@ -674,6 +684,7 @@ func writeIncomingQueriesToCSV(queries []*IncomingQueryWithEndpoint, outputPath 
 			q.State.String(), // Human-readable state
 			createdAt,
 			finishedAt,
+			elapsedTimeMs,
 			q.Error,
 			q.Endpoint,
 		}
@@ -714,6 +725,7 @@ func writeOutgoingQueriesToCSV(queries []*OutgoingQueryWithEndpoint, outputPath 
 		"state",
 		"created_at",
 		"finished_at",
+		"elapsed_time_ms",
 		"rows_read",
 		"error",
 		"connector_endpoint",
@@ -726,12 +738,21 @@ func writeOutgoingQueriesToCSV(queries []*OutgoingQueryWithEndpoint, outputPath 
 	for _, q := range queries {
 		createdAt := ""
 		if q.CreatedAt != nil {
-			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339)
+			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339Nano)
 		}
 
 		finishedAt := ""
 		if q.FinishedAt != nil {
-			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339)
+			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339Nano)
+		}
+
+		// Calculate elapsed time
+		var elapsedTimeMs string
+		if q.CreatedAt != nil && q.FinishedAt != nil {
+			elapsedTime := q.FinishedAt.AsTime().Sub(q.CreatedAt.AsTime())
+			elapsedTimeMs = strconv.FormatInt(elapsedTime.Milliseconds(), 10)
+		} else {
+			elapsedTimeMs = ""
 		}
 
 		row := []string{
@@ -744,6 +765,7 @@ func writeOutgoingQueriesToCSV(queries []*OutgoingQueryWithEndpoint, outputPath 
 			q.State.String(), // Human-readable state
 			createdAt,
 			finishedAt,
+			elapsedTimeMs,
 			strconv.FormatInt(q.RowsRead, 10),
 			q.Error,
 			q.Endpoint,
