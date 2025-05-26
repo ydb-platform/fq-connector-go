@@ -2,24 +2,31 @@ package observation
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/ydb-platform/fq-connector-go/api/observation"
 	"github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 const (
-	endpointFlag  = "endpoint"  // For incoming/outgoing commands
-	endpointsFlag = "endpoints" // For aggregate command
-	portFlag      = "port"
-	periodFlag    = "period"
+	endpointFlag   = "endpoint"  // For incoming/outgoing commands
+	endpointsFlag  = "endpoints" // For aggregate command and dump commands
+	portFlag       = "port"
+	periodFlag     = "period"
+	outputFileFlag = "output" // For dump commands
+	formatFlag     = "format" // For dump commands (csv or parquet)
 )
 
 var Cmd = &cobra.Command{
@@ -95,6 +102,34 @@ var aggregateCmd = &cobra.Command{
 	},
 }
 
+// Dump commands
+var dumpCmd = &cobra.Command{
+	Use:   "dump",
+	Short: "Dump queries to a CSV file",
+}
+
+var dumpIncomingCmd = &cobra.Command{
+	Use:   "incoming",
+	Short: "Dump all incoming queries to a CSV file",
+	Run: func(cmd *cobra.Command, _ []string) {
+		if err := dumpIncomingQueries(cmd); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
+var dumpOutgoingCmd = &cobra.Command{
+	Use:   "outgoing",
+	Short: "Dump all outgoing queries to a CSV file",
+	Run: func(cmd *cobra.Command, _ []string) {
+		if err := dumpOutgoingQueries(cmd); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
 func init() {
 	// Add incoming subcommands
 	incomingCmd.AddCommand(incomingAllCmd)
@@ -104,20 +139,31 @@ func init() {
 	outgoingCmd.AddCommand(outgoingAllCmd)
 	outgoingCmd.AddCommand(outgoingRunningCmd)
 
+	// Add dump subcommands
+	dumpCmd.AddCommand(dumpIncomingCmd)
+	dumpCmd.AddCommand(dumpOutgoingCmd)
+
 	// Add main subcommands to the root command
 	Cmd.AddCommand(incomingCmd)
 	Cmd.AddCommand(outgoingCmd)
 	Cmd.AddCommand(aggregateCmd)
-
-	// Remove endpoint flag from main command
+	Cmd.AddCommand(dumpCmd)
 
 	// Add flags for aggregate command
 	aggregateCmd.Flags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to monitor (required)")
 	aggregateCmd.Flags().Int(portFlag, 8081, "Port to serve dashboard on")
 	aggregateCmd.Flags().Duration(periodFlag, 5*time.Second, "Polling period")
 
+	// Add flags for dump commands
+	dumpCmd.PersistentFlags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to fetch queries from (required)")
+	dumpCmd.PersistentFlags().String(outputFileFlag, "queries.csv", "Output file path")
+	dumpCmd.PersistentFlags().String(formatFlag, "csv", "Output format (csv only for now)")
+
 	// Mark required flags
 	if err := aggregateCmd.MarkFlagRequired(endpointsFlag); err != nil {
+		panic(err)
+	}
+	if err := dumpCmd.MarkPersistentFlagRequired(endpointsFlag); err != nil {
 		panic(err)
 	}
 
@@ -327,4 +373,386 @@ func startAggregationServer(cmd *cobra.Command) error {
 	fmt.Printf("Starting aggregation server on :%d\n", port)
 
 	return server.Start(port)
+}
+
+// dumpIncomingQueries fetches all incoming queries from multiple endpoints and writes them to a Parquet file
+func dumpIncomingQueries(cmd *cobra.Command) error {
+	// Get endpoints and output file path
+	endpoints, outputFile, err := getDumpParams(cmd)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Fetching incoming queries from %d endpoints...\n", len(endpoints))
+
+	// Create a logger
+	logger := common.NewDefaultLogger()
+
+	// Collect queries from all endpoints
+	var allQueries []*IncomingQueryWithEndpoint
+	for _, endpoint := range endpoints {
+		queries, err := fetchIncomingQueries(endpoint, logger)
+		if err != nil {
+			fmt.Printf("Error fetching from %s: %v\n", endpoint, err)
+			continue
+		}
+		fmt.Printf("Fetched %d incoming queries from %s\n", len(queries), endpoint)
+
+		// Add endpoint information to each query
+		for _, q := range queries {
+			allQueries = append(allQueries, &IncomingQueryWithEndpoint{
+				IncomingQuery: q,
+				Endpoint:      endpoint,
+			})
+		}
+	}
+
+	if len(allQueries) == 0 {
+		return fmt.Errorf("no incoming queries fetched from any endpoint")
+	}
+
+	// Write to CSV file
+	if err := writeIncomingQueriesToCSV(allQueries, outputFile); err != nil {
+		return fmt.Errorf("failed to write CSV file: %w", err)
+	}
+
+	fmt.Printf("Successfully wrote %d incoming queries to %s\n", len(allQueries), outputFile)
+	return nil
+}
+
+// dumpOutgoingQueries fetches all outgoing queries from multiple endpoints and writes them to a Parquet file
+func dumpOutgoingQueries(cmd *cobra.Command) error {
+	// Get endpoints and output file path
+	endpoints, outputFile, err := getDumpParams(cmd)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Fetching outgoing queries from %d endpoints...\n", len(endpoints))
+
+	// Create a logger
+	logger := common.NewDefaultLogger()
+
+	// Collect queries from all endpoints
+	var allQueries []*OutgoingQueryWithEndpoint
+	for _, endpoint := range endpoints {
+		queries, err := fetchOutgoingQueries(endpoint, logger)
+		if err != nil {
+			fmt.Printf("Error fetching from %s: %v\n", endpoint, err)
+			continue
+		}
+		fmt.Printf("Fetched %d outgoing queries from %s\n", len(queries), endpoint)
+
+		// Add endpoint information to each query
+		for _, q := range queries {
+			allQueries = append(allQueries, &OutgoingQueryWithEndpoint{
+				OutgoingQuery: q,
+				Endpoint:      endpoint,
+			})
+		}
+	}
+
+	if len(allQueries) == 0 {
+		return fmt.Errorf("no outgoing queries fetched from any endpoint")
+	}
+
+	// Write to CSV file
+	if err := writeOutgoingQueriesToCSV(allQueries, outputFile); err != nil {
+		return fmt.Errorf("failed to write CSV file: %w", err)
+	}
+
+	fmt.Printf("Successfully wrote %d outgoing queries to %s\n", len(allQueries), outputFile)
+	return nil
+}
+
+// getDumpParams extracts common parameters for dump commands
+func getDumpParams(cmd *cobra.Command) ([]string, string, error) {
+	// Get endpoints
+	endpointsStr, err := cmd.Flags().GetString(endpointsFlag)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get endpoints flag: %w", err)
+	}
+
+	endpoints := strings.Split(endpointsStr, ",")
+	if len(endpoints) == 0 {
+		return nil, "", fmt.Errorf("no endpoints provided")
+	}
+
+	// Get output file path
+	outputFile, err := cmd.Flags().GetString(outputFileFlag)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to get output file flag: %w", err)
+	}
+
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(outputFile)
+	if dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, "", fmt.Errorf("failed to create directory %s: %w", dir, err)
+		}
+	}
+
+	return endpoints, outputFile, nil
+}
+
+// fetchIncomingQueries retrieves all incoming queries from a single endpoint
+func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.IncomingQuery, error) {
+	logger.Info("connecting to endpoint for incoming queries", zap.String("endpoint", endpoint))
+
+	// Connect to the endpoint
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
+	}
+	defer conn.Close()
+
+	client := observation.NewObservationServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Create the request for all queries (unspecified state)
+	req := &observation.ListIncomingQueriesRequest{
+		State: observation.QueryState_QUERY_STATE_UNSPECIFIED,
+		Limit: 0, // No limit (0 means no limit according to proto definition)
+		// Note: The server may still impose its own limit (e.g., 1000 records)
+		Offset: 0,
+	}
+
+	// Call the service
+	stream, err := client.ListIncomingQueries(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list incoming queries: %w", err)
+	}
+
+	var queries []*observation.IncomingQuery
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			return nil, fmt.Errorf("error receiving response: %w", err)
+		}
+
+		if resp.Error != nil && resp.Error.Status != 0 {
+			logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
+			continue
+		}
+
+		if resp.Query != nil {
+			queries = append(queries, resp.Query)
+		}
+	}
+
+	logger.Info("fetched incoming queries",
+		zap.String("endpoint", endpoint),
+		zap.Int("count", len(queries)))
+
+	return queries, nil
+}
+
+// fetchOutgoingQueries retrieves all outgoing queries from a single endpoint
+func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.OutgoingQuery, error) {
+	logger.Info("connecting to endpoint for outgoing queries", zap.String("endpoint", endpoint))
+
+	// Connect to the endpoint
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
+	}
+	defer conn.Close()
+
+	client := observation.NewObservationServiceClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// Create the request for all queries (unspecified state)
+	req := &observation.ListOutgoingQueriesRequest{
+		State: observation.QueryState_QUERY_STATE_UNSPECIFIED,
+		Limit: 0, // No limit (0 means no limit according to proto definition)
+		// Note: The server may still impose its own limit (e.g., 1000 records)
+		Offset: 0,
+	}
+
+	// Call the service
+	stream, err := client.ListOutgoingQueries(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list outgoing queries: %w", err)
+	}
+
+	var queries []*observation.OutgoingQuery
+	for {
+		resp, err := stream.Recv()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			return nil, fmt.Errorf("error receiving response: %w", err)
+		}
+
+		if resp.Error != nil && resp.Error.Status != 0 {
+			logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
+			continue
+		}
+
+		if resp.Query != nil {
+			queries = append(queries, resp.Query)
+		}
+	}
+
+	logger.Info("fetched outgoing queries",
+		zap.String("endpoint", endpoint),
+		zap.Int("count", len(queries)))
+
+	return queries, nil
+}
+
+// IncomingQueryWithEndpoint extends IncomingQuery with endpoint information
+type IncomingQueryWithEndpoint struct {
+	*observation.IncomingQuery
+	Endpoint string
+}
+
+// OutgoingQueryWithEndpoint extends OutgoingQuery with endpoint information
+type OutgoingQueryWithEndpoint struct {
+	*observation.OutgoingQuery
+	Endpoint string
+}
+
+// writeIncomingQueriesToCSV writes incoming queries to a CSV file
+func writeIncomingQueriesToCSV(queries []*IncomingQueryWithEndpoint, outputPath string) error {
+	if len(queries) == 0 {
+		return fmt.Errorf("no queries to write")
+	}
+
+	// Create CSV file
+	file, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	// Create CSV writer
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write header
+	header := []string{
+		"id",
+		"data_source_kind",
+		"rows_read",
+		"bytes_read",
+		"state",
+		"created_at",
+		"finished_at",
+		"error",
+		"connector_endpoint",
+	}
+	if err := writer.Write(header); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
+
+	// Write data
+	for _, q := range queries {
+		createdAt := ""
+		if q.CreatedAt != nil {
+			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339)
+		}
+
+		finishedAt := ""
+		if q.FinishedAt != nil {
+			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339)
+		}
+
+		row := []string{
+			q.Id,
+			q.DataSourceKind,
+			strconv.FormatInt(q.RowsRead, 10),
+			strconv.FormatInt(q.BytesRead, 10),
+			q.State.String(), // Human-readable state
+			createdAt,
+			finishedAt,
+			q.Error,
+			q.Endpoint,
+		}
+
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write row: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// writeOutgoingQueriesToCSV writes outgoing queries to a CSV file
+func writeOutgoingQueriesToCSV(queries []*OutgoingQueryWithEndpoint, outputPath string) error {
+	if len(queries) == 0 {
+		return fmt.Errorf("no queries to write")
+	}
+
+	// Create CSV file
+	file, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	// Create CSV writer
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	// Write header
+	header := []string{
+		"id",
+		"incoming_query_id",
+		"database_name",
+		"database_endpoint",
+		"query_text",
+		"query_args",
+		"state",
+		"created_at",
+		"finished_at",
+		"rows_read",
+		"error",
+		"connector_endpoint",
+	}
+	if err := writer.Write(header); err != nil {
+		return fmt.Errorf("failed to write header: %w", err)
+	}
+
+	// Write data
+	for _, q := range queries {
+		createdAt := ""
+		if q.CreatedAt != nil {
+			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339)
+		}
+
+		finishedAt := ""
+		if q.FinishedAt != nil {
+			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339)
+		}
+
+		row := []string{
+			q.Id,
+			q.IncomingQueryId,
+			q.DatabaseName,
+			q.DatabaseEndpoint,
+			q.QueryText,
+			q.QueryArgs,
+			q.State.String(), // Human-readable state
+			createdAt,
+			finishedAt,
+			strconv.FormatInt(q.RowsRead, 10),
+			q.Error,
+			q.Endpoint,
+		}
+
+		if err := writer.Write(row); err != nil {
+			return fmt.Errorf("failed to write row: %w", err)
+		}
+	}
+
+	return nil
 }
