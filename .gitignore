@@ -11,4 +11,4 @@ __pycache__
 .vscode
 
 .ipynb_checkpoints
-./*.csv
+*.csv

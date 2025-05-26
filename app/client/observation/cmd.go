@@ -508,48 +508,71 @@ func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.I
 
 	client := observation.NewObservationServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// Create the request for all queries (unspecified state)
-	req := &observation.ListIncomingQueriesRequest{
-		State: observation.QueryState_QUERY_STATE_UNSPECIFIED,
-		Limit: 0, // No limit (0 means no limit according to proto definition)
-		// Note: The server may still impose its own limit (e.g., 1000 records)
-		Offset: 0,
-	}
+	var allQueries []*observation.IncomingQuery
+	offset := 0
+	batchSize := 1000
 
-	// Call the service
-	stream, err := client.ListIncomingQueries(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list incoming queries: %w", err)
-	}
-
-	var queries []*observation.IncomingQuery
 	for {
-		resp, err := stream.Recv()
+		// Create the request with pagination
+		req := &observation.ListIncomingQueriesRequest{
+			State:  observation.QueryState_QUERY_STATE_UNSPECIFIED,
+			Limit:  int32(batchSize),
+			Offset: int32(offset),
+		}
+
+		// Call the service
+		stream, err := client.ListIncomingQueries(ctx, req)
 		if err != nil {
-			if err.Error() == "EOF" {
-				break
+			return nil, fmt.Errorf("failed to list incoming queries: %w", err)
+		}
+
+		var batchQueries []*observation.IncomingQuery
+		for {
+			resp, err := stream.Recv()
+			if err != nil {
+				if err.Error() == "EOF" {
+					break
+				}
+				return nil, fmt.Errorf("error receiving response: %w", err)
 			}
-			return nil, fmt.Errorf("error receiving response: %w", err)
+
+			if resp.Error != nil && resp.Error.Status != 0 {
+				logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
+				continue
+			}
+
+			if resp.Query != nil {
+				batchQueries = append(batchQueries, resp.Query)
+			}
 		}
 
-		if resp.Error != nil && resp.Error.Status != 0 {
-			logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
-			continue
+		// Add batch to all queries
+		allQueries = append(allQueries, batchQueries...)
+
+		// Log progress
+		logger.Info("fetched batch of incoming queries",
+			zap.String("endpoint", endpoint),
+			zap.Int("batch_size", len(batchQueries)),
+			zap.Int("total_so_far", len(allQueries)),
+			zap.Int("offset", offset))
+
+		// If we got fewer results than the batch size, we've reached the end
+		if len(batchQueries) < batchSize {
+			break
 		}
 
-		if resp.Query != nil {
-			queries = append(queries, resp.Query)
-		}
+		// Increment offset for next batch
+		offset += len(batchQueries)
 	}
 
-	logger.Info("fetched incoming queries",
+	logger.Info("completed fetching all incoming queries",
 		zap.String("endpoint", endpoint),
-		zap.Int("count", len(queries)))
+		zap.Int("total_count", len(allQueries)))
 
-	return queries, nil
+	return allQueries, nil
 }
 
 // fetchOutgoingQueries retrieves all outgoing queries from a single endpoint
@@ -565,48 +588,71 @@ func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.O
 
 	client := observation.NewObservationServiceClient(conn)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	// Create the request for all queries (unspecified state)
-	req := &observation.ListOutgoingQueriesRequest{
-		State: observation.QueryState_QUERY_STATE_UNSPECIFIED,
-		Limit: 0, // No limit (0 means no limit according to proto definition)
-		// Note: The server may still impose its own limit (e.g., 1000 records)
-		Offset: 0,
-	}
+	var allQueries []*observation.OutgoingQuery
+	offset := 0
+	batchSize := 1000
 
-	// Call the service
-	stream, err := client.ListOutgoingQueries(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list outgoing queries: %w", err)
-	}
-
-	var queries []*observation.OutgoingQuery
 	for {
-		resp, err := stream.Recv()
+		// Create the request with pagination
+		req := &observation.ListOutgoingQueriesRequest{
+			State:  observation.QueryState_QUERY_STATE_UNSPECIFIED,
+			Limit:  int32(batchSize),
+			Offset: int32(offset),
+		}
+
+		// Call the service
+		stream, err := client.ListOutgoingQueries(ctx, req)
 		if err != nil {
-			if err.Error() == "EOF" {
-				break
+			return nil, fmt.Errorf("failed to list outgoing queries: %w", err)
+		}
+
+		var batchQueries []*observation.OutgoingQuery
+		for {
+			resp, err := stream.Recv()
+			if err != nil {
+				if err.Error() == "EOF" {
+					break
+				}
+				return nil, fmt.Errorf("error receiving response: %w", err)
 			}
-			return nil, fmt.Errorf("error receiving response: %w", err)
+
+			if resp.Error != nil && resp.Error.Status != 0 {
+				logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
+				continue
+			}
+
+			if resp.Query != nil {
+				batchQueries = append(batchQueries, resp.Query)
+			}
 		}
 
-		if resp.Error != nil && resp.Error.Status != 0 {
-			logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
-			continue
+		// Add batch to all queries
+		allQueries = append(allQueries, batchQueries...)
+
+		// Log progress
+		logger.Info("fetched batch of outgoing queries",
+			zap.String("endpoint", endpoint),
+			zap.Int("batch_size", len(batchQueries)),
+			zap.Int("total_so_far", len(allQueries)),
+			zap.Int("offset", offset))
+
+		// If we got fewer results than the batch size, we've reached the end
+		if len(batchQueries) < batchSize {
+			break
 		}
 
-		if resp.Query != nil {
-			queries = append(queries, resp.Query)
-		}
+		// Increment offset for next batch
+		offset += len(batchQueries)
 	}
 
-	logger.Info("fetched outgoing queries",
+	logger.Info("completed fetching all outgoing queries",
 		zap.String("endpoint", endpoint),
-		zap.Int("count", len(queries)))
+		zap.Int("total_count", len(allQueries)))
 
-	return queries, nil
+	return allQueries, nil
 }
 
 // IncomingQueryWithEndpoint extends IncomingQuery with endpoint information
