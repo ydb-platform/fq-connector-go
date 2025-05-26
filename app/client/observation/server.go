@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -209,4 +211,35 @@ func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 func getAssetHandler() http.Handler {
 	fs := http.Dir("app/client/observation/assets")
 	return http.FileServer(fs)
+}
+
+func startAggregationServer(cmd *cobra.Command) error {
+	endpoints, err := cmd.Flags().GetString(endpointsFlag)
+	if err != nil {
+		return fmt.Errorf("failed to get endpoints: %w", err)
+	}
+
+	port, err := cmd.Flags().GetInt(portFlag)
+	if err != nil {
+		return fmt.Errorf("failed to get port: %w", err)
+	}
+
+	period, err := cmd.Flags().GetDuration(periodFlag)
+	if err != nil {
+		return fmt.Errorf("failed to get period: %w", err)
+	}
+
+	// Split endpoints
+	endpointList := strings.Split(endpoints, ",")
+	if len(endpointList) == 0 {
+		return fmt.Errorf("no endpoints provided")
+	}
+
+	// Create server
+	server := NewAggregationServer(endpointList, period)
+
+	// Start HTTP server
+	fmt.Printf("Starting aggregation server on :%d\n", port)
+
+	return server.Start(port)
 }
