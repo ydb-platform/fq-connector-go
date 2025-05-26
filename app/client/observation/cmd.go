@@ -27,6 +27,9 @@ const (
 	periodFlag     = "period"
 	outputFileFlag = "output" // For dump commands
 	formatFlag     = "format" // For dump commands (csv or parquet)
+
+	// Error constants
+	eofError = "EOF"
 )
 
 var Cmd = &cobra.Command{
@@ -163,6 +166,7 @@ func init() {
 	if err := aggregateCmd.MarkFlagRequired(endpointsFlag); err != nil {
 		panic(err)
 	}
+
 	if err := dumpCmd.MarkPersistentFlagRequired(endpointsFlag); err != nil {
 		panic(err)
 	}
@@ -390,12 +394,14 @@ func dumpIncomingQueries(cmd *cobra.Command) error {
 
 	// Collect queries from all endpoints
 	var allQueries []*IncomingQueryWithEndpoint
+
 	for _, endpoint := range endpoints {
 		queries, err := fetchIncomingQueries(endpoint, logger)
 		if err != nil {
 			fmt.Printf("Error fetching from %s: %v\n", endpoint, err)
 			continue
 		}
+
 		fmt.Printf("Fetched %d incoming queries from %s\n", len(queries), endpoint)
 
 		// Add endpoint information to each query
@@ -417,6 +423,7 @@ func dumpIncomingQueries(cmd *cobra.Command) error {
 	}
 
 	fmt.Printf("Successfully wrote %d incoming queries to %s\n", len(allQueries), outputFile)
+
 	return nil
 }
 
@@ -435,12 +442,14 @@ func dumpOutgoingQueries(cmd *cobra.Command) error {
 
 	// Collect queries from all endpoints
 	var allQueries []*OutgoingQueryWithEndpoint
+
 	for _, endpoint := range endpoints {
 		queries, err := fetchOutgoingQueries(endpoint, logger)
 		if err != nil {
 			fmt.Printf("Error fetching from %s: %v\n", endpoint, err)
 			continue
 		}
+
 		fmt.Printf("Fetched %d outgoing queries from %s\n", len(queries), endpoint)
 
 		// Add endpoint information to each query
@@ -462,6 +471,7 @@ func dumpOutgoingQueries(cmd *cobra.Command) error {
 	}
 
 	fmt.Printf("Successfully wrote %d outgoing queries to %s\n", len(allQueries), outputFile)
+
 	return nil
 }
 
@@ -512,6 +522,7 @@ func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.I
 	defer cancel()
 
 	var allQueries []*observation.IncomingQuery
+
 	offset := 0
 	batchSize := 1000
 
@@ -530,12 +541,14 @@ func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.I
 		}
 
 		var batchQueries []*observation.IncomingQuery
+
 		for {
 			resp, err := stream.Recv()
 			if err != nil {
-				if err.Error() == "EOF" {
+				if err.Error() == eofError {
 					break
 				}
+
 				return nil, fmt.Errorf("error receiving response: %w", err)
 			}
 
@@ -592,6 +605,7 @@ func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.O
 	defer cancel()
 
 	var allQueries []*observation.OutgoingQuery
+
 	offset := 0
 	batchSize := 1000
 
@@ -610,12 +624,14 @@ func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.O
 		}
 
 		var batchQueries []*observation.OutgoingQuery
+
 		for {
 			resp, err := stream.Recv()
 			if err != nil {
-				if err.Error() == "EOF" {
+				if err.Error() == eofError {
 					break
 				}
+
 				return nil, fmt.Errorf("error receiving response: %w", err)
 			}
 
@@ -715,6 +731,7 @@ func writeIncomingQueriesToCSV(queries []*IncomingQueryWithEndpoint, outputPath 
 
 		// Calculate elapsed time
 		var elapsedTimeMs string
+
 		if q.CreatedAt != nil && q.FinishedAt != nil {
 			elapsedTime := q.FinishedAt.AsTime().Sub(q.CreatedAt.AsTime())
 			elapsedTimeMs = strconv.FormatInt(elapsedTime.Milliseconds(), 10)
@@ -794,6 +811,7 @@ func writeOutgoingQueriesToCSV(queries []*OutgoingQueryWithEndpoint, outputPath 
 
 		// Calculate elapsed time
 		var elapsedTimeMs string
+
 		if q.CreatedAt != nil && q.FinishedAt != nil {
 			elapsedTime := q.FinishedAt.AsTime().Sub(q.CreatedAt.AsTime())
 			elapsedTimeMs = strconv.FormatInt(elapsedTime.Milliseconds(), 10)
