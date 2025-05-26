@@ -15,14 +15,8 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-const (
-	defaultPort   = 8081
-	defaultPeriod = 5 * time.Second
-)
-
 // NewAggregationServer creates a new aggregation server instance
 func NewAggregationServer(endpoints []string, period time.Duration) *AggregationServer {
-
 	logger := common.NewDefaultLogger()
 
 	return &AggregationServer{
@@ -47,13 +41,15 @@ type AggregationServer struct {
 // Start begins the HTTP server
 func (s *AggregationServer) Start(port int) error {
 	addr := fmt.Sprintf(":%d", port)
-	s.logger.Info("Starting aggregation server",
+
+	s.logger.Info("starting aggregation server",
 		zap.String("address", addr),
 		zap.Duration("polling_period", s.period),
 		zap.Strings("endpoints", s.endpoints))
 
 	http.HandleFunc("/ws", s.handleWebSocket)
 	http.Handle("/", getAssetHandler())
+
 	return http.ListenAndServe(addr, nil)
 }
 
@@ -61,12 +57,12 @@ func (s *AggregationServer) Start(port int) error {
 func (s *AggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.logger.Error("WebSocket upgrade failed", zap.Error(err))
+		s.logger.Error("websocket upgrade failed", zap.Error(err))
 		return
 	}
 	defer conn.Close()
 
-	s.logger.Info("New WebSocket connection established",
+	s.logger.Info("new webSocket connection established",
 		zap.String("remote_addr", r.RemoteAddr))
 
 	ticker := time.NewTicker(s.period)
@@ -82,13 +78,13 @@ func (s *AggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Reque
 			totalQueries += len(q)
 		}
 
-		s.logger.Info("Polling completed",
+		s.logger.Info("polling completed",
 			zap.Duration("duration", duration),
 			zap.Int("total_queries", totalQueries),
 			zap.Int("endpoints_polled", len(queries)))
 
 		if err := conn.WriteJSON(queries); err != nil {
-			s.logger.Error("WebSocket write failed", zap.Error(err))
+			s.logger.Error("websocket write failed", zap.Error(err))
 			return
 		}
 	}
@@ -103,30 +99,31 @@ type QueryWithFormattedTime struct {
 // pollEndpoints collects queries from all configured endpoints
 func (s *AggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime {
 	results := make(map[string][]*QueryWithFormattedTime)
-	s.logger.Info("Starting to poll endpoints",
+
+	s.logger.Info("starting to poll endpoints",
 		zap.Strings("endpoints", s.endpoints),
 		zap.Int("count", len(s.endpoints)))
 
 	for _, endpoint := range s.endpoints {
-		s.logger.Debug("Polling endpoint", zap.String("endpoint", endpoint))
+		s.logger.Debug("polling endpoint", zap.String("endpoint", endpoint))
+
 		startTime := time.Now()
+
 		queries, err := s.getOutgoingQueries(endpoint)
 		duration := time.Since(startTime)
 
 		if err != nil {
-			s.logger.Error("Error polling endpoint",
-				zap.String("endpoint", endpoint),
-				zap.Error(err))
+			s.logger.Error("error polling endpoint", zap.String("endpoint", endpoint), zap.Error(err))
 			continue
 		}
 
-		s.logger.Info("Endpoint polled successfully",
+		s.logger.Info("endpoint polled successfully",
 			zap.String("endpoint", endpoint),
 			zap.Duration("duration", duration),
 			zap.Int("queries_count", len(queries)))
 
 		if len(queries) > 0 {
-			s.logger.Debug("Sample query details",
+			s.logger.Debug("sample query details",
 				zap.String("first_query_id", queries[0].Id),
 				zap.String("first_query_text", queries[0].QueryText))
 		}
@@ -134,7 +131,7 @@ func (s *AggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 		results[endpoint] = queries
 	}
 
-	s.logger.Info("Completed polling endpoints",
+	s.logger.Info("completed polling endpoints",
 		zap.Int("successful_endpoints", len(results)),
 		zap.Int("failed_endpoints", len(s.endpoints)-len(results)))
 
@@ -143,7 +140,7 @@ func (s *AggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 
 // getOutgoingQueries retrieves running queries from a single endpoint
 func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFormattedTime, error) {
-	s.logger.Debug("Connecting to endpoint", zap.String("endpoint", endpoint))
+	s.logger.Debug("connecting to endpoint", zap.String("endpoint", endpoint))
 
 	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -152,6 +149,7 @@ func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 	defer conn.Close()
 
 	client := observation.NewObservationServiceClient(conn)
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -159,7 +157,7 @@ func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 		State: observation.QueryState_QUERY_STATE_RUNNING, // Only get RUNNING queries
 	}
 
-	s.logger.Debug("Making gRPC call to ListOutgoingQueries",
+	s.logger.Debug("making GRPC call to ListOutgoingQueries",
 		zap.String("endpoint", endpoint))
 
 	stream, err := client.ListOutgoingQueries(ctx, req)
@@ -167,33 +165,40 @@ func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 		return nil, fmt.Errorf("failed to list outgoing queries: %w", err)
 	}
 
-	var queries []*QueryWithFormattedTime
-	var receivedCount int
+	var (
+		queries       []*QueryWithFormattedTime
+		receivedCount int
+	)
+
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
-			s.logger.Debug("Stream receive completed",
+			s.logger.Debug("stream receive completed",
 				zap.String("endpoint", endpoint),
 				zap.Int("total_queries", receivedCount),
 				zap.Error(err))
+
 			break
 		}
+
 		if resp.Query != nil {
 			receivedCount++
 			query := &QueryWithFormattedTime{
 				OutgoingQuery: resp.Query,
 			}
+
 			if resp.Query.CreatedAt != nil {
 				query.FormattedCreatedAt = time.Unix(
 					resp.Query.CreatedAt.Seconds,
 					int64(resp.Query.CreatedAt.Nanos),
 				).Format(time.RFC3339)
 			}
+
 			queries = append(queries, query)
 		}
 	}
 
-	s.logger.Debug("Received queries from endpoint",
+	s.logger.Debug("received queries from endpoint",
 		zap.String("endpoint", endpoint),
 		zap.Int("count", len(queries)))
 

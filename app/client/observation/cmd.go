@@ -87,7 +87,7 @@ var outgoingRunningCmd = &cobra.Command{
 var aggregateCmd = &cobra.Command{
 	Use:   "aggregate",
 	Short: "Aggregate outgoing queries from multiple connectors",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, _ []string) {
 		if err := startAggregationServer(cmd); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -117,7 +117,9 @@ func init() {
 	aggregateCmd.Flags().Duration(periodFlag, 5*time.Second, "Polling period")
 
 	// Mark required flags
-	aggregateCmd.MarkFlagRequired(endpointsFlag)
+	if err := aggregateCmd.MarkFlagRequired(endpointsFlag); err != nil {
+		panic(err)
+	}
 
 	// Add endpoint flag to incoming/outgoing commands
 	incomingCmd.PersistentFlags().StringP(endpointFlag, "e", "localhost:2135", "gRPC endpoint to connect to")
@@ -323,5 +325,6 @@ func startAggregationServer(cmd *cobra.Command) error {
 
 	// Start HTTP server
 	fmt.Printf("Starting aggregation server on :%d\n", port)
+
 	return server.Start(port)
 }
