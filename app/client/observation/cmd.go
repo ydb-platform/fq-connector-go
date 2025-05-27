@@ -1,10 +1,8 @@
 package observation
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -12,14 +10,18 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/ydb-platform/fq-connector-go/api/observation"
-	"github.com/ydb-platform/fq-connector-go/api/service/protos"
 )
 
 const (
-	endpointFlag  = "endpoint"  // For incoming/outgoing commands
-	endpointsFlag = "endpoints" // For aggregate command
-	portFlag      = "port"
-	periodFlag    = "period"
+	endpointFlag   = "endpoint"  // For incoming/outgoing commands
+	endpointsFlag  = "endpoints" // For aggregate command and dump commands
+	portFlag       = "port"
+	periodFlag     = "period"
+	outputFileFlag = "output" // For dump commands
+	formatFlag     = "format" // For dump commands (csv or parquet)
+
+	// Error constants
+	eofError = "EOF"
 )
 
 var Cmd = &cobra.Command{
@@ -83,12 +85,40 @@ var outgoingRunningCmd = &cobra.Command{
 	},
 }
 
-// Aggregate command
-var aggregateCmd = &cobra.Command{
-	Use:   "aggregate",
-	Short: "Aggregate outgoing queries from multiple connectors",
+// Track command
+var trackCmd = &cobra.Command{
+	Use:   "track",
+	Short: "Track outgoing queries from multiple connectors",
 	Run: func(cmd *cobra.Command, _ []string) {
 		if err := startAggregationServer(cmd); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
+// Dump commands
+var dumpCmd = &cobra.Command{
+	Use:   "dump",
+	Short: "Dump queries to a CSV file",
+}
+
+var dumpIncomingCmd = &cobra.Command{
+	Use:   "incoming",
+	Short: "Dump all incoming queries to a CSV file",
+	Run: func(cmd *cobra.Command, _ []string) {
+		if err := dumpIncomingQueries(cmd); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+	},
+}
+
+var dumpOutgoingCmd = &cobra.Command{
+	Use:   "outgoing",
+	Short: "Dump all outgoing queries to a CSV file",
+	Run: func(cmd *cobra.Command, _ []string) {
+		if err := dumpOutgoingQueries(cmd); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
@@ -104,20 +134,32 @@ func init() {
 	outgoingCmd.AddCommand(outgoingAllCmd)
 	outgoingCmd.AddCommand(outgoingRunningCmd)
 
+	// Add dump subcommands
+	dumpCmd.AddCommand(dumpIncomingCmd)
+	dumpCmd.AddCommand(dumpOutgoingCmd)
+
 	// Add main subcommands to the root command
 	Cmd.AddCommand(incomingCmd)
 	Cmd.AddCommand(outgoingCmd)
-	Cmd.AddCommand(aggregateCmd)
-
-	// Remove endpoint flag from main command
+	Cmd.AddCommand(trackCmd)
+	Cmd.AddCommand(dumpCmd)
 
 	// Add flags for aggregate command
-	aggregateCmd.Flags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to monitor (required)")
-	aggregateCmd.Flags().Int(portFlag, 8081, "Port to serve dashboard on")
-	aggregateCmd.Flags().Duration(periodFlag, 5*time.Second, "Polling period")
+	trackCmd.Flags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to monitor (required)")
+	trackCmd.Flags().Int(portFlag, 8081, "Port to serve dashboard on")
+	trackCmd.Flags().Duration(periodFlag, 5*time.Second, "Polling period")
+
+	// Add flags for dump commands
+	dumpCmd.PersistentFlags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to fetch queries from (required)")
+	dumpCmd.PersistentFlags().String(outputFileFlag, "queries.csv", "Output file path")
+	dumpCmd.PersistentFlags().String(formatFlag, "csv", "Output format (csv only for now)")
 
 	// Mark required flags
-	if err := aggregateCmd.MarkFlagRequired(endpointsFlag); err != nil {
+	if err := trackCmd.MarkFlagRequired(endpointsFlag); err != nil {
+		panic(err)
+	}
+
+	if err := dumpCmd.MarkPersistentFlagRequired(endpointsFlag); err != nil {
 		panic(err)
 	}
 
@@ -142,189 +184,4 @@ func getClient(cmd *cobra.Command) (observation.ObservationServiceClient, *grpc.
 	client := observation.NewObservationServiceClient(conn)
 
 	return client, conn, nil
-}
-
-func listIncomingQueries(cmd *cobra.Command, _ []string, state observation.QueryState) error {
-	client, conn, err := getClient(cmd)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Create the request
-	req := &observation.ListIncomingQueriesRequest{
-		State:  state,
-		Limit:  1000,
-		Offset: 0,
-	}
-
-	// Call the service
-	stream, err := client.ListIncomingQueries(ctx, req)
-	if err != nil {
-		return fmt.Errorf("failed to list incoming queries: %w", err)
-	}
-
-	fmt.Println("Incoming Queries:")
-	fmt.Println("----------------")
-
-	count := 0
-
-	for {
-		resp, err := stream.Recv()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-
-			return fmt.Errorf("error receiving response: %w", err)
-		}
-
-		if resp.Error != nil && resp.Error.Status != 0 {
-			fmt.Printf("Error: %s\n", resp.Error.Message)
-			continue
-		}
-
-		if resp.Query != nil {
-			query := resp.Query
-			finishedAt := ""
-
-			if query.FinishedAt != nil {
-				finishedAt = query.FinishedAt.AsTime().Format(time.RFC3339)
-			}
-
-			fmt.Println("Query:")
-			fmt.Printf("  ID: %s\n", query.Id)
-			fmt.Printf("  Data Source: %s\n", query.DataSourceKind)
-			fmt.Printf("  Rows Read: %d\n", query.RowsRead)
-			fmt.Printf("  Bytes Read: %d\n", query.BytesRead)
-			fmt.Printf("  State: %s\n", query.State.String())
-			fmt.Printf("  Created At: %s\n", query.CreatedAt.AsTime().Format(time.RFC3339))
-			fmt.Printf("  Finished At: %s\n", finishedAt)
-			fmt.Printf("  Error: %s\n", query.Error)
-			fmt.Println("----------------")
-
-			count++
-		}
-	}
-
-	fmt.Printf("\nTotal: %d queries\n", count)
-
-	return nil
-}
-
-func listOutgoingQueries(cmd *cobra.Command, _ []string, state observation.QueryState) error {
-	client, conn, err := getClient(cmd)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	// Create the request
-	req := &observation.ListOutgoingQueriesRequest{
-		State:  state,
-		Limit:  1000,
-		Offset: 0,
-	}
-
-	// Call the service
-	stream, err := client.ListOutgoingQueries(ctx, req)
-	if err != nil {
-		return fmt.Errorf("failed to list outgoing queries: %w", err)
-	}
-
-	fmt.Println("Outgoing Queries:")
-	fmt.Println("----------------")
-
-	count := 0
-
-	for {
-		resp, err := stream.Recv()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-
-			return fmt.Errorf("error receiving response: %w", err)
-		}
-
-		if resp.Error != nil && resp.Error.Status != 0 {
-			fmt.Printf("Error: %s\n", resp.Error.Message)
-			continue
-		}
-
-		if resp.Query != nil {
-			query := resp.Query
-			finishedAt := ""
-
-			if query.FinishedAt != nil {
-				finishedAt = query.FinishedAt.AsTime().Format(time.RFC3339)
-			}
-
-			fmt.Println("Query:")
-			fmt.Printf("  ID: %s\n", query.Id)
-			fmt.Printf("  Parent ID: %s\n", query.IncomingQueryId)
-			fmt.Printf("  Database: %s\n", query.DatabaseName)
-			fmt.Printf("  Endpoint: %s\n", query.DatabaseEndpoint)
-			fmt.Printf("  Query Text: %s\n", query.QueryText)
-			fmt.Printf("  Query Args: %s\n", query.QueryArgs)
-			fmt.Printf("  Rows Read: %d\n", query.RowsRead)
-			fmt.Printf("  State: %s\n", query.State.String())
-			fmt.Printf("  Created At: %s\n", query.CreatedAt.AsTime().Format(time.RFC3339))
-			fmt.Printf("  Finished At: %s\n", finishedAt)
-			fmt.Printf("  Error: %s\n", query.Error)
-			fmt.Println("----------------")
-
-			count++
-		}
-	}
-
-	fmt.Printf("\nTotal: %d queries\n", count)
-
-	return nil
-}
-
-// nolint: unused
-func formatError(err *protos.TError) string {
-	if err == nil {
-		return ""
-	}
-
-	return fmt.Sprintf("%s (status: %d)", err.Message, err.Status)
-}
-
-func startAggregationServer(cmd *cobra.Command) error {
-	endpoints, err := cmd.Flags().GetString(endpointsFlag)
-	if err != nil {
-		return fmt.Errorf("failed to get endpoints: %w", err)
-	}
-
-	port, err := cmd.Flags().GetInt(portFlag)
-	if err != nil {
-		return fmt.Errorf("failed to get port: %w", err)
-	}
-
-	period, err := cmd.Flags().GetDuration(periodFlag)
-	if err != nil {
-		return fmt.Errorf("failed to get period: %w", err)
-	}
-
-	// Split endpoints
-	endpointList := strings.Split(endpoints, ",")
-	if len(endpointList) == 0 {
-		return fmt.Errorf("no endpoints provided")
-	}
-
-	// Create server
-	server := NewAggregationServer(endpointList, period)
-
-	// Start HTTP server
-	fmt.Printf("Starting aggregation server on :%d\n", port)
-
-	return server.Start(port)
 }
