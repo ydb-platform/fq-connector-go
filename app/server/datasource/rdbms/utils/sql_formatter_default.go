@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
-	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 // SQLFormatterDefault contains the most general implementations of some of
@@ -33,15 +32,15 @@ func (SQLFormatterDefault) RenderSelectQueryText(
 }
 
 func (SQLFormatterDefault) FormatStartsWith(_, _ string) (string, error) {
-	return "", common.ErrUnimplementedOperation
+	return "", nil
 }
 
 func (SQLFormatterDefault) FormatEndsWith(_, _ string) (string, error) {
-	return "", common.ErrUnimplementedOperation
+	return "", nil
 }
 
 func (SQLFormatterDefault) FormatContains(_, _ string) (string, error) {
-	return "", common.ErrUnimplementedOperation
+	return "", nil
 }
 
 func (SQLFormatterDefault) TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (

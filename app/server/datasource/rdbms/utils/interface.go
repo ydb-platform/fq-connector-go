@@ -90,11 +90,11 @@ type SQLFormatter interface {
 	SanitiseIdentifier(ident string) string
 	// Checks support for expression rendering
 	SupportsExpression(expression *api_service_protos.TExpression) bool
-	// Checks support for `left LIKE "right%"` predicate pushdown
+	// Renders `left LIKE "right%"` predicate pushdown if possible
 	FormatStartsWith(left, right string) (string, error)
-	// Checks support for `left LIKE "%right"` predicate pushdown
+	// Renders `left LIKE "%right"` predicate pushdown if possible
 	FormatEndsWith(left, right string) (string, error)
-	// Checks support for `left LIKE "%right%"` predicate pushdown
+	// Renders `left LIKE "%right%"` predicate pushdown if possible
 	FormatContains(left, right string) (string, error)
 	// FormatWhat builds a substring containing the SELECT clause.
 	FormatWhat(src *api_service_protos.TSelect_TWhat, tableName string) (string, error)
