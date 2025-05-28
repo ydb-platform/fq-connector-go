@@ -17,7 +17,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/opensearch"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/s3"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
@@ -51,10 +50,6 @@ func (dsc *DataSourceCollection) DescribeTable(
 		if err != nil {
 			return nil, fmt.Errorf("make data source: %w", err)
 		}
-
-		return ds.DescribeTable(ctx, logger, request)
-	case api_common.EGenericDataSourceKind_S3:
-		ds := s3.NewDataSource()
 
 		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
@@ -204,11 +199,6 @@ func (dsc *DataSourceCollection) ReadSplit(
 		}
 
 		return doReadSplit[any](
-			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
-	case api_common.EGenericDataSourceKind_S3:
-		ds := s3.NewDataSource()
-
-		return doReadSplit[string](
 			logger, stream, request, split, ds, dsc.memoryAllocator, dsc.readLimiterFactory, dsc.observationStorage, dsc.cfg)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		mongoDbCfg := dsc.cfg.Datasources.Mongodb
