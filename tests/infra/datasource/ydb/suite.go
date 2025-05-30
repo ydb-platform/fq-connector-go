@@ -478,7 +478,6 @@ func (s *Suite) TestPushdownUtf8Contains() {
 	)
 }
 
-// TestPushdownRegexpStringDigits tests REGEXP pattern matching digits in STRING column
 func (s *Suite) TestPushdownRegexpStringDigits() {
 	s.ValidateTable(
 		s.dataSource,
@@ -492,7 +491,6 @@ func (s *Suite) TestPushdownRegexpStringDigits() {
 	)
 }
 
-// TestPushdownRegexpStringLetters tests REGEXP pattern matching Latin letters in STRING column
 func (s *Suite) TestPushdownRegexpStringLetters() {
 	s.ValidateTable(
 		s.dataSource,
@@ -506,7 +504,6 @@ func (s *Suite) TestPushdownRegexpStringLetters() {
 	)
 }
 
-// TestPushdownRegexpStringStartAnchor tests REGEXP pattern with start anchor in STRING column
 func (s *Suite) TestPushdownRegexpStringStartAnchor() {
 	s.ValidateTable(
 		s.dataSource,
@@ -520,7 +517,6 @@ func (s *Suite) TestPushdownRegexpStringStartAnchor() {
 	)
 }
 
-// TestPushdownRegexpUtf8Digits tests REGEXP pattern matching digits in UTF8 column
 func (s *Suite) TestPushdownRegexpUtf8Digits() {
 	s.ValidateTable(
 		s.dataSource,
@@ -534,7 +530,6 @@ func (s *Suite) TestPushdownRegexpUtf8Digits() {
 	)
 }
 
-// TestPushdownRegexpUtf8CyrillicLetters tests REGEXP pattern matching Cyrillic letters in UTF8 column
 func (s *Suite) TestPushdownRegexpUtf8CyrillicLetters() {
 	s.ValidateTable(
 		s.dataSource,
@@ -548,7 +543,6 @@ func (s *Suite) TestPushdownRegexpUtf8CyrillicLetters() {
 	)
 }
 
-// TestPushdownRegexpUtf8EndAnchor tests REGEXP pattern with end anchor in UTF8 column
 func (s *Suite) TestPushdownRegexpUtf8EndAnchor() {
 	s.ValidateTable(
 		s.dataSource,
