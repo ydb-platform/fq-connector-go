@@ -44,6 +44,10 @@ func (SQLFormatterDefault) FormatContains(_, _ string) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }
 
+func (SQLFormatterDefault) FormatRegexp(_, _ string) (string, error) {
+	return "", common.ErrUnimplementedOperation
+}
+
 func (SQLFormatterDefault) TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (
 	*api_service_protos.TPredicate_TComparison, error) {
 	return src, nil

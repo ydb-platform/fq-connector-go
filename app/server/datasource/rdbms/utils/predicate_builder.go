@@ -508,6 +508,23 @@ func (pb *predicateBuilder) formatCoalesce(
 	return sb.String(), nil
 }
 
+func (pb *predicateBuilder) formatRegexp(
+	regexp *api_service_protos.TPredicate_TRegexp,
+	embedBool bool,
+) (string, error) {
+	valueStr, err := pb.formatExpression(regexp.Value, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format expression for value '%v': %w", regexp.Value, err)
+	}
+
+	patternStr, err := pb.formatExpression(regexp.Pattern, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format expression for pattern '%v': %w", regexp.Pattern, err)
+	}
+
+	return pb.formatter.FormatRegexp(valueStr, patternStr)
+}
+
 //nolint:gocyclo
 func (pb *predicateBuilder) formatPredicate(
 	predicate *api_service_protos.TPredicate,
@@ -559,6 +576,11 @@ func (pb *predicateBuilder) formatPredicate(
 		result, err = pb.formatCoalesce(p.Coalesce)
 		if err != nil {
 			return "", fmt.Errorf("format coalesce: %w", err)
+		}
+	case *api_service_protos.TPredicate_Regexp:
+		result, err = pb.formatRegexp(p.Regexp, embedBool)
+		if err != nil {
+			return "", fmt.Errorf("format regexp: %w", err)
 		}
 	default:
 		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)

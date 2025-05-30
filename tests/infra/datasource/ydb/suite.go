@@ -478,6 +478,84 @@ func (s *Suite) TestPushdownUtf8Contains() {
 	)
 }
 
+func (s *Suite) TestPushdownRegexpStringDigits() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_string_digits"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_01_string",
+				"\\d+",
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownRegexpStringLetters() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_string_letters"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_01_string",
+				"[a-z]+",
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownRegexpStringStartAnchor() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_string_start_anchor"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_01_string",
+				"^a",
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownRegexpUtf8Digits() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_utf8_digits"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_02_utf8",
+				"\\d+",
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownRegexpUtf8CyrillicLetters() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_utf8_cyrillic"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_02_utf8",
+				"[а-я]+",
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownRegexpUtf8EndAnchor() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_utf8_end_anchor"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_02_utf8",
+				"c$",
+			),
+		}),
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
 	connectorMode config.TYdbConfig_Mode,
