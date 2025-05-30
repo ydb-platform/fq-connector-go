@@ -201,6 +201,10 @@ func (f SQLFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat, _ strin
 	return rdbms_utils.FormatWhatDefault(f, what), nil
 }
 
+func (SQLFormatter) FormatRegexp(left, right string) (string, error) {
+	return fmt.Sprintf("(%s REGEXP %s)", left, right), nil
+}
+
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {
 	return SQLFormatter{
 		mode: mode,
