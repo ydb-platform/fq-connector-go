@@ -14,4 +14,9 @@ PRAGMA generic.UsePredicatePushdown="true";
 -- SELECT * FROM external_datasource.`yq-4224` WHERE hash LIKE "6758%";
 
 -- SELECT * FROM external_datasource.primitives;
-SELECT * FROM external_datasource.primitives WHERE `col_13_utf8` LIKE Utf8("a%");
+
+-- SELECT * FROM external_datasource.primitives WHERE `col_13_utf8` LIKE Utf8("a%");
+
+-- SELECT * FROM external_datasource.pushdown_regexp WHERE `col_01_string` REGEXP '\\d+';
+
+SELECT * FROM external_datasource.pushdown_regexp WHERE `col_02_utf8` REGEXP '\\d+';
