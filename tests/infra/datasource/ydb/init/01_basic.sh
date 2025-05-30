@@ -139,6 +139,21 @@ set -x
         (4, NULL, NULL);
     COMMIT;
 
+    -- YQ-4280
+    CREATE TABLE pushdown_regexp (
+        id Int32 NOT NULL,
+        col_01_string STRING,
+        col_02_utf8 UTF8,
+        PRIMARY KEY (id)
+    );
+    COMMIT;
+    INSERT INTO pushdown_regexp (id, col_01_string, col_02_utf8) VALUES
+        (1, "123", "123"),
+        (2, "абв", "абв"),
+        (3, "abc", "abc"),
+        (4, NULL, NULL);
+    COMMIT;
+
     CREATE TABLE `parent/child` (
         id INT32 NOT NULL,
         col UTF8 NOT NULL,

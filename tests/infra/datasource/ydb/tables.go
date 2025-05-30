@@ -581,6 +581,128 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	// REGEXP tests for STRING column
+	"pushdown_regexp_string_digits": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{1},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("123"))},
+					"col_02_utf8":   []*string{ptr.String("123")},
+				},
+			},
+		},
+	},
+	"pushdown_regexp_string_letters": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{3},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("abc"))},
+					"col_02_utf8":   []*string{ptr.String("abc")},
+				},
+			},
+		},
+	},
+	"pushdown_regexp_string_start_anchor": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{3},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("abc"))},
+					"col_02_utf8":   []*string{ptr.String("abc")},
+				},
+			},
+		},
+	},
+	// REGEXP tests for UTF8 column
+	"pushdown_regexp_utf8_digits": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{1},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("123"))},
+					"col_02_utf8":   []*string{ptr.String("123")},
+				},
+			},
+		},
+	},
+	"pushdown_regexp_utf8_cyrillic": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{2},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("абв"))},
+					"col_02_utf8":   []*string{ptr.String("абв")},
+				},
+			},
+		},
+	},
+	"pushdown_regexp_utf8_end_anchor": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{3},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("abc"))},
+					"col_02_utf8":   []*string{ptr.String("abc")},
+				},
+			},
+		},
+	},
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

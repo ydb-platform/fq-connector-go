@@ -478,6 +478,90 @@ func (s *Suite) TestPushdownUtf8Contains() {
 	)
 }
 
+// TestPushdownRegexpStringDigits tests REGEXP pattern matching digits in STRING column
+func (s *Suite) TestPushdownRegexpStringDigits() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_string_digits"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_01_string",
+				"\\d+",
+			),
+		}),
+	)
+}
+
+// TestPushdownRegexpStringLetters tests REGEXP pattern matching Latin letters in STRING column
+func (s *Suite) TestPushdownRegexpStringLetters() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_string_letters"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_01_string",
+				"[a-z]+",
+			),
+		}),
+	)
+}
+
+// TestPushdownRegexpStringStartAnchor tests REGEXP pattern with start anchor in STRING column
+func (s *Suite) TestPushdownRegexpStringStartAnchor() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_string_start_anchor"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_01_string",
+				"^a",
+			),
+		}),
+	)
+}
+
+// TestPushdownRegexpUtf8Digits tests REGEXP pattern matching digits in UTF8 column
+func (s *Suite) TestPushdownRegexpUtf8Digits() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_utf8_digits"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_02_utf8",
+				"\\d+",
+			),
+		}),
+	)
+}
+
+// TestPushdownRegexpUtf8CyrillicLetters tests REGEXP pattern matching Cyrillic letters in UTF8 column
+func (s *Suite) TestPushdownRegexpUtf8CyrillicLetters() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_utf8_cyrillic"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_02_utf8",
+				"[а-я]+",
+			),
+		}),
+	)
+}
+
+// TestPushdownRegexpUtf8EndAnchor tests REGEXP pattern with end anchor in UTF8 column
+func (s *Suite) TestPushdownRegexpUtf8EndAnchor() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_utf8_end_anchor"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpColumn(
+				"col_02_utf8",
+				"c$",
+			),
+		}),
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
 	connectorMode config.TYdbConfig_Mode,
