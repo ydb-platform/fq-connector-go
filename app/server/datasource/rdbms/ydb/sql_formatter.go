@@ -82,6 +82,10 @@ func (f SQLFormatter) SupportsExpression(expression *api_service_protos.TExpress
 		return false
 	case *api_service_protos.TExpression_Null:
 		return true
+	case *api_service_protos.TExpression_If:
+		// Support IF-ELSE expressions if all components are supported
+		return f.SupportsExpression(e.If.ThenExpression) &&
+			f.SupportsExpression(e.If.ElseExpression)
 	default:
 		return false
 	}
@@ -203,6 +207,10 @@ func (f SQLFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat, _ strin
 
 func (SQLFormatter) FormatRegexp(left, right string) (string, error) {
 	return fmt.Sprintf("(%s REGEXP %s)", left, right), nil
+}
+
+func (SQLFormatter) FormatIfElse(predicateExpr, thenExpr, elseExpr string) (string, error) {
+	return fmt.Sprintf("IF(%s, %s, %s)", predicateExpr, thenExpr, elseExpr), nil
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {

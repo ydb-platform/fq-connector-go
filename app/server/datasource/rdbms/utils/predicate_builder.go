@@ -237,6 +237,28 @@ func (pb *predicateBuilder) formatArithmeticalExpression(
 	return fmt.Sprintf("(%s%s%s)", left, operation, right), nil
 }
 
+func (pb *predicateBuilder) formatIfElseExpression(
+	ifElse *api_service_protos.TExpression_TIf,
+	embedBool bool,
+) (string, error) {
+	predicateStr, err := pb.formatPredicate(ifElse.Predicate, false, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format predicate: %w", err)
+	}
+
+	thenStr, err := pb.formatExpression(ifElse.ThenExpression, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format then expression: %w", err)
+	}
+
+	elseStr, err := pb.formatExpression(ifElse.ElseExpression, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format else expression: %w", err)
+	}
+
+	return pb.formatter.FormatIfElse(predicateStr, thenStr, elseStr)
+}
+
 func (pb *predicateBuilder) formatExpression(
 	expression *api_service_protos.TExpression,
 	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
@@ -267,6 +289,11 @@ func (pb *predicateBuilder) formatExpression(
 		result, err = pb.formatNull(e.Null)
 		if err != nil {
 			return result, fmt.Errorf("format null: %w", err)
+		}
+	case *api_service_protos.TExpression_If:
+		result, err = pb.formatIfElseExpression(e.If, embedBool)
+		if err != nil {
+			return result, fmt.Errorf("format if-else expression: %w", err)
 		}
 	default:
 		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedExpression, e)
@@ -508,6 +535,28 @@ func (pb *predicateBuilder) formatCoalesce(
 	return sb.String(), nil
 }
 
+func (pb *predicateBuilder) formatIfElse(
+	ifElse *api_service_protos.TPredicate_TIf,
+	embedBool bool,
+) (string, error) {
+	predicateStr, err := pb.formatPredicate(ifElse.Predicate, false, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format predicate expression: %w", err)
+	}
+
+	thenStr, err := pb.formatPredicate(ifElse.ThenPredicate, false, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format then predicate: %w", err)
+	}
+
+	elseStr, err := pb.formatPredicate(ifElse.ElsePredicate, false, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format else predicate: %w", err)
+	}
+
+	return pb.formatter.FormatIfElse(predicateStr, thenStr, elseStr)
+}
+
 func (pb *predicateBuilder) formatRegexp(
 	regexp *api_service_protos.TPredicate_TRegexp,
 	embedBool bool,
@@ -581,6 +630,11 @@ func (pb *predicateBuilder) formatPredicate(
 		result, err = pb.formatRegexp(p.Regexp, embedBool)
 		if err != nil {
 			return "", fmt.Errorf("format regexp: %w", err)
+		}
+	case *api_service_protos.TPredicate_If:
+		result, err = pb.formatIfElse(p.If, embedBool)
+		if err != nil {
+			return "", fmt.Errorf("format if-else: %w", err)
 		}
 	default:
 		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
