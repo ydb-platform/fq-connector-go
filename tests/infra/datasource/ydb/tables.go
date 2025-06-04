@@ -703,6 +703,26 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"pushdown_regexp_if": {
+		Name:                  "pushdown_regexp",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":            common.MakePrimitiveType(Ydb.Type_INT32),
+				"col_01_string": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_02_utf8":   common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":            []int32{3},
+					"col_01_string": []*[]byte{ptr.Bytes([]byte("abc"))},
+					"col_02_utf8":   []*string{ptr.String("abc")},
+				},
+			},
+		},
+	},
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

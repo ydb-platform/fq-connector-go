@@ -556,6 +556,22 @@ func (s *Suite) TestPushdownRegexpUtf8EndAnchor() {
 	)
 }
 
+// REGEXP over Utf8 column is a quite complicated pushdown
+// as it involves IF clause
+func (s *Suite) TestPushdownRegexpIf() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_if"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateRegexpIfCastColumn(
+				"col_02_utf8",
+				Ydb.Type_STRING,
+				"^a",
+			),
+		}),
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
 	connectorMode config.TYdbConfig_Mode,

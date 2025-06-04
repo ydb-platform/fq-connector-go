@@ -268,8 +268,63 @@ func (pb *predicateBuilder) formatExpression(
 		if err != nil {
 			return result, fmt.Errorf("format null: %w", err)
 		}
+	case *api_service_protos.TExpression_If:
+		result, err = pb.formatIf(e.If, embedBool)
+		if err != nil {
+			return result, fmt.Errorf("format if expression '%v': %w", e.If, err)
+		}
+	case *api_service_protos.TExpression_Cast:
+		result, err = pb.formatCast(e.Cast, embedBool)
+		if err != nil {
+			return result, fmt.Errorf("format cast expression '%v': %w", e.Cast, err)
+		}
 	default:
-		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedExpression, e)
+		return "", fmt.Errorf("type: %T: %w", e, common.ErrUnimplementedExpression)
+	}
+
+	return result, nil
+}
+
+func (pb *predicateBuilder) formatIf(
+	expression *api_service_protos.TExpression_TIf,
+	embedBool bool,
+) (string, error) {
+	predicateExpr, err := pb.formatPredicate(expression.Predicate, false, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format predicate: %w", err)
+	}
+
+	thenExpr, err := pb.formatExpression(expression.ThenExpression, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format then expression: %w", err)
+	}
+
+	elseExpr, err := pb.formatExpression(expression.ElseExpression, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format else expression: %w", err)
+	}
+
+	result, err := pb.formatter.FormatIf(predicateExpr, thenExpr, elseExpr)
+	if err != nil {
+		return "", fmt.Errorf("formatter format if expression: %w", err)
+	}
+
+	return result, nil
+}
+
+func (pb *predicateBuilder) formatCast(
+	expression *api_service_protos.TExpression_TCast,
+	embedBool bool,
+) (string, error) {
+	// Format the value to be cast
+	valueExpr, err := pb.formatExpression(expression.Value, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format value: %w", err)
+	}
+
+	result, err := pb.formatter.FormatCast(valueExpr, expression.Type)
+	if err != nil {
+		return "", fmt.Errorf("formatter format cast: %w", err)
 	}
 
 	return result, nil
