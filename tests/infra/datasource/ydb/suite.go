@@ -556,6 +556,62 @@ func (s *Suite) TestPushdownRegexpUtf8EndAnchor() {
 	)
 }
 
+func (s *Suite) TestPushdownRegexpIf() {
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_regexp_if"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: &api_service_protos.TPredicate_Regexp{
+				Regexp: &api_service_protos.TPredicate_TRegexp{
+					Value: &api_service_protos.TExpression{
+						Payload: &api_service_protos.TExpression_If{
+							If: &api_service_protos.TExpression_TIf{
+								Predicate: &api_service_protos.TPredicate{
+									Payload: &api_service_protos.TPredicate_IsNotNull{
+										IsNotNull: &api_service_protos.TPredicate_TIsNotNull{
+											Value: &api_service_protos.TExpression{
+												Payload: &api_service_protos.TExpression_Column{
+													Column: "col_02_utf8",
+												},
+											},
+										},
+									},
+								},
+								ThenExpression: &api_service_protos.TExpression{
+									Payload: &api_service_protos.TExpression_Cast{
+										Cast: &api_service_protos.TExpression_TCast{
+											Value: &api_service_protos.TExpression{
+												Payload: &api_service_protos.TExpression_Column{
+													Column: "col_02_utf8",
+												},
+											},
+											Type: &Ydb.Type{
+												Type: &Ydb.Type_TypeId{
+													TypeId: Ydb.Type_STRING,
+												},
+											},
+										},
+									},
+								},
+								ElseExpression: &api_service_protos.TExpression{
+									Payload: &api_service_protos.TExpression_Null{
+										Null: &api_service_protos.TExpression_TNull{},
+									},
+								},
+							},
+						},
+					},
+					Pattern: &api_service_protos.TExpression{
+						Payload: &api_service_protos.TExpression_TypedValue{
+							TypedValue: common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("^a")),
+						},
+					},
+				},
+			},
+		}),
+	)
+}
+
 func NewSuite(
 	baseSuite *suite.Base[int32, *array.Int32Builder],
 	connectorMode config.TYdbConfig_Mode,
