@@ -122,11 +122,11 @@ func MakePredicateRegexpColumn(columnName, pattern string) *api_service_protos.T
 	}
 }
 
-// MakePredicateRegexpIfCastColumn creates a predicate that applies a regexp pattern to a column
-// after conditionally casting it to a different type if it's not null.
-// This is useful for testing complex expressions involving IF, CAST, and REGEXP.
-// The predicate is equivalent to: REGEXP(IF(column IS NOT NULL, CAST(column AS targetType), NULL), pattern)
-func MakePredicateRegexpIfCastColumn(columnName string, targetTypeId Ydb.Type_PrimitiveTypeId, pattern string) *api_service_protos.TPredicate_Regexp {
+func MakePredicateRegexpIfCastColumn(
+	columnName string,
+	targetTypeId Ydb.Type_PrimitiveTypeId,
+	pattern string,
+) *api_service_protos.TPredicate_Regexp {
 	return &api_service_protos.TPredicate_Regexp{
 		Regexp: &api_service_protos.TPredicate_TRegexp{
 			Value: &api_service_protos.TExpression{
