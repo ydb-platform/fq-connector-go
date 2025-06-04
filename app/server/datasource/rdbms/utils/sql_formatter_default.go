@@ -48,7 +48,7 @@ func (SQLFormatterDefault) FormatRegexp(_, _ string) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }
 
-func (SQLFormatterDefault) FormatIfElse(_, _, _ string) (string, error) {
+func (SQLFormatterDefault) FormatIf(_, _, _ string) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }
 

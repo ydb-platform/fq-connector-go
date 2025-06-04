@@ -107,7 +107,7 @@ type SQLFormatter interface {
 	// Renders `left REGEXP right` predicate pushdown if possible
 	FormatRegexp(left, right string) (string, error)
 	// Renders `IF(predicateExpr, thenExpr, elseExpr)` predicate pushdown if possible
-	FormatIfElse(predicateExpr, thenExpr, elseExpr string) (string, error)
+	FormatIf(predicateExpr, thenExpr, elseExpr string) (string, error)
 	// TransformPredicateComparison transforms the comparison predicate
 	// (may be useful for some special data sources)
 	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (

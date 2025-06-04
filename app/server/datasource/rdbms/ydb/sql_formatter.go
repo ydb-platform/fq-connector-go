@@ -83,9 +83,9 @@ func (f SQLFormatter) SupportsExpression(expression *api_service_protos.TExpress
 	case *api_service_protos.TExpression_Null:
 		return true
 	case *api_service_protos.TExpression_If:
-		// Support IF-ELSE expressions if all components are supported
-		return f.SupportsExpression(e.If.ThenExpression) &&
-			f.SupportsExpression(e.If.ElseExpression)
+		return f.SupportsExpression(e.If.ThenExpression) && f.SupportsExpression(e.If.ElseExpression)
+	case *api_service_protos.TExpression_Cast:
+		return f.SupportsExpression(e.Cast.Value)
 	default:
 		return false
 	}
