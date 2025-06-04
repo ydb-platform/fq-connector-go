@@ -3,6 +3,8 @@ package utils
 import (
 	"strings"
 
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -49,6 +51,10 @@ func (SQLFormatterDefault) FormatRegexp(_, _ string) (string, error) {
 }
 
 func (SQLFormatterDefault) FormatIf(_, _, _ string) (string, error) {
+	return "", common.ErrUnimplementedOperation
+}
+
+func (SQLFormatterDefault) FormatCast(_ string, _ *Ydb.Type) (string, error) {
 	return "", common.ErrUnimplementedOperation
 }
 

@@ -209,8 +209,23 @@ func (SQLFormatter) FormatRegexp(left, right string) (string, error) {
 	return fmt.Sprintf("(%s REGEXP %s)", left, right), nil
 }
 
-func (SQLFormatter) FormatIfElse(predicateExpr, thenExpr, elseExpr string) (string, error) {
+func (SQLFormatter) FormatIf(predicateExpr, thenExpr, elseExpr string) (string, error) {
 	return fmt.Sprintf("IF(%s, %s, %s)", predicateExpr, thenExpr, elseExpr), nil
+}
+
+func (SQLFormatter) FormatCast(value string, ydbType *Ydb.Type) (string, error) {
+	primitiveType := ydbType.GetTypeId()
+
+	if primitiveType == Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED {
+		return "", fmt.Errorf("primitive type is unspecified")
+	}
+
+	typeName, err := primitiveYqlTypeName(primitiveType)
+	if err != nil {
+		return "", fmt.Errorf("primitive YQL type name: %w", err)
+	}
+
+	return fmt.Sprintf("CAST(%s AS %s)", value, typeName), nil
 }
 
 func NewSQLFormatter(mode config.TYdbConfig_Mode, cfg *config.TPushdownConfig) SQLFormatter {
