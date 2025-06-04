@@ -35,15 +35,17 @@ func (c *connectionManager) Make(
 	case api_common.EGenericProtocol_NATIVE:
 		conn, err = makeConnectionNative(
 			params.Ctx, params.Logger, c.cfg, params.DataSourceInstance, params.TableName, c.QueryLoggerFactory.Make(params.Logger))
+		if err != nil {
+			return nil, fmt.Errorf("make connection native: %w", err)
+		}
 	case api_common.EGenericProtocol_HTTP:
 		conn, err = makeConnectionHTTP(
 			params.Ctx, params.Logger, c.cfg, params.DataSourceInstance, params.TableName, c.QueryLoggerFactory.Make(params.Logger))
+		if err != nil {
+			return nil, fmt.Errorf("make connection http: %w", err)
+		}
 	default:
-		return nil, fmt.Errorf("can not run ClickHouse connection with protocol '%v'", params.DataSourceInstance.Protocol)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("make connection: %w", err)
+		return nil, fmt.Errorf("can not run connection with protocol '%v'", params.DataSourceInstance.Protocol)
 	}
 
 	return []rdbms_utils.Connection{conn}, nil

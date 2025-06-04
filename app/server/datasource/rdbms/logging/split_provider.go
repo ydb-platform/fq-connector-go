@@ -43,12 +43,16 @@ func (s *splitProviderImpl) ListSplits(
 		src := src
 
 		errGroup.Go(func() error {
-			return s.handleYDBSource(params, src)
+			if err := s.handleYDBSource(params, src); err != nil {
+				return fmt.Errorf("handle YDB source %v: %w", src, err)
+			}
+
+			return nil
 		})
 	}
 
 	if err := errGroup.Wait(); err != nil {
-		return fmt.Errorf("handle YDB source: %w", err)
+		return fmt.Errorf("load tablet ids from all YDB sources: %w", err)
 	}
 
 	return nil
