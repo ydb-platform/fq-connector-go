@@ -183,9 +183,59 @@ func (s SplitProvider) listSplitsColumnShard(
 	return nil
 }
 
-const getColumnShardsTabletIDsQueryTimeout = 10 * time.Second
+func (SplitProvider) doQueryTabletIDs(
+	ctx context.Context,
+	session query.Session,
+	logger *zap.Logger,
+	prefix string,
+) ([]uint64, error) {
+	var tabletIDs []uint64
 
-func (SplitProvider) GetColumnShardTabletIDs(
+	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
+
+	logger.Debug("discovering column table tablet ids", zap.String("query", queryText))
+
+	result, err := session.Query(ctx, queryText)
+	if err != nil {
+		return nil, fmt.Errorf("query: %w", err)
+	}
+
+	for {
+		resultSet, err := result.NextResultSet(ctx)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+
+			return nil, fmt.Errorf("next result set: %w", err)
+		}
+
+		var tabletId uint64
+
+		for {
+			r, err := resultSet.NextRow(ctx)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return nil, fmt.Errorf("next row: %w", err)
+			}
+
+			if err := r.Scan(&tabletId); err != nil {
+				return nil, fmt.Errorf("row scan: %w", err)
+			}
+
+			tabletIDs = append(tabletIDs, tabletId)
+		}
+	}
+
+	logger.Info("discovered column table tablet ids", zap.Int("total", len(tabletIDs)))
+
+	return tabletIDs, nil
+}
+
+func (s SplitProvider) GetColumnShardTabletIDs(
 	parentCtx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -195,50 +245,21 @@ func (SplitProvider) GetColumnShardTabletIDs(
 
 	var tabletIDs []uint64
 
-	ctx, cancel := context.WithTimeout(parentCtx, getColumnShardsTabletIDsQueryTimeout)
+	timeout, err := time.ParseDuration(s.cfg.QueryTabletIdsTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("parse query tablet ids timeout: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(parentCtx, timeout)
 	defer cancel()
 
-	err := driver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
-		queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
+	err = driver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
+		var queryErr error
 
-		logger.Debug("discovering column table tablet ids", zap.String("query", queryText))
-
-		result, err := s.Query(ctx, queryText)
-		if err != nil {
-			return fmt.Errorf("query: %w", err)
+		tabletIDs, queryErr = s.doQueryTabletIDs(ctx, session, logger, prefix)
+		if queryErr != nil {
+			return fmt.Errorf("do query tablet ids: %w", queryErr)
 		}
-
-		for {
-			resultSet, err := result.NextResultSet(ctx)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-
-				return fmt.Errorf("next result set: %w", err)
-			}
-
-			var tabletId uint64
-
-			for {
-				r, err := resultSet.NextRow(ctx)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						break
-					}
-
-					return fmt.Errorf("next row: %w", err)
-				}
-
-				if err := r.Scan(&tabletId); err != nil {
-					return fmt.Errorf("row scan: %w", err)
-				}
-
-				tabletIDs = append(tabletIDs, tabletId)
-			}
-		}
-
-		logger.Info("discovered column table tablet ids", zap.Int("total", len(tabletIDs)))
 
 		return nil
 	},

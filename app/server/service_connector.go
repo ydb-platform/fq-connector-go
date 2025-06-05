@@ -162,7 +162,7 @@ func (s *serviceConnector) doReadSplits(
 	for _, split := range request.Splits {
 		splitLogger := common.
 			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
-			With(zap.Uint64("id", split.Id))
+			With(zap.Uint64("split_sequential_id", split.Id))
 
 		err := s.dataSourceCollection.ReadSplit(
 			splitLogger,

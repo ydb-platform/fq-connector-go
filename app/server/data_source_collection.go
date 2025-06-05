@@ -262,13 +262,13 @@ func doReadSplit[T paging.Acceptor](
 	observationStorage observation.Storage,
 	cfg *config.TServerConfig,
 ) error {
-	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
-
 	// Register query for further analysis
-	queryID, err := observationStorage.CreateIncomingQuery(stream.Context(), logger, split.Select.DataSourceInstance.Kind)
+	logger, queryID, err := observationStorage.CreateIncomingQuery(stream.Context(), logger, split.Select.DataSourceInstance.Kind)
 	if err != nil {
-		return fmt.Errorf("create query: %w", err)
+		return fmt.Errorf("create incoming query: %w", err)
 	}
+
+	logger.Debug("split reading started", common.SelectToFields(split.Select)...)
 
 	columnarBufferFactory, err := paging.NewColumnarBufferFactory[T](
 		logger,
@@ -300,7 +300,8 @@ func doReadSplit[T paging.Acceptor](
 	// Run streaming reading
 	if err = streamer.Run(); err != nil {
 		// Register query error
-		cancelQueryErr := observationStorage.CancelIncomingQuery(context.Background(), logger, queryID, err.Error(), sinkFactory.FinalStats())
+		cancelQueryErr := observationStorage.CancelIncomingQuery(
+			context.Background(), logger, queryID, err.Error(), sinkFactory.FinalStats())
 		if cancelQueryErr != nil {
 			logger.Error("observation storage cancel incoming query", zap.Error(cancelQueryErr))
 		}
@@ -341,7 +342,7 @@ func NewDataSourceCollection(
 ) (*DataSourceCollection, error) {
 	rdbmsFactory, err := rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection, observationStorage)
 	if err != nil {
-		return nil, fmt.Errorf("new rdbms data source factory: %w", err)
+		return nil, fmt.Errorf("new data source factory: %w", err)
 	}
 
 	return &DataSourceCollection{

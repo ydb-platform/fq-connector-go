@@ -16,7 +16,7 @@ import (
 type Storage interface {
 	// Incoming query operations
 	CreateIncomingQuery(
-		ctx context.Context, logger *zap.Logger, dataSourceKind api_common.EGenericDataSourceKind) (string, error)
+		ctx context.Context, logger *zap.Logger, dataSourceKind api_common.EGenericDataSourceKind) (*zap.Logger, string, error)
 	FinishIncomingQuery(
 		ctx context.Context, logger *zap.Logger, id string, stats *api_service_protos.TReadSplitsResponse_TStats) error
 	CancelIncomingQuery(
@@ -33,7 +33,7 @@ type Storage interface {
 		dsi *api_common.TGenericDataSourceInstance,
 		queryText string,
 		queryArgs []any,
-	) (string, error)
+	) (*zap.Logger, string, error)
 	FinishOutgoingQuery(
 		ctx context.Context, logger *zap.Logger, id string, rowsRead int64) error
 	CancelOutgoingQuery(
