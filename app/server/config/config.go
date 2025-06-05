@@ -265,6 +265,10 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 		}
 	}
 
+	if c.Splitting.QueryTabletIdsTimeout == "" {
+		c.Splitting.QueryTabletIdsTimeout = "20s"
+	}
+
 	if c.Mode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE && c.ResourcePool == "" {
 		c.ResourcePool = "default"
 	}
@@ -529,6 +533,10 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if c.Splitting == nil {
 		return fmt.Errorf("you must set `splitting` section")
+	}
+
+	if _, err := common.DurationFromString(c.Splitting.QueryTabletIdsTimeout); err != nil {
+		return fmt.Errorf("validate `query_tablet_ids_timeout`: %v", err)
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {

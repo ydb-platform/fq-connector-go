@@ -16,8 +16,10 @@ type storageDummyImpl struct {
 }
 
 // Incoming query operations
-func (storageDummyImpl) CreateIncomingQuery(_ context.Context, _ *zap.Logger, _ api_common.EGenericDataSourceKind) (string, error) {
-	return "", nil
+func (storageDummyImpl) CreateIncomingQuery(
+	_ context.Context, logger *zap.Logger, _ api_common.EGenericDataSourceKind,
+) (*zap.Logger, string, error) {
+	return logger, "", nil
 }
 
 func (storageDummyImpl) FinishIncomingQuery(
@@ -38,13 +40,13 @@ func (storageDummyImpl) ListIncomingQueries(
 // Outgoing query operations
 func (storageDummyImpl) CreateOutgoingQuery(
 	_ context.Context,
-	_ *zap.Logger,
+	logger *zap.Logger,
 	_ string,
 	_ *api_common.TGenericDataSourceInstance,
 	_ string,
 	_ []any,
-) (string, error) {
-	return "", nil
+) (*zap.Logger, string, error) {
+	return logger, "", nil
 }
 
 func (storageDummyImpl) FinishOutgoingQuery(_ context.Context, _ *zap.Logger, _ string, _ int64) error {

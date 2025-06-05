@@ -124,7 +124,7 @@ func (s *storageSQLite) CreateIncomingQuery(
 	ctx context.Context,
 	logger *zap.Logger,
 	dataSourceKind api_common.EGenericDataSourceKind,
-) (string, error) {
+) (*zap.Logger, string, error) {
 	now := time.Now().UTC()
 	id := uuid.NewString()
 
@@ -133,12 +133,14 @@ func (s *storageSQLite) CreateIncomingQuery(
 		id, dataSourceKind.String(), now, 0, 0, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
 	if err != nil {
-		return "", fmt.Errorf("creating incoming query: %w", err)
+		return logger, "", fmt.Errorf("creating incoming query: %w", err)
 	}
 
-	logger.Debug("created incoming query", zap.String("id", id))
+	logger = logger.With(zap.String("incoming_query_id", id))
 
-	return id, nil
+	logger.Debug("created incoming query")
+
+	return logger, id, nil
 }
 
 // FinishIncomingQuery marks an incoming query as finished with final stats
@@ -163,7 +165,7 @@ func (s *storageSQLite) FinishIncomingQuery(
 		return fmt.Errorf("incoming query not found: %s", id)
 	}
 
-	logger.Debug("finished incoming query", zap.String("id", id))
+	logger.Debug("finished incoming query")
 
 	return nil
 }
@@ -193,7 +195,7 @@ func (s *storageSQLite) CancelIncomingQuery(ctx context.Context, logger *zap.Log
 		return fmt.Errorf("incoming query not found: %s", id)
 	}
 
-	logger.Debug("canceled incoming query", zap.String("id", id))
+	logger.Debug("canceled incoming query")
 
 	return nil
 }
@@ -281,11 +283,11 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	dsi *api_common.TGenericDataSourceInstance,
 	queryText string,
 	queryArgs []any,
-) (string, error) {
+) (*zap.Logger, string, error) {
 	// Start a transaction
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return "", fmt.Errorf("starting transaction: %w", err)
+		return logger, "", fmt.Errorf("starting transaction: %w", err)
 	}
 
 	// Define a function to rollback if needed
@@ -301,12 +303,12 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
 	if err != nil {
 		rollback()
-		return "", fmt.Errorf("checking incoming query existence: %w", err)
+		return logger, "", fmt.Errorf("checking incoming query existence: %w", err)
 	}
 
 	if !exists {
 		rollback()
-		return "", fmt.Errorf("incoming query not found: %s", incomingQueryID)
+		return logger, "", fmt.Errorf("incoming query not found: %s", incomingQueryID)
 	}
 
 	now := time.Now().UTC()
@@ -322,18 +324,19 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	)
 	if err != nil {
 		rollback()
-		return "", fmt.Errorf("creating outgoing query: %w", err)
+		return logger, "", fmt.Errorf("creating outgoing query: %w", err)
 	}
 
 	// Commit the transaction
 	if err = tx.Commit(); err != nil {
 		rollback()
-		return "", fmt.Errorf("committing transaction: %w", err)
+		return logger, "", fmt.Errorf("committing transaction: %w", err)
 	}
 
-	logger.Debug("created outgoing query", zap.String("id", id))
+	logger = logger.With(zap.String("outgoing_query_id", id))
+	logger.Debug("created outgoing query")
 
-	return id, nil
+	return logger, id, nil
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
@@ -357,7 +360,7 @@ func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logge
 		return fmt.Errorf("outgoing query not found: %s", id)
 	}
 
-	logger.Debug("finished outgoing query", zap.String("id", id))
+	logger.Debug("finished outgoing query")
 
 	return nil
 }
@@ -383,7 +386,7 @@ func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logge
 		return fmt.Errorf("outgoing query not found: %s", id)
 	}
 
-	logger.Debug("canceled outgoing query", zap.String("id", id))
+	logger.Debug("canceled outgoing query")
 
 	return nil
 }
