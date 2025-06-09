@@ -41,6 +41,10 @@ func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 		return true
 	case Ydb.Type_DOUBLE:
 		return true
+	case Ydb.Type_STRING:
+		return true
+	case Ydb.Type_UTF8:
+		return false
 	case Ydb.Type_JSON:
 		return false
 	case Ydb.Type_TIMESTAMP:
