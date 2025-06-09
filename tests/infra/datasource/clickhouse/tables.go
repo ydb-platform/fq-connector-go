@@ -527,9 +527,9 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
 			{
 				Columns: map[string]any{
-					"id":            []int32{1, 3, 4},
-					"col_01_int32":  []*int32{ptr.Int32(10), ptr.Int32(30), nil},
-					"col_02_string": []*[]byte{ptr.T([]byte("a")), ptr.T([]byte("c")), nil},
+					"id":            []int32{1, 3},
+					"col_01_int32":  []*int32{ptr.Int32(10), ptr.Int32(30)},
+					"col_02_string": []*[]byte{ptr.T([]byte("a")), ptr.T([]byte("c"))},
 				},
 			},
 		},
