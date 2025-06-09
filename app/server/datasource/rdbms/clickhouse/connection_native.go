@@ -57,7 +57,7 @@ type connectionNative struct {
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
-	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
+	out, err := c.Conn.Query(params.Ctx, params.QueryText, rewriteQueryArgs(params.QueryArgs.Values())...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

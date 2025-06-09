@@ -282,6 +282,92 @@ func (s *Suite) TestPushdownBetween() {
 	)
 }
 
+func (s *Suite) TestPushdownStringComparisonEQ() {
+	// Test filter pushdown for STRING type column with EQ comparison
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_string_comparison_EQ"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_string",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("b")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringComparisonL() {
+	// Test filter pushdown for STRING type column with L comparison
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_string_comparison_L"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_string",
+				api_service_protos.TPredicate_TComparison_L,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("b")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringComparisonG() {
+	// Test filter pushdown for STRING type column with G comparison
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_string_comparison_G"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_string",
+				api_service_protos.TPredicate_TComparison_G,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("b")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringComparisonNE() {
+	// Test filter pushdown for STRING type column with NE comparison
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_string_comparison_NE"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_02_string",
+				api_service_protos.TPredicate_TComparison_NE,
+				common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_STRING), []byte("b")),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringComparisonNULL() {
+	// Test filter pushdown for STRING type column with NULL check
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_string_comparison_NULL"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateIsNullColumn(
+				"col_02_string",
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownStringComparisonNotNULL() {
+	// Test filter pushdown for STRING type column with NOT NULL check
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_string_comparison_NOT_NULL"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateIsNotNullColumn(
+				"col_02_string",
+			),
+		}),
+	)
+}
+
 // Set of tests validating stats
 
 func (s *Suite) TestPositiveStats() {
