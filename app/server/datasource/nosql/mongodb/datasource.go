@@ -53,18 +53,27 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("TMongoDbDataSourceOptions not provided")
 	}
 
-	if mongoDbOptions.ReadingMode != api_common.TMongoDbDataSourceOptions_TABLE {
+	switch mongoDbOptions.ReadingMode {
+	case api_common.TMongoDbDataSourceOptions_JSON,
+		api_common.TMongoDbDataSourceOptions_YSON,
+		api_common.TMongoDbDataSourceOptions_TABLE:
+	default:
 		return nil, fmt.Errorf("unsupported reading_mode: %s", mongoDbOptions.ReadingMode.String())
+	}
+
+	objectIdType, err := typeMapObjectId(ds.cfg.GetObjectIdYqlType())
+	if err != nil {
+		return nil, err
 	}
 
 	var conn *mongo.Client
 
-	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
+	err = ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
-			var err error
-			conn, err = ds.makeConnection(ctx, logger, dsi)
+			var connErr error
+			conn, connErr = ds.makeConnection(ctx, logger, dsi)
 
-			return err
+			return connErr
 		},
 	)
 
@@ -100,14 +109,25 @@ func (ds *dataSource) DescribeTable(
 		return nil, fmt.Errorf("cursor: %w", err)
 	}
 
-	objectIdType := ds.cfg.GetObjectIdYqlType()
-
 	omitUnsupported :=
 		mongoDbOptions.UnsupportedTypeDisplayMode == api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT
+	typeMapIdOnly := isSerializedDocumentReadingMode(mongoDbOptions.ReadingMode)
 
-	columns, err := bsonToYql(logger, docs, omitUnsupported, objectIdType)
+	columns, err := bsonToYql(logger, docs, omitUnsupported, typeMapIdOnly, objectIdType)
 	if err != nil {
 		return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
+	}
+
+	if isSerializedDocumentReadingMode(mongoDbOptions.ReadingMode) {
+		if len(columns) < 1 || columns[0].Name != idColumn {
+			return nil, fmt.Errorf("failed to find id column: %v", columns)
+		}
+
+		idColumnType := columns[0].Type
+		documentType := getDocumentType(mongoDbOptions.ReadingMode)
+		schema := getserializedDocumentSchema(request.Table, idColumnType, documentType)
+
+		return &api_service_protos.TDescribeTableResponse{Schema: schema}, nil
 	}
 
 	return &api_service_protos.TDescribeTableResponse{Schema: &api_service_protos.TSchema{Columns: columns}}, nil
@@ -147,7 +167,11 @@ func (ds *dataSource) ReadSplit(
 		return fmt.Errorf("TMongoDbDataSourceOptions not provided")
 	}
 
-	if mongoDbOptions.ReadingMode != api_common.TMongoDbDataSourceOptions_TABLE {
+	switch mongoDbOptions.ReadingMode {
+	case api_common.TMongoDbDataSourceOptions_JSON,
+		api_common.TMongoDbDataSourceOptions_YSON,
+		api_common.TMongoDbDataSourceOptions_TABLE:
+	default:
 		return fmt.Errorf("unsupported reading_mode: %s", mongoDbOptions.ReadingMode.String())
 	}
 
@@ -235,7 +259,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 
 	ds.queryLogger.Dump(split.Select.From.Table, split.Select.What.String())
 
-	filter, opts, err := makeFilter(logger, split, request.GetFiltering())
+	filter, opts, err := makeFilter(logger, split, request.GetFiltering(), mongoDbOptions.ReadingMode)
 	if err != nil {
 		return fmt.Errorf("failed to make filter: %w", err)
 	}

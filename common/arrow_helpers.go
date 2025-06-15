@@ -158,17 +158,11 @@ func ydbTypeIdToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator mem
 		builder = array.NewFloat32Builder(arrowAllocator)
 	case Ydb.Type_DOUBLE:
 		builder = array.NewFloat64Builder(arrowAllocator)
-	case Ydb.Type_STRING:
+	case Ydb.Type_STRING, Ydb.Type_YSON:
 		builder = array.NewBinaryBuilder(arrowAllocator, arrow.BinaryTypes.Binary)
 		// TODO: find more reasonable constant, maybe make dependency on paging settings
 		builder.(*array.BinaryBuilder).ReserveData(1 << 20)
-	case Ydb.Type_UTF8:
-		// TODO: what about LargeString?
-		// https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow4Type4type12LARGE_STRINGE
-		builder = array.NewStringBuilder(arrowAllocator)
-		// TODO: find more reasonable constant, maybe make dependency on paging settings
-		builder.(*array.StringBuilder).ReserveData(1 << 20)
-	case Ydb.Type_JSON:
+	case Ydb.Type_UTF8, Ydb.Type_JSON:
 		// TODO: what about LargeString?
 		// https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow4Type4type12LARGE_STRINGE
 		builder = array.NewStringBuilder(arrowAllocator)
@@ -275,13 +269,11 @@ func ydbTypeIdToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) 
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Float32}
 	case Ydb.Type_DOUBLE:
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Float64}
-	case Ydb.Type_STRING:
+	case Ydb.Type_STRING, Ydb.Type_YSON:
 		field = arrow.Field{Name: column.Name, Type: arrow.BinaryTypes.Binary}
-	case Ydb.Type_UTF8:
+	case Ydb.Type_UTF8, Ydb.Type_JSON:
 		// TODO: what about LargeString?
 		// https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow4Type4type12LARGE_STRINGE
-		field = arrow.Field{Name: column.Name, Type: arrow.BinaryTypes.String}
-	case Ydb.Type_JSON: // TODO: now it is copy from UTF8, review native mapping type
 		field = arrow.Field{Name: column.Name, Type: arrow.BinaryTypes.String}
 	case Ydb.Type_DATE:
 		field = arrow.Field{Name: column.Name, Type: arrow.PrimitiveTypes.Uint16}

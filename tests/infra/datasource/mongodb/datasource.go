@@ -30,10 +30,17 @@ var asStringMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptio
 		UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_STRING,
 	}}
 
-var mongoDbOptionsWithTaggedType = &api_common.TGenericDataSourceInstance_MongodbOptions{
+var jsonMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptions{
 	MongodbOptions: &api_common.TMongoDbDataSourceOptions{
-		ReadingMode:                api_common.TMongoDbDataSourceOptions_TABLE,
-		UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_AS_STRING,
+		ReadingMode:                api_common.TMongoDbDataSourceOptions_JSON,
+		UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT,
+		UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_STRING,
+	}}
+
+var ysonMongoDbOptions = &api_common.TGenericDataSourceInstance_MongodbOptions{
+	MongodbOptions: &api_common.TMongoDbDataSourceOptions{
+		ReadingMode:                api_common.TMongoDbDataSourceOptions_YSON,
+		UnsupportedTypeDisplayMode: api_common.TMongoDbDataSourceOptions_UNSUPPORTED_OMIT,
 		UnexpectedTypeDisplayMode:  api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_STRING,
 	}}
 
