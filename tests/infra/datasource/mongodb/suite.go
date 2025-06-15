@@ -33,9 +33,15 @@ func (s *Suite) SetAsStringOptions() {
 	}
 }
 
-func (s *Suite) SetWithTaggedOptions() {
+func (s *Suite) SetJSONReadingModeOptions() {
 	for _, instance := range s.dataSource.Instances {
-		instance.Options = mongoDbOptionsWithTaggedType
+		instance.Options = jsonMongoDbOptions
+	}
+}
+
+func (s *Suite) SetYSONReadingModeOptions() {
+	for _, instance := range s.dataSource.Instances {
+		instance.Options = ysonMongoDbOptions
 	}
 }
 
@@ -569,7 +575,7 @@ func (s *Suite) TestPushdownWithCoalesceObjectIdTagged() {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
 	}
 
-	s.SetWithTaggedOptions()
+	s.SetAsStringOptions()
 
 	typedValue := common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
 		hexEncoded("171e75500ecde1c75c59139e"))
@@ -601,7 +607,7 @@ func (s *Suite) TestObjectIdAsTaggedString() {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
 	}
 
-	s.SetWithTaggedOptions()
+	s.SetAsStringOptions()
 
 	s.ValidateTable(s.dataSource, tables["tagged"])
 }
@@ -611,7 +617,7 @@ func (s *Suite) TestObjectIdAsTaggedFilter() {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
 	}
 
-	s.SetWithTaggedOptions()
+	s.SetAsStringOptions()
 
 	s.ValidateTable(
 		s.dataSource,
@@ -623,6 +629,72 @@ func (s *Suite) TestObjectIdAsTaggedFilter() {
 				common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
 					hexEncoded("171e75500ecde1c75c59139e"),
 				),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestJSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetJSONReadingModeOptions()
+
+	tableName := "primitives_json"
+	s.ValidateTable(s.dataSource, tables[tableName])
+}
+
+func (s *Suite) TestPushdownPrimaryKeyFilterWithJSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetJSONReadingModeOptions()
+
+	tableName := "primitives_json_2"
+
+	s.ValidateTable(
+		s.dataSource,
+		tables[tableName],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"_id",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(2)),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestYSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetYSONReadingModeOptions()
+
+	tableName := "primitives_yson"
+	s.ValidateTable(s.dataSource, tables[tableName])
+}
+
+func (s *Suite) TestPushdownPrimaryKeyFilterWithYSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetYSONReadingModeOptions()
+
+	tableName := "primitives_yson_1"
+
+	s.ValidateTable(
+		s.dataSource,
+		tables[tableName],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"_id",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(1)),
 			),
 		}),
 	)
