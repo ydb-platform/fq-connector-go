@@ -24,6 +24,7 @@ type Preset struct {
 	SchemaProvider    rdbms_utils.SchemaProvider
 	SplitProvider     rdbms_utils.SplitProvider
 	RetrierSet        *retry.RetrierSet
+	FilterChecker     rdbms_utils.FilterChecker
 }
 
 var _ datasource.DataSource[any] = (*dataSourceImpl)(nil)
@@ -34,6 +35,7 @@ type dataSourceImpl struct {
 	connectionManager   rdbms_utils.ConnectionManager
 	schemaProvider      rdbms_utils.SchemaProvider
 	splitProvider       rdbms_utils.SplitProvider
+	filterChecker       rdbms_utils.FilterChecker
 	retrierSet          *retry.RetrierSet
 	converterCollection conversion.Collection
 	observationStorage  observation.Storage
@@ -91,6 +93,10 @@ func (ds *dataSourceImpl) ListSplits(
 	request *api_service_protos.TListSplitsRequest,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult) error {
+	if err := ds.filterChecker.CheckFilter(slct.Where); err != nil {
+		return fmt.Errorf("check filter: %w", err)
+	}
+
 	params := &rdbms_utils.ListSplitsParams{
 		Ctx:                   ctx,
 		Logger:                logger,

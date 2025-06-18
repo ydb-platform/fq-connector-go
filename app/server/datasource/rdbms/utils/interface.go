@@ -141,3 +141,8 @@ type ListSplitsParams struct {
 type SplitProvider interface {
 	ListSplits(*ListSplitsParams) error
 }
+
+// FilterChecker performs some checks
+type FilterChecker interface {
+	CheckFilter(where *api_service_protos.TSelect_TWhere) error
+}
