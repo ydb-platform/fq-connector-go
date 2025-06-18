@@ -12,10 +12,6 @@ message TServerConfig {
 
     // TConnectorServerConfig contains configuration of the main GRPC server
     TConnectorServerConfig connector_server = 5;
-    // This is a rough restriction for YQ memory consumption until
-    // https://st.yandex-team.ru/YQ-2057 is implemented.
-    // Leave it empty if you want to avoid any memory limits.
-    TServerReadLimit read_limit = 3;
     // Logger config
     TLoggerConfig logger = 4;
     // Go runtime profiler.
@@ -32,6 +28,8 @@ message TServerConfig {
     // Query observation service config.
     // Disabled if this part of config is empty.
     TObservationConfig observation = 11;
+
+    reserved 3;
 }
 
 // TConnectorServerConfig - configuration of the main GRPC server
@@ -54,8 +52,9 @@ message TServerTLSConfig {
     reserved 1;
 }
 
-// ServerReadLimit limitates the amount of data extracted from the data source on every read request. 
-message TServerReadLimit {
+// TReadLimiterConfig defines the maximal amount of data extracted 
+// from the data source during each `ReadSplits` request. 
+message TReadLimiterConfig {
     // The number of rows extracted from the data source
     uint64 rows = 1;
 }
@@ -380,6 +379,10 @@ message TLoggingConfig {
         TDynamicResolving dynamic = 2;
         TStaticResolving static = 3;
     };
+
+    // This is a rough restriction for the amount of data read from the external datasource.
+    // Leave it empty if you want to avoid any limits.
+    TReadLimiterConfig read_limiter = 4;
 }
 
 // TDatasouceConfig is a collection of datasource-specific settings

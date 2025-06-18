@@ -275,7 +275,7 @@ func newServiceConnector(
 	dataSourceCollection, err := NewDataSourceCollection(
 		queryLoggerFactory,
 		memory.DefaultAllocator,
-		paging.NewReadLimiterFactory(cfg.ReadLimit),
+		paging.NewReadLimiterFactory(cfg.Datasources),
 		conversion.NewCollection(cfg.Conversion),
 		observationStorage,
 		cfg,

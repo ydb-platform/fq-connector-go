@@ -279,10 +279,6 @@ func validateServerConfig(c *config.TServerConfig) error {
 		return fmt.Errorf("validate `connector_server`: %w", err)
 	}
 
-	if err := validateServerReadLimit(c.ReadLimit); err != nil {
-		return fmt.Errorf("validate `read_limit`: %w", err)
-	}
-
 	if err := validatePprofServerConfig(c.PprofServer); err != nil {
 		return fmt.Errorf("validate `pprof_server`: %w", err)
 	}
@@ -355,7 +351,7 @@ func validateServerTLSConfig(c *config.TServerTLSConfig) error {
 	return nil
 }
 
-func validateServerReadLimit(c *config.TServerReadLimit) error {
+func validateReadLimiterConfig(c *config.TReadLimiterConfig) error {
 	if c == nil {
 		// It's OK not to have read request memory limitation
 		return nil
@@ -617,6 +613,10 @@ func validateLoggingConfig(c *config.TLoggingConfig) error {
 
 	if err := validateLoggingResolvingDynamicConfig(c.GetDynamic()); err != nil {
 		return fmt.Errorf("validate `dynamic`: %w", err)
+	}
+
+	if err := validateReadLimiterConfig(c.ReadLimiter); err != nil {
+		return fmt.Errorf("validate `read_limit`: %w", err)
 	}
 
 	return nil
