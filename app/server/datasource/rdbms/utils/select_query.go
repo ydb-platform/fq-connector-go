@@ -47,7 +47,11 @@ func MakeSelectQuery(
 
 	parts.FromClause = formatter.FormatFrom(tableName)
 
-	// Render WHERE clause
+	// Validate and render WHERE clause
+	if err = formatter.ValidateWhere(split.Select.Where); err != nil {
+		return nil, fmt.Errorf("validate where clause: %w", err)
+	}
+
 	var queryArgs *QueryArgs
 	if split.Select.Where != nil {
 		parts.WhereClause, queryArgs, err = formatWhereClause(

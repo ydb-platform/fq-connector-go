@@ -188,12 +188,13 @@ func (SplitProvider) doQueryTabletIDs(
 	session query.Session,
 	logger *zap.Logger,
 	prefix string,
+	attempt int,
 ) ([]uint64, error) {
 	var tabletIDs []uint64
 
 	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
 
-	logger.Debug("discovering column table tablet ids", zap.String("query", queryText))
+	logger.Debug("discovering column table tablet ids", zap.String("query", queryText), zap.Int("attempt", attempt))
 
 	result, err := session.Query(ctx, queryText)
 	if err != nil {
@@ -253,10 +254,14 @@ func (s SplitProvider) GetColumnShardTabletIDs(
 	ctx, cancel := context.WithTimeout(parentCtx, timeout)
 	defer cancel()
 
+	attempts := 0
+
 	err = driver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
+		attempts++
+
 		var queryErr error
 
-		tabletIDs, queryErr = s.doQueryTabletIDs(ctx, session, logger, prefix)
+		tabletIDs, queryErr = s.doQueryTabletIDs(ctx, session, logger, prefix, attempts)
 		if queryErr != nil {
 			return fmt.Errorf("do query tablet ids: %w", queryErr)
 		}

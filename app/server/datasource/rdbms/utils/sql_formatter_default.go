@@ -62,3 +62,7 @@ func (SQLFormatterDefault) TransformPredicateComparison(src *api_service_protos.
 	*api_service_protos.TPredicate_TComparison, error) {
 	return src, nil
 }
+
+func (SQLFormatterDefault) ValidateWhere(_ *api_service_protos.TSelect_TWhere) error {
+	return nil
+}
