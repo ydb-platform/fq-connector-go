@@ -114,6 +114,8 @@ type SQLFormatter interface {
 	// (may be useful for some special data sources)
 	TransformPredicateComparison(src *api_service_protos.TPredicate_TComparison) (
 		*api_service_protos.TPredicate_TComparison, error)
+	// ValidateWhere validates the query predicate
+	ValidateWhere(where *api_service_protos.TSelect_TWhere) error
 }
 
 type SchemaProvider interface {
@@ -140,9 +142,4 @@ type ListSplitsParams struct {
 // SplitProvider generates stream of splits - the description of the parts of a large external table
 type SplitProvider interface {
 	ListSplits(*ListSplitsParams) error
-}
-
-// FilterChecker performs some checks
-type FilterChecker interface {
-	CheckFilter(where *api_service_protos.TSelect_TWhere) error
 }

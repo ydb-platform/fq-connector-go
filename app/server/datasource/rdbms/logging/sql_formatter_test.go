@@ -53,7 +53,7 @@ func TestMakeSelectQuery(t *testing.T) {
 		//nolint:revive
 		{
 			/*
-				SELECT ...some columns...
+				SELECT *
 				FROM external_data_source.`cloud-trail`
 				WHERE timestamp >= Timestamp("2025-05-06T16:00:00Z")
 				  AND timestamp <= Timestamp("2025-05-06T16:00:01Z")
@@ -96,6 +96,26 @@ func TestMakeSelectQuery(t *testing.T) {
 			},
 			err: nil,
 		},
+		//nolint:revive
+		{
+			testName: "YQ-4361",
+			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
+				"{\"table\":\"cloud-trail\"}",
+				"{\"items\":[{\"column\":{\"name\":\"level\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}}, {\"column\":{\"name\":\"message\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}}]}",
+				"{\"filter_typed\":{\"comparison\":{\"operation\":\"EQ\",\"left_value\":{\"column\":\"level\"},\"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"STRING\"},\"value\":{\"bytes_value\":\"SU5GTw==\"}}}}}}",
+				api_common.EGenericDataSourceKind_LOGGING,
+			),
+			splitDescription: &TSplitDescription{
+				Payload: &TSplitDescription_Ydb{
+					Ydb: &TSplitDescription_TYdb{
+						DatabaseName: "/pre-prod_vla/yc.logs.cloud/cc8jliaf18k2b9ae2bio",
+						TableName:    "logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3731rdp83d8gd8fjcv",
+						TabletIds:    []uint64{72075186234644944},
+					},
+				},
+			},
+			err: common.ErrInvalidRequest,
+		},
 	}
 
 	for _, tc := range tcs {
@@ -121,7 +141,12 @@ func TestMakeSelectQuery(t *testing.T) {
 				tc.splitDescription.GetYdb().GetTableName(),
 			)
 			if tc.err != nil {
-				require.True(t, errors.Is(err, tc.err))
+				require.True(
+					t,
+					errors.Is(err, tc.err),
+					fmt.Sprintf("expected='%v', actual='%v'", tc.err, err),
+				)
+
 				return
 			}
 
