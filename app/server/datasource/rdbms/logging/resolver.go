@@ -39,6 +39,13 @@ func (r *ydbSource) ToZapFields() []zap.Field {
 	}
 }
 
+func (r *ydbSource) String() string {
+	return fmt.Sprintf(
+		"endpoint=%s:%d, database_name=%s, table_name=%s",
+		r.endpoint.Host, r.endpoint.Port, r.databaseName, r.tableName,
+	)
+}
+
 type resolveResponse struct {
 	sources []*ydbSource
 }

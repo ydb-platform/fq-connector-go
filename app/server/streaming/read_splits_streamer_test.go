@@ -276,7 +276,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 
 	pagingCfg := &config.TPagingConfig{RowsPerPage: uint64(tc.rowsPerPage)}
 	readLimiterFactory := paging.NewReadLimiterFactory(nil)
-	readLimiter := readLimiterFactory.MakeReadLimiter(logger)
+	readLimiter := readLimiterFactory.MakeReadLimiter(logger, split.Select.DataSourceInstance.Kind)
 
 	sinkFactory := paging.NewSinkFactory(ctx, logger, pagingCfg, columnarBufferFactory, readLimiter)
 

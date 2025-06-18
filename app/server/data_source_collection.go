@@ -284,7 +284,7 @@ func doReadSplit[T paging.Acceptor](
 		logger,
 		cfg.Paging,
 		columnarBufferFactory,
-		readLimiterFactory.MakeReadLimiter(logger),
+		readLimiterFactory.MakeReadLimiter(logger, split.Select.DataSourceInstance.Kind),
 	)
 
 	streamer := streaming.NewReadSplitsStreamer(

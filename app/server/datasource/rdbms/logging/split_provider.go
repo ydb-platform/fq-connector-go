@@ -44,7 +44,7 @@ func (s *splitProviderImpl) ListSplits(
 
 		errGroup.Go(func() error {
 			if err := s.handleYDBSource(params, src); err != nil {
-				return fmt.Errorf("handle YDB source %v: %w", src, err)
+				return fmt.Errorf("handle YDB source %s: %w", src, err)
 			}
 
 			return nil
