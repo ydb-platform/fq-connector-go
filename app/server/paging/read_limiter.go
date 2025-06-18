@@ -29,7 +29,7 @@ type readLimiterRows struct {
 func (rl *readLimiterRows) addRow() error {
 	if rl.rowsRead >= rl.rowsLimit {
 		return fmt.Errorf(
-			"server can read only %d line(s) from the data source per single `ReadSplits` request"+
+			"server can read only %d line(s) from the data source per single `ReadSplits` request "+
 				"(this limitation may be disabled in future): %w",
 			rl.rowsLimit,
 			common.ErrReadLimitExceeded,
