@@ -1,2 +1,4 @@
 *.pb.go linguist-generated=true
-
+*.pb.go -diff
+*.pb.go linguist-vendored=true
+*.pb.go binary
