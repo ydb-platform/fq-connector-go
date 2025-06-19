@@ -120,13 +120,15 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	if isSerializedDocumentReadingMode(mongoDbOptions.ReadingMode) {
-		if len(columns) < 1 || columns[0].Name != idColumn {
-			return nil, fmt.Errorf("failed to find id column: %v", columns)
+		if len(columns) != 1 || columns[0].Name != idColumn {
+			logger.Error(fmt.Sprintf("failed to find id column: %v", columns))
+
+			return nil, common.ErrInvariantViolation
 		}
 
 		idColumnType := columns[0].Type
 		documentType := getDocumentType(mongoDbOptions.ReadingMode)
-		schema := getserializedDocumentSchema(request.Table, idColumnType, documentType)
+		schema := getSerializedDocumentSchema(request.Table, idColumnType, documentType)
 
 		return &api_service_protos.TDescribeTableResponse{Schema: schema}, nil
 	}
@@ -268,7 +270,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 
 	filter, opts, err := makeFilter(logger, split, request.GetFiltering(), mongoDbOptions.ReadingMode)
 	if err != nil {
-		return fmt.Errorf("failed to make filter: %w", err)
+		return fmt.Errorf("make filter: %w", err)
 	}
 
 	ds.queryLogger.Dump("Query filter", zap.Any("filter", filter))

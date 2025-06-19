@@ -177,11 +177,11 @@ func (r *documentReader) accept(doc bson.M) error {
 		for i, f := range r.arrowTypes.Fields() {
 			if f.Name == idColumn {
 				if err := r.acceptSingleField(acceptors[i], doc, f.Name); err != nil {
-					return err
+					return fmt.Errorf("accept id field: %w", err)
 				}
 			} else {
 				if err := r.acceptSerializedDocument(acceptors[i], doc); err != nil {
-					return err
+					return fmt.Errorf("accept serialized document: %w", err)
 				}
 			}
 		}
@@ -261,7 +261,7 @@ func (r *documentReader) acceptSingleField(acceptor any, doc bson.M, fieldName s
 		str, err := bsonToString(value)
 		if err != nil {
 			if !errors.Is(err, common.ErrDataTypeNotSupported) {
-				return err
+				return fmt.Errorf("unable to convert type to string: %w", err)
 			}
 
 			if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {
@@ -281,7 +281,7 @@ func (r *documentReader) acceptSingleField(acceptor any, doc bson.M, fieldName s
 		str, err := bsonToString(value)
 		if err != nil {
 			if !errors.Is(err, common.ErrDataTypeNotSupported) {
-				return err
+				return fmt.Errorf("unable to convert type to string: %w", err)
 			}
 
 			if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {

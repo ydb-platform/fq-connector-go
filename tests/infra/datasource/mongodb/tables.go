@@ -226,7 +226,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"primitives_json_2": {
+	"primitives_json_id_2": {
 		Name:                  "primitives",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -304,7 +304,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"primitives_yson_1": {
+	"primitives_yson_id_1": {
 		Name:                  "primitives",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -332,7 +332,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_0": {
+	"missing_id_0": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -360,7 +360,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_1": {
+	"missing_id_1": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -388,7 +388,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_2": {
+	"missing_id_2": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -416,7 +416,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_12": {
+	"missing_ids_12": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -444,7 +444,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_0": {
+	"similar_id_0": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -462,7 +462,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_01": {
+	"similar_ids_01": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -480,7 +480,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_234": {
+	"similar_ids_234": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -498,7 +498,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_146": {
+	"similar_ids_146": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -516,7 +516,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_056": {
+	"similar_ids_056": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -550,7 +550,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"strcomp_0": {
+	"strcomp_id_0": {
 		Name:                  "strcomp",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -566,7 +566,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"strcomp_1": {
+	"strcomp_id_1": {
 		Name:                  "strcomp",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -602,7 +602,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"tagged_0": {
+	"tagged_id_0": {
 		Name:                  "object_ids",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -620,7 +620,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"object_ids_0": {
+	"object_ids_id_0": {
 		Name:                  "object_ids",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{

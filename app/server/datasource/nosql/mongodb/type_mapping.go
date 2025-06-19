@@ -197,7 +197,7 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported, typeMapIdOn
 	return columns, nil
 }
 
-func getserializedDocumentSchema(documentName string, idType, documentType *Ydb.Type) *api_service_protos.TSchema {
+func getSerializedDocumentSchema(documentName string, idType, documentType *Ydb.Type) *api_service_protos.TSchema {
 	return &api_service_protos.TSchema{Columns: []*Ydb.Column{
 		{Name: idColumn, Type: idType},
 		{Name: documentName, Type: documentType},
