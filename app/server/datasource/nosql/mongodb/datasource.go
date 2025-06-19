@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -187,20 +188,26 @@ func (ds *dataSource) makeConnection(
 ) (*mongo.Client, error) {
 	var makeConnErr error
 
-	uri := fmt.Sprintf(
-		"mongodb://%s:%s@%s:%d/%s?%v&authSource=admin",
-		dsi.Credentials.GetBasic().Username,
-		dsi.Credentials.GetBasic().Password,
-		dsi.Endpoint.Host,
-		dsi.Endpoint.Port,
-		dsi.Database,
-		fmt.Sprintf("tls=%v", dsi.UseTls),
-	)
+	credentials := options.Credential{
+		Username:   dsi.Credentials.GetBasic().Username,
+		Password:   dsi.Credentials.GetBasic().Password,
+		AuthSource: "admin",
+	}
+
+	host := fmt.Sprintf("%s:%d", dsi.Endpoint.Host, dsi.Endpoint.Port)
+
+	clientOptions := options.Client().
+		SetAuth(credentials).
+		SetHosts([]string{host})
+
+	if dsi.UseTls {
+		clientOptions.SetTLSConfig(&tls.Config{})
+	}
 
 	openCtx, openCtxCancel := context.WithTimeout(ctx, common.MustDurationFromString(ds.cfg.OpenConnectionTimeout))
 	defer openCtxCancel()
 
-	conn, makeConnErr := mongo.Connect(openCtx, options.Client().ApplyURI(uri))
+	conn, makeConnErr := mongo.Connect(openCtx, clientOptions)
 	if makeConnErr != nil {
 		return nil, fmt.Errorf("connect: %w", makeConnErr)
 	}
