@@ -26,7 +26,7 @@ const (
 
 var Cmd = &cobra.Command{
 	Use:   "observation",
-	Short: "Client for Observation GRPC API",
+	Short: "Observation GRPC API client",
 }
 
 // Incoming queries commands

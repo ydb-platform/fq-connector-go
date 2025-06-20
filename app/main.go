@@ -8,6 +8,7 @@ import (
 
 	"github.com/ydb-platform/fq-connector-go/app/bench"
 	"github.com/ydb-platform/fq-connector-go/app/client"
+	"github.com/ydb-platform/fq-connector-go/app/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server"
 	"github.com/ydb-platform/fq-connector-go/app/validate"
 	"github.com/ydb-platform/fq-connector-go/app/version"
@@ -21,6 +22,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(bench.Cmd)
 	rootCmd.AddCommand(client.Cmd)
+	rootCmd.AddCommand(observation.Cmd)
 	rootCmd.AddCommand(server.Cmd)
 	rootCmd.AddCommand(validate.Cmd)
 	rootCmd.AddCommand(version.Cmd)

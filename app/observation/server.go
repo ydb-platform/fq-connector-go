@@ -209,7 +209,7 @@ func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 
 // getAssetHandler returns a handler for serving static assets
 func getAssetHandler() http.Handler {
-	fs := http.Dir("app/client/observation/assets")
+	fs := http.Dir("app/observation/assets")
 	return http.FileServer(fs)
 }
 
