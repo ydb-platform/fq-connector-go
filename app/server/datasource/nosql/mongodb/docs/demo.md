@@ -1,6 +1,6 @@
 # Пример выполнения запроса в MongoDB из локальной инсталляции YDB
 
-### Готовим данные в источнике
+## Готовим данные в источнике
 
 Запускаем монгу в корневой директории кода коннектора fq-connector-go
 
@@ -98,7 +98,7 @@ db.bar.insertMany( [
 make run 
 ```
 
-### Готовим файлы для выполнения запросов
+## Готовим файлы для выполнения запросов
 
 schema.yql
 ```sql
@@ -116,7 +116,6 @@ CREATE EXTERNAL DATA SOURCE mongodb_external_datasource WITH (
     UNEXPECTED_TYPE_DISPLAY_MODE="UNEXPECTED_AS_NULL"
 );
 ```
-
 
 app_conf.txt
 ```
@@ -144,9 +143,11 @@ QueryServiceConfig {
 }
 ```
 
-### Выполняем запросы в YDB с помощью клиента kqprun
+## Выполняем запросы в YDB с помощью клиента kqprun
 
-#### Запрос в коллекцию `primitives`
+### SELECT *
+
+#### Запрос c табличным представлением
 
 В качестве настройки представления типа ObjectId здесь используется значение по умолчанию - YQL String.
 
@@ -322,7 +323,167 @@ rows {
 }
 ```
 
-#### Запрос в коллекцию `bar`
+#### Запрос с представлением документа в формате JSON
+
+Настройки внешнего источника данных с `reading_mode` = `JSON`.
+Такой формат представления возрвращает две колонки - первичный ключ `_id` и JSON-строку, соответствующую всему документу. Поддерживается пушдаун фильтров по первичному ключу.
+
+json_schema.yql
+```sql
+CREATE OBJECT mongodb_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE mongodb_external_datasource WITH (
+    SOURCE_TYPE="MongoDB",
+    LOCATION="localhost:27017",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="mongodb_local_password",
+    READING_MODE="JSON",
+    UNSUPPORTED_TYPE_DISPLAY_MODE="UNSUPPORTED_OMIT",
+    UNEXPECTED_TYPE_DISPLAY_MODE="UNEXPECTED_AS_NULL"
+);
+```
+
+Файл с телом запроса
+
+data.yql
+```sql
+SELECT * FROM mongodb_external_datasource.primitives;
+```
+
+Команда запроса
+
+```sh
+./ydb/tests/tools/kqprun/kqprun -s ydb/json_schema.yql -p ydb/data.yql --app-config=ydb/app_conf.txt --result-format="full-proto"
+```
+
+Вывод результата выполнения команды без логов:
+
+```
+columns {
+  name: "_id"
+  type {
+    optional_type {
+      item {
+        type_id: INT32
+      }
+    }
+  }
+}
+columns {
+  name: "primitives"
+  type {
+    type_id: JSON
+  }
+}
+rows {
+  items {
+    int32_value: 0
+  }
+  items {
+    text_value: "{\"_id\":0,\"binary\":{\"Subtype\":0,\"Data\":\"qqo=\"},\"boolean\":true,\"double\":1.22,\"int32\":42,\"int64\":23423,\"objectid\":\"171e75500ecde1c75c59139e\",\"string\":\"hello\"}"
+  }
+}
+rows {
+  items {
+    int32_value: 1
+  }
+  items {
+    text_value: "{\"_id\":1,\"binary\":{\"Subtype\":0,\"Data\":\"q6s=\"},\"boolean\":false,\"double\":1.23,\"int32\":13,\"int64\":13,\"objectid\":\"271e75500ecde1c75c59139e\",\"string\":\"hi\"}"
+  }
+}
+rows {
+  items {
+    int32_value: 2
+  }
+  items {
+    text_value: "{\"_id\":2,\"binary\":{\"Subtype\":0,\"Data\":\"rKw=\"},\"boolean\":false,\"double\":1.24,\"int32\":15,\"int64\":15,\"objectid\":\"371e75500ecde1c75c59139e\",\"string\":\"bye\"}"
+  }
+}
+```
+
+#### Запрос с представлением документа в формате YSON
+
+Настройки внешнего источника данных с `reading_mode` = `YSON`.
+Такой формат представления возрвращает две колонки - первичный ключ `_id` и YSON сериализацию, соответствующую всему документу. Поддерживается пушдаун фильтров по первичному ключу.
+
+yson_schema.yql
+```sql
+CREATE OBJECT mongodb_local_password (TYPE SECRET) WITH (value = "password");
+
+CREATE EXTERNAL DATA SOURCE mongodb_external_datasource WITH (
+    SOURCE_TYPE="MongoDB",
+    LOCATION="localhost:27017",
+    AUTH_METHOD="BASIC",
+    LOGIN="admin",
+    DATABASE_NAME="connector",
+    PASSWORD_SECRET_NAME="mongodb_local_password",
+    READING_MODE="YSON",
+    UNSUPPORTED_TYPE_DISPLAY_MODE="UNSUPPORTED_OMIT",
+    UNEXPECTED_TYPE_DISPLAY_MODE="UNEXPECTED_AS_NULL"
+);
+```
+
+Файл с телом запроса
+
+data.yql
+```sql
+SELECT * FROM mongodb_external_datasource.primitives;
+```
+
+Команда запроса
+
+```sh
+./ydb/tests/tools/kqprun/kqprun -s ydb/yson_schema.yql -p ydb/data.yql --app-config=ydb/app_conf.txt --result-format="full-proto"
+```
+
+Вывод результата выполнения команды без логов:
+
+```
+columns {
+  name: "_id"
+  type {
+    optional_type {
+      item {
+        type_id: INT32
+      }
+    }
+  }
+}
+columns {
+  name: "primitives"
+  type {
+    type_id: YSON
+  }
+}
+rows {
+  items {
+    int32_value: 0
+  }
+  items {
+    bytes_value: "{\"_id\"=0;binary={Subtype=0u;Data=\"\\xAA\\xAA\";};boolean=%true;double=1.220000;int32=42;int64=23423;objectid=\"171e75500ecde1c75c59139e\";string=hello;}"
+  }
+}
+rows {
+  items {
+    int32_value: 1
+  }
+  items {
+    bytes_value: "{\"_id\"=1;binary={Subtype=0u;Data=\"\\xAB\\xAB\";};boolean=%false;double=1.230000;int32=13;int64=13;objectid=\"271e75500ecde1c75c59139e\";string=hi;}"
+  }
+}
+rows {
+  items {
+    int32_value: 2
+  }
+  items {
+    bytes_value: "{\"_id\"=2;binary={Subtype=0u;Data=\"\\xAC\\xAC\";};boolean=%false;double=1.240000;int32=15;int64=15;objectid=\"371e75500ecde1c75c59139e\";string=bye;}"
+  }
+}
+```
+
+#### Запрос c представлением ObjectId как YQL TaggedType<"ObjectId", String>
 
 Меняем представление типа ObjectId на YQL TaggedType<"ObjectId", String> в настройках внешнего источника данных в конфиге fq-connector-go:
 
@@ -432,6 +593,8 @@ rows {
   }
 }
 ```
+
+### Запросы с фильтрами
 
 #### Запрос с фильтрацией по первичному ключу типа ObjectId
 
