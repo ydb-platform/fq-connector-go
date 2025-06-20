@@ -13,50 +13,61 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/ydb-platform/fq-connector-go/api/observation"
+	api_observation "github.com/ydb-platform/fq-connector-go/api/observation"
+	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/observation/discovery"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-// NewAggregationServer creates a new aggregation server instance
-func NewAggregationServer(endpoints []string, period time.Duration) *AggregationServer {
+// aggregationServer handles WebSocket connections and polling
+type aggregationServer struct {
+	discovery       discovery.Discovery
+	pollingInterval time.Duration
+	upgrader        *websocket.Upgrader
+	cfg             *config.TObservationServerConfig
+	logger          *zap.Logger
+}
+
+// newAggregationServer creates a new aggregation server instance
+func newAggregationServer(cfg *config.TObservationServerConfig) (*aggregationServer, error) {
 	logger := common.NewDefaultLogger()
 
-	return &AggregationServer{
-		endpoints: endpoints,
-		period:    period,
-		logger:    logger,
+	d, err := discovery.NewDiscovery(nil)
+	if err != nil {
+		return nil, fmt.Errorf("new discovery: %w", err)
+	}
+
+	pollingInterval := common.MustDurationFromString(cfg.PollingInterval)
+
+	return &aggregationServer{
+		discovery:       d,
+		pollingInterval: pollingInterval,
+		logger:          logger,
+		cfg:             cfg,
 		upgrader: &websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 		},
-	}
-}
-
-// AggregationServer handles WebSocket connections and polling
-type AggregationServer struct {
-	endpoints []string
-	period    time.Duration
-	logger    *zap.Logger
-	upgrader  *websocket.Upgrader
+	}, nil
 }
 
 // Start begins the HTTP server
-func (s *AggregationServer) Start(port int) error {
-	addr := fmt.Sprintf(":%d", port)
+func (s *aggregationServer) start() error {
+	endpoint := common.EndpointToString(s.cfg.Endpoint)
 
 	s.logger.Info("starting aggregation server",
-		zap.String("address", addr),
-		zap.Duration("polling_period", s.period),
-		zap.Strings("endpoints", s.endpoints))
+		zap.String("endpoint", endpoint),
+		zap.Duration("polling_period", s.pollingInterval),
+	)
 
 	http.HandleFunc("/ws", s.handleWebSocket)
 	http.Handle("/", getAssetHandler())
 
-	return http.ListenAndServe(addr, nil)
+	return http.ListenAndServe(endpoint, nil)
 }
 
 // handleWebSocket manages WebSocket connections
-func (s *AggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func (s *aggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.logger.Error("websocket upgrade failed", zap.Error(err))
@@ -67,7 +78,7 @@ func (s *AggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Reque
 	s.logger.Info("new webSocket connection established",
 		zap.String("remote_addr", r.RemoteAddr))
 
-	ticker := time.NewTicker(s.period)
+	ticker := time.NewTicker(s.pollingInterval)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -94,20 +105,24 @@ func (s *AggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Reque
 
 // QueryWithFormattedTime extends OutgoingQuery with formatted timestamp
 type QueryWithFormattedTime struct {
-	*observation.OutgoingQuery
+	*api_observation.OutgoingQuery
 	FormattedCreatedAt string `json:"formatted_created_at,omitempty"`
 }
 
 // pollEndpoints collects queries from all configured endpoints
-func (s *AggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime {
+func (s *aggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime {
+	endpoints, err := s.discovery.GetEndpoints()
+	if err != nil {
+		s.logger.Error("discover endpoints", zap.Error(err))
+		return nil
+	}
+
 	results := make(map[string][]*QueryWithFormattedTime)
 
-	s.logger.Info("starting to poll endpoints",
-		zap.Strings("endpoints", s.endpoints),
-		zap.Int("count", len(s.endpoints)))
+	s.logger.Info("starting to poll endpoints", zap.Stringers("endpoints", endpoints), zap.Int("count", len(endpoints)))
 
-	for _, endpoint := range s.endpoints {
-		s.logger.Debug("polling endpoint", zap.String("endpoint", endpoint))
+	for _, endpoint := range endpoints {
+		s.logger.Debug("polling endpoint", zap.Stringer("endpoint", endpoint))
 
 		startTime := time.Now()
 
@@ -141,7 +156,7 @@ func (s *AggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 }
 
 // getOutgoingQueries retrieves running queries from a single endpoint
-func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFormattedTime, error) {
+func (s *aggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFormattedTime, error) {
 	s.logger.Debug("connecting to endpoint", zap.String("endpoint", endpoint))
 
 	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -150,13 +165,13 @@ func (s *AggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 	}
 	defer conn.Close()
 
-	client := observation.NewObservationServiceClient(conn)
+	client := api_observation.NewObservationServiceClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &observation.ListOutgoingQueriesRequest{
-		State: observation.QueryState_QUERY_STATE_RUNNING, // Only get RUNNING queries
+	req := &api_observation.ListOutgoingQueriesRequest{
+		State: api_observation.QueryState_QUERY_STATE_RUNNING, // Only get RUNNING queries
 	}
 
 	s.logger.Debug("making GRPC call to ListOutgoingQueries",
@@ -236,10 +251,10 @@ func startAggregationServer(cmd *cobra.Command) error {
 	}
 
 	// Create server
-	server := NewAggregationServer(endpointList, period)
+	server := newAggregationServer(endpointList, period)
 
 	// Start HTTP server
-	fmt.Printf("Starting aggregation server on :%d\n", port)
+	fmt.Printf("starting aggregation server on :%d\n", port)
 
 	return server.Start(port)
 }
