@@ -179,7 +179,160 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_0": {
+	"primitives_json": {
+		Name:                  "primitives",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":        testIdType,
+				"primitives": Primitive(Ydb.Type_JSON),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
+				"primitives": []string{
+					"{" +
+						"\"_id\":0," +
+						"\"binary\":{\"Subtype\":0,\"Data\":\"qqo=\"}," +
+						"\"boolean\":true," +
+						"\"double\":1.22," +
+						"\"int32\":42," +
+						"\"int64\":23423," +
+						"\"objectid\":\"171e75500ecde1c75c59139e\"," +
+						"\"string\":\"hello\"" +
+						"}",
+					"{" +
+						"\"_id\":1," +
+						"\"binary\":{\"Subtype\":0,\"Data\":\"q6s=\"}," +
+						"\"boolean\":false," +
+						"\"double\":1.23," +
+						"\"int32\":13," +
+						"\"int64\":13," +
+						"\"objectid\":\"271e75500ecde1c75c59139e\"," +
+						"\"string\":\"hi\"" +
+						"}",
+					"{" +
+						"\"_id\":2," +
+						"\"binary\":{\"Subtype\":0,\"Data\":\"rKw=\"}," +
+						"\"boolean\":false," +
+						"\"double\":1.24," +
+						"\"int32\":15," +
+						"\"int64\":15," +
+						"\"objectid\":\"371e75500ecde1c75c59139e\"," +
+						"\"string\":\"bye\"" +
+						"}",
+				},
+			},
+		}},
+	},
+	"primitives_json_id_2": {
+		Name:                  "primitives",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":        testIdType,
+				"primitives": Primitive(Ydb.Type_JSON),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(2)},
+				"primitives": []string{
+					"{" +
+						"\"_id\":2," +
+						"\"binary\":{\"Subtype\":0,\"Data\":\"rKw=\"}," +
+						"\"boolean\":false," +
+						"\"double\":1.24," +
+						"\"int32\":15," +
+						"\"int64\":15," +
+						"\"objectid\":\"371e75500ecde1c75c59139e\"," +
+						"\"string\":\"bye\"" +
+						"}",
+				},
+			},
+		}},
+	},
+	"primitives_yson": {
+		Name:                  "primitives",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":        testIdType,
+				"primitives": Primitive(Ydb.Type_YSON),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(0), ptr.Int32(1), ptr.Int32(2)},
+				"primitives": [][]byte{
+					[]byte(
+						"{" +
+							"\"_id\"=0;" +
+							"binary={Subtype=0u;Data=\"\\xAA\\xAA\";};" +
+							"boolean=%true;" +
+							"double=1.220000;" +
+							"int32=42;" +
+							"int64=23423;" +
+							"objectid=\"171e75500ecde1c75c59139e\";" +
+							"string=hello;" +
+							"}"),
+					[]byte(
+						"{" +
+							"\"_id\"=1;" +
+							"binary={Subtype=0u;Data=\"\\xAB\\xAB\";};" +
+							"boolean=%false;" +
+							"double=1.230000;" +
+							"int32=13;" +
+							"int64=13;" +
+							"objectid=\"271e75500ecde1c75c59139e\";" +
+							"string=hi;" +
+							"}"),
+					[]byte(
+						"{" +
+							"\"_id\"=2;" +
+							"binary={Subtype=0u;Data=\"\\xAC\\xAC\";};" +
+							"boolean=%false;" +
+							"double=1.240000;" +
+							"int32=15;" +
+							"int64=15;" +
+							"objectid=\"371e75500ecde1c75c59139e\";" +
+							"string=bye;" +
+							"}",
+					),
+				},
+			},
+		}},
+	},
+	"primitives_yson_id_1": {
+		Name:                  "primitives",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"_id":        testIdType,
+				"primitives": Primitive(Ydb.Type_YSON),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{{
+			Columns: map[string]any{
+				"_id": []*int32{ptr.Int32(1)},
+				"primitives": [][]byte{
+					[]byte(
+						"{" +
+							"\"_id\"=1;" +
+							"binary={Subtype=0u;Data=\"\\xAB\\xAB\";};" +
+							"boolean=%false;" +
+							"double=1.230000;" +
+							"int32=13;" +
+							"int64=13;" +
+							"objectid=\"271e75500ecde1c75c59139e\";" +
+							"string=hi;" +
+							"}"),
+				},
+			},
+		}},
+	},
+	"missing_id_0": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -207,7 +360,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_1": {
+	"missing_id_1": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -235,7 +388,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_2": {
+	"missing_id_2": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -263,7 +416,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"missing_12": {
+	"missing_ids_12": {
 		Name:                  "missing",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -291,7 +444,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_0": {
+	"similar_id_0": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -309,7 +462,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_01": {
+	"similar_ids_01": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -327,7 +480,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_234": {
+	"similar_ids_234": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -345,7 +498,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_146": {
+	"similar_ids_146": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -363,7 +516,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"similar_056": {
+	"similar_ids_056": {
 		Name:                  "similar",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -397,7 +550,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"strcomp_0": {
+	"strcomp_id_0": {
 		Name:                  "strcomp",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -413,7 +566,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"strcomp_1": {
+	"strcomp_id_1": {
 		Name:                  "strcomp",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -449,7 +602,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"tagged_0": {
+	"tagged_id_0": {
 		Name:                  "object_ids",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
@@ -467,7 +620,7 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		}},
 	},
-	"object_ids_0": {
+	"object_ids_id_0": {
 		Name:                  "object_ids",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
 		Schema: &test_utils.TableSchema{
