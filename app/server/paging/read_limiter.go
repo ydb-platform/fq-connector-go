@@ -63,8 +63,8 @@ func (rlf *ReadLimiterFactory) MakeReadLimiter(logger *zap.Logger, kind api_comm
 func NewReadLimiterFactory(datasourcesCfg *config.TDatasourcesConfig) *ReadLimiterFactory {
 	configs := make(map[api_common.EGenericDataSourceKind]*config.TReadLimiterConfig)
 
-	// YQ-4362: enable limitations only for Logging
-	if datasourcesCfg.GetLogging() != nil {
+	// YQ-4362: enable limitations only for Logging (if required)
+	if datasourcesCfg.GetLogging().GetReadLimiter() != nil {
 		configs[api_common.EGenericDataSourceKind_LOGGING] = datasourcesCfg.Logging.ReadLimiter
 	}
 
