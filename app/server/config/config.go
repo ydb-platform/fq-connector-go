@@ -264,7 +264,7 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 	}
 
 	if c.Splitting.QueryTabletIdsTimeout == "" {
-		c.Splitting.QueryTabletIdsTimeout = "20s"
+		c.Splitting.QueryTabletIdsTimeout = "1m"
 	}
 
 	if c.Mode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE && c.ResourcePool == "" {
