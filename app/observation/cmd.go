@@ -21,7 +21,7 @@ var serverCmd = &cobra.Command{
 	Use:   "server",
 	Short: "Run server tracking running queries from multiple connectors",
 	Run: func(cmd *cobra.Command, _ []string) {
-		if err := startAggregationServer(cmd); err != nil {
+		if err := StartAggregationServer(cmd); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}

@@ -2,7 +2,9 @@ package observation
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"time"
 
@@ -18,6 +20,9 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/observation/discovery"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
+
+//go:embed assets
+var embeddedAssets embed.FS
 
 // aggregationServer handles WebSocket connections and polling
 type aggregationServer struct {
@@ -61,7 +66,7 @@ func (s *aggregationServer) start() error {
 	)
 
 	http.HandleFunc("/ws", s.handleWebSocket)
-	http.Handle("/", getAssetHandler())
+	http.Handle("/", getAssetHandler(s.logger))
 
 	return http.ListenAndServe(endpoint, nil)
 }
@@ -224,12 +229,23 @@ func (s *aggregationServer) getOutgoingQueries(endpoint *api_common.TGenericEndp
 }
 
 // getAssetHandler returns a handler for serving static assets
-func getAssetHandler() http.Handler {
-	fs := http.Dir("app/observation/assets")
-	return http.FileServer(fs)
+func getAssetHandler(logger *zap.Logger) http.Handler {
+	// Use the embedded assets
+	logger.Info("using embedded assets")
+
+	// We need to get the "assets" subdirectory from the embedded FS
+	assetsFS, err := fs.Sub(embeddedAssets, "assets")
+	if err != nil {
+		logger.Error("failed to get assets subdirectory from embedded FS", zap.Error(err))
+		// Fall back to an empty file system if we can't get the assets
+		return http.FileServer(http.FS(embeddedAssets))
+	}
+
+	return http.FileServer(http.FS(assetsFS))
 }
 
-func startAggregationServer(cmd *cobra.Command) error {
+// StartAggregationServer starts the aggregation server with the given command
+func StartAggregationServer(cmd *cobra.Command) error {
 	configPath, err := cmd.Flags().GetString(configFlag)
 	if err != nil {
 		return fmt.Errorf("get config path: %w", err)
@@ -246,7 +262,7 @@ func startAggregationServer(cmd *cobra.Command) error {
 	}
 
 	// a blocking call
-	if server.start() != nil {
+	if err := server.start(); err != nil {
 		return fmt.Errorf("start server: %w", err)
 	}
 
