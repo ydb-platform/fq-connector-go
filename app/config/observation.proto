@@ -33,7 +33,7 @@ message TObservationDiscoveryConfig {
         string label_selector = 1;
     }
 
-    oneof discovery_config {
+    oneof payload {
         TStaticDiscoveryConfig static = 1;
         TKubernetesDiscoveryConfig kubernetes = 2;
     }

@@ -6,9 +6,7 @@ import (
 	"math"
 	"os"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/encoding/prototext"
-	"sigs.k8s.io/yaml"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -803,27 +801,10 @@ func newConfigFromPrototextFile(configPath string) (*config.TServerConfig, error
 }
 
 func newConfigFromYAMLFile(configPath string) (*config.TServerConfig, error) {
-	dataYAML, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("read file %v: %w", configPath, err)
-	}
-
-	// convert YAML to JSON
-	dataJSON, err := yaml.YAMLToJSON(dataYAML)
-	if err != nil {
-		return nil, fmt.Errorf("convert YAML to JSON: %w", err)
-	}
-
 	var cfg config.TServerConfig
 
-	// than parse JSON
-
-	unmarshaller := protojson.UnmarshalOptions{
-		DiscardUnknown: true,
-	}
-
-	if err := unmarshaller.Unmarshal(dataJSON, &cfg); err != nil {
-		return nil, fmt.Errorf("protojson unmarshal `%v`: %w", string(dataJSON), err)
+	if err := common.NewConfigFromYAMLFile(configPath, &cfg); err != nil {
+		return nil, fmt.Errorf("new config from YAML file '%s': %w", configPath, err)
 	}
 
 	return &cfg, nil

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -13,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_observation "github.com/ydb-platform/fq-connector-go/api/observation"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/observation/discovery"
@@ -130,12 +130,12 @@ func (s *aggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 		duration := time.Since(startTime)
 
 		if err != nil {
-			s.logger.Error("error polling endpoint", zap.String("endpoint", endpoint), zap.Error(err))
+			s.logger.Error("error polling endpoint", zap.Stringer("endpoint", endpoint), zap.Error(err))
 			continue
 		}
 
 		s.logger.Info("endpoint polled successfully",
-			zap.String("endpoint", endpoint),
+			zap.Stringer("endpoint", endpoint),
 			zap.Duration("duration", duration),
 			zap.Int("queries_count", len(queries)))
 
@@ -145,23 +145,23 @@ func (s *aggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 				zap.String("first_query_text", queries[0].QueryText))
 		}
 
-		results[endpoint] = queries
+		results[common.EndpointToString(endpoint)] = queries
 	}
 
 	s.logger.Info("completed polling endpoints",
 		zap.Int("successful_endpoints", len(results)),
-		zap.Int("failed_endpoints", len(s.endpoints)-len(results)))
+		zap.Int("failed_endpoints", len(endpoints)-len(results)))
 
 	return results
 }
 
 // getOutgoingQueries retrieves running queries from a single endpoint
-func (s *aggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFormattedTime, error) {
-	s.logger.Debug("connecting to endpoint", zap.String("endpoint", endpoint))
+func (s *aggregationServer) getOutgoingQueries(endpoint *api_common.TGenericEndpoint) ([]*QueryWithFormattedTime, error) {
+	s.logger.Debug("connecting to endpoint", zap.Stringer("endpoint", endpoint))
 
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(common.EndpointToString(endpoint), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
+		return nil, fmt.Errorf("new client to %s: %w", endpoint, err)
 	}
 	defer conn.Close()
 
@@ -174,8 +174,7 @@ func (s *aggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 		State: api_observation.QueryState_QUERY_STATE_RUNNING, // Only get RUNNING queries
 	}
 
-	s.logger.Debug("making GRPC call to ListOutgoingQueries",
-		zap.String("endpoint", endpoint))
+	s.logger.Debug("making GRPC call to ListOutgoingQueries", zap.Stringer("endpoint", endpoint))
 
 	stream, err := client.ListOutgoingQueries(ctx, req)
 	if err != nil {
@@ -190,8 +189,8 @@ func (s *aggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 	for {
 		resp, err := stream.Recv()
 		if err != nil {
-			s.logger.Debug("stream receive completed",
-				zap.String("endpoint", endpoint),
+			s.logger.Error("stream receive completed",
+				zap.Stringer("endpoint", endpoint),
 				zap.Int("total_queries", receivedCount),
 				zap.Error(err))
 
@@ -215,9 +214,11 @@ func (s *aggregationServer) getOutgoingQueries(endpoint string) ([]*QueryWithFor
 		}
 	}
 
-	s.logger.Debug("received queries from endpoint",
-		zap.String("endpoint", endpoint),
-		zap.Int("count", len(queries)))
+	s.logger.Debug(
+		"received queries from endpoint",
+		zap.Stringer("endpoint", endpoint),
+		zap.Int("count", len(queries)),
+	)
 
 	return queries, nil
 }
@@ -229,32 +230,25 @@ func getAssetHandler() http.Handler {
 }
 
 func startAggregationServer(cmd *cobra.Command) error {
-	endpoints, err := cmd.Flags().GetString(endpointsFlag)
+	configPath, err := cmd.Flags().GetString(configFlag)
 	if err != nil {
-		return fmt.Errorf("failed to get endpoints: %w", err)
+		return fmt.Errorf("get config path: %w", err)
 	}
 
-	port, err := cmd.Flags().GetInt(portFlag)
+	cfg, err := newConfigFromFile(configPath)
 	if err != nil {
-		return fmt.Errorf("failed to get port: %w", err)
+		return fmt.Errorf("new config from file: %w", err)
 	}
 
-	period, err := cmd.Flags().GetDuration(periodFlag)
+	server, err := newAggregationServer(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to get period: %w", err)
+		return fmt.Errorf("new aggregation server: %w", err)
 	}
 
-	// Split endpoints
-	endpointList := strings.Split(endpoints, ",")
-	if len(endpointList) == 0 {
-		return fmt.Errorf("no endpoints provided")
+	// a blocking call
+	if server.start() != nil {
+		return fmt.Errorf("start server: %w", err)
 	}
 
-	// Create server
-	server := newAggregationServer(endpointList, period)
-
-	// Start HTTP server
-	fmt.Printf("starting aggregation server on :%d\n", port)
-
-	return server.Start(port)
+	return nil
 }
