@@ -32,7 +32,7 @@ type aggregationServer struct {
 func newAggregationServer(cfg *config.TObservationServerConfig) (*aggregationServer, error) {
 	logger := common.NewDefaultLogger()
 
-	d, err := discovery.NewDiscovery(nil)
+	d, err := discovery.NewDiscovery(cfg.Discovery)
 	if err != nil {
 		return nil, fmt.Errorf("new discovery: %w", err)
 	}
