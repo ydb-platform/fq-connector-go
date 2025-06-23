@@ -116,7 +116,7 @@ type QueryWithFormattedTime struct {
 
 // pollEndpoints collects queries from all configured endpoints
 func (s *aggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime {
-	endpoints, err := s.discovery.GetEndpoints()
+	endpoints, err := s.discovery.GetEndpoints(s.logger)
 	if err != nil {
 		s.logger.Error("discover endpoints", zap.Error(err))
 		return nil
@@ -183,7 +183,7 @@ func (s *aggregationServer) getOutgoingQueries(endpoint *api_common.TGenericEndp
 
 	stream, err := client.ListOutgoingQueries(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list outgoing queries: %w", err)
+		return nil, fmt.Errorf("list outgoing queries: %w", err)
 	}
 
 	var (

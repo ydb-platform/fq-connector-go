@@ -6,25 +6,29 @@ import (
 	"os"
 	"strings"
 
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/config"
+	"go.uber.org/zap"
 	discovery_v1 "k8s.io/api/discovery/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 )
 
 func getCurrentNamespace() (string, error) {
-	nsPath := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	const nsPath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+
 	nsBytes, err := os.ReadFile(nsPath)
 	if err != nil {
-		return "", fmt.Errorf("error reading namespace file: %v", err)
+		return "", fmt.Errorf("read file '%s': %v", nsPath, err)
 	}
+
 	return strings.TrimSpace(string(nsBytes)), nil
 }
 
 // extractEndpointsFromSlice converts Kubernetes EndpointSlice to TGenericEndpoint list
-func extractEndpointsFromSlice(slice *discovery_v1.EndpointSlice) []*api_common.TGenericEndpoint {
+func extractEndpointsFromSlice(logger *zap.Logger, slice *discovery_v1.EndpointSlice) []*api_common.TGenericEndpoint {
 	var endpoints []*api_common.TGenericEndpoint
 
 	for _, endpoint := range slice.Endpoints {
@@ -38,7 +42,15 @@ func extractEndpointsFromSlice(slice *discovery_v1.EndpointSlice) []*api_common.
 				continue
 			}
 
+			if *port.Port != 50053 {
+				logger.Debug("skipping endpoint with non-target port", zap.Int32("port", *port.Port))
+
+				continue
+			}
+
 			for _, address := range endpoint.Addresses {
+				logger.Debug("adding endpoint", zap.String("address", address), zap.Int32("port", *port.Port))
+
 				// Create a TGenericEndpoint for each address and port combination
 				endpoint := &api_common.TGenericEndpoint{
 					Host: address,
@@ -58,17 +70,16 @@ type kubernetesDiscovery struct {
 }
 
 // GetEndpoints retrieves endpoints from Kubernetes API based on namespace and labelSelector
-func (k *kubernetesDiscovery) GetEndpoints() ([]*api_common.TGenericEndpoint, error) {
-	// Use in-cluster config for Kubernetes client
-	config, err := rest.InClusterConfig()
+func (k *kubernetesDiscovery) GetEndpoints(logger *zap.Logger) ([]*api_common.TGenericEndpoint, error) {
+	// Use in-cluster cfg for Kubernetes client
+	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("create in-cluster config: %w", err)
+		return nil, fmt.Errorf("rest in-cluster config: %w", err)
 	}
 
-	// Create Kubernetes clientset
-	clientset, err := kubernetes.NewForConfig(config)
+	clientSet, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("create kubernetes client: %w", err)
+		return nil, fmt.Errorf("kubernetes new for config: %w", err)
 	}
 
 	// Use provided namespace or get current namespace
@@ -78,7 +89,7 @@ func (k *kubernetesDiscovery) GetEndpoints() ([]*api_common.TGenericEndpoint, er
 	}
 
 	// List EndpointSlices with the given label selector
-	endpointSlices, err := clientset.DiscoveryV1().EndpointSlices(namespace).List(
+	endpointSlices, err := clientSet.DiscoveryV1().EndpointSlices(namespace).List(
 		context.Background(),
 		meta_v1.ListOptions{
 			LabelSelector: k.cfg.LabelSelector,
@@ -90,8 +101,9 @@ func (k *kubernetesDiscovery) GetEndpoints() ([]*api_common.TGenericEndpoint, er
 
 	// Collect all endpoints from all slices
 	var allEndpoints []*api_common.TGenericEndpoint
+
 	for _, slice := range endpointSlices.Items {
-		endpoints := extractEndpointsFromSlice(&slice)
+		endpoints := extractEndpointsFromSlice(logger, &slice)
 		allEndpoints = append(allEndpoints, endpoints...)
 	}
 
