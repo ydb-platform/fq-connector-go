@@ -20,6 +20,8 @@ Currently supported data sources:
 * Oracle
 * MongoDB
 * Redis
+* OpenSearch
+* Yandex Cloud Logging
 
 ### Documentation 
 
