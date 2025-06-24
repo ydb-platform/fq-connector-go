@@ -1,0 +1,41 @@
+syntax = "proto3";
+package NYql.Connector.App.Config;
+
+import "yql/essentials/providers/common/proto/gateways_config.proto";
+import "app/config/client.proto";
+import "app/config/server.proto";
+
+option go_package = "github.com/ydb-platform/fq-connector-go/app/config";
+
+// TObservationServerConfig describe the configuration of the observation service
+// that helps to track the state of the queries running across different Connector instances
+message TObservationServerConfig {
+    // Endpoint for the HTTP 
+    NYql.TGenericEndpoint endpoint = 1;
+
+    // Discovery service provides the list of Observation API endpoints
+    // to retrieve data from
+    TObservationDiscoveryConfig discovery = 2;
+
+    // Time interval between polling Observation API endpoints.
+    // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+    string polling_interval = 3;
+}
+
+message TObservationDiscoveryConfig {
+    // TStaticDiscoveryConfig configures the static list of Observation API endpoints 
+    message TStaticDiscoveryConfig {
+        repeated NYql.TGenericEndpoint endpoints = 1;
+    }
+
+    // TKubernetesDiscoveryConfig configures Kubernetes API
+    message TKubernetesDiscoveryConfig {
+        string label_selector = 1;
+        uint32 target_port = 2;
+    }
+
+    oneof payload {
+        TStaticDiscoveryConfig static = 1;
+        TKubernetesDiscoveryConfig kubernetes = 2;
+    }
+}

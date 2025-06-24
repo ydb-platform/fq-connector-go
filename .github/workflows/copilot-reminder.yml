@@ -1,0 +1,22 @@
+name: 'Reminder: Enable GitHub Copilot'
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # This permission is required to post a comment
+    steps:
+      - name: Post Copilot Reminder Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '👋 **Friendly Reminder:** Please enable GitHub Copilot for this pull request to get an AI-generated summary of the changes. You can find the "Enable" button in the right-hand sidebar.'
+            })

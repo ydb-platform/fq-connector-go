@@ -1,11 +1,15 @@
 projectPath = $(shell pwd)
 serverConfig ?= ./app/server/config/config.debug.yaml
+observationServerConfig ?= scripts/debug/config/observation/static.yaml
 
 build:
 	go build -o fq-connector-go ./app
 
 run: build
 	./fq-connector-go server --config="$(serverConfig)"
+
+run_observation: build
+	./fq-connector-go observation server --config="$(observationServerConfig)"
 
 lint:
 	golangci-lint run --fix ./app/... ./common/... ./tests/... ./tools/...

@@ -3,7 +3,9 @@ package observation
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -185,7 +187,7 @@ func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.I
 		for {
 			resp, err := stream.Recv()
 			if err != nil {
-				if err.Error() == eofError {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 
@@ -268,7 +270,7 @@ func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.O
 		for {
 			resp, err := stream.Recv()
 			if err != nil {
-				if err.Error() == eofError {
+				if errors.Is(err, io.EOF) {
 					break
 				}
 

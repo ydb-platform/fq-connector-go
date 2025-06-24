@@ -9,7 +9,14 @@ import (
 )
 
 func EndpointToString(ep *api_common.TGenericEndpoint) string {
-	return fmt.Sprintf("%s:%d", ep.GetHost(), ep.GetPort())
+	host := ep.GetHost()
+
+	// Check if this is an IPv6 address (contains colon)
+	if strings.Contains(host, ":") {
+		return fmt.Sprintf("[%s]:%d", host, ep.GetPort())
+	}
+
+	return fmt.Sprintf("%s:%d", host, ep.GetPort())
 }
 
 func StringToEndpoint(s string) (*api_common.TGenericEndpoint, error) {

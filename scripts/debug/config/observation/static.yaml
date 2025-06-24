@@ -1,0 +1,15 @@
+endpoint:
+  host: 0.0.0.0
+  port: 8082
+
+discovery:
+  static:
+    endpoints:
+      - host: 0.0.0.0
+        port: 50053
+      - host: 0.0.0.0
+        port: 50054
+      - host: 0.0.0.0
+        port: 50055
+
+polling_interval: "5s"

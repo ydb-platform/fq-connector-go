@@ -3,7 +3,6 @@ package observation
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -14,14 +13,9 @@ import (
 
 const (
 	endpointFlag   = "endpoint"  // For incoming/outgoing commands
-	endpointsFlag  = "endpoints" // For aggregate command and dump commands
-	portFlag       = "port"
-	periodFlag     = "period"
-	outputFileFlag = "output" // For dump commands
-	formatFlag     = "format" // For dump commands (csv or parquet)
-
-	// Error constants
-	eofError = "EOF"
+	endpointsFlag  = "endpoints" // For dump commands
+	outputFileFlag = "output"    // For dump commands
+	formatFlag     = "format"    // For dump commands (csv or parquet)
 )
 
 var Cmd = &cobra.Command{
@@ -85,18 +79,6 @@ var outgoingRunningCmd = &cobra.Command{
 	},
 }
 
-// Track command
-var trackCmd = &cobra.Command{
-	Use:   "track",
-	Short: "Track outgoing queries from multiple connectors",
-	Run: func(cmd *cobra.Command, _ []string) {
-		if err := startAggregationServer(cmd); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	},
-}
-
 // Dump commands
 var dumpCmd = &cobra.Command{
 	Use:   "dump",
@@ -141,13 +123,7 @@ func init() {
 	// Add main subcommands to the root command
 	Cmd.AddCommand(incomingCmd)
 	Cmd.AddCommand(outgoingCmd)
-	Cmd.AddCommand(trackCmd)
 	Cmd.AddCommand(dumpCmd)
-
-	// Add flags for aggregate command
-	trackCmd.Flags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to monitor (required)")
-	trackCmd.Flags().Int(portFlag, 8081, "Port to serve dashboard on")
-	trackCmd.Flags().Duration(periodFlag, 5*time.Second, "Polling period")
 
 	// Add flags for dump commands
 	dumpCmd.PersistentFlags().String(endpointsFlag, "", "Comma-separated list of gRPC endpoints to fetch queries from (required)")
@@ -155,10 +131,6 @@ func init() {
 	dumpCmd.PersistentFlags().String(formatFlag, "csv", "Output format (csv only for now)")
 
 	// Mark required flags
-	if err := trackCmd.MarkFlagRequired(endpointsFlag); err != nil {
-		panic(err)
-	}
-
 	if err := dumpCmd.MarkPersistentFlagRequired(endpointsFlag); err != nil {
 		panic(err)
 	}
