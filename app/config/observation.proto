@@ -31,6 +31,7 @@ message TObservationDiscoveryConfig {
     // TKubernetesDiscoveryConfig configures Kubernetes API
     message TKubernetesDiscoveryConfig {
         string label_selector = 1;
+        uint32 target_port = 2;
     }
 
     oneof payload {

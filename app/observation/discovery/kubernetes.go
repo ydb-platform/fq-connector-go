@@ -27,8 +27,16 @@ func getCurrentNamespace() (string, error) {
 	return strings.TrimSpace(string(nsBytes)), nil
 }
 
+type kubernetesDiscovery struct {
+	// kubernetes.io/service-name=yq-connector
+	cfg *config.TObservationDiscoveryConfig_TKubernetesDiscoveryConfig
+}
+
 // extractEndpointsFromSlice converts Kubernetes EndpointSlice to TGenericEndpoint list
-func extractEndpointsFromSlice(logger *zap.Logger, slice *discovery_v1.EndpointSlice) []*api_common.TGenericEndpoint {
+func (k *kubernetesDiscovery) extractEndpointsFromSlice(
+	logger *zap.Logger,
+	slice *discovery_v1.EndpointSlice,
+) []*api_common.TGenericEndpoint {
 	var endpoints []*api_common.TGenericEndpoint
 
 	for _, endpoint := range slice.Endpoints {
@@ -42,7 +50,7 @@ func extractEndpointsFromSlice(logger *zap.Logger, slice *discovery_v1.EndpointS
 				continue
 			}
 
-			if *port.Port != 50053 {
+			if *port.Port != int32(k.cfg.TargetPort) {
 				logger.Debug("skipping endpoint with non-target port", zap.Int32("port", *port.Port))
 
 				continue
@@ -62,11 +70,6 @@ func extractEndpointsFromSlice(logger *zap.Logger, slice *discovery_v1.EndpointS
 	}
 
 	return endpoints
-}
-
-type kubernetesDiscovery struct {
-	// kubernetes.io/service-name=yq-connector
-	cfg *config.TObservationDiscoveryConfig_TKubernetesDiscoveryConfig
 }
 
 // GetEndpoints retrieves endpoints from Kubernetes API based on namespace and labelSelector
@@ -103,7 +106,7 @@ func (k *kubernetesDiscovery) GetEndpoints(logger *zap.Logger) ([]*api_common.TG
 	var allEndpoints []*api_common.TGenericEndpoint
 
 	for _, slice := range endpointSlices.Items {
-		endpoints := extractEndpointsFromSlice(logger, &slice)
+		endpoints := k.extractEndpointsFromSlice(logger, &slice)
 		allEndpoints = append(allEndpoints, endpoints...)
 	}
 

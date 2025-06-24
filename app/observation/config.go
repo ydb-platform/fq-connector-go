@@ -17,7 +17,7 @@ func validateObservationServerConfig(cfg *config.TObservationServerConfig) error
 	}
 
 	if _, err := common.DurationFromString(cfg.GetPollingInterval()); err != nil {
-		return fmt.Errorf("validate `plling_interval`: %v", err)
+		return fmt.Errorf("validate `polling_interval`: %v", err)
 	}
 
 	return nil
