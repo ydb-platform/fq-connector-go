@@ -362,7 +362,7 @@ func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, s
 			ctx,
 			queryText,
 			query.WithParameters(paramsBuilder.Build()),
-			query.WithResourcePool("yandex_query_pool"),
+			// query.WithResouocePool("yandex_query_pool")
 		)
 		if err != nil {
 			return fmt.Errorf("query error: %w", err)
