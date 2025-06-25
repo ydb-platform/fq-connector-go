@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path"
 	"sync"
 	"syscall"
 	"time"
@@ -193,13 +194,14 @@ func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 
 func main() {
 	var (
-		endpoint  string
-		database  string
-		table     string
-		token     string
-		interval  int
-		startTime string
-		endTime   string
+		endpoint     string
+		database     string
+		table        string
+		token        string
+		interval     int
+		startTime    string
+		endTime      string
+		resourcePool string
 	)
 
 	flag.StringVar(&endpoint, "endpoint", "localhost:2136", "YDB endpoint")
@@ -209,14 +211,15 @@ func main() {
 	flag.IntVar(&interval, "interval", 5, "Query interval in seconds")
 	flag.StringVar(&startTime, "start", "", "Start time for query in RFC3339 format")
 	flag.StringVar(&endTime, "end", "", "End time for query in RFC3339 format")
+	flag.StringVar(&resourcePool, "resource-pool", "", "Resource pool for YDB queries")
 
 	flag.Parse()
 
-	if token == "" || endpoint == "" || database == "" || table == "" || startTime == "" || endTime == "" {
+	if token == "" || endpoint == "" || database == "" || table == "" || startTime == "" || endTime == "" || resourcePool == "" {
 		fmt.Println(
 			"Usage: " +
 				"app -endpoint=<endpoint> -database=<database> -table=<table-name> -token=<token> " +
-				"-interval=<interval> -start=<start-time> -end=<end-time>")
+				"-interval=<interval> -start=<start-time> -end=<end-time> -resource-pool=<resource-pool>")
 		os.Exit(1)
 	}
 
@@ -260,12 +263,16 @@ func main() {
 	}
 
 	defer func() {
-		if err := ydbDriver.Close(context.Background()); err != nil {
+		if err = ydbDriver.Close(context.Background()); err != nil {
 			logger.Error("error closing YDB driver", zap.Error(err))
 		}
 	}()
 
-	tabletIDs, err := getTabletIDs(ctx, logger, ydbDriver, table)
+	// Get the full table path
+	tablePath := path.Join(database, table)
+
+	// Dynamically get tablet IDs
+	tabletIDs, err := getTabletIDs(ctx, logger, ydbDriver, tablePath)
 	if err != nil {
 		logger.Fatal("failed to get tablet IDs", zap.Error(err))
 	}
@@ -274,7 +281,9 @@ func main() {
 		logger.Fatal("no tablet IDs found for the specified table")
 	}
 
-	logger.Info("starting to monitor tablet IDs", zap.Strings("tablet_ids", tabletIDs))
+	logger.Info("starting to monitor tablet IDs",
+		zap.Strings("tablet_ids", tabletIDs),
+		zap.String("resource_pool", resourcePool))
 
 	inconsistencyFound := make(chan string, 1)
 
@@ -285,7 +294,10 @@ func main() {
 
 		monitorFunc := func(id string) {
 			defer wg.Done()
-			monitorTabletID(ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second, inconsistencyFound, start, end, table)
+			monitorTabletID(
+				ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second,
+				inconsistencyFound, start, end, table, resourcePool,
+			)
 		}
 
 		go monitorFunc(tabletID)
@@ -295,7 +307,7 @@ func main() {
 	case <-ctx.Done():
 		logger.Info("context canceled, waiting for goroutines to finish...")
 	case tabletID := <-inconsistencyFound:
-		logger.Info("inconsistency found in tablet ID", zap.String("tablet_id", tabletID))
+		logger.Warn("inconsistency found in tablet ID", zap.String("tablet_id", tabletID))
 		cancel()
 	}
 
@@ -336,6 +348,7 @@ func monitorTabletID(
 	inconsistencyFound chan<- string,
 	startTime, endTime time.Time,
 	table string,
+	resourcePool string,
 ) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
@@ -359,7 +372,7 @@ func monitorTabletID(
 		case <-ticker.C:
 			queryCounter++
 
-			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table)
+			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table, resourcePool)
 			if err != nil {
 				logger.Error("error executing query",
 					zap.String("tablet_id", tabletID),
@@ -382,7 +395,7 @@ func monitorTabletID(
 			}
 
 			if rowCount != lastRowCount {
-				logger.Info("inconsistency detected",
+				logger.Warn("inconsistency detected",
 					zap.String("tablet_id", tabletID),
 					zap.Int("query_num", queryCounter),
 					zap.Int("previous_count", lastRowCount),
@@ -402,7 +415,7 @@ func monitorTabletID(
 }
 
 // executeQuery runs the query with a specific tablet ID and returns the number of rows
-func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, startTime, endTime time.Time, table string) (int, error) {
+func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, startTime, endTime time.Time, table string, resourcePool string) (int, error) {
 	queryText := fmt.Sprintf(queryTemplate, table, tabletID)
 
 	paramsBuilder := ydb.ParamsBuilder()
@@ -416,6 +429,7 @@ func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, s
 			ctx,
 			queryText,
 			query.WithParameters(paramsBuilder.Build()),
+			query.WithResourcePool(resourcePool),
 		)
 		if err != nil {
 			return fmt.Errorf("query error: %w", err)
