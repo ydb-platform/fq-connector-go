@@ -259,7 +259,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
-	dsn := fmt.Sprintf("grpc://%s%s", endpoint, database)
+	dsn := fmt.Sprintf("grpcs://%s%s", endpoint, database)
 
 	logger.Info("connecting to YDB",
 		zap.String("dsn", dsn),
