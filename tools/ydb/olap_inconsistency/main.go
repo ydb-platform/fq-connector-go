@@ -139,16 +139,16 @@ WHERE (COALESCE((timestamp >= $p0), false) AND COALESCE((timestamp < $p1), false
 
 // List of all possible TabletIds
 var tabletIDs = []string{
-	"72075186235526786",
-	"72075186235526433",
-	"72075186235526695",
-	"72075186235526773",
-	"72075186235526069",
-	"72075186235526677",
-	"72075186235526756",
-	"72075186235526324",
-	"72075186235526828",
-	"72075186235526818",
+	"72075186235526360",
+	"72075186235526151",
+	"72075186235526166",
+	"72075186235526050",
+	"72075186235526429",
+	"72075186235526057",
+	"72075186235527014",
+	"72075186235526538",
+	"72075186235526655",
+	"72075186235526663",
 }
 
 func main() {
@@ -170,7 +170,7 @@ func main() {
 
 	flag.Parse()
 
-	if token == "" || endpoint == "" || database == "" {
+	if token == "" || endpoint == "" || database == "" || startTime == "" || endTime == "" {
 		fmt.Println(
 			"Usage: " +
 				"app -endpoint=<endpoint> -database=<database> -token=<token> " +
@@ -285,11 +285,11 @@ func monitorTabletID(
 ) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
-	var lastRowCount int
-
-	var firstRun = true
-
-	var queryCounter int
+	var (
+		lastRowCount int
+		queryCounter int
+		firstRun     = true
+	)
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
