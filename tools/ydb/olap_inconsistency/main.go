@@ -23,12 +23,6 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-// Query time range. Fill free to update it before running.
-var (
-	startTime = time.Date(2025, 6, 24, 1, 1, 1, 0, time.UTC)
-	endTime   = time.Date(2025, 6, 24, 2, 2, 2, 0, time.UTC)
-)
-
 // Query template with TabletId placeholder
 const queryTemplate = `
 DECLARE $p0 AS Timestamp;
@@ -159,21 +153,45 @@ var tabletIDs = []string{
 
 func main() {
 	var (
-		endpoint string
-		database string
-		token    string
-		interval int
+		endpoint  string
+		database  string
+		token     string
+		interval  int
+		startTime string
+		endTime   string
 	)
 
-	flag.StringVar(&endpoint, "endpoint", "", "YDB endpoint")
-	flag.StringVar(&database, "database", "", "YDB database path")
+	flag.StringVar(&endpoint, "endpoint", "localhost:2136", "YDB endpoint")
+	flag.StringVar(&database, "database", "/local", "YDB database path")
 	flag.StringVar(&token, "token", "", "IAM token for authentication")
 	flag.IntVar(&interval, "interval", 5, "Query interval in seconds")
+	flag.StringVar(&startTime, "start", "", "Start time for query in RFC3339 format")
+	flag.StringVar(&endTime, "end", "", "End time for query in RFC3339 format")
 
 	flag.Parse()
 
 	if token == "" || endpoint == "" || database == "" {
-		fmt.Println("Usage: app -endpoint=<endpoint> -database=<database> -token=<token> [-interval=<interval>]")
+		fmt.Println(
+			"Usage: " +
+				"app -endpoint=<endpoint> -database=<database> -token=<token> " +
+				"-interval=<interval> -start=<start-time> -end=<end-time>")
+		os.Exit(1)
+	}
+
+	start, err := time.Parse(time.RFC3339, startTime)
+	if err != nil {
+		fmt.Printf("Invalid start time format: %v\n", err)
+		os.Exit(1)
+	}
+
+	end, err := time.Parse(time.RFC3339, endTime)
+	if err != nil {
+		fmt.Printf("Invalid end time format: %v\n", err)
+		os.Exit(1)
+	}
+
+	if end.Before(start) {
+		fmt.Println("End time must be after start time")
 		os.Exit(1)
 	}
 
@@ -214,7 +232,7 @@ func main() {
 
 		monitorFunc := func(id string) {
 			defer wg.Done()
-			monitorTabletID(ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second, inconsistencyFound)
+			monitorTabletID(ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second, inconsistencyFound, start, end)
 		}
 
 		go monitorFunc(tabletID)
@@ -263,6 +281,7 @@ func monitorTabletID(
 	tabletID string,
 	interval time.Duration,
 	inconsistencyFound chan<- string,
+	startTime, endTime time.Time,
 ) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
@@ -286,7 +305,7 @@ func monitorTabletID(
 		case <-ticker.C:
 			queryCounter++
 
-			rowCount, err := executeQuery(ctx, ydbDriver, tabletID)
+			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime)
 			if err != nil {
 				logger.Error("error executing query",
 					zap.String("tablet_id", tabletID),
@@ -329,7 +348,7 @@ func monitorTabletID(
 }
 
 // executeQuery runs the query with a specific tablet ID and returns the number of rows
-func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string) (int, error) {
+func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, startTime, endTime time.Time) (int, error) {
 	queryText := fmt.Sprintf(queryTemplate, tabletID)
 
 	paramsBuilder := ydb.ParamsBuilder()
