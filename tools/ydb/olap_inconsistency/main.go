@@ -23,6 +23,12 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+// Query time range. Fill free to update it before running.
+var (
+	startTime = time.Date(2025, 6, 24, 1, 1, 1, 0, time.UTC)
+	endTime   = time.Date(2025, 6, 24, 2, 2, 2, 0, time.UTC)
+)
+
 // Query template with TabletId placeholder
 const queryTemplate = `
 DECLARE $p0 AS Timestamp;
@@ -137,22 +143,21 @@ WITH TabletId='%s'
 WHERE (COALESCE((timestamp >= $p0), false) AND COALESCE((timestamp < $p1), false))
 `
 
-// List of all possible TabletIds (SAS + VLA)
+// List of all possible TabletIds
 var tabletIDs = []string{
-	"72075186235526057",
-	"72075186235526360",
-	"72075186235526151",
-	"72075186235526050",
-	"72075186235526166",
-	"72075186235526429",
-	"72075186235526538",
-	"72075186235527014",
-	"72075186235526655",
-	"72075186235526663",
+	"72075186235526786",
+	"72075186235526433",
+	"72075186235526695",
+	"72075186235526773",
+	"72075186235526069",
+	"72075186235526677",
+	"72075186235526756",
+	"72075186235526324",
+	"72075186235526828",
+	"72075186235526818",
 }
 
 func main() {
-	// Define flags for login, password, endpoint, and database
 	var (
 		endpoint string
 		database string
@@ -160,73 +165,69 @@ func main() {
 		interval int
 	)
 
-	flag.StringVar(&endpoint, "endpoint", "localhost:2136", "YDB endpoint")
-	flag.StringVar(&database, "database", "/local", "YDB database path")
+	flag.StringVar(&endpoint, "endpoint", "", "YDB endpoint")
+	flag.StringVar(&database, "database", "", "YDB database path")
 	flag.StringVar(&token, "token", "", "IAM token for authentication")
-	flag.IntVar(&interval, "interval", 1, "Query interval in seconds")
+	flag.IntVar(&interval, "interval", 5, "Query interval in seconds")
 
-	// Parse the command-line flags
 	flag.Parse()
 
-	// Check if mandatory flags are provided
-	if token == "" {
+	if token == "" || endpoint == "" || database == "" {
 		fmt.Println("Usage: app -endpoint=<endpoint> -database=<database> -token=<token> [-interval=<interval>]")
 		os.Exit(1)
 	}
 
-	// Initialize logger
 	logger := common.NewDefaultLogger()
-	defer logger.Sync()
+	defer func() {
+		_ = logger.Sync()
+	}()
 
-	// Create a context that will be canceled on SIGINT or SIGTERM
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Set up signal handling
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
 	go func() {
 		<-sigChan
 		logger.Info("received termination signal, shutting down...")
 		cancel()
 	}()
 
-	// Create YDB driver
 	ydbDriver, err := makeDriver(ctx, logger, endpoint, database, token)
 	if err != nil {
 		logger.Fatal("failed to create YDB driver", zap.Error(err))
 	}
+
 	defer func() {
 		if err := ydbDriver.Close(context.Background()); err != nil {
 			logger.Error("error closing YDB driver", zap.Error(err))
 		}
 	}()
 
-	// Create a channel to signal when inconsistency is found
 	inconsistencyFound := make(chan string, 1)
 
-	// Create a WaitGroup to wait for all goroutines to finish
 	var wg sync.WaitGroup
 
-	// Start a goroutine for each tablet ID
 	for _, tabletID := range tabletIDs {
 		wg.Add(1)
-		go func(tabletID string) {
+
+		monitorFunc := func(id string) {
 			defer wg.Done()
-			monitorTabletID(ctx, logger, ydbDriver, tabletID, time.Duration(interval)*time.Second, inconsistencyFound)
-		}(tabletID)
+			monitorTabletID(ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second, inconsistencyFound)
+		}
+
+		go monitorFunc(tabletID)
 	}
 
-	// Wait for either context cancellation or inconsistency found
 	select {
 	case <-ctx.Done():
 		logger.Info("context canceled, waiting for goroutines to finish...")
 	case tabletID := <-inconsistencyFound:
 		logger.Info("inconsistency found in tablet ID", zap.String("tablet_id", tabletID))
-		cancel() // Cancel the context to stop all goroutines
+		cancel()
 	}
 
-	// Wait for all goroutines to finish
 	wg.Wait()
 	logger.Info("all goroutines finished, exiting...")
 }
@@ -240,7 +241,8 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
-	dsn := fmt.Sprintf("grpcs://%s%s", endpoint, database)
+	dsn := fmt.Sprintf("grpc://%s%s", endpoint, database)
+
 	logger.Info("connecting to YDB",
 		zap.String("dsn", dsn),
 		zap.String("auth", "IAM token"))
@@ -265,7 +267,9 @@ func monitorTabletID(
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
 	var lastRowCount int
+
 	var firstRun = true
+
 	var queryCounter int
 
 	ticker := time.NewTicker(interval)
@@ -274,18 +278,21 @@ func monitorTabletID(
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Warn("context canceled for tablet ID",
+			logger.Info("context canceled for tablet ID",
 				zap.String("tablet_id", tabletID),
 				zap.Int("total_queries", queryCounter))
+
 			return
 		case <-ticker.C:
 			queryCounter++
-			rowCount, err := executeQuery(ctx, logger, ydbDriver, tabletID)
+
+			rowCount, err := executeQuery(ctx, ydbDriver, tabletID)
 			if err != nil {
 				logger.Error("error executing query",
 					zap.String("tablet_id", tabletID),
 					zap.Int("query_num", queryCounter),
 					zap.Error(err))
+
 				continue
 			}
 
@@ -297,10 +304,10 @@ func monitorTabletID(
 			if firstRun {
 				lastRowCount = rowCount
 				firstRun = false
+
 				continue
 			}
 
-			// Check for inconsistency
 			if rowCount != lastRowCount {
 				logger.Info("inconsistency detected",
 					zap.String("tablet_id", tabletID),
@@ -308,13 +315,11 @@ func monitorTabletID(
 					zap.Int("previous_count", lastRowCount),
 					zap.Int("current_count", rowCount))
 
-				// Send the tablet ID to the inconsistencyFound channel
 				select {
 				case inconsistencyFound <- tabletID:
-					// Successfully sent
 				default:
-					// Channel is full, which means inconsistency was already found
 				}
+
 				return
 			}
 
@@ -324,19 +329,15 @@ func monitorTabletID(
 }
 
 // executeQuery runs the query with a specific tablet ID and returns the number of rows
-func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, tabletID string) (int, error) {
-	// Create a query with the specific tablet ID
+func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string) (int, error) {
 	queryText := fmt.Sprintf(queryTemplate, tabletID)
-
-	// Set up parameters for the query
-	startTime := time.Date(2025, 6, 25, 1, 1, 1, 0, time.UTC)
-	endTime := time.Date(2025, 6, 25, 2, 2, 2, 0, time.UTC)
 
 	paramsBuilder := ydb.ParamsBuilder()
 	paramsBuilder = paramsBuilder.Param("$p0").Timestamp(startTime)
 	paramsBuilder = paramsBuilder.Param("$p1").Timestamp(endTime)
 
 	rowCount := 0
+
 	err := ydbDriver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
 		result, err := s.Query(
 			ctx,
@@ -347,6 +348,7 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 		if err != nil {
 			return fmt.Errorf("query error: %w", err)
 		}
+
 		defer result.Close(ctx)
 
 		for {
@@ -355,11 +357,12 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 				if errors.Is(err, io.EOF) {
 					break
 				}
+
 				return fmt.Errorf("next result set: %w", err)
 			}
 
 			for {
-				_, err = resultSet.NextRow(ctx)
+				_, err := resultSet.NextRow(ctx)
 				if err != nil {
 					if errors.Is(err, io.EOF) {
 						break
@@ -367,6 +370,7 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 
 					return fmt.Errorf("next row: %w", err)
 				}
+
 				rowCount++
 			}
 		}
