@@ -254,7 +254,14 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 }
 
 // monitorTabletID runs the query periodically for a specific tablet ID and checks for inconsistencies
-func monitorTabletID(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, tabletID string, interval time.Duration, inconsistencyFound chan<- string) {
+func monitorTabletID(
+	ctx context.Context,
+	logger *zap.Logger,
+	ydbDriver *ydb.Driver,
+	tabletID string,
+	interval time.Duration,
+	inconsistencyFound chan<- string,
+) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
 	var lastRowCount int
@@ -322,8 +329,8 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 	queryText := fmt.Sprintf(queryTemplate, tabletID)
 
 	// Set up parameters for the query
-	startTime := time.Date(2025, 6, 24, 1, 1, 1, 0, time.UTC)
-	endTime := time.Date(2025, 6, 24, 2, 2, 2, 0, time.UTC)
+	startTime := time.Date(2025, 6, 25, 1, 1, 1, 0, time.UTC)
+	endTime := time.Date(2025, 6, 25, 2, 2, 2, 0, time.UTC)
 
 	paramsBuilder := ydb.ParamsBuilder()
 	paramsBuilder = paramsBuilder.Param("$p0").Timestamp(startTime)
