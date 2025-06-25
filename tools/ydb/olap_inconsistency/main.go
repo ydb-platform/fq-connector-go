@@ -118,43 +118,84 @@ $build_level = ($src) -> {
     );
 };
 
-SELECT 
-    CAST("aoe3cidh5dfee2s6cqu5" AS Utf8) AS cluster, 
-    $build_hostname(json_payload) AS hostname, 
-    json_payload, 
-    $build_labels(json_payload) AS labels, 
-    $build_level(level) AS level, 
-    message, 
-    CAST("aoeoqusjtbo4m549jrom" AS Utf8) AS project, 
-    CAST("af3p40c4vf9jqpb81qvm" AS Utf8) AS service, 
-    $build_span_id(json_payload) AS span_id, 
-    timestamp, 
-    $build_trace_id(json_payload) AS trace_id 
-FROM ` +
-	"`logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3p40c4vf9jqpb81qvm`" +
-	`
-WITH TabletId='%s' 
+SELECT
+    CAST("aoe3cidh5dfee2s6cqu5" AS Utf8) AS cluster,
+    $build_hostname(json_payload) AS hostname,
+    json_payload,
+    $build_labels(json_payload) AS labels,
+    $build_level(level) AS level,
+    message,
+    CAST("aoeoqusjtbo4m549jrom" AS Utf8) AS project,
+    CAST("af3p40c4vf9jqpb81qvm" AS Utf8) AS service,
+    $build_span_id(json_payload) AS span_id,
+    timestamp,
+    $build_trace_id(json_payload) AS trace_id
+FROM` + "`%s`" + `
+WITH TabletId='%s'
 WHERE (COALESCE((timestamp >= $p0), false) AND COALESCE((timestamp < $p1), false))
 `
 
-// List of all possible TabletIds
-var tabletIDs = []string{
-	"72075186235526360",
-	"72075186235526151",
-	"72075186235526166",
-	"72075186235526050",
-	"72075186235526429",
-	"72075186235526057",
-	"72075186235527014",
-	"72075186235526538",
-	"72075186235526655",
-	"72075186235526663",
+// getTabletIDs queries YDB to get the tablet IDs for a specific table
+func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, tablePath string) ([]string, error) {
+	var tabletIDs []string
+
+	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", tablePath)
+
+	logger.Info("discovering tablet IDs", zap.String("query", queryText))
+
+	err := ydbDriver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
+		result, err := session.Query(ctx, queryText)
+		if err != nil {
+			return fmt.Errorf("query: %w", err)
+		}
+
+		for {
+			resultSet, err := result.NextResultSet(ctx)
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				return fmt.Errorf("next result set: %w", err)
+			}
+
+			var tabletId uint64
+
+			for {
+				r, err := resultSet.NextRow(ctx)
+				if err != nil {
+					if errors.Is(err, io.EOF) {
+						break
+					}
+
+					return fmt.Errorf("next row: %w", err)
+				}
+
+				if err := r.Scan(&tabletId); err != nil {
+					return fmt.Errorf("row scan: %w", err)
+				}
+
+				tabletIDs = append(tabletIDs, fmt.Sprintf("%d", tabletId))
+			}
+		}
+
+		return nil
+	}, query.WithIdempotent())
+
+	if err != nil {
+		return nil, fmt.Errorf("querying tablet IDs: %w", err)
+	}
+
+	logger.Info("discovered tablet IDs", zap.Int("total", len(tabletIDs)), zap.Strings("tablet_ids", tabletIDs))
+
+	return tabletIDs, nil
 }
 
 func main() {
 	var (
 		endpoint  string
 		database  string
+		table     string
 		token     string
 		interval  int
 		startTime string
@@ -163,6 +204,7 @@ func main() {
 
 	flag.StringVar(&endpoint, "endpoint", "localhost:2136", "YDB endpoint")
 	flag.StringVar(&database, "database", "/local", "YDB database path")
+	flag.StringVar(&table, "table", "", "YDB table name")
 	flag.StringVar(&token, "token", "", "IAM token for authentication")
 	flag.IntVar(&interval, "interval", 5, "Query interval in seconds")
 	flag.StringVar(&startTime, "start", "", "Start time for query in RFC3339 format")
@@ -170,10 +212,10 @@ func main() {
 
 	flag.Parse()
 
-	if token == "" || endpoint == "" || database == "" || startTime == "" || endTime == "" {
+	if token == "" || endpoint == "" || database == "" || table == "" || startTime == "" || endTime == "" {
 		fmt.Println(
 			"Usage: " +
-				"app -endpoint=<endpoint> -database=<database> -token=<token> " +
+				"app -endpoint=<endpoint> -database=<database> -table=<table-name> -token=<token> " +
 				"-interval=<interval> -start=<start-time> -end=<end-time>")
 		os.Exit(1)
 	}
@@ -223,6 +265,17 @@ func main() {
 		}
 	}()
 
+	tabletIDs, err := getTabletIDs(ctx, logger, ydbDriver, table)
+	if err != nil {
+		logger.Fatal("failed to get tablet IDs", zap.Error(err))
+	}
+
+	if len(tabletIDs) == 0 {
+		logger.Fatal("no tablet IDs found for the specified table")
+	}
+
+	logger.Info("starting to monitor tablet IDs", zap.Strings("tablet_ids", tabletIDs))
+
 	inconsistencyFound := make(chan string, 1)
 
 	var wg sync.WaitGroup
@@ -232,7 +285,7 @@ func main() {
 
 		monitorFunc := func(id string) {
 			defer wg.Done()
-			monitorTabletID(ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second, inconsistencyFound, start, end)
+			monitorTabletID(ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second, inconsistencyFound, start, end, table)
 		}
 
 		go monitorFunc(tabletID)
@@ -282,6 +335,7 @@ func monitorTabletID(
 	interval time.Duration,
 	inconsistencyFound chan<- string,
 	startTime, endTime time.Time,
+	table string,
 ) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
@@ -305,7 +359,7 @@ func monitorTabletID(
 		case <-ticker.C:
 			queryCounter++
 
-			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime)
+			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table)
 			if err != nil {
 				logger.Error("error executing query",
 					zap.String("tablet_id", tabletID),
@@ -348,8 +402,8 @@ func monitorTabletID(
 }
 
 // executeQuery runs the query with a specific tablet ID and returns the number of rows
-func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, startTime, endTime time.Time) (int, error) {
-	queryText := fmt.Sprintf(queryTemplate, tabletID)
+func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, startTime, endTime time.Time, table string) (int, error) {
+	queryText := fmt.Sprintf(queryTemplate, table, tabletID)
 
 	paramsBuilder := ydb.ParamsBuilder()
 	paramsBuilder = paramsBuilder.Param("$p0").Timestamp(startTime)
@@ -362,7 +416,6 @@ func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, s
 			ctx,
 			queryText,
 			query.WithParameters(paramsBuilder.Build()),
-			// query.WithResouocePool("yandex_query_pool")
 		)
 		if err != nil {
 			return fmt.Errorf("query error: %w", err)
