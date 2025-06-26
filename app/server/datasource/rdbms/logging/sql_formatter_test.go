@@ -29,7 +29,7 @@ func mustParseISOTime(timeStr string) time.Time {
 	return out
 }
 
-//nolint:lll
+//nolint:lll,revive
 func TestMakeSelectQuery(t *testing.T) {
 	type testCase struct {
 		testName         string
@@ -98,6 +98,7 @@ func TestMakeSelectQuery(t *testing.T) {
 		},
 		//nolint:revive
 		{
+			// Request that doesn't have filter over `timestamp` column is considered invalid
 			testName: "YQ-4361",
 			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
 				"{\"table\":\"cloud-trail\"}",
@@ -115,6 +116,46 @@ func TestMakeSelectQuery(t *testing.T) {
 				},
 			},
 			err: common.ErrInvalidRequest,
+		},
+		{
+			/*
+				SELECT level FROM external_data_source.`kikimr-logs`
+				WHERE
+					timestamp >= Timestamp("2025-06-26T00:00:00Z") AND
+					timestamp <= Timestamp("2025-06-26T01:00:00Z") AND
+					level != 'INFO';
+			*/
+			testName: "YQ-4380",
+			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
+				"{\"table\":\"kikimr-logs\"}",
+				"{\"items\":[{\"column\":{\"name\":\"level\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}}, {\"column\":{\"name\":\"timestamp\", \"type\":{\"optional_type\":{\"item\":{\"type_id\":\"TIMESTAMP\"}}}}}]}",
+				"{\"filter_typed\":{\"conjunction\":{\"operands\":[{\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"GE\", \"left_value\":{\"column\":\"timestamp\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"TIMESTAMP\"}, \"value\":{\"int64_value\":\"1750896000000000\"}}}}}, {\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"}, \"value\":{\"bool_value\":false}}}}}]}}, {\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"LE\", \"left_value\":{\"column\":\"timestamp\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"TIMESTAMP\"}, \"value\":{\"int64_value\":\"1750899600000000\"}}}}}, {\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"}, \"value\":{\"bool_value\":false}}}}}]}}, {\"coalesce\":{\"operands\":[{\"comparison\":{\"operation\":\"NE\", \"left_value\":{\"column\":\"level\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"STRING\"}, \"value\":{\"bytes_value\":\"SU5GTw==\"}}}}}, {\"bool_expression\":{\"value\":{\"typed_value\":{\"type\":{\"type_id\":\"BOOL\"}, \"value\":{\"bool_value\":false}}}}}]}}]}}}",
+				api_common.EGenericDataSourceKind_LOGGING,
+			),
+			splitDescription: &TSplitDescription{
+				Payload: &TSplitDescription_Ydb{
+					Ydb: &TSplitDescription_TYdb{
+						DatabaseName: "/pre-prod_vla/yc.logs.cloud/cc8jliaf18k2b9ae2bio",
+						TableName:    "logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3731rdp83d8gd8fjcv",
+						TabletIds:    []uint64{72075186234644944},
+					},
+				},
+			},
+			outputQuery: queryPrefix +
+				"\n" +
+				`SELECT $build_level(level) AS level, timestamp ` +
+				"FROM `logs/origin/aoeoqusjtbo4m549jrom/aoe3cidh5dfee2s6cqu5/af3731rdp83d8gd8fjcv` WITH TabletId='72075186234644944' " +
+				"WHERE (COALESCE((`timestamp` >= $p0), false) AND COALESCE((`timestamp` <= $p1), false) AND COALESCE((`level` <> $p2), false))",
+			outputArgs: []any{
+				mustParseISOTime("2025-06-26T00:00:00Z"),
+				mustParseISOTime("2025-06-26T01:00:00Z"),
+				int32(3), // stands for INFO
+			},
+			outputYdbTypes: []*ydb.Type{
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_TIMESTAMP)),
+			},
+			err: nil,
 		},
 	}
 
