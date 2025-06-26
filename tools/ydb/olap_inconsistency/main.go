@@ -18,7 +18,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
-	"github.com/ydb-platform/ydb-go-sdk/v3/config"
+	ydb_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -194,29 +194,31 @@ func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 
 // Config holds the application configuration
 type Config struct {
-	Endpoint     string
-	Database     string
-	Table        string
-	Token        string
-	Interval     time.Duration
-	StartTime    time.Time
-	EndTime      time.Time
-	ResourcePool string
-	UseTLS       bool
+	Endpoint         string
+	Database         string
+	Table            string
+	Token            string
+	Interval         time.Duration
+	StartTime        time.Time
+	EndTime          time.Time
+	ResourcePool     string
+	UseTLS           bool
+	ThreadMultiplier uint
 }
 
 // parseFlags parses command-line flags and returns the configuration
 func parseFlags() (*Config, error) {
 	var (
-		endpoint     string
-		database     string
-		table        string
-		token        string
-		interval     int
-		startTimeStr string
-		endTimeStr   string
-		resourcePool string
-		useTLS       bool
+		endpoint         string
+		database         string
+		table            string
+		token            string
+		interval         int
+		startTimeStr     string
+		endTimeStr       string
+		resourcePool     string
+		useTLS           bool
+		threadMultiplier uint
 	)
 
 	flag.StringVar(&endpoint, "endpoint", "localhost:2136", "YDB endpoint")
@@ -228,6 +230,7 @@ func parseFlags() (*Config, error) {
 	flag.StringVar(&endTimeStr, "end", "", "End time for query in RFC3339 format")
 	flag.StringVar(&resourcePool, "resource-pool", "", "Resource pool for YDB queries")
 	flag.BoolVar(&useTLS, "tls", true, "Use TLS for YDB connection (grpcs:// instead of grpc://)")
+	flag.UintVar(&threadMultiplier, "thread-multiplier", 1, "Number of concurrent goroutines to launch per tablet ID")
 
 	flag.Parse()
 
@@ -253,15 +256,16 @@ func parseFlags() (*Config, error) {
 	}
 
 	return &Config{
-		Endpoint:     endpoint,
-		Database:     database,
-		Table:        table,
-		Token:        token,
-		Interval:     time.Duration(interval) * time.Second,
-		StartTime:    startTime,
-		EndTime:      endTime,
-		ResourcePool: resourcePool,
-		UseTLS:       useTLS,
+		Endpoint:         endpoint,
+		Database:         database,
+		Table:            table,
+		Token:            token,
+		Interval:         time.Duration(interval) * time.Second,
+		StartTime:        startTime,
+		EndTime:          endTime,
+		ResourcePool:     resourcePool,
+		UseTLS:           useTLS,
+		ThreadMultiplier: threadMultiplier,
 	}, nil
 }
 
@@ -315,24 +319,35 @@ func main() {
 
 	logger.Info("starting to monitor tablet IDs",
 		zap.Strings("tablet_ids", tabletIDs),
-		zap.String("resource_pool", cfg.ResourcePool))
+		zap.String("resource_pool", cfg.ResourcePool),
+		zap.Uint("thread_multiplier", cfg.ThreadMultiplier))
 
 	inconsistencyFound := make(chan string, 1)
 
 	var wg sync.WaitGroup
 
 	for _, tabletID := range tabletIDs {
-		wg.Add(1)
+		// Launch multiple goroutines for each tablet ID based on the thread multiplier
+		for i := uint(0); i < cfg.ThreadMultiplier; i++ {
+			wg.Add(1)
 
-		monitorFunc := func(id string) {
-			defer wg.Done()
-			monitorTabletID(
-				ctx, logger, ydbDriver, id, cfg.Interval,
-				inconsistencyFound, cfg.StartTime, cfg.EndTime, cfg.Table, cfg.ResourcePool,
-			)
+			monitorFunc := func(tabletID string, threadID uint) {
+				defer wg.Done()
+
+				// Create a logger with instance information
+				instanceLogger := logger.With(
+					zap.String("tablet_id", tabletID),
+					zap.Uint("thread_id", threadID),
+				)
+
+				monitorTabletID(
+					ctx, instanceLogger, ydbDriver, tabletID, cfg.Interval,
+					inconsistencyFound, cfg.StartTime, cfg.EndTime, cfg.Table, cfg.ResourcePool,
+				)
+			}
+
+			go monitorFunc(tabletID, i)
 		}
-
-		go monitorFunc(tabletID)
 	}
 
 	select {
@@ -352,7 +367,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	ydbOptions := []ydb.Option{
 		ydb.WithDialTimeout(5 * time.Second),
 		ydb.WithBalancer(balancers.SingleConn()),
-		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+		ydb.With(ydb_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
 	// Add token credentials if provided
@@ -363,11 +378,14 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	var scheme string
 	if useTLS {
 		scheme = "grpcs"
+
 		logger.Info("will use secure TLS connections")
 	} else {
 		scheme = "grpc"
-		logger.Warn("will use insecure connections")
+
 		ydbOptions = append(ydbOptions, ydb.WithInsecure())
+
+		logger.Warn("will use insecure connections")
 	}
 
 	dsn := fmt.Sprintf("%s://%s%s", scheme, endpoint, database)
