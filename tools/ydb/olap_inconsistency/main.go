@@ -353,11 +353,10 @@ func monitorTabletID(
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
 	var (
-		lastRowCount     int
-		queryCounter     int
-		firstRun         = true
-		lastQueryTime    time.Time
-		currentQueryTime time.Time
+		err                    error
+		queryCounter           int
+		firstRun               = true
+		lastResult, currResult *executeQueryResult
 	)
 
 	ticker := time.NewTicker(interval)
@@ -373,9 +372,8 @@ func monitorTabletID(
 			return
 		case <-ticker.C:
 			queryCounter++
-			currentQueryTime = time.Now()
 
-			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table, resourcePool)
+			currResult, err = executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table, resourcePool)
 			if err != nil {
 				logger.Error("error executing query",
 					zap.String("tablet_id", tabletID),
@@ -388,25 +386,24 @@ func monitorTabletID(
 			logger.Info("query executed",
 				zap.String("tablet_id", tabletID),
 				zap.Int("query_num", queryCounter),
-				zap.Int("row_count", rowCount))
+				zap.Int("row_count", currResult.rowCount))
 
 			if firstRun {
-				lastRowCount = rowCount
-				lastQueryTime = currentQueryTime
+				lastResult = currResult
 				firstRun = false
 
 				continue
 			}
 
-			if rowCount != lastRowCount {
+			if currResult.rowCount != lastResult.rowCount {
 				logger.Warn("inconsistency detected",
 					zap.String("tablet_id", tabletID),
 					zap.Int("query_num", queryCounter),
-					zap.Int("previous_count", lastRowCount),
-					zap.Int("current_count", rowCount),
-					zap.Time("previous_query_time", lastQueryTime),
-					zap.Time("current_query_time", currentQueryTime),
-					zap.Duration("time_between_queries", currentQueryTime.Sub(lastQueryTime)))
+					zap.Int("last_row_count", lastResult.rowCount),
+					zap.Int("curr_row_count", currResult.rowCount),
+					zap.Time("last_start_time", lastResult.queryStartTime),
+					zap.Time("curr_start_time", currResult.queryStartTime),
+				)
 
 				select {
 				case inconsistencyFound <- tabletID:
@@ -416,21 +413,36 @@ func monitorTabletID(
 				return
 			}
 
-			lastRowCount = rowCount
-			lastQueryTime = currentQueryTime
+			lastResult = currResult
 		}
 	}
 }
 
+type executeQueryResult struct {
+	queryStartTime time.Time
+	queryPlan      string
+	rowCount       int
+}
+
 // executeQuery runs the query with a specific tablet ID and returns the number of rows
-func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, startTime, endTime time.Time, table string, resourcePool string) (int, error) {
+func executeQuery(
+	ctx context.Context,
+	ydbDriver *ydb.Driver,
+	tabletID string,
+	startTime, endTime time.Time,
+	table string,
+	resourcePool string,
+) (*executeQueryResult, error) {
 	queryText := fmt.Sprintf(queryTemplate, table, tabletID)
 
 	paramsBuilder := ydb.ParamsBuilder()
 	paramsBuilder = paramsBuilder.Param("$p0").Timestamp(startTime)
 	paramsBuilder = paramsBuilder.Param("$p1").Timestamp(endTime)
 
+	queryStartTime := time.Now()
 	rowCount := 0
+
+	var queryPlan string
 
 	err := ydbDriver.Query().Do(ctx, func(ctx context.Context, s query.Session) error {
 		result, err := s.Query(
@@ -438,6 +450,9 @@ func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, s
 			queryText,
 			query.WithParameters(paramsBuilder.Build()),
 			query.WithResourcePool(resourcePool),
+			query.WithStatsMode(query.StatsModeProfile, func(stats query.Stats) {
+				queryPlan = stats.QueryPlan()
+			}),
 		)
 		if err != nil {
 			return fmt.Errorf("query error: %w", err)
@@ -473,8 +488,8 @@ func executeQuery(ctx context.Context, ydbDriver *ydb.Driver, tabletID string, s
 	}, query.WithIdempotent())
 
 	if err != nil {
-		return 0, fmt.Errorf("execute query: %w", err)
+		return nil, fmt.Errorf("execute query: %w", err)
 	}
 
-	return rowCount, nil
+	return &executeQueryResult{queryStartTime: queryStartTime, rowCount: rowCount, queryPlan: queryPlan}, nil
 }
