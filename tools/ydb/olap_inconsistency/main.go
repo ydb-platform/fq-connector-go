@@ -353,9 +353,11 @@ func monitorTabletID(
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
 	var (
-		lastRowCount int
-		queryCounter int
-		firstRun     = true
+		lastRowCount     int
+		queryCounter     int
+		firstRun         = true
+		lastQueryTime    time.Time
+		currentQueryTime time.Time
 	)
 
 	ticker := time.NewTicker(interval)
@@ -371,6 +373,7 @@ func monitorTabletID(
 			return
 		case <-ticker.C:
 			queryCounter++
+			currentQueryTime = time.Now()
 
 			rowCount, err := executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table, resourcePool)
 			if err != nil {
@@ -389,6 +392,7 @@ func monitorTabletID(
 
 			if firstRun {
 				lastRowCount = rowCount
+				lastQueryTime = currentQueryTime
 				firstRun = false
 
 				continue
@@ -399,7 +403,10 @@ func monitorTabletID(
 					zap.String("tablet_id", tabletID),
 					zap.Int("query_num", queryCounter),
 					zap.Int("previous_count", lastRowCount),
-					zap.Int("current_count", rowCount))
+					zap.Int("current_count", rowCount),
+					zap.Time("previous_query_time", lastQueryTime),
+					zap.Time("current_query_time", currentQueryTime),
+					zap.Duration("time_between_queries", currentQueryTime.Sub(lastQueryTime)))
 
 				select {
 				case inconsistencyFound <- tabletID:
@@ -410,6 +417,7 @@ func monitorTabletID(
 			}
 
 			lastRowCount = rowCount
+			lastQueryTime = currentQueryTime
 		}
 	}
 }
