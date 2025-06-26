@@ -202,6 +202,7 @@ type Config struct {
 	StartTime    time.Time
 	EndTime      time.Time
 	ResourcePool string
+	UseTLS       bool
 }
 
 // parseFlags parses command-line flags and returns the configuration
@@ -215,6 +216,7 @@ func parseFlags() (*Config, error) {
 		startTimeStr string
 		endTimeStr   string
 		resourcePool string
+		useTLS       bool
 	)
 
 	flag.StringVar(&endpoint, "endpoint", "localhost:2136", "YDB endpoint")
@@ -225,6 +227,7 @@ func parseFlags() (*Config, error) {
 	flag.StringVar(&startTimeStr, "start", "", "Start time for query in RFC3339 format")
 	flag.StringVar(&endTimeStr, "end", "", "End time for query in RFC3339 format")
 	flag.StringVar(&resourcePool, "resource-pool", "", "Resource pool for YDB queries")
+	flag.BoolVar(&useTLS, "tls", true, "Use TLS for YDB connection (grpcs:// instead of grpc://)")
 
 	flag.Parse()
 
@@ -257,6 +260,7 @@ func parseFlags() (*Config, error) {
 		StartTime:    startTime,
 		EndTime:      endTime,
 		ResourcePool: resourcePool,
+		UseTLS:       useTLS,
 	}, nil
 }
 
@@ -284,7 +288,7 @@ func main() {
 		cancel()
 	}()
 
-	ydbDriver, err := makeDriver(ctx, logger, cfg.Endpoint, cfg.Database, cfg.Token)
+	ydbDriver, err := makeDriver(ctx, logger, cfg.Endpoint, cfg.Database, cfg.Token, cfg.UseTLS)
 	if err != nil {
 		logger.Fatal("failed to create YDB driver", zap.Error(err))
 	}
@@ -343,7 +347,7 @@ func main() {
 }
 
 // makeDriver creates and returns a YDB driver
-func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, token string) (*ydb.Driver, error) {
+func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, token string, useTLS bool) (*ydb.Driver, error) {
 	ydbOptions := []ydb.Option{
 		ydb.WithAccessTokenCredentials(token),
 		ydb.WithDialTimeout(5 * time.Second),
@@ -351,11 +355,22 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
-	dsn := fmt.Sprintf("grpcs://%s%s", endpoint, database)
+	var scheme string
+	if useTLS {
+		scheme = "grpcs"
+		logger.Info("will use secure TLS connections")
+	} else {
+		scheme = "grpc"
+		logger.Warn("will use insecure connections")
+		ydbOptions = append(ydbOptions, ydb.WithInsecure())
+	}
+
+	dsn := fmt.Sprintf("%s://%s%s", scheme, endpoint, database)
 
 	logger.Info("connecting to YDB",
 		zap.String("dsn", dsn),
-		zap.String("auth", "IAM token"))
+		zap.String("auth", "IAM token"),
+		zap.Bool("tls", useTLS))
 
 	ydbDriver, err := ydb.Open(ctx, dsn, ydbOptions...)
 	if err != nil {
