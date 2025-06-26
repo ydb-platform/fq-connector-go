@@ -18,7 +18,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
-	"github.com/ydb-platform/ydb-go-sdk/v3/config"
+	ydb_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -192,15 +192,28 @@ func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 	return tabletIDs, nil
 }
 
-func main() {
+// Config holds the application configuration
+type config struct {
+	endpoint     string
+	database     string
+	table        string
+	token        string
+	interval     time.Duration
+	startTim     time.Time
+	endTime      time.Time
+	resourcePool string
+}
+
+// parseFlags parses command-line flags and returns the configuration
+func parseFlags() (*config, error) {
 	var (
 		endpoint     string
 		database     string
 		table        string
 		token        string
 		interval     int
-		startTime    string
-		endTime      string
+		startTimeStr string
+		endTimeStr   string
 		resourcePool string
 	)
 
@@ -209,34 +222,48 @@ func main() {
 	flag.StringVar(&table, "table", "", "YDB table name")
 	flag.StringVar(&token, "token", "", "IAM token for authentication")
 	flag.IntVar(&interval, "interval", 5, "Query interval in seconds")
-	flag.StringVar(&startTime, "start", "", "Start time for query in RFC3339 format")
-	flag.StringVar(&endTime, "end", "", "End time for query in RFC3339 format")
+	flag.StringVar(&startTimeStr, "start", "", "Start time for query in RFC3339 format")
+	flag.StringVar(&endTimeStr, "end", "", "End time for query in RFC3339 format")
 	flag.StringVar(&resourcePool, "resource-pool", "", "Resource pool for YDB queries")
 
 	flag.Parse()
 
-	if token == "" || endpoint == "" || database == "" || table == "" || startTime == "" || endTime == "" || resourcePool == "" {
-		fmt.Println(
-			"Usage: " +
-				"app -endpoint=<endpoint> -database=<database> -table=<table-name> -token=<token> " +
+	if token == "" || endpoint == "" || database == "" || table == "" || startTimeStr == "" || endTimeStr == "" || resourcePool == "" {
+		return nil, fmt.Errorf(
+			"usage: app -endpoint=<endpoint> -database=<database> -table=<table-name> -token=<token> " +
 				"-interval=<interval> -start=<start-time> -end=<end-time> -resource-pool=<resource-pool>")
-		os.Exit(1)
 	}
 
-	start, err := time.Parse(time.RFC3339, startTime)
+	startTime, err := time.Parse(time.RFC3339, startTimeStr)
 	if err != nil {
-		fmt.Printf("Invalid start time format: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("invalid start time format: %w", err)
 	}
 
-	end, err := time.Parse(time.RFC3339, endTime)
+	endTime, err := time.Parse(time.RFC3339, endTimeStr)
 	if err != nil {
-		fmt.Printf("Invalid end time format: %v\n", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("invalid end time format: %w", err)
 	}
 
-	if end.Before(start) {
-		fmt.Println("End time must be after start time")
+	if endTime.Before(startTime) {
+		return nil, fmt.Errorf("end time must be after start time")
+	}
+
+	return &config{
+		endpoint:     endpoint,
+		database:     database,
+		table:        table,
+		token:        token,
+		interval:     time.Duration(interval) * time.Second,
+		startTim:     startTime,
+		endTime:      endTime,
+		resourcePool: resourcePool,
+	}, nil
+}
+
+func main() {
+	config, err := parseFlags()
+	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 
@@ -257,7 +284,7 @@ func main() {
 		cancel()
 	}()
 
-	ydbDriver, err := makeDriver(ctx, logger, endpoint, database, token)
+	ydbDriver, err := makeDriver(ctx, logger, config.endpoint, config.database, config.token)
 	if err != nil {
 		logger.Fatal("failed to create YDB driver", zap.Error(err))
 	}
@@ -269,7 +296,7 @@ func main() {
 	}()
 
 	// Get the full table path
-	tablePath := path.Join(database, table)
+	tablePath := path.Join(config.database, config.table)
 
 	// Dynamically get tablet IDs
 	tabletIDs, err := getTabletIDs(ctx, logger, ydbDriver, tablePath)
@@ -283,7 +310,7 @@ func main() {
 
 	logger.Info("starting to monitor tablet IDs",
 		zap.Strings("tablet_ids", tabletIDs),
-		zap.String("resource_pool", resourcePool))
+		zap.String("resource_pool", config.resourcePool))
 
 	inconsistencyFound := make(chan string, 1)
 
@@ -295,8 +322,9 @@ func main() {
 		monitorFunc := func(id string) {
 			defer wg.Done()
 			monitorTabletID(
-				ctx, logger, ydbDriver, id, time.Duration(interval)*time.Second,
-				inconsistencyFound, start, end, table, resourcePool,
+				ctx, logger, ydbDriver, id, config.interval,
+				config.startTim, config.endTime, config.table, config.resourcePool,
+				inconsistencyFound,
 			)
 		}
 
@@ -321,7 +349,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 		ydb.WithAccessTokenCredentials(token),
 		ydb.WithDialTimeout(5 * time.Second),
 		ydb.WithBalancer(balancers.SingleConn()),
-		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+		ydb.With(ydb_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
 	dsn := fmt.Sprintf("grpcs://%s%s", endpoint, database)
@@ -339,16 +367,18 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 }
 
 // monitorTabletID runs the query periodically for a specific tablet ID and checks for inconsistencies
+//
+//nolint:revive
 func monitorTabletID(
 	ctx context.Context,
 	logger *zap.Logger,
 	ydbDriver *ydb.Driver,
 	tabletID string,
 	interval time.Duration,
-	inconsistencyFound chan<- string,
 	startTime, endTime time.Time,
 	table string,
 	resourcePool string,
+	inconsistencyFound chan<- string,
 ) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
