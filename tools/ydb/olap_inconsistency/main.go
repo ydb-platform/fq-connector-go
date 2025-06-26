@@ -477,11 +477,11 @@ func monitorTabletID(
 					zap.Time("curr_start_time", currResult.queryStartTime),
 				)
 
-				if err := dumpQueryPlanToFile(tabletID, lastResult.queryStartTime, lastResult.queryPlan); err != nil {
+				if err := dumpQueryPlanToFile(logger, tabletID, lastResult.queryStartTime, lastResult.queryPlan); err != nil {
 					logger.Error("failed to dump last query plan", zap.Error(err))
 				}
 
-				if err := dumpQueryPlanToFile(tabletID, currResult.queryStartTime, currResult.queryPlan); err != nil {
+				if err := dumpQueryPlanToFile(logger, tabletID, currResult.queryStartTime, currResult.queryPlan); err != nil {
 					logger.Error("failed to dump current query plan", zap.Error(err))
 				}
 
@@ -578,8 +578,8 @@ func executeQuery(
 	}, nil
 }
 
-// dumpQueryPlanToFile writes the query plan to a file
-func dumpQueryPlanToFile(tabletID string, queryStartTime time.Time, queryPlan string) error {
+// dumpQueryPlanToFile writes the query plan to a file and logs the operation
+func dumpQueryPlanToFile(logger *zap.Logger, tabletID string, queryStartTime time.Time, queryPlan string) error {
 	fileName := fmt.Sprintf("tablet_id_%s_start_time_%s.txt", tabletID, queryStartTime.Format("20060102_150405.000"))
 
 	file, err := os.Create(fileName)
@@ -592,6 +592,8 @@ func dumpQueryPlanToFile(tabletID string, queryStartTime time.Time, queryPlan st
 	if err != nil {
 		return fmt.Errorf("write to file: %w", err)
 	}
+
+	logger.Debug("dumped query plan to file", zap.String("file_name", fileName))
 
 	return nil
 }
