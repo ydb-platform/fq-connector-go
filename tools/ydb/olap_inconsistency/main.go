@@ -231,10 +231,11 @@ func parseFlags() (*Config, error) {
 
 	flag.Parse()
 
-	if token == "" || endpoint == "" || database == "" || table == "" || startTimeStr == "" || endTimeStr == "" || resourcePool == "" {
+	if endpoint == "" || database == "" || table == "" || startTimeStr == "" || endTimeStr == "" || resourcePool == "" {
 		return nil, fmt.Errorf(
-			"usage: app -endpoint=<endpoint> -database=<database> -table=<table-name> -token=<token> " +
-				"-interval=<interval> -start=<start-time> -end=<end-time> -resource-pool=<resource-pool>")
+			"usage: app -endpoint=<endpoint> -database=<database> -table=<table-name> " +
+				"-interval=<interval> -start=<start-time> -end=<end-time> -resource-pool=<resource-pool> " +
+				"[-token=<token>] [-tls=<true|false>]")
 	}
 
 	startTime, err := time.Parse(time.RFC3339, startTimeStr)
@@ -349,10 +350,14 @@ func main() {
 // makeDriver creates and returns a YDB driver
 func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, token string, useTLS bool) (*ydb.Driver, error) {
 	ydbOptions := []ydb.Option{
-		ydb.WithAccessTokenCredentials(token),
 		ydb.WithDialTimeout(5 * time.Second),
 		ydb.WithBalancer(balancers.SingleConn()),
 		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+	}
+
+	// Add token credentials if provided
+	if token != "" {
+		ydbOptions = append(ydbOptions, ydb.WithAccessTokenCredentials(token))
 	}
 
 	var scheme string
@@ -367,9 +372,14 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 
 	dsn := fmt.Sprintf("%s://%s%s", scheme, endpoint, database)
 
+	authMethod := "none"
+	if token != "" {
+		authMethod = "IAM token"
+	}
+
 	logger.Info("connecting to YDB",
 		zap.String("dsn", dsn),
-		zap.String("auth", "IAM token"),
+		zap.String("auth", authMethod),
 		zap.Bool("tls", useTLS))
 
 	ydbDriver, err := ydb.Open(ctx, dsn, ydbOptions...)
