@@ -18,7 +18,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
-	ydb_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
+	"github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -193,19 +193,19 @@ func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 }
 
 // Config holds the application configuration
-type config struct {
-	endpoint     string
-	database     string
-	table        string
-	token        string
-	interval     time.Duration
-	startTim     time.Time
-	endTime      time.Time
-	resourcePool string
+type Config struct {
+	Endpoint     string
+	Database     string
+	Table        string
+	Token        string
+	Interval     time.Duration
+	StartTime    time.Time
+	EndTime      time.Time
+	ResourcePool string
 }
 
 // parseFlags parses command-line flags and returns the configuration
-func parseFlags() (*config, error) {
+func parseFlags() (*Config, error) {
 	var (
 		endpoint     string
 		database     string
@@ -248,20 +248,20 @@ func parseFlags() (*config, error) {
 		return nil, fmt.Errorf("end time must be after start time")
 	}
 
-	return &config{
-		endpoint:     endpoint,
-		database:     database,
-		table:        table,
-		token:        token,
-		interval:     time.Duration(interval) * time.Second,
-		startTim:     startTime,
-		endTime:      endTime,
-		resourcePool: resourcePool,
+	return &Config{
+		Endpoint:     endpoint,
+		Database:     database,
+		Table:        table,
+		Token:        token,
+		Interval:     time.Duration(interval) * time.Second,
+		StartTime:    startTime,
+		EndTime:      endTime,
+		ResourcePool: resourcePool,
 	}, nil
 }
 
 func main() {
-	config, err := parseFlags()
+	cfg, err := parseFlags()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -284,7 +284,7 @@ func main() {
 		cancel()
 	}()
 
-	ydbDriver, err := makeDriver(ctx, logger, config.endpoint, config.database, config.token)
+	ydbDriver, err := makeDriver(ctx, logger, cfg.Endpoint, cfg.Database, cfg.Token)
 	if err != nil {
 		logger.Fatal("failed to create YDB driver", zap.Error(err))
 	}
@@ -296,7 +296,7 @@ func main() {
 	}()
 
 	// Get the full table path
-	tablePath := path.Join(config.database, config.table)
+	tablePath := path.Join(cfg.Database, cfg.Table)
 
 	// Dynamically get tablet IDs
 	tabletIDs, err := getTabletIDs(ctx, logger, ydbDriver, tablePath)
@@ -310,7 +310,7 @@ func main() {
 
 	logger.Info("starting to monitor tablet IDs",
 		zap.Strings("tablet_ids", tabletIDs),
-		zap.String("resource_pool", config.resourcePool))
+		zap.String("resource_pool", cfg.ResourcePool))
 
 	inconsistencyFound := make(chan string, 1)
 
@@ -322,9 +322,8 @@ func main() {
 		monitorFunc := func(id string) {
 			defer wg.Done()
 			monitorTabletID(
-				ctx, logger, ydbDriver, id, config.interval,
-				config.startTim, config.endTime, config.table, config.resourcePool,
-				inconsistencyFound,
+				ctx, logger, ydbDriver, id, cfg.Interval,
+				inconsistencyFound, cfg.StartTime, cfg.EndTime, cfg.Table, cfg.ResourcePool,
 			)
 		}
 
@@ -349,7 +348,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 		ydb.WithAccessTokenCredentials(token),
 		ydb.WithDialTimeout(5 * time.Second),
 		ydb.WithBalancer(balancers.SingleConn()),
-		ydb.With(ydb_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
 	dsn := fmt.Sprintf("grpcs://%s%s", endpoint, database)
@@ -375,10 +374,10 @@ func monitorTabletID(
 	ydbDriver *ydb.Driver,
 	tabletID string,
 	interval time.Duration,
+	inconsistencyFound chan<- string,
 	startTime, endTime time.Time,
 	table string,
 	resourcePool string,
-	inconsistencyFound chan<- string,
 ) {
 	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
 
@@ -434,6 +433,14 @@ func monitorTabletID(
 					zap.Time("last_start_time", lastResult.queryStartTime),
 					zap.Time("curr_start_time", currResult.queryStartTime),
 				)
+
+				if err := dumpQueryPlanToFile(tabletID, lastResult.queryStartTime, lastResult.queryPlan); err != nil {
+					logger.Error("failed to dump last query plan", zap.Error(err))
+				}
+
+				if err := dumpQueryPlanToFile(tabletID, currResult.queryStartTime, currResult.queryPlan); err != nil {
+					logger.Error("failed to dump current query plan", zap.Error(err))
+				}
 
 				select {
 				case inconsistencyFound <- tabletID:
@@ -521,5 +528,27 @@ func executeQuery(
 		return nil, fmt.Errorf("execute query: %w", err)
 	}
 
-	return &executeQueryResult{queryStartTime: queryStartTime, rowCount: rowCount, queryPlan: queryPlan}, nil
+	return &executeQueryResult{
+		queryStartTime: queryStartTime,
+		queryPlan:      queryPlan,
+		rowCount:       rowCount,
+	}, nil
+}
+
+// dumpQueryPlanToFile writes the query plan to a file
+func dumpQueryPlanToFile(tabletID string, queryStartTime time.Time, queryPlan string) error {
+	fileName := fmt.Sprintf("tablet_id_%s_start_time_%s.txt", tabletID, queryStartTime.Format("20060102_150405.000"))
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("create file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = file.WriteString(queryPlan)
+	if err != nil {
+		return fmt.Errorf("write to file: %w", err)
+	}
+
+	return nil
 }
