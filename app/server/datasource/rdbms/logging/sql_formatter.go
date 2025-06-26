@@ -197,7 +197,8 @@ func (sqlFormatter) TransformPredicateComparison(
 
 	// For the comparison related to `level` field
 	if src.LeftValue.GetColumn() == levelColumnName && src.RightValue.GetTypedValue() != nil {
-		if src.Operation != api_service_protos.TPredicate_TComparison_EQ {
+		if !(src.Operation == api_service_protos.TPredicate_TComparison_EQ ||
+			src.Operation == api_service_protos.TPredicate_TComparison_NE) {
 			return nil, fmt.Errorf("unsupported operation %v for `level` column comparison", src.Operation)
 		}
 
