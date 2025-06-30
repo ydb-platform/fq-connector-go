@@ -422,7 +422,7 @@ func monitorTabletID(
 	table string,
 	resourcePool string,
 ) {
-	logger.Info("starting monitoring for tablet ID", zap.String("tablet_id", tabletID))
+	logger.Info("starting monitoring for tablet")
 
 	var (
 		err                    error
@@ -438,7 +438,6 @@ func monitorTabletID(
 		select {
 		case <-ctx.Done():
 			logger.Info("context canceled for tablet ID",
-				zap.String("tablet_id", tabletID),
 				zap.Int("total_queries", queryCounter))
 
 			return
@@ -448,7 +447,6 @@ func monitorTabletID(
 			currResult, err = executeQuery(ctx, ydbDriver, tabletID, startTime, endTime, table, resourcePool)
 			if err != nil {
 				logger.Error("error executing query",
-					zap.String("tablet_id", tabletID),
 					zap.Int("query_num", queryCounter),
 					zap.Error(err))
 
@@ -456,7 +454,6 @@ func monitorTabletID(
 			}
 
 			logger.Info("query executed",
-				zap.String("tablet_id", tabletID),
 				zap.Int("query_num", queryCounter),
 				zap.Int("row_count", currResult.rowCount))
 
@@ -469,7 +466,6 @@ func monitorTabletID(
 
 			if currResult.rowCount != lastResult.rowCount {
 				logger.Warn("inconsistency detected",
-					zap.String("tablet_id", tabletID),
 					zap.Int("query_num", queryCounter),
 					zap.Int("last_row_count", lastResult.rowCount),
 					zap.Int("curr_row_count", currResult.rowCount),
@@ -483,6 +479,14 @@ func monitorTabletID(
 
 				if err := dumpQueryPlanToFile(logger, tabletID, currResult.queryStartTime, currResult.queryPlan); err != nil {
 					logger.Error("failed to dump current query plan", zap.Error(err))
+				}
+
+				if err := dumpTimestampsToFile(logger, tabletID, lastResult.queryStartTime, lastResult.timestamps); err != nil {
+					logger.Error("failed to dump last timestamps", zap.Error(err))
+				}
+
+				if err := dumpTimestampsToFile(logger, tabletID, currResult.queryStartTime, currResult.timestamps); err != nil {
+					logger.Error("failed to dump current timestamps", zap.Error(err))
 				}
 
 				select {
@@ -502,6 +506,7 @@ type executeQueryResult struct {
 	queryStartTime time.Time
 	queryPlan      string
 	rowCount       int
+	timestamps     []time.Time
 }
 
 // executeQuery runs the query with a specific tablet ID and returns the number of rows
@@ -521,6 +526,8 @@ func executeQuery(
 
 	queryStartTime := time.Now()
 	rowCount := 0
+
+	timestamps := make([]time.Time, 0)
 
 	var queryPlan string
 
@@ -551,7 +558,7 @@ func executeQuery(
 			}
 
 			for {
-				_, err := resultSet.NextRow(ctx)
+				row, err := resultSet.NextRow(ctx)
 				if err != nil {
 					if errors.Is(err, io.EOF) {
 						break
@@ -559,6 +566,9 @@ func executeQuery(
 
 					return fmt.Errorf("next row: %w", err)
 				}
+
+				timestamps = append(timestamps, time.Time{})
+				row.ScanNamed(query.Named("timestamp", &timestamps[len(timestamps)-1]))
 
 				rowCount++
 			}
@@ -575,6 +585,7 @@ func executeQuery(
 		queryStartTime: queryStartTime,
 		queryPlan:      queryPlan,
 		rowCount:       rowCount,
+		timestamps:     timestamps,
 	}, nil
 }
 
@@ -594,6 +605,27 @@ func dumpQueryPlanToFile(logger *zap.Logger, tabletID string, queryStartTime tim
 	}
 
 	logger.Debug("dumped query plan to file", zap.String("file_name", fileName))
+
+	return nil
+}
+
+func dumpTimestampsToFile(logger *zap.Logger, tabletID string, queryStartTime time.Time, timestamps []time.Time) error {
+	fileName := fmt.Sprintf("tablet_id_%s_start_time_%s_timestamps.txt", tabletID, queryStartTime.Format("20060102_150405.000"))
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("create file: %w", err)
+	}
+	defer file.Close()
+
+	for _, ts := range timestamps {
+		_, err := file.WriteString(ts.Format(time.RFC3339Nano) + "\n")
+		if err != nil {
+			return fmt.Errorf("write to file: %w", err)
+		}
+	}
+
+	logger.Debug("dumped timestamps to file", zap.String("file_name", fileName))
 
 	return nil
 }
