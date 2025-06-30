@@ -568,7 +568,9 @@ func executeQuery(
 				}
 
 				timestamps = append(timestamps, time.Time{})
-				row.ScanNamed(query.Named("timestamp", &timestamps[len(timestamps)-1]))
+				if err := row.ScanNamed(query.Named("timestamp", &timestamps[len(timestamps)-1])); err != nil {
+					return fmt.Errorf("scan row: %w", err)
+				}
 
 				rowCount++
 			}
