@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -146,7 +147,10 @@ func (c *connectionManager) Make(
 	return []rdbms_utils.Connection{&connection{conn, queryLogger, dsi, params.TableName}}, nil
 }
 
-func (*connectionManager) Release(ctx context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rdbms_utils.Connection) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
 	for _, conn := range cs {
 		if err := conn.(*connection).Conn.DeallocateAll(ctx); err != nil {
 			logger.Error("deallocate prepared statements", zap.Error(err))
