@@ -27,6 +27,9 @@ type storageSQLite struct {
 	createIncomingQueryStmt *sql.Stmt
 	finishIncomingQueryStmt *sql.Stmt
 	cancelIncomingQueryStmt *sql.Stmt
+	createOutgoingQueryStmt *sql.Stmt
+	finishOutgoingQueryStmt *sql.Stmt
+	cancelOutgoingQueryStmt *sql.Stmt
 	logger                  *zap.Logger
 }
 
@@ -111,6 +114,27 @@ func (s *storageSQLite) initialize() error {
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?")
 	if err != nil {
 		return fmt.Errorf("preparing cancel incoming query statement: %w", err)
+	}
+
+	// Prepare statements for outgoing queries
+	s.createOutgoingQueryStmt, err = s.db.Prepare(`
+		INSERT INTO outgoing_queries
+		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	if err != nil {
+		return fmt.Errorf("preparing create outgoing query statement: %w", err)
+	}
+
+	s.finishOutgoingQueryStmt, err = s.db.Prepare(
+		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("preparing finish outgoing query statement: %w", err)
+	}
+
+	s.cancelOutgoingQueryStmt, err = s.db.Prepare(
+		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("preparing cancel outgoing query statement: %w", err)
 	}
 
 	return nil
@@ -337,14 +361,13 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	now := time.Now().UTC()
 	id := uuid.NewString()
 
-	// Execute the insert within the transaction
-	_, err = tx.ExecContext(ctx,
-		`INSERT INTO outgoing_queries
-		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	// Use the prepared statement for better performance
+	stmt := tx.StmtContext(ctx, s.createOutgoingQueryStmt)
+	_, err = stmt.ExecContext(ctx,
 		id, incomingQueryID, dsi.Database, common.EndpointToString(dsi.Endpoint),
 		0, queryText, fmt.Sprint(queryArgs), now, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
+
 	if err != nil {
 		rollback()
 		return logger, "", fmt.Errorf("creating outgoing query: %w", err)
@@ -363,11 +386,10 @@ func (s *storageSQLite) CreateOutgoingQuery(
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
-func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logger, id string, rowsRead int64) error {
+func (s *storageSQLite) FinishOutgoingQuery(ctx context.Context, logger *zap.Logger, id string, rowsRead int64) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
-		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?",
+	result, err := s.finishOutgoingQueryStmt.ExecContext(ctx,
 		stateToString(observation.QueryState_QUERY_STATE_FINISHED), finishedAt, rowsRead, id,
 	)
 	if err != nil {
@@ -389,11 +411,10 @@ func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logge
 }
 
 // CancelOutgoingQuery marks an outgoing query as canceled with an error message
-func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logger, id string, errorMsg string) error {
+func (s *storageSQLite) CancelOutgoingQuery(ctx context.Context, logger *zap.Logger, id string, errorMsg string) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
-		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?",
+	result, err := s.cancelOutgoingQueryStmt.ExecContext(ctx,
 		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, id,
 	)
 	if err != nil {
@@ -533,7 +554,7 @@ func (s *storageSQLite) Close(_ context.Context) error {
 	if s.db != nil {
 		close(s.exitChan) // Signal the garbage collector to stop
 
-		// Close prepared statements
+		// Close prepared statements for incoming queries
 		if err := s.createIncomingQueryStmt.Close(); err != nil {
 			s.logger.Error("failed to close create incoming query statement", zap.Error(err))
 		}
@@ -544,6 +565,19 @@ func (s *storageSQLite) Close(_ context.Context) error {
 
 		if err := s.cancelIncomingQueryStmt.Close(); err != nil {
 			s.logger.Error("failed to close cancel incoming query statement", zap.Error(err))
+		}
+
+		// Close prepared statements for outgoing queries
+		if err := s.createOutgoingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close create outgoing query statement", zap.Error(err))
+		}
+
+		if err := s.finishOutgoingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close finish outgoing query statement", zap.Error(err))
+		}
+
+		if err := s.cancelOutgoingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close cancel outgoing query statement", zap.Error(err))
 		}
 
 		if err := s.db.Close(); err != nil {
@@ -615,7 +649,7 @@ func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Durat
 
 // newStorageSQLite creates a new Storage instance
 func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
-	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=immediate&_journal=WAL&_sync=OFF&_secure_delete=FALSE&_mutex=no&cache=shared")
+	db, err := sql.Open("sqlite3", cfg.Path)
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
@@ -624,17 +658,23 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(30 * time.Minute)
 
-	// Set pragmas for maximum performance
+	// Set pragmas for maximum write performance
 	pragmas := []string{
-		"PRAGMA synchronous = OFF",
-		"PRAGMA journal_mode = WAL",
-		"PRAGMA locking_mode = NORMAL",
-		"PRAGMA busy_timeout = 5000",
-		"PRAGMA temp_store = MEMORY",
-		"PRAGMA mmap_size = 30000000000",
-		"PRAGMA page_size = 4096",
-		"PRAGMA cache_size = 10000",
-		"PRAGMA auto_vacuum = INCREMENTAL",
+		"PRAGMA synchronous = OFF",             // Disable synchronization for maximum speed (data loss acceptable)
+		"PRAGMA journal_mode = WAL",            // Write-Ahead Logging for better write performance
+		"PRAGMA txlock = immediate",            // Use immediate transaction locking for better concurrency
+		"PRAGMA secure_delete = FALSE",         // Disable secure delete for better performance
+		"PRAGMA mutex = no",                    // Minimal mutex locking for better performance
+		"PRAGMA cache = shared",                // Enable shared cache mode
+		"PRAGMA locking_mode = NORMAL",         // Normal locking mode for better concurrency
+		"PRAGMA busy_timeout = 5000",           // Wait 5000ms when database is locked
+		"PRAGMA temp_store = MEMORY",           // Store temporary data in memory
+		"PRAGMA mmap_size = 268435456",         // 256MB - default is 0 (disabled)
+		"PRAGMA page_size = 8192",              // Larger page size for better write performance
+		"PRAGMA cache_size = 20000",            // Increased cache size for better performance
+		"PRAGMA auto_vacuum = INCREMENTAL",     // More efficient vacuuming
+		"PRAGMA journal_size_limit = 67108864", // 64MB - limit WAL file size
+		"PRAGMA wal_autocheckpoint = 1000",     // Checkpoint WAL file after 1000 pages
 	}
 
 	for _, pragma := range pragmas {
