@@ -649,7 +649,7 @@ func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Durat
 
 // newStorageSQLite creates a new Storage instance
 func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
-	db, err := sql.Open("sqlite3", cfg.Path)
+	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=immediate&_mutex=no&cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
@@ -662,10 +662,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 	pragmas := []string{
 		"PRAGMA synchronous = OFF",             // Disable synchronization for maximum speed (data loss acceptable)
 		"PRAGMA journal_mode = WAL",            // Write-Ahead Logging for better write performance
-		"PRAGMA txlock = immediate",            // Use immediate transaction locking for better concurrency
 		"PRAGMA secure_delete = FALSE",         // Disable secure delete for better performance
-		"PRAGMA mutex = no",                    // Minimal mutex locking for better performance
-		"PRAGMA cache = shared",                // Enable shared cache mode
 		"PRAGMA locking_mode = NORMAL",         // Normal locking mode for better concurrency
 		"PRAGMA busy_timeout = 5000",           // Wait 5000ms when database is locked
 		"PRAGMA temp_store = MEMORY",           // Store temporary data in memory
@@ -687,6 +684,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 	storage := &storageSQLite{
 		db:       db,
 		exitChan: make(chan struct{}),
+		logger:   logger,
 	}
 
 	if err = storage.initialize(); err != nil {
