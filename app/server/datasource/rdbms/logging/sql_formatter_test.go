@@ -50,7 +50,6 @@ func TestMakeSelectQuery(t *testing.T) {
 	))
 
 	tcs := []testCase{
-		//nolint:revive
 		{
 			/*
 				SELECT *
@@ -96,7 +95,6 @@ func TestMakeSelectQuery(t *testing.T) {
 			},
 			err: nil,
 		},
-		//nolint:revive
 		{
 			// Request that doesn't have filter over `timestamp` column is considered invalid
 			testName: "YQ-4361",

@@ -22,11 +22,18 @@ var _ Storage = (*storageSQLite)(nil)
 
 // storageSQLite handles storing and retrieving query data
 type storageSQLite struct {
-	db       *sql.DB
-	exitChan chan struct{}
+	db                      *sql.DB
+	exitChan                chan struct{}
+	createIncomingQueryStmt *sql.Stmt
+	finishIncomingQueryStmt *sql.Stmt
+	cancelIncomingQueryStmt *sql.Stmt
+	createOutgoingQueryStmt *sql.Stmt
+	finishOutgoingQueryStmt *sql.Stmt
+	cancelOutgoingQueryStmt *sql.Stmt
+	logger                  *zap.Logger
 }
 
-// initialize creates the necessary tables if they don't exist
+// initialize creates the necessary tables and prepared statements
 func (s *storageSQLite) initialize() error {
 	// Create the incoming_queries table
 	createIncomingTableSQL := `
@@ -71,8 +78,10 @@ func (s *storageSQLite) initialize() error {
 	CREATE INDEX IF NOT EXISTS idx_outgoing_queries_database_name ON outgoing_queries(database_name);
 	`
 
+	var err error
+
 	// Enable foreign key support
-	_, err := s.db.Exec("PRAGMA foreign_keys = ON;")
+	_, err = s.db.Exec("PRAGMA foreign_keys = ON;")
 	if err != nil {
 		return fmt.Errorf("enabling foreign keys: %w", err)
 	}
@@ -86,6 +95,46 @@ func (s *storageSQLite) initialize() error {
 	_, err = s.db.Exec(createOutgoingTableSQL)
 	if err != nil {
 		return fmt.Errorf("creating outgoing_queries table: %w", err)
+	}
+
+	// Prepare statements for better performance
+	s.createIncomingQueryStmt, err = s.db.Prepare(
+		"INSERT INTO incoming_queries (id, data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?, ?)")
+	if err != nil {
+		return fmt.Errorf("preparing create incoming query statement: %w", err)
+	}
+
+	s.finishIncomingQueryStmt, err = s.db.Prepare(
+		"UPDATE incoming_queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("preparing finish incoming query statement: %w", err)
+	}
+
+	s.cancelIncomingQueryStmt, err = s.db.Prepare(
+		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("preparing cancel incoming query statement: %w", err)
+	}
+
+	// Prepare statements for outgoing queries
+	s.createOutgoingQueryStmt, err = s.db.Prepare(`
+		INSERT INTO outgoing_queries
+		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+	if err != nil {
+		return fmt.Errorf("preparing create outgoing query statement: %w", err)
+	}
+
+	s.finishOutgoingQueryStmt, err = s.db.Prepare(
+		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("preparing finish outgoing query statement: %w", err)
+	}
+
+	s.cancelOutgoingQueryStmt, err = s.db.Prepare(
+		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?")
+	if err != nil {
+		return fmt.Errorf("preparing cancel outgoing query statement: %w", err)
 	}
 
 	return nil
@@ -128,8 +177,8 @@ func (s *storageSQLite) CreateIncomingQuery(
 	now := time.Now().UTC()
 	id := uuid.NewString()
 
-	_, err := s.db.ExecContext(ctx,
-		"INSERT INTO incoming_queries (id, data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?, ?)",
+	// Use the prepared statement for better performance
+	_, err := s.createIncomingQueryStmt.ExecContext(ctx,
 		id, dataSourceKind.String(), now, 0, 0, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
 	if err != nil {
@@ -148,8 +197,7 @@ func (s *storageSQLite) FinishIncomingQuery(
 	ctx context.Context, logger *zap.Logger, id string, stats *api_service_protos.TReadSplitsResponse_TStats) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.ExecContext(ctx,
-		"UPDATE incoming_queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
+	result, err := s.finishIncomingQueryStmt.ExecContext(ctx,
 		stateToString(observation.QueryState_QUERY_STATE_FINISHED), finishedAt, stats.Rows, stats.Bytes, id,
 	)
 	if err != nil {
@@ -178,8 +226,7 @@ func (s *storageSQLite) CancelIncomingQuery(ctx context.Context, logger *zap.Log
 ) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.ExecContext(ctx,
-		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?",
+	result, err := s.cancelIncomingQueryStmt.ExecContext(ctx,
 		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, stats.Rows, stats.Bytes, id,
 	)
 	if err != nil {
@@ -314,14 +361,13 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	now := time.Now().UTC()
 	id := uuid.NewString()
 
-	// Execute the insert within the transaction
-	_, err = tx.ExecContext(ctx,
-		`INSERT INTO outgoing_queries
-		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	// Use the prepared statement for better performance
+	stmt := tx.StmtContext(ctx, s.createOutgoingQueryStmt)
+	_, err = stmt.ExecContext(ctx,
 		id, incomingQueryID, dsi.Database, common.EndpointToString(dsi.Endpoint),
 		0, queryText, fmt.Sprint(queryArgs), now, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
+
 	if err != nil {
 		rollback()
 		return logger, "", fmt.Errorf("creating outgoing query: %w", err)
@@ -340,11 +386,10 @@ func (s *storageSQLite) CreateOutgoingQuery(
 }
 
 // FinishOutgoingQuery marks an outgoing query as finished
-func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logger, id string, rowsRead int64) error {
+func (s *storageSQLite) FinishOutgoingQuery(ctx context.Context, logger *zap.Logger, id string, rowsRead int64) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
-		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?",
+	result, err := s.finishOutgoingQueryStmt.ExecContext(ctx,
 		stateToString(observation.QueryState_QUERY_STATE_FINISHED), finishedAt, rowsRead, id,
 	)
 	if err != nil {
@@ -366,11 +411,10 @@ func (s *storageSQLite) FinishOutgoingQuery(_ context.Context, logger *zap.Logge
 }
 
 // CancelOutgoingQuery marks an outgoing query as canceled with an error message
-func (s *storageSQLite) CancelOutgoingQuery(_ context.Context, logger *zap.Logger, id string, errorMsg string) error {
+func (s *storageSQLite) CancelOutgoingQuery(ctx context.Context, logger *zap.Logger, id string, errorMsg string) error {
 	finishedAt := time.Now().UTC()
 
-	result, err := s.db.Exec(
-		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?",
+	result, err := s.cancelOutgoingQueryStmt.ExecContext(ctx,
 		stateToString(observation.QueryState_QUERY_STATE_CANCELED), finishedAt, errorMsg, id,
 	)
 	if err != nil {
@@ -510,7 +554,35 @@ func (s *storageSQLite) Close(_ context.Context) error {
 	if s.db != nil {
 		close(s.exitChan) // Signal the garbage collector to stop
 
-		return s.db.Close()
+		// Close prepared statements for incoming queries
+		if err := s.createIncomingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close create incoming query statement", zap.Error(err))
+		}
+
+		if err := s.finishIncomingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close finish incoming query statement", zap.Error(err))
+		}
+
+		if err := s.cancelIncomingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close cancel incoming query statement", zap.Error(err))
+		}
+
+		// Close prepared statements for outgoing queries
+		if err := s.createOutgoingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close create outgoing query statement", zap.Error(err))
+		}
+
+		if err := s.finishOutgoingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close finish outgoing query statement", zap.Error(err))
+		}
+
+		if err := s.cancelOutgoingQueryStmt.Close(); err != nil {
+			s.logger.Error("failed to close cancel outgoing query statement", zap.Error(err))
+		}
+
+		if err := s.db.Close(); err != nil {
+			s.logger.Error("failed to close database", zap.Error(err))
+		}
 	}
 
 	return nil
@@ -577,20 +649,29 @@ func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Durat
 
 // newStorageSQLite creates a new Storage instance
 func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
-	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=exclusive&_journal=WAL&_sync=FULL&_secure_delete=TRUE&_mutex=full")
+	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=immediate&_mutex=no&cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
 
-	db.SetMaxOpenConns(1)
-	db.SetMaxIdleConns(1)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(30 * time.Minute)
 
-	// Set pragmas for better performance
+	// Set pragmas for maximum write performance
 	pragmas := []string{
-		"PRAGMA synchronous = FULL",
-		"PRAGMA journal_mode = WAL",
-		"PRAGMA locking_mode = EXCLUSIVE",
-		"PRAGMA busy_timeout = 5000",
+		"PRAGMA synchronous = OFF",             // Disable synchronization for maximum speed (data loss acceptable)
+		"PRAGMA journal_mode = WAL",            // Write-Ahead Logging for better write performance
+		"PRAGMA secure_delete = FALSE",         // Disable secure delete for better performance
+		"PRAGMA locking_mode = NORMAL",         // Normal locking mode for better concurrency
+		"PRAGMA busy_timeout = 5000",           // Wait 5000ms when database is locked
+		"PRAGMA temp_store = MEMORY",           // Store temporary data in memory
+		"PRAGMA mmap_size = 268435456",         // 256MB - default is 0 (disabled)
+		"PRAGMA page_size = 8192",              // Larger page size for better write performance
+		"PRAGMA cache_size = 20000",            // Increased cache size for better performance
+		"PRAGMA auto_vacuum = INCREMENTAL",     // More efficient vacuuming
+		"PRAGMA journal_size_limit = 67108864", // 64MB - limit WAL file size
+		"PRAGMA wal_autocheckpoint = 1000",     // Checkpoint WAL file after 1000 pages
 	}
 
 	for _, pragma := range pragmas {
@@ -603,6 +684,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 	storage := &storageSQLite{
 		db:       db,
 		exitChan: make(chan struct{}),
+		logger:   logger,
 	}
 
 	if err = storage.initialize(); err != nil {
