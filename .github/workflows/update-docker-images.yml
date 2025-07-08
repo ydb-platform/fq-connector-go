@@ -1,0 +1,77 @@
+name: Update Docker Images
+
+on:
+  # Run weekly on Sunday at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * 0'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  update-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pull latest base images to ensure we're using the most recent versions
+      - name: Pull latest base images
+        run: |
+          docker pull mcr.microsoft.com/mssql/server:2022-latest
+          docker pull opensearchproject/opensearch:latest
+
+      - name: Extract metadata for MS SQL Server
+        id: meta-mssql
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/ms_sql_server-test
+          tags: |
+            type=raw,value=latest
+            type=raw,value=weekly-{{date 'YYYYMMDD'}}
+
+      - name: Build and push MS SQL Server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./tests/infra/datasource/ms_sql_server/init
+          push: true
+          tags: ${{ steps.meta-mssql.outputs.tags }}
+          labels: ${{ steps.meta-mssql.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Force rebuild without cache to ensure we get the latest base image
+          no-cache: true
+
+      - name: Extract metadata for OpenSearch
+        id: meta-opensearch
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/opensearch-test
+          tags: |
+            type=raw,value=latest
+            type=raw,value=weekly-{{date 'YYYYMMDD'}}
+
+      - name: Build and push OpenSearch image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./tests/infra/datasource/opensearch/init
+          push: true
+          tags: ${{ steps.meta-opensearch.outputs.tags }}
+          labels: ${{ steps.meta-opensearch.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Force rebuild without cache to ensure we get the latest base image
+          no-cache: true

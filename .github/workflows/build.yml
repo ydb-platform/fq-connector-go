@@ -29,12 +29,53 @@ jobs:
       - name: Run unit tests
         run: |
           go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # Pull pre-built images to speed up the process
+      - name: Pull pre-built Docker images
+        run: |
+          docker pull ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest || true
+          docker pull ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest || true
+          # Pull other images in parallel to save time
+          docker pull mirror.gcr.io/clickhouse/clickhouse-server:24 &
+          docker pull mirror.gcr.io/postgres &
+          docker pull ghcr.io/ydb-platform/local-ydb:24.3.11.13 &
+          docker pull ghcr.io/ydb-platform/fq-connector-go_greenplum:6.25.3 &
+          docker pull mirror.gcr.io/library/mysql@sha256:1579fe3a97a436cc10824fc771a07fcedc92213e7ab7604eb5d2976ca419abc8 &
+          docker pull container-registry.oracle.com/database/free@sha256:83edd0756fda0e5faecc0fdf047814f0177d4224d7bf037e4900123ee3e08718 &
+          docker pull mongo:7.0.0 &
+          docker pull valkey/valkey:8.0.1 &
+          wait
+
       - name: Setup integration tests
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
           compose-file: "tests/infra/datasource/docker-compose.yaml"
-          up-flags: "--build"
+          up-flags: "--build --parallel"
           down-flags: "--volumes"
+          # Enable Docker layer caching and use pre-built images
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            DOCKER_BUILDKIT=1
+          env: |
+            MSSQL_IMAGE=ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest
+            OPENSEARCH_IMAGE=ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest
       - name: Run integration tests
         run: |
           # cleanup some cache
@@ -42,7 +83,8 @@ jobs:
           sudo rm -rf /usr/share/dotnet
           docker logs runner-fq-connector-go-tests-ms_sql_server
           go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
-          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out -test.failfast
+          # Run tests with parallelism enabled
+          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out -test.parallel=8 -test.timeout=30m
       - name: Union coverage
         run: |
           cat coverage_unit_tests.out > coverage.out
@@ -55,8 +97,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.out
       - name: Build
-        run: | 
-          # FIXME: this script can't handle backticks in commit messages 
+        run: |
+          # FIXME: this script can't handle backticks in commit messages
           # git fetch --prune --unshallow
           # go run ./tools/version git
           GOOS=linux go build -v -o fq-connector-go ./app
