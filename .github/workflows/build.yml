@@ -10,8 +10,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -26,9 +26,59 @@ jobs:
       - name: Install dependencies
         run: |
           go get ./...
+      # Free up disk space before running tests
+      - name: Free up disk space
+        run: |
+          # Display available disk space
+          df -h
+          
+          # Remove unnecessary large directories
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          
+          # Clean Docker images
+          docker system prune -af
+          
+          # Display available disk space after cleanup
+          df -h
+
       - name: Run unit tests
         run: |
           go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # Set environment variables for pre-built images and BuildKit
+      - name: Set environment variables
+        run: |
+          echo "MSSQL_IMAGE=ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest" >> $GITHUB_ENV
+          echo "OPENSEARCH_IMAGE=ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest" >> $GITHUB_ENV
+          echo "BUILDKIT_INLINE_CACHE=1" >> $GITHUB_ENV
+          echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+
+      # Pull pre-built images to speed up the process using docker compose
+      - name: Pull Docker images
+        run: |
+          # Pull all images defined in docker-compose.yaml
+          docker compose -f tests/infra/datasource/docker-compose.yaml pull
+
       - name: Setup integration tests
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
@@ -37,12 +87,17 @@ jobs:
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
-          # cleanup some cache
-          go clean -cache
-          sudo rm -rf /usr/share/dotnet
-          docker logs runner-fq-connector-go-tests-ms_sql_server
-          go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
-          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out -test.failfast
+          # Clean Go cache to free up space
+          go clean -cache -testcache
+          
+          # Compile test binary with reduced debug info to save space
+          go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic -ldflags="-w -s" ./tests
+          
+          # Check MS SQL Server logs
+          docker logs runner-fq-connector-go-tests-ms_sql_server || true
+          
+          # Run tests with parallelism enabled
+          ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out -test.parallel=8 -test.timeout=30m
       - name: Union coverage
         run: |
           cat coverage_unit_tests.out > coverage.out
@@ -55,8 +110,8 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.out
       - name: Build
-        run: | 
-          # FIXME: this script can't handle backticks in commit messages 
+        run: |
+          # FIXME: this script can't handle backticks in commit messages
           # git fetch --prune --unshallow
           # go run ./tools/version git
           GOOS=linux go build -v -o fq-connector-go ./app
