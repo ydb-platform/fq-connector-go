@@ -10,8 +10,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
-
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -47,35 +47,26 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-
 
-      # Pull pre-built images to speed up the process
-      - name: Pull pre-built Docker images
+      # Set environment variables for pre-built images and BuildKit
+      - name: Set environment variables
         run: |
-          docker pull ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest || true
-          docker pull ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest || true
-          # Pull other images in parallel to save time
-          docker pull mirror.gcr.io/clickhouse/clickhouse-server:24 &
-          docker pull mirror.gcr.io/postgres &
-          docker pull ghcr.io/ydb-platform/local-ydb:24.3.11.13 &
-          docker pull ghcr.io/ydb-platform/fq-connector-go_greenplum:6.25.3 &
-          docker pull mirror.gcr.io/library/mysql@sha256:1579fe3a97a436cc10824fc771a07fcedc92213e7ab7604eb5d2976ca419abc8 &
-          docker pull container-registry.oracle.com/database/free@sha256:83edd0756fda0e5faecc0fdf047814f0177d4224d7bf037e4900123ee3e08718 &
-          docker pull mongo:7.0.0 &
-          docker pull valkey/valkey:8.0.1 &
-          wait
+          echo "MSSQL_IMAGE=ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest" >> $GITHUB_ENV
+          echo "OPENSEARCH_IMAGE=ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest" >> $GITHUB_ENV
+          echo "BUILDKIT_INLINE_CACHE=1" >> $GITHUB_ENV
+          echo "DOCKER_BUILDKIT=1" >> $GITHUB_ENV
+
+      # Pull pre-built images to speed up the process using docker compose
+      - name: Pull Docker images
+        run: |
+          # Pull all images defined in docker-compose.yaml
+          docker compose -f tests/infra/datasource/docker-compose.yaml pull
 
       - name: Setup integration tests
         uses: hoverkraft-tech/compose-action@v2.0.1
         with:
           compose-file: "tests/infra/datasource/docker-compose.yaml"
-          up-flags: "--build --parallel"
+          up-flags: "--build"
           down-flags: "--volumes"
-          # Enable Docker layer caching and use pre-built images
-          build-args: |
-            BUILDKIT_INLINE_CACHE=1
-            DOCKER_BUILDKIT=1
-          env: |
-            MSSQL_IMAGE=ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest
-            OPENSEARCH_IMAGE=ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest
       - name: Run integration tests
         run: |
           # cleanup some cache

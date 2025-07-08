@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-images:
+  update-docker-images:
+    name: Update Docker Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -28,11 +29,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Extract base images from Dockerfiles
+      - name: Extract base images from Dockerfiles
+        run: |
+          # Get base image from MS SQL Server Dockerfile
+          MSSQL_BASE_IMAGE=$(grep "FROM" tests/infra/datasource/ms_sql_server/init/Dockerfile | head -1 | awk '{print $2}')
+          echo "MSSQL_BASE_IMAGE=$MSSQL_BASE_IMAGE" >> $GITHUB_ENV
+          
+          # Get base image from OpenSearch Dockerfile
+          OPENSEARCH_BASE_IMAGE=$(grep "FROM" tests/infra/datasource/opensearch/init/Dockerfile | head -1 | awk '{print $2}')
+          echo "OPENSEARCH_BASE_IMAGE=$OPENSEARCH_BASE_IMAGE" >> $GITHUB_ENV
+      
       # Pull latest base images to ensure we're using the most recent versions
       - name: Pull latest base images
         run: |
-          docker pull mcr.microsoft.com/mssql/server:2022-latest
-          docker pull opensearchproject/opensearch:latest
+          docker pull ${{ env.MSSQL_BASE_IMAGE }}
+          docker pull ${{ env.OPENSEARCH_BASE_IMAGE }}
 
       - name: Extract metadata for MS SQL Server
         id: meta-mssql
