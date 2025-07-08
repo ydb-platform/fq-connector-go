@@ -26,6 +26,24 @@ jobs:
       - name: Install dependencies
         run: |
           go get ./...
+      # Free up disk space before running tests
+      - name: Free up disk space
+        run: |
+          # Display available disk space
+          df -h
+          
+          # Remove unnecessary large directories
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          
+          # Clean Docker images
+          docker system prune -af
+          
+          # Display available disk space after cleanup
+          df -h
+
       - name: Run unit tests
         run: |
           go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
@@ -69,11 +87,15 @@ jobs:
           down-flags: "--volumes"
       - name: Run integration tests
         run: |
-          # cleanup some cache
-          go clean -cache
-          sudo rm -rf /usr/share/dotnet
-          docker logs runner-fq-connector-go-tests-ms_sql_server
-          go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
+          # Clean Go cache to free up space
+          go clean -cache -testcache
+          
+          # Compile test binary with reduced debug info to save space
+          go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic -ldflags="-w -s" ./tests
+          
+          # Check MS SQL Server logs
+          docker logs runner-fq-connector-go-tests-ms_sql_server || true
+          
           # Run tests with parallelism enabled
           ./fq-connector-go-tests -projectPath=$(pwd) -test.coverprofile=coverage_integration_tests.out -test.parallel=8 -test.timeout=30m
       - name: Union coverage
