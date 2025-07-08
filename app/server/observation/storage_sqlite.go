@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ type storageSQLite struct {
 	finishOutgoingQueryStmt *sql.Stmt
 	cancelOutgoingQueryStmt *sql.Stmt
 	logger                  *zap.Logger
+	cfg                     *config.TObservationConfig_TStorage_TSQLite
 }
 
 // initialize creates the necessary tables and prepared statements
@@ -556,32 +558,32 @@ func (s *storageSQLite) Close(_ context.Context) error {
 
 		// Close prepared statements for incoming queries
 		if err := s.createIncomingQueryStmt.Close(); err != nil {
-			s.logger.Error("failed to close create incoming query statement", zap.Error(err))
+			s.logger.Error("close create incoming query statement", zap.Error(err))
 		}
 
 		if err := s.finishIncomingQueryStmt.Close(); err != nil {
-			s.logger.Error("failed to close finish incoming query statement", zap.Error(err))
+			s.logger.Error("close finish incoming query statement", zap.Error(err))
 		}
 
 		if err := s.cancelIncomingQueryStmt.Close(); err != nil {
-			s.logger.Error("failed to close cancel incoming query statement", zap.Error(err))
+			s.logger.Error("close cancel incoming query statement", zap.Error(err))
 		}
 
 		// Close prepared statements for outgoing queries
 		if err := s.createOutgoingQueryStmt.Close(); err != nil {
-			s.logger.Error("failed to close create outgoing query statement", zap.Error(err))
+			s.logger.Error("close create outgoing query statement", zap.Error(err))
 		}
 
 		if err := s.finishOutgoingQueryStmt.Close(); err != nil {
-			s.logger.Error("failed to close finish outgoing query statement", zap.Error(err))
+			s.logger.Error("close finish outgoing query statement", zap.Error(err))
 		}
 
 		if err := s.cancelOutgoingQueryStmt.Close(); err != nil {
-			s.logger.Error("failed to close cancel outgoing query statement", zap.Error(err))
+			s.logger.Error("close cancel outgoing query statement", zap.Error(err))
 		}
 
 		if err := s.db.Close(); err != nil {
-			s.logger.Error("failed to close database", zap.Error(err))
+			s.logger.Error("close database", zap.Error(err))
 		}
 	}
 
@@ -590,14 +592,12 @@ func (s *storageSQLite) Close(_ context.Context) error {
 
 // newStorageSQLite creates a new Storage instance
 func (s *storageSQLite) getDatabaseSize() (int64, error) {
-	var size int64
-
-	err := s.db.QueryRow(`SELECT page_count * page_size as size FROM pragma_page_count(), pragma_page_size();`).Scan(&size)
+	stat, err := os.Stat(s.cfg.Path)
 	if err != nil {
-		return 0, fmt.Errorf("failed to get database size: %w", err)
+		return 0, fmt.Errorf("os stat file '%s': %w", s.cfg.Path, err)
 	}
 
-	return size, nil
+	return stat.Size(), nil
 }
 
 func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
@@ -606,7 +606,7 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 	// Log storage size before cleanup
 	sizeBefore, err := s.getDatabaseSize()
 	if err != nil {
-		logger.Error("failed to get storage size before cleanup", zap.Error(err))
+		logger.Error("get database size before cleanup", zap.Error(err))
 	}
 
 	_, err = s.db.Exec(`
@@ -614,18 +614,18 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
         DELETE FROM outgoing_queries WHERE created_at < ?;
     `, cutoff, cutoff)
 	if err != nil {
-		logger.Error("failed to clean up old queries", zap.Error(err))
+		logger.Error("clean up old queries", zap.Error(err))
 	}
 
 	_, err = s.db.Exec(` VACUUM; `)
 	if err != nil {
-		logger.Error("failed to vacuum database", zap.Error(err))
+		logger.Error("vacuum database", zap.Error(err))
 	}
 
 	// Log storage size after cleanup
 	sizeAfter, err := s.getDatabaseSize()
 	if err != nil {
-		logger.Error("failed to get storage size after cleanup", zap.Error(err))
+		logger.Error("get database size after cleanup", zap.Error(err))
 	}
 
 	logger.Info("garbage collection completed", zap.Int64("size_before", sizeBefore), zap.Int64("size_after", sizeAfter))
@@ -649,22 +649,20 @@ func (s *storageSQLite) startGarbageCollector(logger *zap.Logger, ttl time.Durat
 
 // newStorageSQLite creates a new Storage instance
 func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorage_TSQLite) (Storage, error) {
-	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=immediate&_mutex=no&cache=shared")
+	db, err := sql.Open("sqlite3", cfg.Path+"?_txlock=immediate&cache=shared")
 	if err != nil {
 		return nil, fmt.Errorf("opening SQLite database: %w", err)
 	}
 
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetMaxOpenConns(1)
 
 	// Set pragmas for maximum write performance
 	pragmas := []string{
-		"PRAGMA synchronous = OFF",             // Disable synchronization for maximum speed (data loss acceptable)
+		"PRAGMA synchronous = NORMAL",          // Sync at checkpoints, not per-transaction
 		"PRAGMA journal_mode = WAL",            // Write-Ahead Logging for better write performance
 		"PRAGMA secure_delete = FALSE",         // Disable secure delete for better performance
 		"PRAGMA locking_mode = NORMAL",         // Normal locking mode for better concurrency
-		"PRAGMA busy_timeout = 5000",           // Wait 5000ms when database is locked
+		"PRAGMA busy_timeout = 30000",          // Wait 30000ms when database is locked
 		"PRAGMA temp_store = MEMORY",           // Store temporary data in memory
 		"PRAGMA mmap_size = 268435456",         // 256MB - default is 0 (disabled)
 		"PRAGMA page_size = 8192",              // Larger page size for better write performance
@@ -685,6 +683,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 		db:       db,
 		exitChan: make(chan struct{}),
 		logger:   logger,
+		cfg:      cfg,
 	}
 
 	if err = storage.initialize(); err != nil {
