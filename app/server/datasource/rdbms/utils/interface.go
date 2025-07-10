@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -16,11 +17,36 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+// Rows represents an iterator returning data from a row-oriented storage.
+// Each data piece is a row.
+type Rows interface {
+	Close() error
+	Err() error
+	Next() bool
+	NextResultSet() bool
+	Scan(dest ...any) error
+	MakeTransformer(columns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error)
+}
+
+// Columns represents an iterator returning data from a column-oriented storage.
+// Each data piece is an Apache Arrow Record.
+type Columns interface {
+	Close() error
+	Err() error
+	Next() bool
+	Record() arrow.Record
+}
+
 type QueryParams struct {
 	Ctx       context.Context
 	Logger    *zap.Logger
 	QueryText string
 	QueryArgs *QueryArgs
+}
+
+type QueryResult struct {
+	Rows    Rows
+	Columns Columns
 }
 
 type Connection interface {
@@ -35,15 +61,6 @@ type Connection interface {
 	Logger() *zap.Logger
 	// Close terminates network connections.
 	Close() error
-}
-
-type Rows interface {
-	Close() error
-	Err() error
-	Next() bool
-	NextResultSet() bool
-	Scan(dest ...any) error
-	MakeTransformer(columns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
 //go:generate stringer -type=QueryPhase
