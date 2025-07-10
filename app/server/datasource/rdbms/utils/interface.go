@@ -49,9 +49,28 @@ type QueryResult struct {
 	Columns Columns
 }
 
+// Close implements io.Closer interface
+func (qr *QueryResult) Close() error {
+	var rowsErr, columnsErr error
+
+	if qr.Rows != nil {
+		rowsErr = qr.Rows.Close()
+	}
+
+	if qr.Columns != nil {
+		columnsErr = qr.Columns.Close()
+	}
+
+	if rowsErr != nil {
+		return rowsErr
+	}
+
+	return columnsErr
+}
+
 type Connection interface {
 	// Query runs a query on a specific connection.
-	Query(params *QueryParams) (Rows, error)
+	Query(params *QueryParams) (*QueryResult, error)
 	// DataSourceInstance comprehensively describing the target of the connection
 	DataSourceInstance() *api_common.TGenericDataSourceInstance
 	// The name of a table that will be read via this connection.

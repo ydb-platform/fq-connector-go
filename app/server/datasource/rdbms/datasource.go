@@ -195,7 +195,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	sink paging.Sink[any],
 	conn rdbms_utils.Connection,
 ) (int64, error) {
-	var rows rdbms_utils.Rows
+	var queryResult *rdbms_utils.QueryResult
 
 	err := ds.retrierSet.Query.Run(
 		ctx,
@@ -203,7 +203,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		func() error {
 			var queryErr error
 
-			if rows, queryErr = conn.Query(&query.QueryParams); queryErr != nil {
+			if queryResult, queryErr = conn.Query(&query.QueryParams); queryErr != nil {
 				return fmt.Errorf("query error: %w", queryErr)
 			}
 
@@ -215,8 +215,9 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		return 0, fmt.Errorf("query: %w", err)
 	}
 
-	defer common.LogCloserError(logger, rows, "close rows")
+	defer common.LogCloserError(logger, queryResult, "close query result")
 
+	rows := queryResult.Rows
 	transformer, err := rows.MakeTransformer(query.YdbColumns, ds.converterCollection)
 	if err != nil {
 		return 0, fmt.Errorf("make transformer: %w", err)

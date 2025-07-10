@@ -178,19 +178,20 @@ func (splitProviderImpl) getTablePhysicalSize(
 		QueryArgs: args,
 	}
 
-	rows, err := conn.Query(queryParams)
+	result, err := conn.Query(queryParams)
 	if err != nil {
 		return 0, fmt.Errorf("conn query: %w", err)
 	}
-	defer rows.Close()
+
+	defer result.Close()
 
 	var pgTableSize uint64
 
-	if !rows.Next() {
+	if !result.Rows.Next() {
 		return 0, fmt.Errorf("no rows returned from query")
 	}
 
-	if err := rows.Scan(&pgTableSize); err != nil {
+	if err := result.Rows.Scan(&pgTableSize); err != nil {
 		return 0, fmt.Errorf("rows scan: %w", err)
 	}
 
@@ -237,16 +238,17 @@ WHERE
 		QueryArgs: args,
 	}
 
-	rows, err := conn.Query(queryParams)
+	result, err := conn.Query(queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("conn query: %w", err)
 	}
-	defer rows.Close()
+	defer result.Close()
 
 	var (
 		columnName string
 		columnType string
 		results    []*primaryKey
+		rows       = result.Rows
 	)
 
 	for cont := true; cont; cont = rows.NextResultSet() {
@@ -316,12 +318,14 @@ WHERE
 		QueryArgs: args,
 	}
 
-	rows, err := conn.Query(queryParams)
+	result, err := conn.Query(queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("conn query: %w", err)
 	}
 
-	defer rows.Close()
+	defer result.Close()
+
+	rows := result.Rows
 
 	var bounds []T
 
@@ -341,20 +345,20 @@ WHERE
 	logger.Debug("discovered histogram bounds", zap.String("column_name", pk.columnName), zap.Int("total_bounds", len(bounds)))
 
 	// Now we need to transfer histogram bounds into splits
-	result := make([]*TSplitDescription_THistogramBounds, 0, len(bounds)+1)
+	splits := make([]*TSplitDescription_THistogramBounds, 0, len(bounds)+1)
 
 	// Add first open interval
-	result = append(result, createHistogramBound(pk.columnName, nil, &bounds[0]))
+	splits = append(splits, createHistogramBound(pk.columnName, nil, &bounds[0]))
 
 	// Add intervals between bounds
 	for i := 0; i < len(bounds)-1; i++ {
-		result = append(result, createHistogramBound(pk.columnName, &bounds[i], &bounds[i+1]))
+		splits = append(splits, createHistogramBound(pk.columnName, &bounds[i], &bounds[i+1]))
 	}
 
 	// Add last open interval
-	result = append(result, createHistogramBound(pk.columnName, &bounds[len(bounds)-1], nil))
+	splits = append(splits, createHistogramBound(pk.columnName, &bounds[len(bounds)-1], nil))
 
-	return result, nil
+	return splits, nil
 }
 
 func createHistogramBound[T int32 | int64 | string](columnName string, lower, upper *T) *TSplitDescription_THistogramBounds {

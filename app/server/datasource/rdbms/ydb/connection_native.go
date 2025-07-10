@@ -119,9 +119,8 @@ type connectionNative struct {
 	resourcePool       string
 }
 
-// nolint: gocyclo,funlen
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	// prepare parameter list
+// nolint: gocyclo
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	paramsBuilder := ydb_sdk.ParamsBuilder()
 
 	for i, arg := range params.QueryArgs.Values() {
@@ -200,14 +199,15 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	}
 
 	type result struct {
-		rows rdbms_utils.Rows
-		err  error
+		result *rdbms_utils.QueryResult
+		err    error
 	}
 
 	// We cannot use the results of a query from outside of the SDK callback.
 	// See https://github.com/ydb-platform/ydb-go-sdk/issues/1862 for details.
 	resultChan := make(chan result)
-	// context coming from the connector's clien (federated YDB)
+
+	//context coming from the client (the federated YDB)
 	parentCtx := params.Ctx
 
 	go func() {
@@ -254,9 +254,11 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 					closeChan:     make(chan struct{}),
 				}
 
+				queryResult := &rdbms_utils.QueryResult{Rows: rows}
+
 				// push iterator over GRPC stream into the outer space
 				select {
-				case resultChan <- result{rows: rows}:
+				case resultChan <- result{result: queryResult}:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
@@ -289,7 +291,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			return nil, r.err
 		}
 
-		return r.rows, nil
+		return r.result, nil
 	case <-parentCtx.Done():
 		return nil, parentCtx.Err()
 	}

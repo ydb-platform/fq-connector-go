@@ -54,7 +54,7 @@ type connectionHTTP struct {
 	tableName          string
 }
 
-func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.DB.QueryContext(params.Ctx, params.QueryText, rewriteQueryArgs(params.QueryArgs.Values())...)
@@ -72,7 +72,10 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Row
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 
-	return &rows{Rows: out}, nil
+	rows := &rows{Rows: out}
+	return &rdbms_utils.QueryResult{
+		Rows: rows,
+	}, nil
 }
 
 func (c *connectionHTTP) DataSourceInstance() *api_common.TGenericDataSourceInstance {
