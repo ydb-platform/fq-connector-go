@@ -123,6 +123,12 @@ type connectionNative struct {
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	paramsBuilder := ydb_sdk.ParamsBuilder()
 
+	// modify query with args
+	queryRewritten, err := c.rewriteQuery(params)
+	if err != nil {
+		return nil, fmt.Errorf("rewrite query: %w", err)
+	}
+
 	for i, arg := range params.QueryArgs.Values() {
 		placeholder := c.formatter.GetPlaceholder(i)
 
@@ -214,12 +220,6 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.
 		finalErr := c.driver.Query().Do(
 			parentCtx,
 			func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
-				// modify query with args
-				queryRewritten, err := c.rewriteQuery(params)
-				if err != nil {
-					return fmt.Errorf("rewrite query: %w", err)
-				}
-
 				queryLogger := c.queryLoggerFactory.Make(params.Logger, zap.String("resource_pool", c.resourcePool))
 				queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
 
