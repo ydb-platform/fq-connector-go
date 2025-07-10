@@ -123,95 +123,95 @@ type connectionNative struct {
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	resultChan := make(chan *rdbms_utils.QueryResult, 1)
 
+	// modify query with args
+	queryRewritten, err := c.rewriteQuery(params)
+	if err != nil {
+		return nil, fmt.Errorf("rewrite query: %w", err)
+	}
+
+	// prepare parameter list
+	paramsBuilder := ydb_sdk.ParamsBuilder()
+
+	for i, arg := range params.QueryArgs.Values() {
+		placeholder := c.formatter.GetPlaceholder(i)
+
+		switch t := arg.(type) {
+		case bool:
+			paramsBuilder = paramsBuilder.Param(placeholder).Bool(t)
+		case *bool:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bool(t).EndOptional()
+		case int8:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
+		case *int8:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int8(t).EndOptional()
+		case int16:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int16(t)
+		case *int16:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int16(t).EndOptional()
+		case int32:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int32(t)
+		case *int32:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int32(t).EndOptional()
+		case int64:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int64(t)
+		case *int64:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int64(t).EndOptional()
+		case uint8:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint8(t)
+		case *uint8:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint8(t).EndOptional()
+		case uint16:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint16(t)
+		case *uint16:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint16(t).EndOptional()
+		case uint32:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint32(t)
+		case *uint32:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint32(t).EndOptional()
+		case uint64:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint64(t)
+		case *uint64:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint64(t).EndOptional()
+		case float32:
+			paramsBuilder = paramsBuilder.Param(placeholder).Float(t)
+		case *float32:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Float(t).EndOptional()
+		case float64:
+			paramsBuilder = paramsBuilder.Param(placeholder).Double(t)
+		case *float64:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Double(t).EndOptional()
+		case string:
+			paramsBuilder = paramsBuilder.Param(placeholder).Text(t)
+		case *string:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Text(t).EndOptional()
+		case []byte:
+			paramsBuilder = paramsBuilder.Param(placeholder).Bytes(t)
+		case *[]byte:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bytes(t).EndOptional()
+		case time.Time:
+			switch params.QueryArgs.Get(i).YdbType.GetTypeId() {
+			case Ydb.Type_TIMESTAMP:
+				paramsBuilder = paramsBuilder.Param(placeholder).Timestamp(t)
+			default:
+				return nil, fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
+			}
+		case *time.Time:
+			switch params.QueryArgs.Get(i).YdbType.GetOptionalType().GetItem().GetTypeId() {
+			case Ydb.Type_TIMESTAMP:
+				paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Timestamp(t).EndOptional()
+			default:
+				return nil, fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
+		}
+	}
+
+	c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
+
 	finalErr := c.driver.Query().Do(
 		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
-			// modify query with args
-			queryRewritten, err := c.rewriteQuery(params)
-			if err != nil {
-				return fmt.Errorf("rewrite query: %w", err)
-			}
-
-			// prepare parameter list
-			paramsBuilder := ydb_sdk.ParamsBuilder()
-
-			for i, arg := range params.QueryArgs.Values() {
-				placeholder := c.formatter.GetPlaceholder(i)
-
-				switch t := arg.(type) {
-				case bool:
-					paramsBuilder = paramsBuilder.Param(placeholder).Bool(t)
-				case *bool:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bool(t).EndOptional()
-				case int8:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
-				case *int8:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int8(t).EndOptional()
-				case int16:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int16(t)
-				case *int16:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int16(t).EndOptional()
-				case int32:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int32(t)
-				case *int32:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int32(t).EndOptional()
-				case int64:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int64(t)
-				case *int64:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int64(t).EndOptional()
-				case uint8:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint8(t)
-				case *uint8:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint8(t).EndOptional()
-				case uint16:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint16(t)
-				case *uint16:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint16(t).EndOptional()
-				case uint32:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint32(t)
-				case *uint32:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint32(t).EndOptional()
-				case uint64:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint64(t)
-				case *uint64:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint64(t).EndOptional()
-				case float32:
-					paramsBuilder = paramsBuilder.Param(placeholder).Float(t)
-				case *float32:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Float(t).EndOptional()
-				case float64:
-					paramsBuilder = paramsBuilder.Param(placeholder).Double(t)
-				case *float64:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Double(t).EndOptional()
-				case string:
-					paramsBuilder = paramsBuilder.Param(placeholder).Text(t)
-				case *string:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Text(t).EndOptional()
-				case []byte:
-					paramsBuilder = paramsBuilder.Param(placeholder).Bytes(t)
-				case *[]byte:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bytes(t).EndOptional()
-				case time.Time:
-					switch params.QueryArgs.Get(i).YdbType.GetTypeId() {
-					case Ydb.Type_TIMESTAMP:
-						paramsBuilder = paramsBuilder.Param(placeholder).Timestamp(t)
-					default:
-						return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
-					}
-				case *time.Time:
-					switch params.QueryArgs.Get(i).YdbType.GetOptionalType().GetItem().GetTypeId() {
-					case Ydb.Type_TIMESTAMP:
-						paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Timestamp(t).EndOptional()
-					default:
-						return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
-					}
-				default:
-					return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
-				}
-			}
-
-			c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
-
 			// execute query
 			streamResult, err := session.Query(
 				ctx,
