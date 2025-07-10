@@ -24,6 +24,8 @@ type RowTransformer[T Acceptor] interface {
 type ColumnarBuffer[T Acceptor] interface {
 	// addRow saves a row obtained from the datasource into the columnar buffer
 	addRow(rowTransformer RowTransformer[T]) error
+	// addArrowRecord saves an Arrow Block obtained from the datasource into the columnar buffer
+	addArrowRecord(record arrow.Record) error
 	// ToResponse returns all the accumulated data and clears buffer
 	ToResponse() (*api_service_protos.TReadSplitsResponse, error)
 	// Release frees resources if buffer is no longer used
@@ -53,6 +55,9 @@ type ReadResult[T Acceptor] struct {
 type Sink[T Acceptor] interface {
 	// AddRow saves the row obtained from a stream incoming from an external data source.
 	AddRow(rowTransformer RowTransformer[T]) error
+
+	// AddArrowRecord saves the Arrow block obtained from a stream incoming from an external data source.
+	// AddArrowRecord(record arrow.Record) error
 
 	// Finish reports the successful (!) completion of data stream reading.
 	// Never call this method if the request has failed.

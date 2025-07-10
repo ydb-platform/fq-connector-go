@@ -20,6 +20,8 @@ type columnarBufferArrowIPCStreamingDefault[T Acceptor] struct {
 	builders       []array.Builder
 	schema         *arrow.Schema
 	logger         *zap.Logger
+	arrowRecord    arrow.Record // Store the Arrow Record directly
+	rowsAdded      bool         // Track if rows were added via addRow
 }
 
 // AddRow saves a row obtained from the datasource into the buffer
@@ -30,23 +32,62 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTrans
 		return fmt.Errorf("append values to arrow builders: %w", err)
 	}
 
+	cb.rowsAdded = true
+
+	return nil
+}
+
+// addArrowRecord saves an Arrow Block obtained from the datasource into the columnar buffer
+func (cb *columnarBufferArrowIPCStreamingDefault[T]) addArrowRecord(record arrow.Record) error {
+	// Create a new record with the same schema as the buffer
+	if !cb.schema.Equal(record.Schema()) {
+		return fmt.Errorf("record schema does not match buffer schema")
+	}
+
+	// Store the record directly
+	if cb.arrowRecord != nil {
+		// Release the previous record if it exists
+		cb.arrowRecord.Release()
+	}
+
+	// Retain the record to prevent it from being garbage collected
+	record.Retain()
+	cb.arrowRecord = record
+
 	return nil
 }
 
 // ToResponse returns all the accumulated data and clears buffer
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_protos.TReadSplitsResponse, error) {
-	// chunk consists of columns
-	chunk := make([]arrow.Array, 0, len(cb.builders))
+	var record arrow.Record
+	var releaseRecord bool
 
-	// prepare arrow record
-	for _, builder := range cb.builders {
-		chunk = append(chunk, builder.NewArray())
-	}
+	// If we have a stored Arrow Record, use it directly
+	if cb.arrowRecord != nil {
+		record = cb.arrowRecord
+		// We'll release our reference to the record at the end
+		releaseRecord = false
+	} else if cb.rowsAdded {
+		// If rows were added, create a new record from the builders
+		chunk := make([]arrow.Array, 0, len(cb.builders))
 
-	record := array.NewRecord(cb.schema, chunk, -1)
+		// prepare arrow record
+		for _, builder := range cb.builders {
+			chunk = append(chunk, builder.NewArray())
+		}
 
-	for _, col := range chunk {
-		col.Release()
+		record = array.NewRecord(cb.schema, chunk, -1)
+
+		// We need to release the arrays after creating the record
+		for _, col := range chunk {
+			col.Release()
+		}
+
+		// We'll need to release this record after writing it
+		releaseRecord = true
+	} else {
+		// No data to return
+		return &api_service_protos.TReadSplitsResponse{}, nil
 	}
 
 	// prepare arrow writer
@@ -55,11 +96,22 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_
 	writer := ipc.NewWriter(&buf, ipc.WithSchema(cb.schema), ipc.WithAllocator(cb.arrowAllocator))
 
 	if err := writer.Write(record); err != nil {
+		if releaseRecord {
+			record.Release()
+		}
 		return nil, fmt.Errorf("write record: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {
+		if releaseRecord {
+			record.Release()
+		}
 		return nil, fmt.Errorf("close arrow writer: %w", err)
+	}
+
+	// Release the record if we created it
+	if releaseRecord {
+		record.Release()
 	}
 
 	out := &api_service_protos.TReadSplitsResponse{
@@ -71,12 +123,26 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_
 	return out, nil
 }
 
-func (cb *columnarBufferArrowIPCStreamingDefault[T]) TotalRows() int { return cb.builders[0].Len() }
+func (cb *columnarBufferArrowIPCStreamingDefault[T]) TotalRows() int {
+	if cb.arrowRecord != nil {
+		return int(cb.arrowRecord.NumRows())
+	}
+	if len(cb.builders) > 0 {
+		return cb.builders[0].Len()
+	}
+	return 0
+}
 
 // Frees resources if buffer is no longer used
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) Release() {
 	// cleanup builders
 	for _, b := range cb.builders {
 		b.Release()
+	}
+
+	// Release the stored Arrow Record if it exists
+	if cb.arrowRecord != nil {
+		cb.arrowRecord.Release()
+		cb.arrowRecord = nil
 	}
 }

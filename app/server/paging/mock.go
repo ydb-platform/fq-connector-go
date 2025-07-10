@@ -1,6 +1,7 @@
 package paging
 
 import (
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
 
@@ -63,6 +64,10 @@ type ColumnarBufferMock struct {
 
 //nolint:unused
 func (*ColumnarBufferMock) addRow(_ RowTransformer[any]) error {
+	panic("not implemented") // TODO: Implement
+}
+
+func (*ColumnarBufferMock) addArrowRecord(_ arrow.Record) error {
 	panic("not implemented") // TODO: Implement
 }
 
