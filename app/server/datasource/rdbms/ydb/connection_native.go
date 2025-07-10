@@ -14,7 +14,11 @@ import (
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
 
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -107,6 +111,82 @@ func (r *rowsNative) Close() error {
 	return nil
 }
 
+var _ rdbms_utils.Columns = (*columnsNative)(nil)
+
+type columnsNative struct {
+	ctx         context.Context
+	err         error
+	arrowResult ydb_sdk_query.ArrowResult
+	currentPart io.Reader
+	reader      *ipc.Reader
+	record      arrow.Record
+}
+
+func (c *columnsNative) Close() error {
+	if err := c.arrowResult.Close(c.ctx); err != nil {
+		return fmt.Errorf("arrow result close: %w", err)
+	}
+	return nil
+}
+
+func (c *columnsNative) Err() error {
+	return c.err
+}
+
+func (c *columnsNative) Next() bool {
+	// If we have a reader and it has more records, get the next one
+	if c.reader != nil && c.reader.Next() {
+		c.record = c.reader.Record()
+		return true
+	}
+
+	// Try to get the next part
+	var part io.Reader
+	var err error
+
+	for p, e := range c.arrowResult.Parts(c.ctx) {
+		if e != nil {
+			if errors.Is(e, io.EOF) {
+				c.err = nil
+			} else {
+				c.err = fmt.Errorf("next part: %w", e)
+			}
+
+			return false
+		}
+
+		part = p
+
+		break
+	}
+
+	if part == nil {
+		return false
+	}
+
+	// Create a new reader for this part
+	c.currentPart = part
+	reader, err := ipc.NewReader(part)
+	if err != nil {
+		c.err = fmt.Errorf("create arrow reader: %w", err)
+		return false
+	}
+	c.reader = reader
+
+	// Get the first record from this part
+	if !c.reader.Next() {
+		c.err = fmt.Errorf("no records in arrow part")
+		return false
+	}
+
+	c.record = c.reader.Record()
+	return true
+}
+
+func (c *columnsNative) Record() arrow.Record {
+	return c.record
+}
+
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
@@ -117,12 +197,11 @@ type connectionNative struct {
 	tableName    string
 	formatter    rdbms_utils.SQLFormatter
 	resourcePool string
+	mode         config.TYdbConfig_Mode
 }
 
 // nolint: gocyclo
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
-	resultChan := make(chan *rdbms_utils.QueryResult, 1)
-
 	// modify query with args
 	queryRewritten, err := c.rewriteQuery(params)
 	if err != nil {
@@ -209,6 +288,31 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.
 
 	c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
 
+	// Create a channel to receive the query result
+	resultChan := make(chan *rdbms_utils.QueryResult, 1)
+
+	// Arrow-based approach
+	if c.mode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE_ARROW {
+		arrowResult, err := c.driver.Query().QueryArrow(
+			params.Ctx,
+			queryRewritten,
+			ydb_sdk_query.WithParameters(paramsBuilder.Build()),
+			ydb_sdk_query.WithResourcePool(c.resourcePool),
+			ydb_sdk_query.WithIdempotent(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("query arrow: %w", err)
+		}
+
+		columns := &columnsNative{
+			ctx:         c.ctx,
+			arrowResult: arrowResult,
+		}
+
+		return &rdbms_utils.QueryResult{Columns: columns}, nil
+	}
+
+	// Traditional row-based approach
 	finalErr := c.driver.Query().Do(
 		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
@@ -340,6 +444,7 @@ func newConnectionNative(
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
 	resourcePool string,
+	mode config.TYdbConfig_Mode,
 ) Connection {
 	return &connectionNative{
 		ctx:          ctx,
@@ -349,5 +454,6 @@ func newConnectionNative(
 		tableName:    tableName,
 		formatter:    formatter,
 		resourcePool: resourcePool,
+		mode:         mode,
 	}
 }
