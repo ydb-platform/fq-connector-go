@@ -14,7 +14,11 @@ import (
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
 
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -105,6 +109,82 @@ func (r *rowsNative) Close() error {
 	close(r.closeChan)
 
 	return nil
+}
+
+var _ rdbms_utils.Columns = (*columnsNative)(nil)
+
+type columnsNative struct {
+	ctx         context.Context
+	err         error
+	arrowResult ydb_sdk_query.ArrowResult
+	currentPart io.Reader
+	reader      *ipc.Reader
+	record      arrow.Record
+}
+
+func (c *columnsNative) Close() error {
+	if err := c.arrowResult.Close(c.ctx); err != nil {
+		return fmt.Errorf("arrow result close: %w", err)
+	}
+	return nil
+}
+
+func (c *columnsNative) Err() error {
+	return c.err
+}
+
+func (c *columnsNative) Next() bool {
+	// If we have a reader and it has more records, get the next one
+	if c.reader != nil && c.reader.Next() {
+		c.record = c.reader.Record()
+		return true
+	}
+
+	// Try to get the next part
+	var part io.Reader
+	var err error
+
+	for p, e := range c.arrowResult.Parts(c.ctx) {
+		if e != nil {
+			if errors.Is(e, io.EOF) {
+				c.err = nil
+			} else {
+				c.err = fmt.Errorf("next part: %w", e)
+			}
+
+			return false
+		}
+
+		part = p
+
+		break
+	}
+
+	if part == nil {
+		return false
+	}
+
+	// Create a new reader for this part
+	c.currentPart = part
+	reader, err := ipc.NewReader(part)
+	if err != nil {
+		c.err = fmt.Errorf("create arrow reader: %w", err)
+		return false
+	}
+	c.reader = reader
+
+	// Get the first record from this part
+	if !c.reader.Next() {
+		c.err = fmt.Errorf("no records in arrow part")
+		return false
+	}
+
+	c.record = c.reader.Record()
+	return true
+}
+
+func (c *columnsNative) Record() arrow.Record {
+	return c.record
 }
 
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
@@ -370,6 +450,7 @@ func newConnectionNative(
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
 	resourcePool string,
+	mode config.TYdbConfig_Mode,
 ) Connection {
 	return &connectionNative{
 		driver:             driver,
