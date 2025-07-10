@@ -120,8 +120,8 @@ type connectionNative struct {
 }
 
 // nolint: gocyclo
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	rowsChan := make(chan rdbms_utils.Rows, 1)
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
+	resultChan := make(chan *rdbms_utils.QueryResult, 1)
 
 	finalErr := c.driver.Query().Do(
 		params.Ctx,
@@ -240,8 +240,12 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				lastResultSet: resultSet,
 			}
 
+			queryResult := &rdbms_utils.QueryResult{
+				Rows: rows,
+			}
+
 			select {
-			case rowsChan <- rows:
+			case resultChan <- queryResult:
 				return nil
 			case <-ctx.Done():
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
@@ -259,8 +263,8 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	}
 
 	select {
-	case rows := <-rowsChan:
-		return rows, nil
+	case result := <-resultChan:
+		return result, nil
 	case <-params.Ctx.Done():
 		return nil, params.Ctx.Err()
 	}
