@@ -24,8 +24,6 @@ type RowTransformer[T Acceptor] interface {
 type ColumnarBuffer[T Acceptor] interface {
 	// addRow saves a row obtained from the datasource into the columnar buffer
 	addRow(rowTransformer RowTransformer[T]) error
-	// addArrowRecord saves an Arrow Block obtained from the datasource into the columnar buffer
-	addArrowRecord(record arrow.Record) error
 	// ToResponse returns all the accumulated data and clears buffer
 	ToResponse() (*api_service_protos.TReadSplitsResponse, error)
 	// Release frees resources if buffer is no longer used
