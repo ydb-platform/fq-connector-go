@@ -57,7 +57,7 @@ func (c *connection) Close() error {
 	return c.Conn.Close(context.TODO())
 }
 
-func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.Conn.Query(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
@@ -65,7 +65,9 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 		return nil, fmt.Errorf("query error: %w", err)
 	}
 
-	return rows{Rows: out}, nil
+	return &rdbms_utils.QueryResult{
+		Rows: rows{Rows: out},
+	}, nil
 }
 
 func (c *connection) DataSourceInstance() *api_common.TGenericDataSourceInstance {

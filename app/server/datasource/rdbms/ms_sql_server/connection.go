@@ -32,12 +32,17 @@ func (c *Connection) TableName() string {
 	return c.tableName
 }
 
-func (c *Connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *Connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.db.QueryContext(params.Ctx, params.QueryText, params.QueryArgs.Values()...)
+	if err != nil {
+		return nil, err
+	}
 
-	return rows{out}, err
+	return &rdbms_utils.QueryResult{
+		Rows: rows{out},
+	}, nil
 }
 
 func (c *Connection) Logger() *zap.Logger {
