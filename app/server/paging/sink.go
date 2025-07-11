@@ -215,18 +215,13 @@ func (s *sinkImpl[T]) respondWithArrowRecord(
 		return
 	}
 
-	// Create a columnar buffer for the response
-	// We'll create a simple implementation that just returns the response
-	cb := &columnarBufferArrowIPCStreamingDefault[T]{
-		arrowAllocator: nil,
-		builders:       nil,
-		schema:         record.Schema(),
-		logger:         s.logger,
-	}
+	// Get the serialized data from the buffer
+	serializedData := buf.Bytes()
 
-	// Create a result with the response
+	// Create a result with the serialized data
 	result := &ReadResult[T]{
-		ColumnarBuffer:    cb,
+		ColumnarBuffer:    nil,
+		Data:              serializedData,
 		Stats:             stats,
 		Error:             err,
 		IsTerminalMessage: isTerminalMessage,

@@ -1,0 +1,4 @@
+PRAGMA generic.UsePredicatePushdown="true";
+
+SELECT * FROM external_datasource.olap_lineitem_s10 LIMIT 10;
+

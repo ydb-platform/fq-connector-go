@@ -544,10 +544,10 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 	}
 
 	switch c.Mode {
-	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
-		if c.ResourcePool == "" {
-			return fmt.Errorf("you must set `resource_pool` if `mode` is `query_service_native`")
-		}
+	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE, config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE_ARROW:
+		// if c.ResourcePool == "" {
+		// 	return fmt.Errorf("you must set `resource_pool` if `mode` is `query_service_native` or `query_service_native_arrow`")
+		// }
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		if c.ResourcePool != "" {
 			return fmt.Errorf("you must not set `resource_pool` if `mode` is `table_service_stdlib_scan_queries`")

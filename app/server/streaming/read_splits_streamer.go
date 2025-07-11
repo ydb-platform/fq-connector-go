@@ -60,13 +60,30 @@ func (s *ReadSplitsStreamer[T]) writeDataToStream() error {
 }
 
 func (s *ReadSplitsStreamer[T]) sendResultToStream(result *paging.ReadResult[T]) error {
-	// buffer must be explicitly marked as unused,
-	// otherwise memory will leak
-	defer result.ColumnarBuffer.Release()
+	var resp *api_service_protos.TReadSplitsResponse
 
-	resp, err := result.ColumnarBuffer.ToResponse()
-	if err != nil {
-		return fmt.Errorf("buffer to response: %w", err)
+	var err error
+
+	if result.Data != nil {
+		fmt.Println(" >>> HERE <<<")
+		// Handle the case where we have serialized Arrow data
+		resp = &api_service_protos.TReadSplitsResponse{
+			Payload: &api_service_protos.TReadSplitsResponse_ArrowIpcStreaming{
+				ArrowIpcStreaming: result.Data,
+			},
+		}
+	} else if result.ColumnarBuffer != nil {
+		// Handle the case where we have a columnar buffer
+		// buffer must be explicitly marked as unused,
+		// otherwise memory will leak
+		defer result.ColumnarBuffer.Release()
+
+		resp, err = result.ColumnarBuffer.ToResponse()
+		if err != nil {
+			return fmt.Errorf("buffer to response: %w", err)
+		}
+	} else {
+		return fmt.Errorf("result contains neither Data nor ColumnarBuffer")
 	}
 
 	resp.Stats = result.Stats
