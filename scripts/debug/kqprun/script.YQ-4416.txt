@@ -1,4 +1,21 @@
 PRAGMA generic.UsePredicatePushdown="true";
 
-SELECT * FROM external_datasource.olap_lineitem_s10 LIMIT 10;
+SELECT
+    MIN(l_comment),
+    MIN(l_commitdate),
+    MIN(l_discount),
+    MIN(l_extendedprice),
+    MIN(l_linenumber),
+    MIN(l_linestatus),
+    MIN(l_orderkey),
+    MIN(l_partkey),
+    MIN(l_quantity),
+    MIN(l_receiptdate),
+    MIN(l_returnflag),
+    MIN(l_shipdate),
+    MIN(l_shipinstruct),
+    MIN(l_shipmode),
+    MIN(l_suppkey),
+    MIN(l_tax)
+FROM (SELECT * FROM external_datasource.olap_lineitem_s10 LIMIT 10000000);
 

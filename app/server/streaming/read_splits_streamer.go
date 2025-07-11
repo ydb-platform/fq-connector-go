@@ -65,7 +65,6 @@ func (s *ReadSplitsStreamer[T]) sendResultToStream(result *paging.ReadResult[T])
 	var err error
 
 	if result.Data != nil {
-		fmt.Println(" >>> HERE <<<")
 		// Handle the case where we have serialized Arrow data
 		resp = &api_service_protos.TReadSplitsResponse{
 			Payload: &api_service_protos.TReadSplitsResponse_ArrowIpcStreaming{
