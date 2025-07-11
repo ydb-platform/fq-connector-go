@@ -58,7 +58,8 @@ func (c *connectionManager) Make(
 	} else if dsi.Credentials.GetBasic() != nil {
 		logger.Debug("connector will use base auth credentials for authorization")
 
-		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
+		//cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
+		cred = ydb_sdk.WithAnonymousCredentials()
 	} else {
 		logger.Warn("connector will not use any credentials for authorization")
 

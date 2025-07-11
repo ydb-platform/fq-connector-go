@@ -43,6 +43,7 @@ type ColumnarBufferFactory[T Acceptor] interface {
 // 4. flag marking this stream as completed
 type ReadResult[T Acceptor] struct {
 	ColumnarBuffer    ColumnarBuffer[T]
+	Data              []byte // serialized Arrow Record
 	Stats             *api_service_protos.TReadSplitsResponse_TStats
 	Error             error
 	IsTerminalMessage bool
