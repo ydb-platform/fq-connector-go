@@ -74,6 +74,7 @@ func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (*rdbms_u
 	}
 
 	rows := rowsDatabaseSQL{Rows: out}
+
 	return &rdbms_utils.QueryResult{
 		Rows: rows,
 	}, nil

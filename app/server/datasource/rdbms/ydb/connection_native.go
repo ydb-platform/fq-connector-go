@@ -8,14 +8,13 @@ import (
 	"io"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	ydb_sdk "github.com/ydb-platform/ydb-go-sdk/v3"
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
-
-	"github.com/apache/arrow/go/v13/arrow"
-	"github.com/apache/arrow/go/v13/arrow/ipc"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -126,6 +125,7 @@ func (c *columnsNative) Close() error {
 	if err := c.arrowResult.Close(c.ctx); err != nil {
 		return fmt.Errorf("arrow result close: %w", err)
 	}
+
 	return nil
 }
 
@@ -142,6 +142,7 @@ func (c *columnsNative) Next() bool {
 
 	// Try to get the next part
 	var part io.Reader
+
 	var err error
 
 	for p, e := range c.arrowResult.Parts(c.ctx) {
@@ -167,10 +168,12 @@ func (c *columnsNative) Next() bool {
 	// Create a new reader for this part
 	c.currentPart = part
 	reader, err := ipc.NewReader(part)
+
 	if err != nil {
 		c.err = fmt.Errorf("create arrow reader: %w", err)
 		return false
 	}
+
 	c.reader = reader
 
 	// Get the first record from this part
@@ -180,6 +183,7 @@ func (c *columnsNative) Next() bool {
 	}
 
 	c.record = c.reader.Record()
+
 	return true
 }
 
