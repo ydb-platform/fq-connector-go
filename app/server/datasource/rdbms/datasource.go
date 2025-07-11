@@ -217,9 +217,37 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	defer common.LogCloserError(logger, queryResult, "close query result")
 
-	rows := queryResult.Rows
-	transformer, err := rows.MakeTransformer(query.YdbColumns, ds.converterCollection)
+	var rowsRead int64
 
+	var processErr error
+
+	// Choose the appropriate processing method based on which field is filled
+	if queryResult.Rows != nil {
+		rowsRead, processErr = ds.processRowBasedResult(query, queryResult.Rows, sink)
+	} else if queryResult.Columns != nil {
+		rowsRead, processErr = ds.processArrowBasedResult(queryResult.Columns, sink)
+	} else {
+		return 0, fmt.Errorf("query result contains neither Rows nor Columns")
+	}
+
+	if processErr != nil {
+		return 0, processErr
+	}
+
+	// Notify sink that there will be no more data from this connection.
+	// Hours lost in attempts to move this call into defer: 2
+	sink.Finish()
+
+	return rowsRead, nil
+}
+
+// processRowBasedResult processes row-based results from the database
+func (ds *dataSourceImpl) processRowBasedResult(
+	query *rdbms_utils.SelectQuery,
+	rows rdbms_utils.Rows,
+	sink paging.Sink[any],
+) (int64, error) {
+	transformer, err := rows.MakeTransformer(query.YdbColumns, ds.converterCollection)
 	if err != nil {
 		return 0, fmt.Errorf("make transformer: %w", err)
 	}
@@ -250,9 +278,28 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 		return 0, fmt.Errorf("rows error: %w", err)
 	}
 
-	// Notify sink that there will be no more data from this connection.
-	// Hours lost in attempts to move this call into defer: 2
-	sink.Finish()
+	return rowsRead, nil
+}
+
+// processArrowBasedResult processes Arrow-based results from the database
+func (dataSourceImpl) processArrowBasedResult(
+	columns rdbms_utils.Columns,
+	sink paging.Sink[any],
+) (int64, error) {
+	rowsRead := int64(0)
+
+	for columns.Next() {
+		record := columns.Record()
+		rowsRead += record.NumRows()
+
+		if err := sink.AddArrowRecord(record); err != nil {
+			return 0, fmt.Errorf("add arrow record to paging writer: %w", err)
+		}
+	}
+
+	if err := columns.Err(); err != nil {
+		return 0, fmt.Errorf("columns error: %w", err)
+	}
 
 	return rowsRead, nil
 }
