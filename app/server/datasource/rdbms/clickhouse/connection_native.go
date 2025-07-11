@@ -73,6 +73,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.
 	}
 
 	rows := &rowsNative{Rows: out}
+
 	return &rdbms_utils.QueryResult{
 		Rows: rows,
 	}, nil

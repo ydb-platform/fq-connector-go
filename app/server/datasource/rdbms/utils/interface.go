@@ -3,9 +3,9 @@ package utils
 import (
 	"context"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"go.uber.org/zap"
 
-	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"

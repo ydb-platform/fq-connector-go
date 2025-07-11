@@ -271,8 +271,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		logger,
 		memory.NewGoAllocator(),
 		api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING,
-		split.Select.What,
-		false) // Use row-based approach for tests
+		split.Select.What)
 	require.NoError(t, err)
 
 	pagingCfg := &config.TPagingConfig{RowsPerPage: uint64(tc.rowsPerPage)}

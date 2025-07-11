@@ -60,6 +60,7 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) addArrowRecord(record arrow
 // ToResponse returns all the accumulated data and clears buffer
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_protos.TReadSplitsResponse, error) {
 	var record arrow.Record
+
 	var releaseRecord bool
 
 	// If we have a stored Arrow Record, use it directly
@@ -99,6 +100,7 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_
 		if releaseRecord {
 			record.Release()
 		}
+
 		return nil, fmt.Errorf("write record: %w", err)
 	}
 
@@ -106,6 +108,7 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_
 		if releaseRecord {
 			record.Release()
 		}
+
 		return nil, fmt.Errorf("close arrow writer: %w", err)
 	}
 
@@ -127,9 +130,11 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) TotalRows() int {
 	if cb.arrowRecord != nil {
 		return int(cb.arrowRecord.NumRows())
 	}
+
 	if len(cb.builders) > 0 {
 		return cb.builders[0].Len()
 	}
+
 	return 0
 }
 

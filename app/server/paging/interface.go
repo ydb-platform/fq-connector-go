@@ -57,7 +57,7 @@ type Sink[T Acceptor] interface {
 	AddRow(rowTransformer RowTransformer[T]) error
 
 	// AddArrowRecord saves the Arrow block obtained from a stream incoming from an external data source.
-	// AddArrowRecord(record arrow.Record) error
+	AddArrowRecord(record arrow.Record) error
 
 	// Finish reports the successful (!) completion of data stream reading.
 	// Never call this method if the request has failed.

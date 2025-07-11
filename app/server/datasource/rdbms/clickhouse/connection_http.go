@@ -73,6 +73,7 @@ func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.Qu
 	}
 
 	rows := &rows{Rows: out}
+
 	return &rdbms_utils.QueryResult{
 		Rows: rows,
 	}, nil

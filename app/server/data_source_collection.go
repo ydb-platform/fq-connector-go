@@ -318,8 +318,7 @@ func doReadSplit[T paging.Acceptor](
 		logger,
 		memoryAllocator,
 		request.Format,
-		split.Select.What,
-		false) // Default to row-based approach for now
+		split.Select.What)
 	if err != nil {
 		return fmt.Errorf("new columnar buffer factory: %w", err)
 	}

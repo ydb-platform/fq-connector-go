@@ -219,6 +219,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	rows := queryResult.Rows
 	transformer, err := rows.MakeTransformer(query.YdbColumns, ds.converterCollection)
+
 	if err != nil {
 		return 0, fmt.Errorf("make transformer: %w", err)
 	}

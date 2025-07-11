@@ -20,6 +20,12 @@ func (m *SinkMock) AddRow(transformer RowTransformer[any]) error {
 	return args.Error(0)
 }
 
+func (m *SinkMock) AddArrowRecord(record arrow.Record) error {
+	args := m.Called(record)
+
+	return args.Error(0)
+}
+
 func (m *SinkMock) AddError(err error) {
 	m.Called(err)
 }
