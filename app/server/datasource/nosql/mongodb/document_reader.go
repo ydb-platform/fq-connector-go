@@ -12,7 +12,6 @@ import (
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.ytsaurus.tech/yt/go/yson"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -22,6 +21,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
+	"github.com/ydb-platform/fq-connector-go/library/go/yson"
 )
 
 type unexpectedTypeDisplayMode = api_common.TMongoDbDataSourceOptions_EUnexpectedTypeDisplayMode

@@ -39,7 +39,6 @@ require (
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.0
-	go.ytsaurus.tech/yt/go v0.0.26
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842
 	golang.org/x/sync v0.10.0
 	golang.org/x/time v0.5.0
@@ -103,8 +102,10 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.18 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
+	github.com/shoenig/test v0.6.6 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
 	github.com/siddontang/go-log v0.0.0-20190221022429-1e957dd83bed // indirect
@@ -122,9 +123,6 @@ require (
 	go.opentelemetry.io/otel v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.ytsaurus.tech/library/go/core/xerrors v0.0.4 // indirect
-	go.ytsaurus.tech/library/go/x/xreflect v0.0.3 // indirect
-	go.ytsaurus.tech/library/go/x/xruntime v0.0.4 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
