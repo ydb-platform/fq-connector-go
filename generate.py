@@ -148,6 +148,10 @@ source_params = [
         "ydb/library/yql/providers/generic/connector/api/service/protos/connector.proto",
         "github.com/ydb-platform/fq-connector-go/api/service/protos",
     ),
+    (
+        "ydb/library/yql/providers/generic/connector/api/service/protos/error.proto",
+        "github.com/ydb-platform/fq-connector-go/api/service/protos",
+    ),
 ]
 
 
