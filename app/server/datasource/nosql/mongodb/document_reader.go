@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -20,6 +21,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/ptr"
+	"github.com/ydb-platform/fq-connector-go/library/go/yson"
 )
 
 type unexpectedTypeDisplayMode = api_common.TMongoDbDataSourceOptions_EUnexpectedTypeDisplayMode
@@ -32,6 +34,16 @@ type documentReader struct {
 
 	arrowTypes *arrow.Schema
 	ydbTypes   []*Ydb.Type
+}
+
+func isSerializedDocumentReadingMode(readingMode readingMode) bool {
+	switch readingMode {
+	case api_common.TMongoDbDataSourceOptions_JSON,
+		api_common.TMongoDbDataSourceOptions_YSON:
+		return true
+	default:
+		return false
+	}
 }
 
 func bsonToString(value any) (string, error) {
@@ -154,114 +166,171 @@ func convert[INTO any](acceptor **INTO, value any) {
 	}
 }
 
-//nolint:funlen,gocyclo
 func (r *documentReader) accept(doc bson.M) error {
 	acceptors := r.transformer.GetAcceptors()
 
+	if isSerializedDocumentReadingMode(r.readingMode) {
+		if len(r.arrowTypes.Fields()) != 2 {
+			return fmt.Errorf("unexpected number of accepters for a serialized document reading mode")
+		}
+
+		for i, f := range r.arrowTypes.Fields() {
+			if f.Name == idColumn {
+				if err := r.acceptSingleField(acceptors[i], doc, f.Name); err != nil {
+					return fmt.Errorf("accept id field: %w", err)
+				}
+			} else {
+				if err := r.acceptSerializedDocument(acceptors[i], doc); err != nil {
+					return fmt.Errorf("accept serialized document: %w", err)
+				}
+			}
+		}
+
+		return nil
+	}
+
 	for i, f := range r.arrowTypes.Fields() {
-		switch a := acceptors[i].(type) {
-		case *bool:
-			*a = doc[f.Name].(bool)
-		case **bool:
-			convert(a, doc[f.Name])
-		case *int32:
-			*a = doc[f.Name].(int32)
-		case **int32:
-			convert(a, doc[f.Name])
-		case *int64:
-			*a = doc[f.Name].(int64)
-		case **int64:
-			convert(a, doc[f.Name])
-		case *float64:
-			*a = doc[f.Name].(float64)
-		case **float64:
-			convert(a, doc[f.Name])
-		case *string:
-			value, ok := doc[f.Name]
-			if !ok {
-				acceptors[i] = nil
-				continue
+		if err := r.acceptSingleField(acceptors[i], doc, f.Name); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *documentReader) acceptSerializedDocument(acceptor any, doc bson.M) error {
+	switch r.readingMode {
+	case api_common.TMongoDbDataSourceOptions_JSON:
+		b, err := json.Marshal(doc)
+		if err != nil {
+			return err
+		}
+
+		a, ok := acceptor.(*string)
+		if !ok {
+			return fmt.Errorf("unexpected acceptor type for JSON serialized document: %T", acceptor)
+		}
+
+		*a = string(b)
+
+	case api_common.TMongoDbDataSourceOptions_YSON:
+		b, err := yson.Marshal(doc)
+		if err != nil {
+			return err
+		}
+
+		a, ok := acceptor.(*[]byte)
+		if !ok {
+			return fmt.Errorf("unexpected acceptor type for YSON serialized document: %T", acceptor)
+		}
+
+		*a = b
+
+	default:
+		return fmt.Errorf("unexpected reading mode for serialized document accepter: %v", r.readingMode)
+	}
+
+	return nil
+}
+
+//nolint:funlen,gocyclo
+func (r *documentReader) acceptSingleField(acceptor any, doc bson.M, fieldName string) error {
+	switch a := acceptor.(type) {
+	case *bool:
+		*a = doc[fieldName].(bool)
+	case **bool:
+		convert(a, doc[fieldName])
+	case *int32:
+		*a = doc[fieldName].(int32)
+	case **int32:
+		convert(a, doc[fieldName])
+	case *int64:
+		*a = doc[fieldName].(int64)
+	case **int64:
+		convert(a, doc[fieldName])
+	case *float64:
+		*a = doc[fieldName].(float64)
+	case **float64:
+		convert(a, doc[fieldName])
+	case *string:
+		value, ok := doc[fieldName]
+		if !ok {
+			return nil
+		}
+
+		str, err := bsonToString(value)
+		if err != nil {
+			if !errors.Is(err, common.ErrDataTypeNotSupported) {
+				return fmt.Errorf("unable to convert type to string: %w", err)
 			}
 
-			str, err := bsonToString(value)
-			if err != nil {
-				if !errors.Is(err, common.ErrDataTypeNotSupported) {
-					return err
-				}
+			if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {
+				return nil
+			}
+		}
 
-				if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {
-					continue
-				}
+		*a = str
+
+	case **string:
+		value, ok := doc[fieldName]
+		if !ok {
+			*a = nil
+			return nil
+		}
+
+		str, err := bsonToString(value)
+		if err != nil {
+			if !errors.Is(err, common.ErrDataTypeNotSupported) {
+				return fmt.Errorf("unable to convert type to string: %w", err)
 			}
 
-			*a = str
-
-		case **string:
-			value, ok := doc[f.Name]
-			if !ok {
+			if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {
 				*a = nil
-				continue
+				return nil
 			}
+		}
 
-			str, err := bsonToString(value)
-			if err != nil {
-				if !errors.Is(err, common.ErrDataTypeNotSupported) {
-					return err
-				}
+		*a = ptr.T(str)
 
-				if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {
-					*a = nil
-					continue
-				}
-			}
+	case *primitive.Binary:
+		*a = doc[fieldName].(primitive.Binary)
+	case **primitive.Binary:
+		convert(a, doc[fieldName])
+	case *primitive.ObjectID:
+		*a = doc[fieldName].(primitive.ObjectID)
+	case **primitive.ObjectID:
+		convert(a, doc[fieldName])
+	case *any:
+		// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
+		value, ok := doc[fieldName]
+		if !ok {
+			return nil
+		}
 
-			*a = ptr.T(str)
-
-		case *primitive.Binary:
-			*a = doc[f.Name].(primitive.Binary)
-			acceptors[i] = a
-		case **primitive.Binary:
-			convert(a, doc[f.Name])
-		case *primitive.ObjectID:
-			*a = doc[f.Name].(primitive.ObjectID)
-		case **primitive.ObjectID:
-			convert(a, doc[f.Name])
-		case *any:
-			// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
-			value, ok := doc[f.Name]
-			if !ok {
-				acceptors[i] = nil
-				continue
-			}
-
-			switch value.(type) {
-			case primitive.Binary:
-				*a = value
-			case primitive.ObjectID:
-				*a = value
-			default:
-				return fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
-			}
-
-		case **any:
-			// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
-			value, ok := doc[f.Name]
-			if !ok {
-				*a = nil
-				continue
-			}
-
-			switch value.(type) {
-			case primitive.Binary:
-				*a = ptr.T(value)
-			case primitive.ObjectID:
-				*a = ptr.T(value)
-			default:
-				return fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
-			}
-
+		switch value.(type) {
+		case primitive.Binary:
+			*a = value
+		case primitive.ObjectID:
+			*a = value
 		default:
-			return fmt.Errorf("unuspported type %T: %w", acceptors[i], common.ErrDataTypeNotSupported)
+			return fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
+		}
+
+	case **any:
+		// We use any to handle both ObjectID and Binary BSON types when converting them to YQL String.
+		value, ok := doc[fieldName]
+		if !ok {
+			*a = nil
+			return nil
+		}
+
+		switch value.(type) {
+		case primitive.Binary:
+			*a = ptr.T(value)
+		case primitive.ObjectID:
+			*a = ptr.T(value)
+		default:
+			return fmt.Errorf("unuspported type %T: %w", value, common.ErrDataTypeNotSupported)
 		}
 	}
 
@@ -353,6 +422,9 @@ func addAcceptorAppenderNullable(ydbType *Ydb.Type, cc conversion.Collection, ac
 		case Ydb.Type_UTF8, Ydb.Type_JSON:
 			acceptors = append(acceptors, new(*string))
 			appenders = append(appenders, utils.MakeAppenderNullable[string, string, *array.StringBuilder](cc.String()))
+		case Ydb.Type_YSON:
+			acceptors = append(acceptors, new(*[]byte))
+			appenders = append(appenders, utils.MakeAppenderNullable[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		case Ydb.Type_STRING:
 			// When reading data from MongoDB, we sometimes encounter two different BSON types
 			// (ObjectId and Binary) that both need to be converted to the same YQL String type.
@@ -422,6 +494,9 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 		case Ydb.Type_UTF8, Ydb.Type_JSON:
 			acceptors = append(acceptors, new(string))
 			appenders = append(appenders, utils.MakeAppender[string, string, *array.StringBuilder](cc.String()))
+		case Ydb.Type_YSON:
+			acceptors = append(acceptors, new([]byte))
+			appenders = append(appenders, utils.MakeAppender[[]byte, []byte, *array.BinaryBuilder](cc.Bytes()))
 		case Ydb.Type_STRING:
 			// When reading data from MongoDB, we sometimes encounter two different BSON types
 			// (ObjectId and Binary) that both need to be converted to the same YQL String type.

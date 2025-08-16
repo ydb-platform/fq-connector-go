@@ -33,9 +33,15 @@ func (s *Suite) SetAsStringOptions() {
 	}
 }
 
-func (s *Suite) SetWithTaggedOptions() {
+func (s *Suite) SetJSONReadingModeOptions() {
 	for _, instance := range s.dataSource.Instances {
-		instance.Options = mongoDbOptionsWithTaggedType
+		instance.Options = jsonMongoDbOptions
+	}
+}
+
+func (s *Suite) SetYSONReadingModeOptions() {
+	for _, instance := range s.dataSource.Instances {
+		instance.Options = ysonMongoDbOptions
 	}
 }
 
@@ -112,7 +118,7 @@ func (s *Suite) TestPushdownIsNull() {
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(
 			s.dataSource,
-			tables["missing_2"],
+			tables["missing_id_2"],
 			suite.WithPredicate(&api_service_protos.TPredicate{
 				Payload: tests_utils.MakePredicateIsNullColumn(
 					testCase,
@@ -133,7 +139,7 @@ func (s *Suite) TestPushdownIsNotNull() {
 	for _, testCase := range testCaseNames {
 		s.ValidateTable(
 			s.dataSource,
-			tables["missing_0"],
+			tables["missing_id_0"],
 			suite.WithPredicate(&api_service_protos.TPredicate{
 				Payload: tests_utils.MakePredicateIsNotNullColumn(
 					testCase,
@@ -166,7 +172,7 @@ func (s *Suite) TestPushdownComparisonEQ() {
 	for column, value := range testcases {
 		s.ValidateTable(
 			s.dataSource,
-			tables["missing_0"],
+			tables["missing_id_0"],
 			suite.WithPredicate(&api_service_protos.TPredicate{
 				Payload: tests_utils.MakePredicateComparisonColumn(
 					column,
@@ -189,12 +195,12 @@ func (s *Suite) TestPushdownStringComparison() {
 	value := common.MakeTypedValue(Optional(Primitive(Ydb.Type_UTF8)), "abc")
 
 	testCases := map[string]*api_service_protos.TPredicate_Comparison{
-		"strcomp_0": tests_utils.MakePredicateComparisonColumn(
+		"strcomp_id_0": tests_utils.MakePredicateComparisonColumn(
 			fieldName,
 			api_service_protos.TPredicate_TComparison_STARTS_WITH,
 			value,
 		),
-		"strcomp_1": tests_utils.MakePredicateComparisonColumn(
+		"strcomp_id_1": tests_utils.MakePredicateComparisonColumn(
 			fieldName,
 			api_service_protos.TPredicate_TComparison_ENDS_WITH,
 			value,
@@ -226,7 +232,7 @@ func (s *Suite) TestPushdownComparisonTwoColumns() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["similar_056"],
+		tables["similar_ids_056"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Comparison{
 				Comparison: &api_service_protos.TPredicate_TComparison{
@@ -251,7 +257,7 @@ func (s *Suite) TestPushdownConjunction() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["similar_0"],
+		tables["similar_id_0"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Conjunction{
 				Conjunction: &api_service_protos.TPredicate_TConjunction{
@@ -286,7 +292,7 @@ func (s *Suite) TestPushdownDisjunction() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["similar_01"],
+		tables["similar_ids_01"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Disjunction{
 				Disjunction: &api_service_protos.TPredicate_TDisjunction{
@@ -344,7 +350,7 @@ func (s *Suite) TestPushdownNegation() {
 	for _, testCase := range testCases {
 		s.ValidateTable(
 			s.dataSource,
-			tables["missing_12"],
+			tables["missing_ids_12"],
 			suite.WithPredicate(&api_service_protos.TPredicate{
 				Payload: &api_service_protos.TPredicate_Negation{
 					Negation: &api_service_protos.TPredicate_TNegation{
@@ -365,7 +371,7 @@ func (s *Suite) TestPushdownBoolExpression() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["missing_1"],
+		tables["missing_id_1"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateBoolExpressionColumn("boolean"),
 		}),
@@ -381,7 +387,7 @@ func (s *Suite) TestPushdownBetween() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["similar_234"],
+		tables["similar_ids_234"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateBetweenColumn(
 				"_id",
@@ -415,7 +421,7 @@ func (s *Suite) TestPushdownIn() {
 	for column, valueSet := range testCases {
 		s.ValidateTable(
 			s.dataSource,
-			tables["similar_146"],
+			tables["similar_ids_146"],
 			suite.WithPredicate(&api_service_protos.TPredicate{
 				Payload: tests_utils.MakePredicateInColumn(
 					column, valueSet,
@@ -486,7 +492,7 @@ func (s *Suite) TestPushdownWithCoalesce() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["missing_12"],
+		tables["missing_ids_12"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: predicate,
 		}),
@@ -557,7 +563,7 @@ func (s *Suite) TestPushdownWithCoalesceObjectId() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["object_ids_0"],
+		tables["object_ids_id_0"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: predicate,
 		}),
@@ -569,7 +575,7 @@ func (s *Suite) TestPushdownWithCoalesceObjectIdTagged() {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
 	}
 
-	s.SetWithTaggedOptions()
+	s.SetAsStringOptions()
 
 	typedValue := common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
 		hexEncoded("171e75500ecde1c75c59139e"))
@@ -589,7 +595,7 @@ func (s *Suite) TestPushdownWithCoalesceObjectIdTagged() {
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["tagged_0"],
+		tables["tagged_id_0"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: predicate,
 		}),
@@ -601,7 +607,7 @@ func (s *Suite) TestObjectIdAsTaggedString() {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
 	}
 
-	s.SetWithTaggedOptions()
+	s.SetAsStringOptions()
 
 	s.ValidateTable(s.dataSource, tables["tagged"])
 }
@@ -611,11 +617,11 @@ func (s *Suite) TestObjectIdAsTaggedFilter() {
 		s.T().Skip("Skipping test with ObjectId not YQL Tagged<String>")
 	}
 
-	s.SetWithTaggedOptions()
+	s.SetAsStringOptions()
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["tagged_0"],
+		tables["tagged_id_0"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"objectid",
@@ -623,6 +629,72 @@ func (s *Suite) TestObjectIdAsTaggedFilter() {
 				common.MakeTypedValue(Optional(Tagged("ObjectId", Primitive(Ydb.Type_STRING))),
 					hexEncoded("171e75500ecde1c75c59139e"),
 				),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestJSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetJSONReadingModeOptions()
+
+	tableName := "primitives_json"
+	s.ValidateTable(s.dataSource, tables[tableName])
+}
+
+func (s *Suite) TestPushdownPrimaryKeyFilterWithJSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetJSONReadingModeOptions()
+
+	tableName := "primitives_json_id_2"
+
+	s.ValidateTable(
+		s.dataSource,
+		tables[tableName],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"_id",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(2)),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestYSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetYSONReadingModeOptions()
+
+	tableName := "primitives_yson"
+	s.ValidateTable(s.dataSource, tables[tableName])
+}
+
+func (s *Suite) TestPushdownPrimaryKeyFilterWithYSONReadingMode() {
+	if s.yqlTypeToUse != config.TMongoDbConfig_OBJECT_ID_AS_STRING {
+		s.T().Skip("Skipping test with ObjectId not YQL String")
+	}
+
+	s.SetYSONReadingModeOptions()
+
+	tableName := "primitives_yson_id_1"
+
+	s.ValidateTable(
+		s.dataSource,
+		tables[tableName],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"_id",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(Optional(Primitive(Ydb.Type_INT32)), int32(1)),
 			),
 		}),
 	)
