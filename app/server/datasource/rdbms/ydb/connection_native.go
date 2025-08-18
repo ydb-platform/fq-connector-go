@@ -8,6 +8,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -15,6 +17,7 @@ import (
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
+	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -107,6 +110,87 @@ func (r *rowsNative) Close() error {
 	return nil
 }
 
+var _ rdbms_utils.Columns = (*columnsNative)(nil)
+
+type columnsNative struct {
+	ctx         context.Context
+	err         error
+	arrowResult ydb_sdk_query.ArrowResult
+	currentPart io.Reader
+	reader      *ipc.Reader
+	record      arrow.Record
+}
+
+func (c *columnsNative) Close() error {
+	if err := c.arrowResult.Close(c.ctx); err != nil {
+		return fmt.Errorf("arrow result close: %w", err)
+	}
+
+	return nil
+}
+
+func (c *columnsNative) Err() error {
+	return c.err
+}
+
+func (c *columnsNative) Next() bool {
+	// If we have a reader and it has more records, get the next one
+	if c.reader != nil && c.reader.Next() {
+		c.record = c.reader.Record()
+		return true
+	}
+
+	// Try to get the next part
+	var part io.Reader
+
+	var err error
+
+	for p, e := range c.arrowResult.Parts(c.ctx) {
+		if e != nil {
+			if errors.Is(e, io.EOF) {
+				c.err = nil
+			} else {
+				c.err = fmt.Errorf("next part: %w", e)
+			}
+
+			return false
+		}
+
+		part = p
+
+		break
+	}
+
+	if part == nil {
+		return false
+	}
+
+	// Create a new reader for this part
+	c.currentPart = part
+	reader, err := ipc.NewReader(part)
+
+	if err != nil {
+		c.err = fmt.Errorf("create arrow reader: %w", err)
+		return false
+	}
+
+	c.reader = reader
+
+	// Get the first record from this part
+	if !c.reader.Next() {
+		c.err = fmt.Errorf("no records in arrow part")
+		return false
+	}
+
+	c.record = c.reader.Record()
+
+	return true
+}
+
+func (c *columnsNative) Record() arrow.Record {
+	return c.record
+}
+
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
@@ -117,101 +201,125 @@ type connectionNative struct {
 	tableName    string
 	formatter    rdbms_utils.SQLFormatter
 	resourcePool string
+	mode         config.TYdbConfig_Mode
 }
 
 // nolint: gocyclo
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	rowsChan := make(chan rdbms_utils.Rows, 1)
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
+	// modify query with args
+	queryRewritten, err := c.rewriteQuery(params)
+	if err != nil {
+		return nil, fmt.Errorf("rewrite query: %w", err)
+	}
 
+	// prepare parameter list
+	paramsBuilder := ydb_sdk.ParamsBuilder()
+
+	for i, arg := range params.QueryArgs.Values() {
+		placeholder := c.formatter.GetPlaceholder(i)
+
+		switch t := arg.(type) {
+		case bool:
+			paramsBuilder = paramsBuilder.Param(placeholder).Bool(t)
+		case *bool:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bool(t).EndOptional()
+		case int8:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
+		case *int8:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int8(t).EndOptional()
+		case int16:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int16(t)
+		case *int16:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int16(t).EndOptional()
+		case int32:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int32(t)
+		case *int32:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int32(t).EndOptional()
+		case int64:
+			paramsBuilder = paramsBuilder.Param(placeholder).Int64(t)
+		case *int64:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int64(t).EndOptional()
+		case uint8:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint8(t)
+		case *uint8:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint8(t).EndOptional()
+		case uint16:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint16(t)
+		case *uint16:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint16(t).EndOptional()
+		case uint32:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint32(t)
+		case *uint32:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint32(t).EndOptional()
+		case uint64:
+			paramsBuilder = paramsBuilder.Param(placeholder).Uint64(t)
+		case *uint64:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint64(t).EndOptional()
+		case float32:
+			paramsBuilder = paramsBuilder.Param(placeholder).Float(t)
+		case *float32:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Float(t).EndOptional()
+		case float64:
+			paramsBuilder = paramsBuilder.Param(placeholder).Double(t)
+		case *float64:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Double(t).EndOptional()
+		case string:
+			paramsBuilder = paramsBuilder.Param(placeholder).Text(t)
+		case *string:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Text(t).EndOptional()
+		case []byte:
+			paramsBuilder = paramsBuilder.Param(placeholder).Bytes(t)
+		case *[]byte:
+			paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bytes(t).EndOptional()
+		case time.Time:
+			switch params.QueryArgs.Get(i).YdbType.GetTypeId() {
+			case Ydb.Type_TIMESTAMP:
+				paramsBuilder = paramsBuilder.Param(placeholder).Timestamp(t)
+			default:
+				return nil, fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
+			}
+		case *time.Time:
+			switch params.QueryArgs.Get(i).YdbType.GetOptionalType().GetItem().GetTypeId() {
+			case Ydb.Type_TIMESTAMP:
+				paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Timestamp(t).EndOptional()
+			default:
+				return nil, fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
+			}
+		default:
+			return nil, fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
+		}
+	}
+
+	c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
+
+	// Create a channel to receive the query result
+	resultChan := make(chan *rdbms_utils.QueryResult, 1)
+
+	// Arrow-based approach
+	if c.mode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE_ARROW {
+		arrowResult, err := c.driver.Query().QueryArrow(
+			params.Ctx,
+			queryRewritten,
+			ydb_sdk_query.WithParameters(paramsBuilder.Build()),
+			ydb_sdk_query.WithResourcePool(c.resourcePool),
+			ydb_sdk_query.WithIdempotent(),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("query arrow: %w", err)
+		}
+
+		columns := &columnsNative{
+			ctx:         c.ctx,
+			arrowResult: arrowResult,
+		}
+
+		return &rdbms_utils.QueryResult{Columns: columns}, nil
+	}
+
+	// Traditional row-based approach
 	finalErr := c.driver.Query().Do(
 		params.Ctx,
 		func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
-			// modify query with args
-			queryRewritten, err := c.rewriteQuery(params)
-			if err != nil {
-				return fmt.Errorf("rewrite query: %w", err)
-			}
-
-			// prepare parameter list
-			paramsBuilder := ydb_sdk.ParamsBuilder()
-
-			for i, arg := range params.QueryArgs.Values() {
-				placeholder := c.formatter.GetPlaceholder(i)
-
-				switch t := arg.(type) {
-				case bool:
-					paramsBuilder = paramsBuilder.Param(placeholder).Bool(t)
-				case *bool:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bool(t).EndOptional()
-				case int8:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int8(t)
-				case *int8:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int8(t).EndOptional()
-				case int16:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int16(t)
-				case *int16:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int16(t).EndOptional()
-				case int32:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int32(t)
-				case *int32:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int32(t).EndOptional()
-				case int64:
-					paramsBuilder = paramsBuilder.Param(placeholder).Int64(t)
-				case *int64:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Int64(t).EndOptional()
-				case uint8:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint8(t)
-				case *uint8:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint8(t).EndOptional()
-				case uint16:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint16(t)
-				case *uint16:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint16(t).EndOptional()
-				case uint32:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint32(t)
-				case *uint32:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint32(t).EndOptional()
-				case uint64:
-					paramsBuilder = paramsBuilder.Param(placeholder).Uint64(t)
-				case *uint64:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Uint64(t).EndOptional()
-				case float32:
-					paramsBuilder = paramsBuilder.Param(placeholder).Float(t)
-				case *float32:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Float(t).EndOptional()
-				case float64:
-					paramsBuilder = paramsBuilder.Param(placeholder).Double(t)
-				case *float64:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Double(t).EndOptional()
-				case string:
-					paramsBuilder = paramsBuilder.Param(placeholder).Text(t)
-				case *string:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Text(t).EndOptional()
-				case []byte:
-					paramsBuilder = paramsBuilder.Param(placeholder).Bytes(t)
-				case *[]byte:
-					paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Bytes(t).EndOptional()
-				case time.Time:
-					switch params.QueryArgs.Get(i).YdbType.GetTypeId() {
-					case Ydb.Type_TIMESTAMP:
-						paramsBuilder = paramsBuilder.Param(placeholder).Timestamp(t)
-					default:
-						return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
-					}
-				case *time.Time:
-					switch params.QueryArgs.Get(i).YdbType.GetOptionalType().GetItem().GetTypeId() {
-					case Ydb.Type_TIMESTAMP:
-						paramsBuilder = paramsBuilder.Param(placeholder).BeginOptional().Timestamp(t).EndOptional()
-					default:
-						return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
-					}
-				default:
-					return fmt.Errorf("unsupported type: %v (%T): %w", arg, arg, common.ErrUnimplementedPredicateType)
-				}
-			}
-
-			c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
-
 			// execute query
 			streamResult, err := session.Query(
 				ctx,
@@ -240,8 +348,12 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				lastResultSet: resultSet,
 			}
 
+			queryResult := &rdbms_utils.QueryResult{
+				Rows: rows,
+			}
+
 			select {
-			case rowsChan <- rows:
+			case resultChan <- queryResult:
 				return nil
 			case <-ctx.Done():
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
@@ -259,8 +371,8 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	}
 
 	select {
-	case rows := <-rowsChan:
-		return rows, nil
+	case result := <-resultChan:
+		return result, nil
 	case <-params.Ctx.Done():
 		return nil, params.Ctx.Err()
 	}
@@ -336,6 +448,7 @@ func newConnectionNative(
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
 	resourcePool string,
+	mode config.TYdbConfig_Mode,
 ) Connection {
 	return &connectionNative{
 		ctx:          ctx,
@@ -345,5 +458,6 @@ func newConnectionNative(
 		tableName:    tableName,
 		formatter:    formatter,
 		resourcePool: resourcePool,
+		mode:         mode,
 	}
 }

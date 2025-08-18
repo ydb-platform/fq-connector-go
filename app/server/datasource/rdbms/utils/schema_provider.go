@@ -33,12 +33,12 @@ func (f *defaultSchemaProvider) GetSchema(
 		QueryArgs: args,
 	}
 
-	rows, err := conn.Query(queryParams)
+	queryResult, err := conn.Query(queryParams)
 	if err != nil {
 		return nil, fmt.Errorf("query builder error: %w", err)
 	}
 
-	defer func() { common.LogCloserError(logger, rows, "close rows") }()
+	defer func() { common.LogCloserError(logger, queryResult, "close query result") }()
 
 	var (
 		columnName *string
@@ -47,6 +47,7 @@ func (f *defaultSchemaProvider) GetSchema(
 
 	sb := NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
 
+	rows := queryResult.Rows
 	for rows.Next() {
 		if err = rows.Scan(&columnName, &typeName); err != nil {
 			return nil, fmt.Errorf("rows scan: %w", err)

@@ -54,7 +54,7 @@ type connectionNative struct {
 	tableName          string
 }
 
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	out, err := c.Conn.Query(params.Ctx, params.QueryText, rewriteQueryArgs(params.QueryArgs.Values())...)
@@ -72,7 +72,11 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 		return nil, fmt.Errorf("rows err: %w", err)
 	}
 
-	return &rowsNative{Rows: out}, nil
+	rows := &rowsNative{Rows: out}
+
+	return &rdbms_utils.QueryResult{
+		Rows: rows,
+	}, nil
 }
 
 func (c *connectionNative) DataSourceInstance() *api_common.TGenericDataSourceInstance {

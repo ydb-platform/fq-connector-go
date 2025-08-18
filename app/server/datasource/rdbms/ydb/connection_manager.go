@@ -58,7 +58,8 @@ func (c *connectionManager) Make(
 	} else if dsi.Credentials.GetBasic() != nil {
 		logger.Debug("connector will use base auth credentials for authorization")
 
-		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
+		//cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
+		cred = ydb_sdk.WithAnonymousCredentials()
 	} else {
 		logger.Warn("connector will not use any credentials for authorization")
 
@@ -110,6 +111,21 @@ func (c *connectionManager) Make(
 			ydbDriver,
 			formatter,
 			c.cfg.ResourcePool,
+			c.cfg.Mode,
+		)
+	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE_ARROW:
+		logger.Debug("connector will use Native SDK over Query Service with Arrow format")
+
+		formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE, c.cfg.Pushdown)
+		ydbConn = newConnectionNative(
+			ctx,
+			c.QueryLoggerFactory.Make(logger, zap.String("resource_pool", c.cfg.ResourcePool)),
+			dsi,
+			params.TableName,
+			ydbDriver,
+			formatter,
+			c.cfg.ResourcePool,
+			c.cfg.Mode,
 		)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")
