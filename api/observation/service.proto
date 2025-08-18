@@ -3,7 +3,7 @@ syntax = "proto3";
 package NYql.Connector.Observation;
 
 import "google/protobuf/timestamp.proto";
-import "ydb/library/yql/providers/generic/connector/api/service/protos/connector.proto";
+import "ydb/library/yql/providers/generic/connector/api/service/protos/error.proto";
 
 option go_package = "github.com/ydb-platform/fq-connector-go/api/observation";
 

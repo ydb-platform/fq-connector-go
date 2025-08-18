@@ -11,6 +11,7 @@ import (
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
@@ -19,20 +20,23 @@ func makeFilter(
 	logger *zap.Logger,
 	split *api_service_protos.TSplit,
 	filtering api_service_protos.TReadSplitsRequest_EFiltering,
+	readingMode readingMode,
 ) (bson.D, *options.FindOptions, error) {
 	opts := options.Find()
 
-	what := split.Select.What
-	if what == nil {
-		return nil, nil, fmt.Errorf("not specified columns to query in Select.What")
-	}
+	if readingMode == api_common.TMongoDbDataSourceOptions_TABLE {
+		what := split.Select.What
+		if what == nil {
+			return nil, nil, fmt.Errorf("not specified columns to query in Select.What")
+		}
 
-	projection := bson.D{}
-	for _, item := range what.GetItems() {
-		projection = append(projection, bson.E{Key: item.GetColumn().Name, Value: 1})
-	}
+		projection := bson.D{}
+		for _, item := range what.GetItems() {
+			projection = append(projection, bson.E{Key: item.GetColumn().Name, Value: 1})
+		}
 
-	opts.SetProjection(projection)
+		opts.SetProjection(projection)
+	}
 
 	limit := split.Select.Limit
 	if limit != nil {
