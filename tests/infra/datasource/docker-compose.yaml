@@ -74,7 +74,13 @@ services:
       - ./mysql/custom.cnf:/etc/mysql/conf.d/custom.cnf
 
   ms_sql_server:
-    build: ./ms_sql_server/init
+    # Use pre-built image from GHCR for CI, fallback to local build for development
+    image: ${MSSQL_IMAGE:-ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest}
+    build:
+      context: ./ms_sql_server/init
+      # Only build if image doesn't exist
+      cache_from:
+        - ghcr.io/ydb-platform/fq-connector-go/ms_sql_server-test:latest
     container_name: ${USER}-fq-connector-go-tests-ms_sql_server
     ports:
       - '1433:1433'
@@ -120,9 +126,14 @@ services:
       - "6379:6379"
 
   opensearch:
+    # Use pre-built image from GHCR for CI, fallback to local build for development
+    image: ${OPENSEARCH_IMAGE:-ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest}
     build:
       context: ./opensearch/init
       dockerfile: Dockerfile
+      # Only build if image doesn't exist
+      cache_from:
+        - ghcr.io/ydb-platform/fq-connector-go/opensearch-test:latest
     container_name: ${USER}-fq-connector-go-tests-opensearch
     ports:
       - '9200:9200'

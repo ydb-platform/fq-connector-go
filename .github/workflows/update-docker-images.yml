@@ -1,0 +1,119 @@
+name: Update Docker Images
+
+on:
+  # Run weekly on Sunday at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * 0'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  update-docker-images:
+    name: Update Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Extract base images from Dockerfiles
+      - name: Extract base images from Dockerfiles
+        run: |
+          # Get base image from MS SQL Server Dockerfile
+          MSSQL_BASE_IMAGE=$(grep "FROM" tests/infra/datasource/ms_sql_server/init/Dockerfile | head -1 | awk '{print $2}')
+          echo "MSSQL_BASE_IMAGE=$MSSQL_BASE_IMAGE" >> $GITHUB_ENV
+          
+          # Get base image from OpenSearch Dockerfile
+          OPENSEARCH_BASE_IMAGE=$(grep "FROM" tests/infra/datasource/opensearch/init/Dockerfile | head -1 | awk '{print $2}')
+          echo "OPENSEARCH_BASE_IMAGE=$OPENSEARCH_BASE_IMAGE" >> $GITHUB_ENV
+      
+      # Pull latest base images to ensure we're using the most recent versions
+      - name: Pull latest base images
+        run: |
+          docker pull ${{ env.MSSQL_BASE_IMAGE }}
+          docker pull ${{ env.OPENSEARCH_BASE_IMAGE }}
+
+      - name: Extract metadata for MS SQL Server
+        id: meta-mssql
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/ms_sql_server-test
+          tags: |
+            type=raw,value=latest
+            type=raw,value=weekly-{{date 'YYYYMMDD'}}
+
+      # Build and push MS SQL Server image with retry logic
+      - name: Build and push MS SQL Server image
+        uses: docker/build-push-action@v5
+        id: build-mssql
+        continue-on-error: true
+        with:
+          context: ./tests/infra/datasource/ms_sql_server/init
+          push: true
+          tags: ${{ steps.meta-mssql.outputs.tags }}
+          labels: ${{ steps.meta-mssql.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Force rebuild without cache to ensure we get the latest base image
+          no-cache: true
+
+      # Retry MS SQL Server build if it fails
+      - name: Retry MS SQL Server build
+        if: steps.build-mssql.outcome == 'failure'
+        run: |
+          echo "First attempt failed, waiting 30 seconds before retry..."
+          sleep 30
+          docker buildx build \
+            --no-cache \
+            --push \
+            -t ${{ steps.meta-mssql.outputs.tags }} \
+            ./tests/infra/datasource/ms_sql_server/init
+
+      - name: Extract metadata for OpenSearch
+        id: meta-opensearch
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/opensearch-test
+          tags: |
+            type=raw,value=latest
+            type=raw,value=weekly-{{date 'YYYYMMDD'}}
+
+      # Build and push OpenSearch image with retry logic
+      - name: Build and push OpenSearch image
+        uses: docker/build-push-action@v5
+        id: build-opensearch
+        continue-on-error: true
+        with:
+          context: ./tests/infra/datasource/opensearch/init
+          push: true
+          tags: ${{ steps.meta-opensearch.outputs.tags }}
+          labels: ${{ steps.meta-opensearch.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Force rebuild without cache to ensure we get the latest base image
+          no-cache: true
+
+      # Retry OpenSearch build if it fails
+      - name: Retry OpenSearch build
+        if: steps.build-opensearch.outcome == 'failure'
+        run: |
+          echo "First attempt failed, waiting 30 seconds before retry..."
+          sleep 30
+          docker buildx build \
+            --no-cache \
+            --push \
+            -t ${{ steps.meta-opensearch.outputs.tags }} \
+            ./tests/infra/datasource/opensearch/init
