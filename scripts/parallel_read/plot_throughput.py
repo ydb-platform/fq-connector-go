@@ -67,7 +67,8 @@ def main():
         
         # Calculate throughput (MB/s) by dividing 8.54 GB by Time
         GB_CONSTANT = 8.54
-        df_clean['Throughput_MBps'] = (GB_CONSTANT * 1024) / df_clean['Time']
+        # Calculate throughput (MB/s) normalized by the number of threads (Tasks)
+        df_clean['Throughput_MBps'] = ((GB_CONSTANT * 1024) / df_clean['Time']) / df_clean['Tasks']
         
         print(f"Processed {len(df_clean)} rows of data.")
         print(f"Throughput range: {df_clean['Throughput_MBps'].min():.2f} - {df_clean['Throughput_MBps'].max():.2f} MB/s")
@@ -159,7 +160,7 @@ def create_throughput_plot(df):
     
     # Add labels and title with more professional styling
     ax.set_xlabel('YQ reading threads', fontweight='bold', labelpad=15)  # More space between ticks and label
-    ax.set_ylabel('Throughput (MB/s)', fontweight='bold', labelpad=15)  # More space between ticks and label
+    ax.set_ylabel('Throughput per thread (MB/s)', fontweight='bold', labelpad=15)  # More space between ticks and label
     ax.set_title('Massively parallel reading from external YDB',
                  fontweight='bold', pad=20)
     
@@ -265,7 +266,7 @@ def create_performance_zones_plot(df):
     
     # Add labels and title
     ax.set_xlabel('Number of Tasks', fontweight='bold')
-    ax.set_ylabel('Throughput (MB/s)', fontweight='bold')
+    ax.set_ylabel('Throughput per thread (MB/s)', fontweight='bold')
     ax.set_title('Parallel Read Performance Analysis:\nPerformance Zones by Configuration',
                  fontweight='bold', pad=20)
     
@@ -316,7 +317,7 @@ def print_insights(df):
     
     # Calculate statistics by replica count
     stats_by_replica = df.groupby('Replicas')['Throughput_MBps'].agg(['mean', 'min', 'max'])
-    print("\nThroughput Statistics by Number of Connectors:")
+    print("\nPer-Thread Throughput Statistics by Number of Connectors:")
     for replica, row in stats_by_replica.iterrows():
         print(f"  {replica} connector{'s' if replica > 1 else ''}: "
               f"Avg: {row['mean']:.1f} MB/s, Min: {row['min']:.1f} MB/s, Max: {row['max']:.1f} MB/s")
@@ -326,7 +327,7 @@ def print_insights(df):
     max_config = df.loc[max_throughput_idx]
     print(f"\nOptimal Configuration:")
     print(f"  {max_config['Replicas']} connectors with {max_config['Tasks']} tasks "
-          f"→ {max_config['Throughput_MBps']:.1f} MB/s")
+          f"→ {max_config['Throughput_MBps']:.1f} MB/s per thread")
     
     # Calculate performance thresholds
     max_throughput = df['Throughput_MBps'].max()
@@ -338,14 +339,14 @@ def print_insights(df):
     medium_perf = df[(df['Throughput_MBps'] >= medium_perf_threshold) &
                      (df['Throughput_MBps'] < high_perf_threshold)]
     
-    print("\nPerformance Zone Analysis:")
-    print(f"  High Performance Zone (>{high_perf_threshold:.1f} MB/s):")
+    print("\nPer-Thread Performance Zone Analysis:")
+    print(f"  High Performance Zone (>{high_perf_threshold:.1f} MB/s per thread):")
     for _, row in high_perf.iterrows():
-        print(f"    - {row['Replicas']} connector{'s' if row['Replicas'] > 1 else ''} with {row['Tasks']} tasks: {row['Throughput_MBps']:.1f} MB/s")
+        print(f"    - {row['Replicas']} connector{'s' if row['Replicas'] > 1 else ''} with {row['Tasks']} tasks: {row['Throughput_MBps']:.1f} MB/s per thread")
     
-    print(f"\n  Medium Performance Zone ({medium_perf_threshold:.1f}-{high_perf_threshold:.1f} MB/s):")
+    print(f"\n  Medium Performance Zone ({medium_perf_threshold:.1f}-{high_perf_threshold:.1f} MB/s per thread):")
     for _, row in medium_perf.iterrows():
-        print(f"    - {row['Replicas']} connector{'s' if row['Replicas'] > 1 else ''} with {row['Tasks']} tasks: {row['Throughput_MBps']:.1f} MB/s")
+        print(f"    - {row['Replicas']} connector{'s' if row['Replicas'] > 1 else ''} with {row['Tasks']} tasks: {row['Throughput_MBps']:.1f} MB/s per thread")
     
     print("\nRecommendations for Production Deployments:")
     print("  1. High-throughput environments: Deploy 8 connectors with 64 tasks")
