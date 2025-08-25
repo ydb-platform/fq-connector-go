@@ -30,6 +30,8 @@ class YDBProtoFile:
             self.src_patched = self.__patch_ydb_protofile(lines_initial, go_package)
         elif "package Ydb.Issue;" in lines_initial:
             self.src_patched = self.__patch_ydb_protofile(lines_initial, go_package)
+        elif "package Ydb.Formats;" in lines_initial:
+            self.src_patched = self.__patch_ydb_protofile(lines_initial, go_package)
         elif "package NYql.NConnector.NApi;" in lines_initial:
             self.src_patched = self.__patch_connector_protofile(
                 filepath, lines_initial, go_package
@@ -131,6 +133,10 @@ source_params = [
     (
         "ydb/public/api/protos/ydb_status_codes.proto",
         "github.com/ydb-platform/ydb-go-genproto/protos/Ydb",
+    ),
+    (
+        "ydb/public/api/protos/ydb_formats.proto",
+        "github.com/ydb-platform/ydb-go-genproto/protos/Ydb_Formats",
     ),
     (
         "ydb/public/api/protos/ydb_issue_message.proto",
@@ -312,6 +318,15 @@ def main():
             ),
             connector_github_root.joinpath("app/server/datasource/rdbms/ydb"),
             "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb",
+            [connector_github_root, protobuf_includes],
+            False,
+        )
+        run_protoc(
+            connector_github_root.joinpath("app/server/datasource/rdbms/postgresql").rglob(
+                "*.proto"
+            ),
+            connector_github_root.joinpath("app/server/datasource/rdbms/postgresql"),
+            "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql",
             [connector_github_root, protobuf_includes],
             False,
         )

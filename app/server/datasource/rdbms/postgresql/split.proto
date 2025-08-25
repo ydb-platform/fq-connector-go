@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL;
+
+option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql/";
+
+// TInt32Bounds represents the bounds that can be found for an `INTEGER`, `SERIAL` column
+message TInt32Bounds {
+    int32 upper = 1;
+    int32 lower = 2;
+};
+
+message TSplitDescription {
+    // THistogramBounds represents the method of large table splitting 
+    // based on the internal PostgreSQL stats.
+    message THistogramBounds {
+        string column_name = 1;
+
+        oneof payload {
+            TInt32Bounds int32_bounds = 2;
+        }
+    }
+
+    oneof payload {
+        THistogramBounds histogram_bounds = 1;
+    }
+}
