@@ -59,4 +59,4 @@ jobs:
           # FIXME: this script can't handle backticks in commit messages 
           # git fetch --prune --unshallow
           # go run ./tools/version git
-          GOOS=linux go build -v -o fq-connector-go ./app
+          GOOS=linux go build -ldflags '-extldflags "-static"' -v -o fq-connector-go ./app
