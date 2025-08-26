@@ -8,6 +8,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"go.uber.org/zap"
 )
@@ -22,6 +23,7 @@ func (s *splitProviderImpl) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
+	schemaName, tableName := slct.DataSourceInstance.GetPgOptions().Schema, slct.From.Table
 
 	// If splitting is disabled, return single split for any table
 	if !s.cfg.Enabled {
@@ -43,7 +45,7 @@ func (s *splitProviderImpl) ListSplits(
 				Ctx:                ctx,
 				Logger:             logger,
 				DataSourceInstance: slct.DataSourceInstance,
-				TableName:          slct.From.Table,
+				TableName:          tableName,
 				QueryPhase:         rdbms_utils.QueryPhaseListSplits,
 			}
 
@@ -65,6 +67,7 @@ func (s *splitProviderImpl) ListSplits(
 	conn := cs[0]
 
 	// Check the size of the table. There is no sense to split too small tables.
+
 	tablePhysicalSize, err := s.getTablePhysicalSize(
 		ctx,
 		logger,
@@ -81,7 +84,7 @@ func (s *splitProviderImpl) ListSplits(
 		logger.Info(
 			"table physical size is less than threshold: falling back to single split",
 			zap.Uint64("table_physical_size", tablePhysicalSize),
-			zap.Uint64("table_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
+			zap.Uint64("table_physical_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
 		)
 
 		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
@@ -91,13 +94,68 @@ func (s *splitProviderImpl) ListSplits(
 		return nil
 	}
 
-	logger.Info(
+	// Table is large enough for splitting. Let's check if it has primary keys.
+	logger.Debug(
 		"table physical size is greater than threshold: going to list splits",
 		zap.Uint64("table_physical_size", tablePhysicalSize),
-		zap.Uint64("table_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
+		zap.Uint64("table_physicsal_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
 	)
 
-	panic("not implemented yet")
+	primaryKeys, err := s.getTablePrimaryKeys(ctx, logger, conn, schemaName, tableName)
+	if err != nil {
+		return fmt.Errorf("get table primary keys: %w", err)
+	}
+
+	var pk *primaryKey
+
+	switch len(primaryKeys) {
+	case 0:
+		logger.Info("table has no primary key: falling back to single split")
+
+		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
+			return fmt.Errorf("list single split: %w", err)
+		}
+	case 1:
+		pk = primaryKeys[0]
+		logger.Info(
+			"discovered primary key",
+			zap.String("column_name", pk.columnName),
+			zap.String("column_type", pk.columnType),
+		)
+	default:
+		return fmt.Errorf("impossible situation: table has %d primary keys", len(primaryKeys))
+	}
+
+	// We've discovered primary key, add now lets extract the PostgreSQL's native histogram bounds
+	// to use it for a "natural" splitting.
+	histogramBounds, err := s.getHistogramBoundsForPrimaryKey(ctx, logger, conn, schemaName, tableName, pk)
+	if err != nil {
+		return fmt.Errorf("get histogram bounds for primary key: %w", err)
+	}
+
+	if len(histogramBounds) == 0 {
+		logger.Info("histogram bounds are empty: falling back to single split")
+
+		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
+			return fmt.Errorf("list single split: %w", err)
+		}
+	}
+
+	for _, item := range histogramBounds {
+		splitDescription := &TSplitDescription{
+			Payload: &TSplitDescription_HistogramBounds{
+				HistogramBounds: item,
+			},
+		}
+
+		select {
+		case resultChan <- makeSplit(slct, splitDescription):
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+
+	return nil
 }
 
 func (s *splitProviderImpl) getTablePhysicalSize(
@@ -123,11 +181,10 @@ func (s *splitProviderImpl) getTablePhysicalSize(
 	if err != nil {
 		return 0, fmt.Errorf("conn query: %w", err)
 	}
-	defer rows.Close() // Add defer to ensure rows are closed
+	defer rows.Close()
 
 	var pgTableSize uint64
 
-	// Add this line to position the cursor on the first row
 	if !rows.Next() {
 		return 0, fmt.Errorf("no rows returned from query")
 	}
@@ -139,7 +196,169 @@ func (s *splitProviderImpl) getTablePhysicalSize(
 	return pgTableSize, nil
 }
 
-func (s splitProviderImpl) listSingleSplit(
+type primaryKey struct {
+	columnName string
+	columnType string
+}
+
+func (s *splitProviderImpl) getTablePrimaryKeys(
+	ctx context.Context,
+	logger *zap.Logger,
+	conn rdbms_utils.Connection,
+	schemaName, tableName string,
+) ([]*primaryKey, error) {
+	const queryText = `
+SELECT
+    kcu.column_name,
+    c.data_type
+FROM
+    information_schema.table_constraints AS tc
+JOIN
+    information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
+JOIN
+    information_schema.columns AS c
+    ON c.table_name = tc.table_name AND c.column_name = kcu.column_name AND c.table_schema = tc.table_schema
+WHERE
+    tc.constraint_type = 'PRIMARY KEY'
+    AND tc.table_schema = $1  -- <-- Your schema name here
+    AND tc.table_name = $2;   -- <-- Your table name here
+`
+
+	args := &rdbms_utils.QueryArgs{}
+	args.AddUntyped(schemaName)
+	args.AddUntyped(tableName)
+
+	queryParams := &rdbms_utils.QueryParams{
+		Ctx:       ctx,
+		Logger:    logger,
+		QueryText: queryText,
+		QueryArgs: args,
+	}
+
+	rows, err := conn.Query(queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("conn query: %w", err)
+	}
+	defer rows.Close()
+
+	var (
+		columnName string
+		columnType string
+		results    []*primaryKey
+	)
+
+	for cont := true; cont; cont = rows.NextResultSet() {
+		for rows.Next() {
+			if err := rows.Scan(&columnName, &columnType); err != nil {
+				return nil, fmt.Errorf("rows scan: %w", err)
+			}
+
+			results = append(results, &primaryKey{columnName: columnName, columnType: columnType})
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows err: %w", err)
+	}
+
+	return results, nil
+}
+
+func (s *splitProviderImpl) getHistogramBoundsForPrimaryKey(
+	ctx context.Context,
+	logger *zap.Logger,
+	conn rdbms_utils.Connection,
+	schemaName, tableName string,
+	pk *primaryKey,
+) ([]*TSplitDescription_THistogramBounds, error) {
+	const queryText = `
+SELECT
+    histogram_bounds
+FROM
+    pg_stats
+WHERE
+    schemaname = $1
+    AND tablename = $2
+    AND attname = $3;
+`
+
+	args := &rdbms_utils.QueryArgs{}
+	args.AddUntyped(schemaName)
+	args.AddUntyped(tableName)
+	args.AddUntyped(pk.columnName)
+
+	queryParams := &rdbms_utils.QueryParams{
+		Ctx:       ctx,
+		Logger:    logger,
+		QueryText: queryText,
+		QueryArgs: args,
+	}
+
+	rows, err := conn.Query(queryParams)
+	if err != nil {
+		return nil, fmt.Errorf("conn query: %w", err)
+	}
+
+	defer rows.Close()
+
+	var bounds []int32
+
+	if !rows.Next() {
+		logger.Warn(
+			"no histogram bounds found for primary key: run ANALYZE",
+			zap.String("column_name", pk.columnName),
+		)
+
+		return nil, nil
+	}
+
+	if err := rows.Scan(&bounds); err != nil {
+		return nil, fmt.Errorf("rows scan: %w", err)
+	}
+
+	logger.Debug("discovered histogram bounds", zap.String("column_name", pk.columnName), zap.Int("total_bounds", len(bounds)))
+
+	// No we need to transfer histogram bounds into splits
+
+	result := make([]*TSplitDescription_THistogramBounds, 0, len(bounds)+1)
+
+	// Add first open interval
+	result = append(result, &TSplitDescription_THistogramBounds{
+		Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
+			Int32Bounds: &TInt32Bounds{
+				Lower: nil,
+				Upper: wrapperspb.Int32(bounds[0]),
+			},
+		},
+	})
+
+	// Add intervals between bounds
+	for i := 0; i < len(bounds)-1; i++ {
+		result = append(result, &TSplitDescription_THistogramBounds{
+			Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
+				Int32Bounds: &TInt32Bounds{
+					Lower: wrapperspb.Int32(bounds[i]),
+					Upper: wrapperspb.Int32(bounds[i+1]),
+				},
+			},
+		})
+	}
+
+	// Add last open interval
+	result = append(result, &TSplitDescription_THistogramBounds{
+		Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
+			Int32Bounds: &TInt32Bounds{
+				Lower: wrapperspb.Int32(bounds[len(bounds)-1]),
+				Upper: nil,
+			},
+		},
+	})
+
+	return result, nil
+}
+
+func (s *splitProviderImpl) listSingleSplit(
 	ctx context.Context,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,

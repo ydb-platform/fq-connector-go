@@ -45,7 +45,7 @@ func (s *serviceConnector) DescribeTable(
 	logger = common.AnnotateLoggerWithDataSourceInstance(logger, request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
-	if err := ValidateDescribeTableRequest(logger, request); err != nil {
+	if err := ValidateDescribeTableRequest(request); err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TDescribeTableResponse{
@@ -160,9 +160,11 @@ func (s *serviceConnector) doReadSplits(
 	}
 
 	for _, split := range request.Splits {
-		splitLogger := common.
-			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
-			With(zap.Uint64("split_sequential_id", split.Id))
+		splitLogger := common.AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance)
+
+		if len(request.Splits) > 1 {
+			splitLogger = splitLogger.With(zap.Uint64("split_sequential_id", split.Id))
+		}
 
 		err := s.dataSourceCollection.ReadSplit(
 			splitLogger,
