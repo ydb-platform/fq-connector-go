@@ -221,8 +221,8 @@ JOIN
     ON c.table_name = tc.table_name AND c.column_name = kcu.column_name AND c.table_schema = tc.table_schema
 WHERE
     tc.constraint_type = 'PRIMARY KEY'
-    AND tc.table_schema = $1  -- <-- Your schema name here
-    AND tc.table_name = $2;   -- <-- Your table name here
+    AND tc.table_schema = $1
+    AND tc.table_name = $2;
 `
 
 	args := &rdbms_utils.QueryArgs{}
@@ -325,6 +325,7 @@ WHERE
 
 	// Add first open interval
 	result = append(result, &TSplitDescription_THistogramBounds{
+		ColumnName: pk.columnName,
 		Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
 			Int32Bounds: &TInt32Bounds{
 				Lower: nil,
@@ -336,6 +337,7 @@ WHERE
 	// Add intervals between bounds
 	for i := 0; i < len(bounds)-1; i++ {
 		result = append(result, &TSplitDescription_THistogramBounds{
+			ColumnName: pk.columnName,
 			Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
 				Int32Bounds: &TInt32Bounds{
 					Lower: wrapperspb.Int32(bounds[i]),
@@ -347,6 +349,7 @@ WHERE
 
 	// Add last open interval
 	result = append(result, &TSplitDescription_THistogramBounds{
+		ColumnName: pk.columnName,
 		Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
 			Int32Bounds: &TInt32Bounds{
 				Lower: wrapperspb.Int32(bounds[len(bounds)-1]),
