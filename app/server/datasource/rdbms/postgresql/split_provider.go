@@ -23,7 +23,16 @@ func (s *splitProviderImpl) ListSplits(
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
 
-	// Connect YDB to get some table metadata
+	// If splitting is disabled, return single split for any table
+	if !s.cfg.Enabled {
+		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
+			return fmt.Errorf("list single split: %w", err)
+		}
+
+		return nil
+	}
+
+	// Connect database to get table metadata
 	var cs []rdbms_utils.Connection
 
 	err := params.MakeConnectionRetrier.Run(ctx, logger,
@@ -55,6 +64,7 @@ func (s *splitProviderImpl) ListSplits(
 
 	conn := cs[0]
 
+	// Check the size of the table. There is no sense to split too small tables.
 	tablePhysicalSize, err := s.getTablePhysicalSize(
 		ctx,
 		logger,
@@ -67,18 +77,27 @@ func (s *splitProviderImpl) ListSplits(
 		return fmt.Errorf("get table physical size: %w", err)
 	}
 
-	if tablePhysicalSize < s.cfg.TableSizeThresholdBytes {
+	if tablePhysicalSize < s.cfg.TablePhysicalSizeThresholdBytes {
 		logger.Info(
 			"table physical size is less than threshold: falling back to single split",
 			zap.Uint64("table_physical_size", tablePhysicalSize),
-			zap.Uint64("table_size_threshold_bytes", s.cfg.TableSizeThresholdBytes),
+			zap.Uint64("table_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
 		)
 
-		return s.listSingleSplit(ctx, slct, resultChan)
+		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
+			return fmt.Errorf("list single split: %w", err)
+		}
+
+		return nil
 	}
 
-	logger.Info("table physical size", zap.Uint64("table_physical_size", tablePhysicalSize))
+	logger.Info(
+		"table physical size is greater than threshold: going to list splits",
+		zap.Uint64("table_physical_size", tablePhysicalSize),
+		zap.Uint64("table_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
+	)
 
+	panic("not implemented yet")
 }
 
 func (s *splitProviderImpl) getTablePhysicalSize(
@@ -96,7 +115,7 @@ func (s *splitProviderImpl) getTablePhysicalSize(
 	queryParams := &rdbms_utils.QueryParams{
 		Ctx:       ctx,
 		Logger:    logger,
-		QueryText: "SELECT pg_table_size($p1)",
+		QueryText: "SELECT pg_table_size($1)",
 		QueryArgs: args,
 	}
 
@@ -104,8 +123,14 @@ func (s *splitProviderImpl) getTablePhysicalSize(
 	if err != nil {
 		return 0, fmt.Errorf("conn query: %w", err)
 	}
+	defer rows.Close() // Add defer to ensure rows are closed
 
 	var pgTableSize uint64
+
+	// Add this line to position the cursor on the first row
+	if !rows.Next() {
+		return 0, fmt.Errorf("no rows returned from query")
+	}
 
 	if err := rows.Scan(&pgTableSize); err != nil {
 		return 0, fmt.Errorf("rows scan: %w", err)
@@ -146,5 +171,7 @@ func makeSplit(
 }
 
 func NewSplitProvider(cfg *config.TPostgreSQLConfig_TSplitting) rdbms_utils.SplitProvider {
-	return &splitProviderImpl{}
+	return &splitProviderImpl{
+		cfg: cfg,
+	}
 }

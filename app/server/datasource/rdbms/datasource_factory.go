@@ -125,7 +125,7 @@ func NewDataSourceFactory(
 						request,
 						schemaGetters[api_common.EGenericDataSourceKind_POSTGRESQL](request.DataSourceInstance))
 				}),
-			SplitProvider: rdbms_utils.NewDefaultSplitProvider(),
+			SplitProvider: postgresql.NewSplitProvider(cfg.Postgresql.Splitting),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Postgresql.ExponentialBackoff, retry.ErrorCheckerNoop),

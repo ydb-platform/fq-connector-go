@@ -270,9 +270,12 @@ message TPostgreSQLConfig {
 
     // TSplitting contains various setting for the process of table splitting
     message TSplitting {
+        // Enables splitting
+        bool enabled = 1;
+
         // Minimal value for a physical size of a table to enable splitting.
         // All the smaller tables will always be read in a single split.
-        uint64 table_physical_size_threshold_bytes = 1;
+        uint64 table_physical_size_threshold_bytes = 2;
     }
 
     TSplitting splitting = 2;

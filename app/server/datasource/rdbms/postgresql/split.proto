@@ -9,7 +9,6 @@ option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasour
 // TInt32Bounds represents the bounds that can be found for an `INTEGER`, `SERIAL` column
 // An open interval can be represented by omitting one of the bounds.
 message TInt32Bounds {
-    // 2. Use the wrapper type for each optional field
     google.protobuf.Int32Value upper = 1;
     google.protobuf.Int32Value lower = 2;
 };

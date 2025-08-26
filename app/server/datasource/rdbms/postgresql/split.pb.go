@@ -25,10 +25,9 @@ const (
 // TInt32Bounds represents the bounds that can be found for an `INTEGER`, `SERIAL` column
 // An open interval can be represented by omitting one of the bounds.
 type TInt32Bounds struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 2. Use the wrapper type for each optional field
-	Upper         *wrappers.Int32Value `protobuf:"bytes,1,opt,name=upper,proto3" json:"upper,omitempty"`
-	Lower         *wrappers.Int32Value `protobuf:"bytes,2,opt,name=lower,proto3" json:"lower,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Upper         *wrappers.Int32Value   `protobuf:"bytes,1,opt,name=upper,proto3" json:"upper,omitempty"`
+	Lower         *wrappers.Int32Value   `protobuf:"bytes,2,opt,name=lower,proto3" json:"lower,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
