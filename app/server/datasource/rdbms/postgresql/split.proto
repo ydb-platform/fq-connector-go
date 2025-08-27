@@ -19,7 +19,7 @@ message TSplitDescription {
     message TSingle {
     }
 
-    // THistogramBounds describes the method of large table splitting 
+    // THistogramBounds describes the method of large table splitting.
     // based on the PostgreSQL's internal table stats.
     message THistogramBounds {
         string column_name = 1;
