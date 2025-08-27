@@ -114,6 +114,12 @@ func (f sqlFormatter) RenderSelectQueryText(
 
 	var dst TSplitDescription
 
+	// FIXME: this is the legacy behavior of Greenplum connector:
+	// need to make distinct SQL formatters in PostgreSQL and Greenplum in future.
+	if len(split.GetDescription()) == 0 {
+		return f.renderSelectQueryTextSingle(sb, parts), nil
+	}
+
 	if err := protojson.Unmarshal(split.GetDescription(), &dst); err != nil {
 		return "", fmt.Errorf("unmarshal split description: %w", err)
 	}
