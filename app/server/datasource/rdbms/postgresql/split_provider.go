@@ -98,7 +98,7 @@ func (s *splitProviderImpl) ListSplits(
 	logger.Debug(
 		"table physical size is greater than threshold: going to list splits",
 		zap.Uint64("table_physical_size", tablePhysicalSize),
-		zap.Uint64("table_physicsal_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
+		zap.Uint64("table_physical_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
 	)
 
 	primaryKeys, err := s.getTablePrimaryKeys(ctx, logger, conn, schemaName, tableName)
