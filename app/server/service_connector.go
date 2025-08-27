@@ -77,7 +77,7 @@ func (s *serviceConnector) ListSplits(
 	logger := utils.LoggerMustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
-	if err := ValidateListSplitsRequest(logger, request); err != nil {
+	if err := ValidateListSplitsRequest(request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
 			&api_service_protos.TListSplitsResponse{
 				Error: common.NewAPIErrorFromStdError(
@@ -155,7 +155,7 @@ func (s *serviceConnector) doReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) (*zap.Logger, error) {
-	if err := ValidateReadSplitsRequest(logger, request); err != nil {
+	if err := ValidateReadSplitsRequest(request); err != nil {
 		return logger, fmt.Errorf("validate read splits request: %w", err)
 	}
 

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	"go.uber.org/zap"
 )
 
 var _ rdbms_utils.SplitProvider = (*splitProviderImpl)(nil)
@@ -19,6 +19,7 @@ type splitProviderImpl struct {
 	cfg *config.TPostgreSQLConfig_TSplitting
 }
 
+//nolint:gocyclo
 func (s *splitProviderImpl) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
@@ -67,7 +68,6 @@ func (s *splitProviderImpl) ListSplits(
 	conn := cs[0]
 
 	// Check the size of the table. There is no sense to split too small tables.
-
 	tablePhysicalSize, err := s.getTablePhysicalSize(
 		ctx,
 		logger,
@@ -87,7 +87,7 @@ func (s *splitProviderImpl) ListSplits(
 			zap.Uint64("table_physical_size_threshold_bytes", s.cfg.TablePhysicalSizeThresholdBytes),
 		)
 
-		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
+		if err = s.listSingleSplit(ctx, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
 
@@ -112,7 +112,7 @@ func (s *splitProviderImpl) ListSplits(
 	case 0:
 		logger.Info("table has no primary key: falling back to single split")
 
-		if err := s.listSingleSplit(ctx, slct, resultChan); err != nil {
+		if err = s.listSingleSplit(ctx, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
 	case 1:
@@ -158,13 +158,12 @@ func (s *splitProviderImpl) ListSplits(
 	return nil
 }
 
-func (s *splitProviderImpl) getTablePhysicalSize(
+func (splitProviderImpl) getTablePhysicalSize(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 	schemaName, tableName string,
 ) (uint64, error) {
-
 	fullyQualifiedTableName := schemaName + "." + tableName
 
 	args := &rdbms_utils.QueryArgs{}
@@ -201,7 +200,7 @@ type primaryKey struct {
 	columnType string
 }
 
-func (s *splitProviderImpl) getTablePrimaryKeys(
+func (splitProviderImpl) getTablePrimaryKeys(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -265,7 +264,7 @@ WHERE
 	return results, nil
 }
 
-func (s *splitProviderImpl) getHistogramBoundsForPrimaryKey(
+func (splitProviderImpl) getHistogramBoundsForPrimaryKey(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -361,7 +360,7 @@ WHERE
 	return result, nil
 }
 
-func (s *splitProviderImpl) listSingleSplit(
+func (splitProviderImpl) listSingleSplit(
 	ctx context.Context,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,

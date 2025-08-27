@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -132,7 +133,7 @@ func (f sqlFormatter) RenderSelectQueryText(
 	}
 }
 
-func (f sqlFormatter) renderSelectQueryTextSingle(
+func (sqlFormatter) renderSelectQueryTextSingle(
 	sb *strings.Builder,
 	parts *rdbms_utils.SelectQueryParts,
 ) string {
@@ -185,23 +186,31 @@ func (f sqlFormatter) renderSelectQueryTextWithInt32Bounds(
 	}
 
 	if bounds.Lower == nil && bounds.Upper != nil {
-		fmt.Fprintf(sb, "%s < %d", columnName, bounds.Upper.Value)
+		if _, err := fmt.Fprintf(sb, "%s < %d", columnName, bounds.Upper.Value); err != nil {
+			return "", fmt.Errorf("fprintf: %w", err)
+		}
 
 		return sb.String(), nil
 	}
 
 	if bounds.Lower != nil && bounds.Upper == nil {
-		fmt.Fprintf(sb, "%s >= %d", columnName, bounds.Lower.Value)
+		if _, err := fmt.Fprintf(sb, "%s >= %d", columnName, bounds.Lower.Value); err != nil {
+			return "", fmt.Errorf("fprintf: %w", err)
+		}
 
 		return sb.String(), nil
 	}
 
 	sb.WriteString("(")
-	fmt.Fprintf(sb,
+
+	if _, err := fmt.Fprintf(sb,
 		"%s >= %d AND %s < %d",
 		columnName, bounds.Lower.Value,
 		columnName, bounds.Upper.Value,
-	)
+	); err != nil {
+		return "", fmt.Errorf("fprintf: %w", err)
+	}
+
 	sb.WriteString(")")
 
 	return sb.String(), nil
