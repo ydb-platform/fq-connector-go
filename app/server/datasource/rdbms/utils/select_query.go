@@ -35,7 +35,7 @@ func MakeSelectQuery(
 	// Render SELECT clause
 	parts.SelectClause, modifiedWhat, err = formatWhat(formatter, split.Select.What, tableName)
 	if err != nil {
-		return nil, fmt.Errorf("format select clause: %w", err)
+		return nil, fmt.Errorf("format what: %w", err)
 	}
 
 	ydbColumns := common.SelectWhatToYDBColumns(modifiedWhat)
