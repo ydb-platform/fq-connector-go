@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -28,6 +29,13 @@ func TestReadSplit(t *testing.T) {
 	readSplitsRequest := &api_service_protos.TReadSplitsRequest{
 		Filtering: api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL,
 	}
+
+	splitDescription := &postgresql.TSplitDescription{
+		Payload: &postgresql.TSplitDescription_Single{},
+	}
+	splitDescriptionBytes, err := protojson.Marshal(splitDescription)
+	require.NoError(t, err)
+
 	split := &api_service_protos.TSplit{
 		Select: &api_service_protos.TSelect{
 			DataSourceInstance: &api_common.TGenericDataSourceInstance{},
@@ -54,6 +62,9 @@ func TestReadSplit(t *testing.T) {
 			From: &api_service_protos.TSelect_TFrom{
 				Table: "example_1",
 			},
+		},
+		Payload: &api_service_protos.TSplit_Description{
+			Description: splitDescriptionBytes,
 		},
 	}
 	converterCollection := conversion.NewCollection(&config.TConversionConfig{UseUnsafeConverters: true})

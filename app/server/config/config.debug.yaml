@@ -60,6 +60,9 @@ datasources:
     <<: *data_source_default_var
     pushdown:
       enable_timestamp_pushdown: true
+    splitting:
+      enabled: true
+      table_physical_size_threshold_bytes: 104857600 #100 MB
 
   oracle:
     <<: *data_source_default_var

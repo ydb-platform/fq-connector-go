@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
@@ -97,6 +99,127 @@ func (f sqlFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat, _ strin
 
 func (f sqlFormatter) FormatFrom(tableName string) string {
 	return f.SanitiseIdentifier(tableName)
+}
+
+func (f sqlFormatter) RenderSelectQueryText(
+	parts *rdbms_utils.SelectQueryParts,
+	split *api_service_protos.TSplit,
+) (string, error) {
+	sb := &strings.Builder{}
+
+	sb.WriteString("SELECT ")
+	sb.WriteString(parts.SelectClause)
+	sb.WriteString(" FROM ")
+	sb.WriteString(parts.FromClause)
+
+	var dst TSplitDescription
+
+	// FIXME: this is the legacy behavior of Greenplum connector:
+	// need to make distinct SQL formatters in PostgreSQL and Greenplum in future.
+	if len(split.GetDescription()) == 0 {
+		return f.renderSelectQueryTextSingle(sb, parts), nil
+	}
+
+	if err := protojson.Unmarshal(split.GetDescription(), &dst); err != nil {
+		return "", fmt.Errorf("unmarshal split description: %w", err)
+	}
+
+	switch t := dst.Payload.(type) {
+	case *TSplitDescription_Single:
+		return f.renderSelectQueryTextSingle(sb, parts), nil
+	case *TSplitDescription_HistogramBounds:
+		out, err := f.renderSelectQueryTextWithHistogramBounds(sb, parts, t.HistogramBounds)
+		if err != nil {
+			return "", fmt.Errorf("render select query text with histogram bounds: %w", err)
+		}
+
+		return out, nil
+	default:
+		return "", fmt.Errorf("unknown splitting mode: %v", t)
+	}
+}
+
+func (sqlFormatter) renderSelectQueryTextSingle(
+	sb *strings.Builder,
+	parts *rdbms_utils.SelectQueryParts,
+) string {
+	if parts.WhereClause != "" {
+		sb.WriteString(" WHERE ")
+		sb.WriteString(parts.WhereClause)
+	}
+
+	return sb.String()
+}
+
+func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
+	sb *strings.Builder,
+	parts *rdbms_utils.SelectQueryParts,
+	histogramBounds *TSplitDescription_THistogramBounds,
+) (string, error) {
+	sb.WriteString(" WHERE ")
+
+	if parts.WhereClause != "" {
+		sb.WriteString(parts.WhereClause)
+		sb.WriteString(" AND ")
+	}
+
+	switch t := (histogramBounds.Payload).(type) {
+	case *TSplitDescription_THistogramBounds_Int32Bounds:
+		out, err := f.renderSelectQueryTextWithInt32Bounds(sb, histogramBounds.ColumnName, t.Int32Bounds)
+		if err != nil {
+			return "", fmt.Errorf("render select query text with int32 bounds: %w", err)
+		}
+
+		return out, nil
+	default:
+		return "", fmt.Errorf("unknown histogram bounds type: %v", t)
+	}
+}
+
+func (f sqlFormatter) renderSelectQueryTextWithInt32Bounds(
+	sb *strings.Builder,
+	columnName string,
+	bounds *TInt32Bounds,
+) (string, error) {
+	if columnName == "" {
+		return "", fmt.Errorf("column name is empty")
+	}
+
+	columnName = f.SanitiseIdentifier(columnName)
+
+	if bounds.Lower == nil && bounds.Upper == nil {
+		return "", fmt.Errorf("you must fill either lower bounds, either upper bounds, or both of them")
+	}
+
+	if bounds.Lower == nil && bounds.Upper != nil {
+		if _, err := fmt.Fprintf(sb, "%s < %d", columnName, bounds.Upper.Value); err != nil {
+			return "", fmt.Errorf("fprintf: %w", err)
+		}
+
+		return sb.String(), nil
+	}
+
+	if bounds.Lower != nil && bounds.Upper == nil {
+		if _, err := fmt.Fprintf(sb, "%s >= %d", columnName, bounds.Lower.Value); err != nil {
+			return "", fmt.Errorf("fprintf: %w", err)
+		}
+
+		return sb.String(), nil
+	}
+
+	sb.WriteString("(")
+
+	if _, err := fmt.Fprintf(sb,
+		"%s >= %d AND %s < %d",
+		columnName, bounds.Lower.Value,
+		columnName, bounds.Upper.Value,
+	); err != nil {
+		return "", fmt.Errorf("fprintf: %w", err)
+	}
+
+	sb.WriteString(")")
+
+	return sb.String(), nil
 }
 
 func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {

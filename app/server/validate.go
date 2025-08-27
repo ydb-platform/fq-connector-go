@@ -3,15 +3,13 @@ package server
 import (
 	"fmt"
 
-	"go.uber.org/zap"
-
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
-func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_protos.TDescribeTableRequest) error {
-	if err := validateDataSourceInstance(logger, request.GetDataSourceInstance()); err != nil {
+func ValidateDescribeTableRequest(request *api_service_protos.TDescribeTableRequest) error {
+	if err := validateDataSourceInstance(request.GetDataSourceInstance()); err != nil {
 		return fmt.Errorf("validate data source instance: %w", err)
 	}
 
@@ -22,13 +20,13 @@ func ValidateDescribeTableRequest(logger *zap.Logger, request *api_service_proto
 	return nil
 }
 
-func ValidateListSplitsRequest(logger *zap.Logger, request *api_service_protos.TListSplitsRequest) error {
+func ValidateListSplitsRequest(request *api_service_protos.TListSplitsRequest) error {
 	if len(request.Selects) == 0 {
 		return fmt.Errorf("empty select list: %w", common.ErrInvalidRequest)
 	}
 
 	for i, slct := range request.Selects {
-		if err := validateSelect(logger, slct); err != nil {
+		if err := validateSelect(slct); err != nil {
 			return fmt.Errorf("validate select %d: %w", i, err)
 		}
 	}
@@ -58,13 +56,13 @@ func ValidateListSplitsRequest(logger *zap.Logger, request *api_service_protos.T
 	return nil
 }
 
-func ValidateReadSplitsRequest(logger *zap.Logger, request *api_service_protos.TReadSplitsRequest) error {
+func ValidateReadSplitsRequest(request *api_service_protos.TReadSplitsRequest) error {
 	if len(request.Splits) == 0 {
 		return fmt.Errorf("splits are empty: %w", common.ErrInvalidRequest)
 	}
 
 	for i, split := range request.Splits {
-		if err := validateSplit(logger, split); err != nil {
+		if err := validateSplit(split); err != nil {
 			return fmt.Errorf("validate split #%d: %w", i, err)
 		}
 	}
@@ -72,20 +70,20 @@ func ValidateReadSplitsRequest(logger *zap.Logger, request *api_service_protos.T
 	return nil
 }
 
-func validateSplit(logger *zap.Logger, split *api_service_protos.TSplit) error {
-	if err := validateSelect(logger, split.Select); err != nil {
+func validateSplit(split *api_service_protos.TSplit) error {
+	if err := validateSelect(split.Select); err != nil {
 		return fmt.Errorf("validate select: %w", err)
 	}
 
 	return nil
 }
 
-func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error {
+func validateSelect(slct *api_service_protos.TSelect) error {
 	if slct == nil {
 		return fmt.Errorf("select is empty: %w", common.ErrInvalidRequest)
 	}
 
-	if err := validateDataSourceInstance(logger, slct.GetDataSourceInstance()); err != nil {
+	if err := validateDataSourceInstance(slct.GetDataSourceInstance()); err != nil {
 		return fmt.Errorf("validate data source instance: %w", err)
 	}
 
@@ -94,7 +92,7 @@ func validateSelect(logger *zap.Logger, slct *api_service_protos.TSelect) error 
 
 type dataSourceInstancesValidator func(dsi *api_common.TGenericDataSourceInstance) error
 
-func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TGenericDataSourceInstance) error {
+func validateDataSourceInstance(dsi *api_common.TGenericDataSourceInstance) error {
 	if dsi == nil {
 		return fmt.Errorf("empty data source instance: %w", common.ErrInvalidRequest)
 	}
@@ -106,9 +104,9 @@ func validateDataSourceInstance(logger *zap.Logger, dsi *api_common.TGenericData
 		return fmt.Errorf("empty kind: %w", common.ErrInvalidRequest)
 	case api_common.EGenericDataSourceKind_LOGGING:
 	case api_common.EGenericDataSourceKind_ORACLE:
-		validators = append(validators, validateEndpoint, validateUseTLS(logger))
+		validators = append(validators, validateEndpoint)
 	default:
-		validators = append(validators, validateEndpoint, validateDatabase, validateUseTLS(logger))
+		validators = append(validators, validateEndpoint, validateDatabase)
 	}
 
 	validators = append(validators, validateDataSourceOptions)
@@ -180,16 +178,4 @@ func validateDatabase(dsi *api_common.TGenericDataSourceInstance) error {
 	}
 
 	return nil
-}
-
-func validateUseTLS(logger *zap.Logger) dataSourceInstancesValidator {
-	return func(dsi *api_common.TGenericDataSourceInstance) error {
-		if dsi.UseTls {
-			logger.Info("connector will use secure connection to access data source")
-		} else {
-			logger.Warn("connector will use insecure connection to access data source")
-		}
-
-		return nil
-	}
 }

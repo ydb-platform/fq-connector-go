@@ -45,7 +45,7 @@ func (s *serviceConnector) DescribeTable(
 	logger = common.AnnotateLoggerWithDataSourceInstance(logger, request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
-	if err := ValidateDescribeTableRequest(logger, request); err != nil {
+	if err := ValidateDescribeTableRequest(request); err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
 		response := &api_service_protos.TDescribeTableResponse{
@@ -77,7 +77,7 @@ func (s *serviceConnector) ListSplits(
 	logger := utils.LoggerMustFromContext(stream.Context())
 	logger.Info("request handling started", zap.Int("total selects", len(request.Selects)))
 
-	if err := ValidateListSplitsRequest(logger, request); err != nil {
+	if err := ValidateListSplitsRequest(request); err != nil {
 		return s.doListSplitsResponse(logger, stream,
 			&api_service_protos.TListSplitsResponse{
 				Error: common.NewAPIErrorFromStdError(
@@ -155,14 +155,16 @@ func (s *serviceConnector) doReadSplits(
 	request *api_service_protos.TReadSplitsRequest,
 	stream api_service.Connector_ReadSplitsServer,
 ) (*zap.Logger, error) {
-	if err := ValidateReadSplitsRequest(logger, request); err != nil {
+	if err := ValidateReadSplitsRequest(request); err != nil {
 		return logger, fmt.Errorf("validate read splits request: %w", err)
 	}
 
 	for _, split := range request.Splits {
-		splitLogger := common.
-			AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance).
-			With(zap.Uint64("split_sequential_id", split.Id))
+		splitLogger := common.AnnotateLoggerWithDataSourceInstance(logger, split.Select.DataSourceInstance)
+
+		if len(request.Splits) > 1 {
+			splitLogger = splitLogger.With(zap.Uint64("split_sequential_id", split.Id))
+		}
 
 		err := s.dataSourceCollection.ReadSplit(
 			splitLogger,

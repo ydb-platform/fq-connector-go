@@ -84,15 +84,18 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 		description = []byte{}
 	}
 
-	s.logger.Debug(
-		"determined table split",
-		zap.Int("id", s.splitCounter),
-		zap.String("table", result.Slct.From.Table),
-		zap.ByteString("description", description),
-	)
+	// Too verbose logs
+	/*
+		s.logger.Debug(
+			"determined table split",
+			zap.Int("id", s.splitCounter),
+			zap.String("table", result.Slct.From.Table),
+			zap.ByteString("description", description),
+		)
+	*/
 
 	// For the sake of simplicity, we make a distinct message for each split.
-	// TODO: consider split batching as they splits should be small in general.
+	// TODO: consider split batching as the splits should be small in general.
 	response := &api_service_protos.TListSplitsResponse{
 		Error: common.NewSuccess(),
 		Splits: []*api_service_protos.TSplit{

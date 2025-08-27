@@ -652,7 +652,7 @@ func formatWhereClause(
 	dataSourceKind api_common.EGenericDataSourceKind, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, *QueryArgs, error) {
 	if where.FilterTyped == nil {
-		return "", nil, fmt.Errorf("unexpected nil filter: %w", common.ErrInvalidRequest)
+		return "", nil, nil
 	}
 
 	pb := &predicateBuilder{formatter: formatter, args: &QueryArgs{}, dataSourceKind: dataSourceKind}
