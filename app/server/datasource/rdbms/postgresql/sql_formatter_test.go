@@ -472,8 +472,9 @@ func TestMakeSelectQuery(t *testing.T) {
 			outputYdbTypes:   []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32)},
 			err:              nil,
 		},
+		//nolint:lll,revive
 		{
-			testName: "YQ-4568",
+			testName: "YQ-4568-no-filter",
 			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
 				"{\"table\":\"lineitem\"}",
 				"{\"items\":[{\"column\":{\"name\":\"id\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_comment\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_commitdate\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_discount\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}},{\"column\":{\"name\":\"l_extendedprice\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}},{\"column\":{\"name\":\"l_linenumber\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_linestatus\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_orderkey\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_partkey\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_quantity\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}},{\"column\":{\"name\":\"l_receiptdate\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_returnflag\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_shipdate\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_shipinstruct\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_shipmode\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_suppkey\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_tax\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}}]}",
@@ -516,6 +517,51 @@ func TestMakeSelectQuery(t *testing.T) {
 			},
 			err: nil,
 		},
+		//nolint:lll,revive
+		{
+			testName: "YQ-4194-with-filter",
+			selectReq: rdbms_utils.MustTSelectFromLoggerOutput(
+				"{\"table\":\"lineitem\"}",
+				"{\"items\":[{\"column\":{\"name\":\"id\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_comment\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_commitdate\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_discount\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}},{\"column\":{\"name\":\"l_extendedprice\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}},{\"column\":{\"name\":\"l_linenumber\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_linestatus\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_orderkey\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_partkey\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_quantity\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}},{\"column\":{\"name\":\"l_receiptdate\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_returnflag\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_shipdate\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_shipinstruct\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_shipmode\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"UTF8\"}}}}},{\"column\":{\"name\":\"l_suppkey\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"INT32\"}}}}},{\"column\":{\"name\":\"l_tax\",\"type\":{\"optional_type\":{\"item\":{\"type_id\":\"FLOAT\"}}}}}]}",
+				"{\"filter_typed\":{\"comparison\":{\"operation\":\"G\", \"left_value\":{\"column\":\"l_linenumber\"}, \"right_value\":{\"typed_value\":{\"type\":{\"type_id\":\"INT32\"}, \"value\":{\"int32_value\":0}}}}}}",
+				api_common.EGenericDataSourceKind_POSTGRESQL,
+			),
+			splitDescription: &TSplitDescription{
+				Payload: &TSplitDescription_HistogramBounds{
+					HistogramBounds: &TSplitDescription_THistogramBounds{
+						ColumnName: "id",
+						Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
+							Int32Bounds: &TInt32Bounds{
+								Lower: &wrapperspb.Int32Value{Value: 906},
+								Upper: &wrapperspb.Int32Value{Value: 677197},
+							},
+						},
+					},
+				},
+			},
+			outputQuery: `SELECT "id", "l_comment", "l_commitdate", "l_discount", "l_extendedprice", "l_linenumber", "l_linestatus", "l_orderkey", "l_partkey", "l_quantity", "l_receiptdate", "l_returnflag", "l_shipdate", "l_shipinstruct", "l_shipmode", "l_suppkey", "l_tax" FROM "lineitem" WHERE ("l_linenumber" > $1) AND ("id" >= 906 AND "id" < 677197)`,
+			outputArgs:  []any{int32(0)},
+			outputYdbTypes: []*ydb.Type{
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_INT32)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_FLOAT)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_FLOAT)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_INT32)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_INT32)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_INT32)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_FLOAT)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_UTF8)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_INT32)),
+				common.MakeOptionalType(common.MakePrimitiveType(ydb.Type_FLOAT)),
+			},
+			err: nil,
+		},
 	}
 
 	for _, tc := range tcs {
@@ -529,7 +575,8 @@ func TestMakeSelectQuery(t *testing.T) {
 				context.Background(),
 				logger,
 				formatter,
-				&api_service_protos.TSplit{Select: tc.selectReq,
+				&api_service_protos.TSplit{
+					Select: tc.selectReq,
 					Payload: &api_service_protos.TSplit_Description{
 						Description: splitDescriptionBytes,
 					},
