@@ -115,6 +115,8 @@ func (s *splitProviderImpl) ListSplits(
 		if err = s.listSingleSplit(ctx, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
+
+		return nil
 	case 1:
 		pk = primaryKeys[0]
 		logger.Info(
