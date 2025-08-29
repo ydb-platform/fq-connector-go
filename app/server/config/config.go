@@ -194,9 +194,6 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Datasources.Postgresql == nil {
 		c.Datasources.Postgresql = &config.TPostgreSQLConfig{
 			OpenConnectionTimeout: "5s",
-			Splitting: &config.TPostgreSQLConfig_TSplitting{
-				Enabled: false,
-			},
 		}
 	}
 
@@ -206,6 +203,12 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 
 	if c.Datasources.Postgresql.Pushdown == nil {
 		c.Datasources.Postgresql.Pushdown = makeDefaultPushdownConfig()
+	}
+
+	if c.Datasources.Postgresql.Splitting == nil {
+		c.Datasources.Postgresql.Splitting = &config.TPostgreSQLConfig_TSplitting{
+			Enabled: false,
+		}
 	}
 
 	// YDB
@@ -493,7 +496,9 @@ func validatePostgreSQLConfig(c *config.TPostgreSQLConfig) error {
 		return fmt.Errorf("validate relational datasource config: %w", err)
 	}
 
-	// TODO: validate splitting config
+	if c.Splitting == nil {
+		return errors.New("missing `splitting`")
+	}
 
 	return nil
 }
