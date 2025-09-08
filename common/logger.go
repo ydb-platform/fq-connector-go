@@ -161,7 +161,7 @@ func (ql *QueryLogger) Dump(query string, args ...any) {
 	// add additional fields
 	logFields = append(logFields, ql.fields...)
 
-	ql.Info("execute SQL query", logFields...)
+	ql.Info("executing SQL query", logFields...)
 }
 
 func convertToZapLogLevel(lvl config.ELogLevel) zapcore.Level {

@@ -104,7 +104,8 @@ func (c *connectionManager) Make(
 		formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE, c.cfg.Pushdown)
 		ydbConn = newConnectionNative(
 			ctx,
-			c.QueryLoggerFactory.Make(logger, zap.String("resource_pool", c.cfg.ResourcePool)),
+			logger,
+			c.QueryLoggerFactory,
 			dsi,
 			params.TableName,
 			ydbDriver,
