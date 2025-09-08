@@ -255,21 +255,29 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	rowsRead := int64(0)
 
+	logger.Debug("CRAB 0", zap.Error(ctx.Err()))
 	for cont := true; cont; cont = rows.NextResultSet() {
+		logger.Debug("CRAB 1", zap.Int64("rows_read", rowsRead), zap.Error(ctx.Err()))
 		for rows.Next() {
 			rowsRead++
 
+			logger.Debug("CRAB 2", zap.Int64("rows_read", rowsRead), zap.Error(ctx.Err()))
 			if err := rows.Scan(transformer.GetAcceptors()...); err != nil {
+				logger.Error("CRAB 3", zap.Error(err), zap.Error(ctx.Err()))
 				return 0, fmt.Errorf("rows scan: %w", err)
 			}
 
+			logger.Debug("CRAB 4", zap.Int64("rows_read", rowsRead), zap.Error(ctx.Err()))
 			if err := sink.AddRow(transformer); err != nil {
+				logger.Error("CRAB 5", zap.Error(err), zap.Error(ctx.Err()))
 				return 0, fmt.Errorf("add row to paging writer: %w", err)
 			}
 		}
 	}
 
+	logger.Debug("CRAB 6", zap.Int64("rows_read", rowsRead), zap.Error(ctx.Err()))
 	if err := rows.Err(); err != nil {
+		logger.Error("CRAB 7", zap.Error(err), zap.Error(ctx.Err()))
 		return 0, fmt.Errorf("rows error: %w", err)
 	}
 
