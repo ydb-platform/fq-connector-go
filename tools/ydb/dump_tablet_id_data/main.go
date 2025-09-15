@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -116,14 +117,11 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	return ydbDriver, nil
 }
 
-// executeQuery runs the query with the specified tablet ID
-func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) error {
-	// The query to execute
+// executeQuery runs the query with the specified tablet ID and returns the number of rows processed
+func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) (int, error) {
+	// The query to execute - selecting just a constant instead of all columns
 	queryText := fmt.Sprintf(
-		"SELECT `l_comment`, `l_commitdate`, `l_discount`, `l_extendedprice`, `l_linenumber`, "+
-			"`l_linestatus`, `l_orderkey`, `l_partkey`, `l_quantity`, `l_receiptdate`, "+
-			"`l_returnflag`, `l_shipdate`, `l_shipinstruct`, `l_shipmode`, `l_suppkey`, `l_tax` "+
-			"FROM `%s` WITH TabletId='%s'",
+		"SELECT 0 FROM `%s` WITH TabletId='%s'",
 		config.Table, config.TabletID)
 
 	logger.Info("executing query",
@@ -136,25 +134,8 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 
 	rowCount := 0
 
-	// Create variables to scan into with proper types outside the loop
-	var (
-		l_comment       string
-		l_commitdate    time.Time // Date type
-		l_discount      float64
-		l_extendedprice float64
-		l_linenumber    int64
-		l_linestatus    string
-		l_orderkey      int64
-		l_partkey       int64
-		l_quantity      float64
-		l_receiptdate   time.Time // Date type
-		l_returnflag    string
-		l_shipdate      time.Time // Date type
-		l_shipinstruct  string
-		l_shipmode      string
-		l_suppkey       int64
-		l_tax           float64
-	)
+	// Create variable to scan into with proper type outside the loop
+	var dummyValue int
 
 	err := ydbDriver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
 		var queryOpts []query.ExecuteOption
@@ -173,7 +154,8 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 		for {
 			resultSet, err := result.NextResultSet(ctx)
 			if err != nil {
-				if err == io.EOF {
+				if errors.Is(err, io.EOF) {
+					logger.Debug("NextResultSet EOF")
 					break
 				}
 				return fmt.Errorf("next result set: %w", err)
@@ -194,50 +176,27 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 			logTicker := time.NewTicker(5 * time.Second)
 			defer logTicker.Stop()
 
-			// Start a goroutine for periodic logging
-			done := make(chan bool)
-			go func() {
-				for {
-					select {
-					case <-done:
-						return
-					case <-logTicker.C:
-						logger.Info("query in progress",
-							zap.Int("rows_processed_so_far", rowCount),
-							zap.Duration("elapsed_time", time.Since(queryStartTime)),
-							zap.String("tablet_id", config.TabletID))
-					}
-				}
-			}()
-
 			for {
 				row, err := resultSet.NextRow(ctx)
 				if err != nil {
-					if err == io.EOF {
+					if errors.Is(err, io.EOF) {
+						logger.Debug("NextRow EOF")
 						break
 					}
+
 					return fmt.Errorf("next row: %w", err)
 				}
 
-				// Signal to stop the logging goroutine when we're done with this result set
-				defer func() {
-					done <- true
-				}()
-
-				// Scan the row into variables but don't use their values
-				if err := row.Scan(
-					&l_comment, &l_commitdate, &l_discount, &l_extendedprice, &l_linenumber,
-					&l_linestatus, &l_orderkey, &l_partkey, &l_quantity, &l_receiptdate,
-					&l_returnflag, &l_shipdate, &l_shipinstruct, &l_shipmode, &l_suppkey, &l_tax,
-				); err != nil {
+				// Scan the row into dummy variable - we only need to count rows
+				if err := row.Scan(&dummyValue); err != nil {
 					return fmt.Errorf("scan row: %w", err)
 				}
 
 				rowCount++
 				resultSetRowCount++
 
-				// Log progress every 1,000 rows
-				if rowCount > 0 && rowCount%1000 == 0 {
+				// Log progress every 100000 rows
+				if rowCount > 0 && rowCount%100000 == 0 {
 					logger.Info("query progress",
 						zap.Int("rows_processed", rowCount),
 						zap.Duration("elapsed_time", time.Since(queryStartTime)),
@@ -250,20 +209,12 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 	}, query.WithIdempotent())
 
 	if err != nil {
-		return fmt.Errorf("execute query: %w", err)
+		return 0, fmt.Errorf("execute query: %w", err)
 	}
-
-	queryDuration := time.Since(queryStartTime)
-	logger.Info("query completed",
-		zap.Int("total_rows", rowCount),
-		zap.String("tablet_id", config.TabletID),
-		zap.String("table", config.Table),
-		zap.Duration("total_duration", queryDuration),
-		zap.Float64("rows_per_second", float64(rowCount)/queryDuration.Seconds()))
 
 	// Print the final count to stdout
 	fmt.Printf("Total rows: %d\n", rowCount)
-	return nil
+	return rowCount, nil
 }
 
 func main() {
@@ -296,9 +247,19 @@ func main() {
 		zap.String("table", config.Table),
 		zap.String("tablet_id", config.TabletID))
 
-	if err := executeQuery(ctx, logger, ydbDriver, config); err != nil {
+	queryStartTime := time.Now()
+	rowCount, err := executeQuery(ctx, logger, ydbDriver, config)
+	if err != nil {
 		logger.Fatal("failed to execute query", zap.Error(err))
 	}
+
+	queryDuration := time.Since(queryStartTime)
+	logger.Info("query completed",
+		zap.Int("total_rows", rowCount),
+		zap.String("tablet_id", config.TabletID),
+		zap.String("table", config.Table),
+		zap.Duration("total_duration", queryDuration),
+		zap.Float64("rows_per_second", float64(rowCount)/queryDuration.Seconds()))
 
 	logger.Info("query execution completed successfully")
 }
