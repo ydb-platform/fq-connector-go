@@ -254,11 +254,8 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	}
 
 	rowsRead := int64(0)
-	resultSetsRead := int64(1)
 
 	for cont := true; cont; cont = rows.NextResultSet() {
-		fmt.Println("ResultSet: start", resultSetsRead, ctx.Err(), rows.Err())
-
 		for rows.Next() {
 			rowsRead++
 
@@ -271,11 +268,9 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 			}
 		}
 
-		fmt.Println("ResultSet: end", resultSetsRead, rowsRead, ctx.Err(), rows.Err())
-	}
-
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("rows error: %w", err)
+		if err := rows.Err(); err != nil {
+			return 0, fmt.Errorf("rows error: %w", err)
+		}
 	}
 
 	// Notify sink that there will be no more data from this connection.

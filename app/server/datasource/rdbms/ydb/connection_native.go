@@ -102,6 +102,7 @@ func (r *rowsNative) Err() error {
 
 func (r *rowsNative) Close() error {
 	if err := r.streamResult.Close(r.ctx); err != nil {
+		fmt.Println("Stream result close", r.ctx.Err())
 		return fmt.Errorf("stream result close: %w", err)
 	}
 
