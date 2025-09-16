@@ -254,8 +254,11 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	}
 
 	rowsRead := int64(0)
+	resultSetsRead := int64(1)
 
 	for cont := true; cont; cont = rows.NextResultSet() {
+		fmt.Println("ResultSet: start", resultSetsRead, ctx.Err(), rows.Err())
+
 		for rows.Next() {
 			rowsRead++
 
@@ -267,6 +270,8 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 				return 0, fmt.Errorf("add row to paging writer: %w", err)
 			}
 		}
+
+		fmt.Println("ResultSet: end", resultSetsRead, rowsRead, ctx.Err(), rows.Err())
 	}
 
 	if err := rows.Err(); err != nil {
