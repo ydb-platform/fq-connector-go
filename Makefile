@@ -3,7 +3,8 @@ serverConfig ?= ./app/server/config/config.debug.yaml
 observationServerConfig ?= scripts/debug/config/observation/static.yaml
 
 build:
-	go build -ldflags '-extldflags "-static"' -o fq-connector-go ./app
+	# go build -ldflags '-extldflags "-static"' -o fq-connector-go ./app
+	go build -o fq-connector-go ./app
 
 run: build
 	./fq-connector-go server --config="$(serverConfig)"
