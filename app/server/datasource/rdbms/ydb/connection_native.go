@@ -38,6 +38,7 @@ func (r *rowsNative) Next() bool {
 	r.lastRow, err = r.lastResultSet.NextRow(r.ctx)
 
 	if err != nil {
+		fmt.Println("RowsNative Next", r.ctx.Err(), err)
 		if errors.Is(err, io.EOF) {
 			r.err = nil
 		} else {
