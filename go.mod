@@ -34,7 +34,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20250911135631-b3beddd517d9
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.116.0
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.108.0
 	github.com/ydb-platform/ydb-go-yc v0.11.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/atomic v1.11.0

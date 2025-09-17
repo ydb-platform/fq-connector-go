@@ -56,6 +56,7 @@ func (r *tabletRows) NextResultSet() bool {
 		if errors.Is(err, io.EOF) {
 			r.err = nil
 		} else {
+			fmt.Println("obtaining next result", err, r.ctx.Err())
 			r.err = fmt.Errorf("next result set: %w", err)
 		}
 
@@ -183,7 +184,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 }
 
 // executeQuery runs the query with the specified tablet ID and returns an iterator over the results
-func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) (*tabletRows, error) {
+func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) (*tabletRows, error) {
 	// The query to execute - selecting just a constant instead of all columns
 	queryText := fmt.Sprintf(
 		"SELECT 0 FROM `%s` WITH TabletId='%s'",
@@ -195,7 +196,7 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 
 	rowsChan := make(chan *tabletRows, 1)
 
-	finalErr := ydbDriver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
+	finalErr := ydbDriver.Query().Do(parentCtx, func(ctx context.Context, session query.Session) error {
 		var queryOpts []query.ExecuteOption
 
 		if config.ResourcePool != "" {
@@ -217,7 +218,7 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 		}
 
 		rows := &tabletRows{
-			ctx:           ctx,
+			ctx:           parentCtx,
 			streamResult:  result,
 			lastResultSet: resultSet,
 		}
@@ -240,21 +241,20 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 	select {
 	case rows := <-rowsChan:
 		return rows, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
+	case <-parentCtx.Done():
+		return nil, parentCtx.Err()
 	}
 }
 
 // processRows processes the rows from the iterator and returns the count
-func processRows(ctx context.Context, logger *zap.Logger, rows *tabletRows) (int, error) {
+func processRows(logger *zap.Logger, rows *tabletRows) (int, error) {
 	rowCount := 0
 	var dummyValue int
 	queryStartTime := time.Now()
 
 	// Process all result sets
-	for rows.NextResultSet() {
-		logger.Info("processing result set",
-			zap.Duration("elapsed_time", time.Since(queryStartTime)))
+	for cont := true; cont; cont = rows.NextResultSet() {
+		logger.Info("processing result set", zap.Duration("elapsed_time", time.Since(queryStartTime)))
 
 		// Process all rows in the current result set
 		for rows.Next() {
@@ -273,12 +273,8 @@ func processRows(ctx context.Context, logger *zap.Logger, rows *tabletRows) (int
 		}
 
 		if err := rows.Err(); err != nil {
-			return 0, fmt.Errorf("error processing rows: %w", err)
+			return 0, fmt.Errorf("rows error: %w", err)
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("error processing result sets: %w", err)
 	}
 
 	return rowCount, nil
@@ -296,8 +292,7 @@ func main() {
 		_ = logger.Sync()
 	}()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := context.Background()
 
 	ydbDriver, err := makeDriver(ctx, logger, config.Endpoint, config.Database, config.Token, config.UseTLS)
 	if err != nil {
@@ -310,8 +305,7 @@ func main() {
 		}
 	}()
 
-	// Create a logger with tablet ID context
-	tabletLogger := logger.With(zap.String("tablet_id", config.TabletID))
+	logger = logger.With(zap.String("tablet_id", config.TabletID))
 
 	logger.Info("starting query execution",
 		zap.String("table", config.Table),
@@ -320,7 +314,7 @@ func main() {
 	queryStartTime := time.Now()
 
 	// Execute query and get iterator
-	rows, err := executeQuery(ctx, tabletLogger, ydbDriver, config)
+	rows, err := executeQuery(ctx, logger, ydbDriver, config)
 	if err != nil {
 		logger.Fatal("failed to execute query", zap.Error(err))
 	}
@@ -331,7 +325,7 @@ func main() {
 	}()
 
 	// Process rows and get count
-	rowCount, err := processRows(ctx, tabletLogger, rows)
+	rowCount, err := processRows(logger, rows)
 	if err != nil {
 		logger.Fatal("failed to process rows", zap.Error(err))
 	}

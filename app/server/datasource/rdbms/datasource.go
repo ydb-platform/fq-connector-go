@@ -268,9 +268,15 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 			}
 		}
 
+		// check error that could happen when reading the rows
 		if err := rows.Err(); err != nil {
 			return 0, fmt.Errorf("rows error: %w", err)
 		}
+	}
+
+	// check error that could happen when obtaining new result set
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("rows error: %w", err)
 	}
 
 	// Notify sink that there will be no more data from this connection.
