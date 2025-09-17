@@ -118,7 +118,7 @@ func TestReadSplit(t *testing.T) {
 		rows.On("Next").Return(true).Times(2)
 		rows.On("Next").Return(false).Once()
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(2)
-		rows.On("Err").Return(nil).Once()
+		rows.On("Err").Return(nil).Twice()
 		rows.On("NextResultSet").Return(false).Once()
 		rows.On("Close").Return(nil).Once()
 
