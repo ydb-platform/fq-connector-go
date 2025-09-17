@@ -34,7 +34,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20250911135631-b3beddd517d9
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.108.0
+	// never update to version v3.113.1 or higher: this will break reading from YDB
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.108.0 
 	github.com/ydb-platform/ydb-go-yc v0.11.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/atomic v1.11.0
@@ -141,5 +142,3 @@ require (
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )
-
-replace github.com/ydb-platform/ydb-go-sdk/v3 v3.116.0 => /home/vitalyisaev/projects/ydb-go-sdk
