@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"time"
 
 	"go.uber.org/zap"
@@ -15,11 +14,76 @@ import (
 
 	"github.com/ydb-platform/ydb-go-sdk/v3"
 	"github.com/ydb-platform/ydb-go-sdk/v3/balancers"
-	ydb_config "github.com/ydb-platform/ydb-go-sdk/v3/config"
+	"github.com/ydb-platform/ydb-go-sdk/v3/config"
 	"github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	"github.com/ydb-platform/fq-connector-go/common"
 )
+
+// tabletRows implements a simplified version of the iterator for query results
+type tabletRows struct {
+	ctx context.Context
+	err error
+
+	streamResult  query.Result
+	lastResultSet query.ResultSet
+	lastRow       query.Row
+}
+
+func (r *tabletRows) Next() bool {
+	var err error
+
+	r.lastRow, err = r.lastResultSet.NextRow(r.ctx)
+
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			r.err = nil
+		} else {
+			r.err = fmt.Errorf("next row: %w", err)
+		}
+
+		return false
+	}
+
+	return true
+}
+
+func (r *tabletRows) NextResultSet() bool {
+	var err error
+
+	r.lastResultSet, err = r.streamResult.NextResultSet(r.ctx)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			r.err = nil
+		} else {
+			r.err = fmt.Errorf("next result set: %w", err)
+		}
+
+		return false
+	}
+
+	return true
+}
+
+func (r *tabletRows) Scan(dest ...any) error {
+	if err := r.lastRow.Scan(dest...); err != nil {
+		return fmt.Errorf("last row scan: %w", err)
+	}
+
+	return nil
+}
+
+func (r *tabletRows) Err() error {
+	return r.err
+}
+
+func (r *tabletRows) Close() error {
+	if err := r.streamResult.Close(r.ctx); err != nil {
+		return fmt.Errorf("stream result close: %w", err)
+	}
+
+	return nil
+}
 
 // Config holds the application configuration
 type Config struct {
@@ -27,7 +91,7 @@ type Config struct {
 	Database     string
 	Table        string
 	Token        string
-	TabletID     string // Optional - if not provided, all tablet IDs will be queried
+	TabletID     string // Required - tablet ID to query
 	UseTLS       bool
 	ResourcePool string
 }
@@ -48,13 +112,13 @@ func parseFlags() (*Config, error) {
 	flag.StringVar(&database, "database", "/local", "YDB database path")
 	flag.StringVar(&table, "table", "tpch/s100/lineitem", "YDB table name")
 	flag.StringVar(&token, "token", "", "IAM token for authentication")
-	flag.StringVar(&tabletID, "tablet-id", "", "Tablet ID to query (optional - if not provided, all tablet IDs will be queried)")
+	flag.StringVar(&tabletID, "tablet-id", "", "Tablet ID to query")
 	flag.StringVar(&resourcePool, "resource-pool", "", "Resource pool for YDB queries")
 	flag.BoolVar(&useTLS, "tls", true, "Use TLS for YDB connection (grpcs:// instead of grpc://)")
 
 	flag.Parse()
 
-	if endpoint == "" || database == "" || table == "" {
+	if endpoint == "" || database == "" || table == "" || tabletID == "" {
 		return nil, fmt.Errorf(
 			"usage: app -endpoint=<endpoint> -database=<database> -table=<table-name> " +
 				"-tablet-id=<tablet-id> [-resource-pool=<resource-pool>] " +
@@ -77,7 +141,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	ydbOptions := []ydb.Option{
 		ydb.WithDialTimeout(5 * time.Second),
 		ydb.WithBalancer(balancers.SingleConn()),
-		ydb.With(ydb_config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
+		ydb.With(config.WithGrpcOptions(grpc.WithDisableServiceConfig())),
 	}
 
 	// Add token credentials if provided
@@ -118,8 +182,8 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	return ydbDriver, nil
 }
 
-// executeQuery runs the query with the specified tablet ID and returns the number of rows processed
-func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) (int, error) {
+// executeQuery runs the query with the specified tablet ID and returns an iterator over the results
+func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) (*tabletRows, error) {
 	// The query to execute - selecting just a constant instead of all columns
 	queryText := fmt.Sprintf(
 		"SELECT 0 FROM `%s` WITH TabletId='%s'",
@@ -129,15 +193,9 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 		zap.String("query", queryText),
 		zap.String("table", config.Table))
 
-	// Log the start time for tracking query duration
-	queryStartTime := time.Now()
+	rowsChan := make(chan *tabletRows, 1)
 
-	rowCount := 0
-
-	// Create variable to scan into with proper type outside the loop
-	var dummyValue int
-
-	err := ydbDriver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
+	finalErr := ydbDriver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
 		var queryOpts []query.ExecuteOption
 
 		if config.ResourcePool != "" {
@@ -149,126 +207,81 @@ func executeQuery(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 			return fmt.Errorf("query error: %w", err)
 		}
 
-		defer result.Close(ctx)
-
-		for {
-			resultSet, err := result.NextResultSet(ctx)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					logger.Debug("NextResultSet EOF")
-					break
-				}
-				return fmt.Errorf("next result set: %w", err)
+		// Get the first result set to initialize the iterator
+		resultSet, err := result.NextResultSet(ctx)
+		if err != nil && !errors.Is(err, io.EOF) {
+			if closeErr := result.Close(ctx); closeErr != nil {
+				logger.Error("close stream result", zap.Error(closeErr))
 			}
-
-			// No need to print column names, we're just counting rows
-
-			// Log the start of processing this result set with more details
-			logger.Info("processing result set",
-				zap.String("table", config.Table),
-				zap.Duration("elapsed_time", time.Since(queryStartTime)))
-
-			// Initialize a counter for this result set
-			resultSetRowCount := 0
-
-			// Create a ticker for more frequent logging
-			logTicker := time.NewTicker(5 * time.Second)
-			defer logTicker.Stop()
-
-			for {
-				row, err := resultSet.NextRow(ctx)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						logger.Debug("NextRow EOF")
-						break
-					}
-
-					return fmt.Errorf("next row: %w", err)
-				}
-
-				// Scan the row into dummy variable - we only need to count rows
-				if err := row.Scan(&dummyValue); err != nil {
-					return fmt.Errorf("scan row: %w", err)
-				}
-
-				rowCount++
-				resultSetRowCount++
-
-				// Log progress every 1 million rows
-				if rowCount > 0 && rowCount%1000000 == 0 {
-					logger.Info("query progress",
-						zap.Int("rows_processed", rowCount),
-						zap.Duration("elapsed_time", time.Since(queryStartTime)))
-				}
-			}
+			return fmt.Errorf("next result set: %w", err)
 		}
 
-		return nil
+		rows := &tabletRows{
+			ctx:           ctx,
+			streamResult:  result,
+			lastResultSet: resultSet,
+		}
+
+		select {
+		case rowsChan <- rows:
+			return nil
+		case <-ctx.Done():
+			if closeErr := result.Close(ctx); closeErr != nil {
+				logger.Error("close stream result", zap.Error(closeErr))
+			}
+			return ctx.Err()
+		}
 	}, query.WithIdempotent())
 
-	if err != nil {
-		return 0, fmt.Errorf("execute query: %w", err)
+	if finalErr != nil {
+		return nil, fmt.Errorf("execute query: %w", finalErr)
 	}
 
-	// Print the final count to stdout
-	fmt.Printf("Total rows: %d\n", rowCount)
-	return rowCount, nil
+	select {
+	case rows := <-rowsChan:
+		return rows, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
 }
 
-// getTabletIDs retrieves all tablet IDs for a given table
-func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) ([]uint64, error) {
-	var tabletIDs []uint64
+// processRows processes the rows from the iterator and returns the count
+func processRows(ctx context.Context, logger *zap.Logger, rows *tabletRows) (int, error) {
+	rowCount := 0
+	var dummyValue int
+	queryStartTime := time.Now()
 
-	prefix := path.Join(config.Database, config.Table)
-	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
+	// Process all result sets
+	for rows.NextResultSet() {
+		logger.Info("processing result set",
+			zap.Duration("elapsed_time", time.Since(queryStartTime)))
 
-	logger.Info("discovering tablet IDs", zap.String("query", queryText))
-
-	err := ydbDriver.Query().Do(ctx, func(ctx context.Context, session query.Session) error {
-		result, err := session.Query(ctx, queryText)
-		if err != nil {
-			return fmt.Errorf("query: %w", err)
-		}
-
-		defer result.Close(ctx)
-
-		for {
-			resultSet, err := result.NextResultSet(ctx)
-			if err != nil {
-				if errors.Is(err, io.EOF) {
-					break
-				}
-				return fmt.Errorf("next result set: %w", err)
+		// Process all rows in the current result set
+		for rows.Next() {
+			if err := rows.Scan(&dummyValue); err != nil {
+				return 0, fmt.Errorf("scan row: %w", err)
 			}
 
-			var tabletID uint64
+			rowCount++
 
-			for {
-				row, err := resultSet.NextRow(ctx)
-				if err != nil {
-					if errors.Is(err, io.EOF) {
-						break
-					}
-					return fmt.Errorf("next row: %w", err)
-				}
-
-				if err := row.Scan(&tabletID); err != nil {
-					return fmt.Errorf("row scan: %w", err)
-				}
-
-				tabletIDs = append(tabletIDs, tabletID)
+			// Log progress every 1 million rows
+			if rowCount > 0 && rowCount%1000000 == 0 {
+				logger.Info("query progress",
+					zap.Int("rows_processed", rowCount),
+					zap.Duration("elapsed_time", time.Since(queryStartTime)))
 			}
 		}
 
-		return nil
-	}, query.WithIdempotent())
-
-	if err != nil {
-		return nil, fmt.Errorf("querying tablet IDs: %w", err)
+		if err := rows.Err(); err != nil {
+			return 0, fmt.Errorf("error processing rows: %w", err)
+		}
 	}
 
-	logger.Info("discovered tablet IDs", zap.Int("count", len(tabletIDs)))
-	return tabletIDs, nil
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("error processing result sets: %w", err)
+	}
+
+	return rowCount, nil
 }
 
 func main() {
@@ -297,69 +310,40 @@ func main() {
 		}
 	}()
 
-	var tabletIDs []uint64
-
-	// If tablet ID is provided, use it; otherwise, query all tablet IDs
-	if config.TabletID != "" {
-		// Convert string tablet ID to uint64
-		var tabletID uint64
-		_, err := fmt.Sscanf(config.TabletID, "%d", &tabletID)
-		if err != nil {
-			logger.Fatal("invalid tablet ID format", zap.String("tablet_id", config.TabletID), zap.Error(err))
-		}
-		tabletIDs = []uint64{tabletID}
-	} else {
-		// Query all tablet IDs
-		tabletIDs, err = getTabletIDs(ctx, logger, ydbDriver, config)
-		if err != nil {
-			logger.Fatal("failed to get tablet IDs", zap.Error(err))
-		}
-
-		if len(tabletIDs) == 0 {
-			logger.Warn("no tablet IDs found for the table", zap.String("table", config.Table))
-			return
-		}
-	}
+	// Create a logger with tablet ID context
+	tabletLogger := logger.With(zap.String("tablet_id", config.TabletID))
 
 	logger.Info("starting query execution",
 		zap.String("table", config.Table),
-		zap.Int("tablet_count", len(tabletIDs)))
+		zap.String("tablet_id", config.TabletID))
 
-	totalStartTime := time.Now()
-	totalRowCount := 0
+	queryStartTime := time.Now()
 
-	// Execute query for each tablet ID
-	for _, tabletID := range tabletIDs {
-		// Create a tablet-specific config
-		tabletConfig := *config
-		tabletConfig.TabletID = fmt.Sprintf("%d", tabletID)
-
-		// Create a logger with tablet ID context
-		tabletLogger := logger.With(zap.String("tablet_id", tabletConfig.TabletID))
-
-		tabletLogger.Info("processing tablet")
-
-		queryStartTime := time.Now()
-		rowCount, err := executeQuery(ctx, tabletLogger, ydbDriver, &tabletConfig)
-		if err != nil {
-			tabletLogger.Error("failed to execute query", zap.Error(err))
-			continue
+	// Execute query and get iterator
+	rows, err := executeQuery(ctx, tabletLogger, ydbDriver, config)
+	if err != nil {
+		logger.Fatal("failed to execute query", zap.Error(err))
+	}
+	defer func() {
+		if err := rows.Close(); err != nil {
+			logger.Error("error closing rows", zap.Error(err))
 		}
+	}()
 
-		queryDuration := time.Since(queryStartTime)
-		tabletLogger.Info("tablet query completed",
-			zap.Int("rows", rowCount),
-			zap.Duration("duration", queryDuration),
-			zap.Float64("rows_per_second", float64(rowCount)/queryDuration.Seconds()))
-
-		totalRowCount += rowCount
+	// Process rows and get count
+	rowCount, err := processRows(ctx, tabletLogger, rows)
+	if err != nil {
+		logger.Fatal("failed to process rows", zap.Error(err))
 	}
 
-	totalDuration := time.Since(totalStartTime)
-	logger.Info("all queries completed",
-		zap.Int("total_rows", totalRowCount),
-		zap.Int("tablet_count", len(tabletIDs)),
+	queryDuration := time.Since(queryStartTime)
+	logger.Info("query completed",
+		zap.Int("total_rows", rowCount),
+		zap.String("tablet_id", config.TabletID),
 		zap.String("table", config.Table),
-		zap.Duration("total_duration", totalDuration),
-		zap.Float64("rows_per_second", float64(totalRowCount)/totalDuration.Seconds()))
+		zap.Duration("total_duration", queryDuration),
+		zap.Float64("rows_per_second", float64(rowCount)/queryDuration.Seconds()))
+
+	// Print the final count to stdout
+	fmt.Printf("Total rows: %d\n", rowCount)
 }
