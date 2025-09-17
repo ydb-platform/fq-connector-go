@@ -184,23 +184,21 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 }
 
 // executeQuery runs the query with the specified tablet ID and returns an iterator over the results
-func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, config *Config) (*tabletRows, error) {
+func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver, cfg *Config) (*tabletRows, error) {
 	// The query to execute - selecting just a constant instead of all columns
-	queryText := fmt.Sprintf(
-		"SELECT 0 FROM `%s` WITH TabletId='%s'",
-		config.Table, config.TabletID)
+	queryText := fmt.Sprintf("SELECT 0 FROM `%s` WITH TabletId='%s'", cfg.Table, cfg.TabletID)
 
 	logger.Info("executing query",
 		zap.String("query", queryText),
-		zap.String("table", config.Table))
+		zap.String("table", cfg.Table))
 
 	rowsChan := make(chan *tabletRows, 1)
 
 	finalErr := ydbDriver.Query().Do(parentCtx, func(ctx context.Context, session query.Session) error {
 		var queryOpts []query.ExecuteOption
 
-		if config.ResourcePool != "" {
-			queryOpts = append(queryOpts, query.WithResourcePool(config.ResourcePool))
+		if cfg.ResourcePool != "" {
+			queryOpts = append(queryOpts, query.WithResourcePool(cfg.ResourcePool))
 		}
 
 		result, err := session.Query(ctx, queryText, queryOpts...)
@@ -214,6 +212,7 @@ func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.
 			if closeErr := result.Close(ctx); closeErr != nil {
 				logger.Error("close stream result", zap.Error(closeErr))
 			}
+
 			return fmt.Errorf("next result set: %w", err)
 		}
 
@@ -230,6 +229,7 @@ func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.
 			if closeErr := result.Close(ctx); closeErr != nil {
 				logger.Error("close stream result", zap.Error(closeErr))
 			}
+
 			return ctx.Err()
 		}
 	}, query.WithIdempotent())
@@ -248,9 +248,11 @@ func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.
 
 // processRows processes the rows from the iterator and returns the count
 func processRows(logger *zap.Logger, rows *tabletRows) (int, error) {
-	rowCount := 0
-	var dummyValue int
-	queryStartTime := time.Now()
+	var (
+		rowCount       = 0
+		dummyValue     int
+		queryStartTime = time.Now()
+	)
 
 	// Process all result sets
 	for cont := true; cont; cont = rows.NextResultSet() {
@@ -281,7 +283,7 @@ func processRows(logger *zap.Logger, rows *tabletRows) (int, error) {
 }
 
 func main() {
-	config, err := parseFlags()
+	cfg, err := parseFlags()
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -294,7 +296,7 @@ func main() {
 
 	ctx := context.Background()
 
-	ydbDriver, err := makeDriver(ctx, logger, config.Endpoint, config.Database, config.Token, config.UseTLS)
+	ydbDriver, err := makeDriver(ctx, logger, cfg.Endpoint, cfg.Database, cfg.Token, cfg.UseTLS)
 	if err != nil {
 		logger.Fatal("failed to create YDB driver", zap.Error(err))
 	}
@@ -305,21 +307,22 @@ func main() {
 		}
 	}()
 
-	logger = logger.With(zap.String("tablet_id", config.TabletID))
+	logger = logger.With(zap.String("tablet_id", cfg.TabletID))
 
 	logger.Info("starting query execution",
-		zap.String("table", config.Table),
-		zap.String("tablet_id", config.TabletID))
+		zap.String("table", cfg.Table),
+		zap.String("tablet_id", cfg.TabletID))
 
 	queryStartTime := time.Now()
 
 	// Execute query and get iterator
-	rows, err := executeQuery(ctx, logger, ydbDriver, config)
+	rows, err := executeQuery(ctx, logger, ydbDriver, cfg)
 	if err != nil {
 		logger.Fatal("failed to execute query", zap.Error(err))
 	}
+
 	defer func() {
-		if err := rows.Close(); err != nil {
+		if err = rows.Close(); err != nil {
 			logger.Error("error closing rows", zap.Error(err))
 		}
 	}()
@@ -333,8 +336,8 @@ func main() {
 	queryDuration := time.Since(queryStartTime)
 	logger.Info("query completed",
 		zap.Int("total_rows", rowCount),
-		zap.String("tablet_id", config.TabletID),
-		zap.String("table", config.Table),
+		zap.String("tablet_id", cfg.TabletID),
+		zap.String("table", cfg.Table),
 		zap.Duration("total_duration", queryDuration),
 		zap.Float64("rows_per_second", float64(rowCount)/queryDuration.Seconds()))
 

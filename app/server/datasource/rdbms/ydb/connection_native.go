@@ -38,7 +38,6 @@ func (r *rowsNative) Next() bool {
 	r.lastRow, err = r.lastResultSet.NextRow(r.ctx)
 
 	if err != nil {
-		fmt.Printf("RowsNative Next, ctx_error=%v, sdk_error=%v\n", r.ctx.Err(), err)
 		if errors.Is(err, io.EOF) {
 			r.err = nil
 		} else {
@@ -101,7 +100,6 @@ func (r *rowsNative) Err() error {
 }
 
 func (r *rowsNative) Close() error {
-	fmt.Println("Stream result close", r.ctx.Err())
 	if err := r.streamResult.Close(r.ctx); err != nil {
 		return fmt.Errorf("stream result close: %w", err)
 	}
@@ -230,7 +228,6 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			// obtain first result set because it's necessary
 			// to create type transformers
 			resultSet, err := streamResult.NextResultSet(ctx)
-			fmt.Println("connectionNative.Query", ctx.Err(), resultSet, err)
 			if err != nil {
 				if closeErr := streamResult.Close(ctx); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
