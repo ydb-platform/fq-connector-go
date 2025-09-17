@@ -200,7 +200,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 		rows.On("Next").Return(true).Times(len(rows.PredefinedData))
 		rows.On("Next").Return(false).Once()
 		rows.On("Scan", transformer.GetAcceptors()...).Return(nil).Times(len(rows.PredefinedData))
-		rows.On("Err").Return(nil).Once()
+		rows.On("Err").Return(nil).Twice()
 		rows.On("Close").Return(nil).Once()
 		rows.On("NextResultSet").Return(false).Once()
 	} else {

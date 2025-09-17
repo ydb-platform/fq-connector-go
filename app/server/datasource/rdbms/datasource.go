@@ -267,8 +267,14 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 				return 0, fmt.Errorf("add row to paging writer: %w", err)
 			}
 		}
+
+		// check error that could happen when reading the rows
+		if err := rows.Err(); err != nil {
+			return 0, fmt.Errorf("rows error: %w", err)
+		}
 	}
 
+	// check error that could happen when obtaining new result set
 	if err := rows.Err(); err != nil {
 		return 0, fmt.Errorf("rows error: %w", err)
 	}

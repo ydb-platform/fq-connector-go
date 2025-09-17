@@ -84,6 +84,8 @@ datasources:
     mode: MODE_QUERY_SERVICE_NATIVE
     pushdown:
       enable_timestamp_pushdown: true
+    splitting:
+      enabled_on_column_shards: true
 
 observation:
   server:

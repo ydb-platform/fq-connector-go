@@ -110,13 +110,14 @@ func (r *rowsNative) Close() error {
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
-	dsi          *api_common.TGenericDataSourceInstance
-	queryLogger  common.QueryLogger
-	ctx          context.Context
-	driver       *ydb_sdk.Driver
-	tableName    string
-	formatter    rdbms_utils.SQLFormatter
-	resourcePool string
+	dsi                *api_common.TGenericDataSourceInstance
+	logger             *zap.Logger
+	queryLoggerFactory common.QueryLoggerFactory
+	ctx                context.Context
+	driver             *ydb_sdk.Driver
+	tableName          string
+	formatter          rdbms_utils.SQLFormatter
+	resourcePool       string
 }
 
 // nolint: gocyclo
@@ -210,7 +211,8 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 				}
 			}
 
-			c.queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
+			queryLogger := c.queryLoggerFactory.Make(params.Logger, zap.String("resource_pool", c.resourcePool))
+			queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
 
 			// execute query
 			streamResult, err := session.Query(
@@ -325,12 +327,13 @@ func (c *connectionNative) rewriteQuery(params *rdbms_utils.QueryParams) (string
 }
 
 func (c *connectionNative) Logger() *zap.Logger {
-	return c.queryLogger.Logger
+	return c.logger
 }
 
 func newConnectionNative(
 	ctx context.Context,
-	queryLogger common.QueryLogger,
+	logger *zap.Logger,
+	queryLoggerFactory common.QueryLoggerFactory,
 	dsi *api_common.TGenericDataSourceInstance,
 	tableName string,
 	driver *ydb_sdk.Driver,
@@ -338,12 +341,13 @@ func newConnectionNative(
 	resourcePool string,
 ) Connection {
 	return &connectionNative{
-		ctx:          ctx,
-		driver:       driver,
-		queryLogger:  queryLogger,
-		dsi:          dsi,
-		tableName:    tableName,
-		formatter:    formatter,
-		resourcePool: resourcePool,
+		ctx:                ctx,
+		driver:             driver,
+		logger:             logger,
+		queryLoggerFactory: queryLoggerFactory,
+		dsi:                dsi,
+		tableName:          tableName,
+		formatter:          formatter,
+		resourcePool:       resourcePool,
 	}
 }
