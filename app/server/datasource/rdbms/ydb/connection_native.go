@@ -113,7 +113,6 @@ type connectionNative struct {
 	dsi                *api_common.TGenericDataSourceInstance
 	logger             *zap.Logger
 	queryLoggerFactory common.QueryLoggerFactory
-	ctx                context.Context
 	driver             *ydb_sdk.Driver
 	tableName          string
 	formatter          rdbms_utils.SQLFormatter
@@ -227,9 +226,9 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 
 			// obtain first result set because it's necessary
 			// to create type transformers
-			resultSet, err := streamResult.NextResultSet(ctx)
+			resultSet, err := streamResult.NextResultSet(params.Ctx)
 			if err != nil {
-				if closeErr := streamResult.Close(ctx); closeErr != nil {
+				if closeErr := streamResult.Close(params.Ctx); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
 
@@ -237,7 +236,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			}
 
 			rows := &rowsNative{
-				ctx:           c.ctx,
+				ctx:           params.Ctx,
 				streamResult:  streamResult,
 				lastResultSet: resultSet,
 			}
@@ -246,11 +245,17 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			case rowsChan <- rows:
 				return nil
 			case <-ctx.Done():
-				if closeErr := streamResult.Close(ctx); closeErr != nil {
+				if closeErr := streamResult.Close(params.Ctx); closeErr != nil {
 					params.Logger.Error("close stream result", zap.Error(closeErr))
 				}
 
 				return ctx.Err()
+			case <-params.Ctx.Done():
+				if closeErr := streamResult.Close(params.Ctx); closeErr != nil {
+					params.Logger.Error("close stream result", zap.Error(closeErr))
+				}
+
+				return params.Ctx.Err()
 			}
 		},
 		ydb_sdk_query.WithIdempotent(),
@@ -281,7 +286,10 @@ func (c *connectionNative) TableName() string {
 }
 
 func (c *connectionNative) Close() error {
-	if err := c.driver.Close(c.ctx); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := c.driver.Close(ctx); err != nil {
 		return fmt.Errorf("driver close: %w", err)
 	}
 
@@ -331,7 +339,6 @@ func (c *connectionNative) Logger() *zap.Logger {
 }
 
 func newConnectionNative(
-	ctx context.Context,
 	logger *zap.Logger,
 	queryLoggerFactory common.QueryLoggerFactory,
 	dsi *api_common.TGenericDataSourceInstance,
@@ -341,7 +348,6 @@ func newConnectionNative(
 	resourcePool string,
 ) Connection {
 	return &connectionNative{
-		ctx:                ctx,
 		driver:             driver,
 		logger:             logger,
 		queryLoggerFactory: queryLoggerFactory,

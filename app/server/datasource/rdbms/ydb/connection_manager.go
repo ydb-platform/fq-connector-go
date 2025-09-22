@@ -103,7 +103,6 @@ func (c *connectionManager) Make(
 
 		formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE, c.cfg.Pushdown)
 		ydbConn = newConnectionNative(
-			ctx,
 			logger,
 			c.QueryLoggerFactory,
 			dsi,
