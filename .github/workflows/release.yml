@@ -44,7 +44,7 @@ jobs:
           echo "GOOS=linux" >> $GITHUB_ENV
           echo "GOARCH=amd64" >> $GITHUB_ENV
           go run ./tools/version git
-          go build -v -o fq-connector-go ./app
+          go build -ldflags '-extldflags "-static"' -v -o fq-connector-go ./app
       - name: Run unit tests
         run: go test -v ./app/...
       - name: Setup integration tests
