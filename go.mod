@@ -35,7 +35,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20250911135631-b3beddd517d9
 	// never update to version v3.113.1 or higher: this will break reading from YDB
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.108.0 
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.113.1
 	github.com/ydb-platform/ydb-go-yc v0.11.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/atomic v1.11.0

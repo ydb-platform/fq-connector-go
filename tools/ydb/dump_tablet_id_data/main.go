@@ -207,7 +207,7 @@ func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.
 		}
 
 		// Get the first result set to initialize the iterator
-		resultSet, err := result.NextResultSet(ctx)
+		resultSet, err := result.NextResultSet(parentCtx)
 		if err != nil && !errors.Is(err, io.EOF) {
 			if closeErr := result.Close(ctx); closeErr != nil {
 				logger.Error("close stream result", zap.Error(closeErr))
