@@ -1,4 +1,4 @@
-name: 'Reminder: Enable GitHub Copilot'
+name: 'reminder: enable GitHub Copilot'
 
 on:
   pull_request:
