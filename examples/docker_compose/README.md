@@ -3,6 +3,7 @@
 Run at least three containers (the YDB itself, the connector and at least one external datasource - PostgreSQL in this case):
 
 ```bash
+docker compose pull
 docker compose up -d ydb fq-connector-go postgresql
 ```
 
@@ -26,7 +27,7 @@ INSERT INTO example (id, col_01_int, col_02_text) VALUES
     (4, NULL, NULL);
 ```
 
-Visit http://localhost:8765 in your browser. Click: `Databases` -> `/local`, and you'll see a query editor. Enter the following queries:
+Visit http://localhost:8765 in your browser. Click: `Databases` -> `/local`, and you'll see a query editor. Execute the following queries:
 
 ```sql
 CREATE OBJECT postgresql_datasource_user_password (TYPE SECRET) WITH (value = "password");
