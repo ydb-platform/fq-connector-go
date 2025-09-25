@@ -10,7 +10,7 @@ logger:
 metrics_server:
   endpoint:
     host: "0.0.0.0"
-    port: 8766
+    port: 8767
 
 paging:
   bytes_per_page: 4194304
@@ -32,32 +32,38 @@ data_source_default:  &data_source_default_var
 datasources:
   clickhouse:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: false # YQ-4063
 
   greenplum:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: true
 
   ms_sql_server:
     <<: *data_source_default_var
+    pushdown:
+      enable_timestamp_pushdown: false # YQ-4062
 
   mysql:
     <<: *data_source_default_var
     result_chan_capacity: 1024
+    pushdown:
+      enable_timestamp_pushdown: true
 
   postgresql:
     <<: *data_source_default_var
-
-  oracle:
-    <<: *data_source_default_var
-
-  mongodb:
-    <<: *data_source_default_var
-    count_docs_to_deduce_schema: 5
-    object_id_yql_type: OBJECT_ID_AS_STRING
-
-  redis:
-    <<: *data_source_default_var
-    count_docs_to_deduce_schema: 100
+    pushdown:
+      enable_timestamp_pushdown: true
+    splitting:
+      enabled: true
+      table_physical_size_threshold_bytes: 104857600 #100 MB
 
   ydb:
     <<: *data_source_default_var
     use_underlay_network_for_dedicated_databases: false
+    mode: MODE_QUERY_SERVICE_NATIVE
+    pushdown:
+      enable_timestamp_pushdown: true
+    splitting:
+      enabled_on_column_shards: true

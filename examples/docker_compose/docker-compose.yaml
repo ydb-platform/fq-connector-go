@@ -1,6 +1,6 @@
 services:
   ydb:
-    image: ghcr.io/ydb-platform/local-ydb:24.3.11.13
+    image: ghcr.io/ydb-platform/local-ydb:25.1.4.7
     container_name: fq-example-ydb
     hostname: localhost
     ports:
