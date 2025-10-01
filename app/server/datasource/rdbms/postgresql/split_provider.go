@@ -303,7 +303,7 @@ WHERE
 
 	defer rows.Close()
 
-	var bounds []int32
+	var bounds []int64
 
 	if !rows.Next() {
 		logger.Warn(
