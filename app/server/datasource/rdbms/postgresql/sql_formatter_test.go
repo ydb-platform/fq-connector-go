@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -485,10 +486,10 @@ func TestMakeSelectQuery(t *testing.T) {
 				Payload: &TSplitDescription_HistogramBounds{
 					HistogramBounds: &TSplitDescription_THistogramBounds{
 						ColumnName: "id",
-						Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
-							Int32Bounds: &TInt32Bounds{
-								Lower: &wrapperspb.Int32Value{Value: 906},
-								Upper: &wrapperspb.Int32Value{Value: 677197},
+						Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
+							Int64Bounds: &TInt64Bounds{
+								Lower: &wrapperspb.Int64Value{Value: 906},
+								Upper: &wrapperspb.Int64Value{Value: 677197},
 							},
 						},
 					},
@@ -530,10 +531,10 @@ func TestMakeSelectQuery(t *testing.T) {
 				Payload: &TSplitDescription_HistogramBounds{
 					HistogramBounds: &TSplitDescription_THistogramBounds{
 						ColumnName: "id",
-						Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
-							Int32Bounds: &TInt32Bounds{
-								Lower: &wrapperspb.Int32Value{Value: 906},
-								Upper: &wrapperspb.Int32Value{Value: 677197},
+						Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
+							Int64Bounds: &TInt64Bounds{
+								Lower: &wrapperspb.Int64Value{Value: 906},
+								Upper: &wrapperspb.Int64Value{Value: 677197},
 							},
 						},
 					},
@@ -598,7 +599,11 @@ func TestMakeSelectQuery(t *testing.T) {
 			require.Equal(t, len(tc.outputYdbTypes), len(actualTypes))
 
 			for i := range tc.outputYdbTypes {
-				require.True(t, proto.Equal(tc.outputYdbTypes[i], actualTypes[i]))
+				require.True(
+					t,
+					proto.Equal(tc.outputYdbTypes[i], actualTypes[i]),
+					fmt.Sprintf("type #%d: %v %v", i, tc.outputYdbTypes[i], actualTypes[i]),
+				)
 			}
 		})
 	}

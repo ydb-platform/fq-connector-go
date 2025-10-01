@@ -164,10 +164,10 @@ func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
 	}
 
 	switch t := (histogramBounds.Payload).(type) {
-	case *TSplitDescription_THistogramBounds_Int32Bounds:
-		out, err := f.renderSelectQueryTextWithInt32Bounds(sb, histogramBounds.ColumnName, t.Int32Bounds)
+	case *TSplitDescription_THistogramBounds_Int64Bounds:
+		out, err := f.renderSelectQueryTextWithInt64Bounds(sb, histogramBounds.ColumnName, t.Int64Bounds)
 		if err != nil {
-			return "", fmt.Errorf("render select query text with int32 bounds: %w", err)
+			return "", fmt.Errorf("render select query text with int64 bounds: %w", err)
 		}
 
 		return out, nil
@@ -176,10 +176,10 @@ func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
 	}
 }
 
-func (f sqlFormatter) renderSelectQueryTextWithInt32Bounds(
+func (f sqlFormatter) renderSelectQueryTextWithInt64Bounds(
 	sb *strings.Builder,
 	columnName string,
-	bounds *TInt32Bounds,
+	bounds *TInt64Bounds,
 ) (string, error) {
 	if columnName == "" {
 		return "", fmt.Errorf("column name is empty")

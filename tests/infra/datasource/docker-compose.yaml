@@ -19,7 +19,7 @@ services:
         hard: 262144
 
   postgresql:
-    image: mirror.gcr.io/postgres
+    image: mirror.gcr.io/postgres:16
     container_name: ${USER}-fq-connector-go-tests-postgresql
     ports:
       - '5433:5432'

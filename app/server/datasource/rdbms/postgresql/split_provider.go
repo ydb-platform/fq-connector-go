@@ -303,7 +303,7 @@ WHERE
 
 	defer rows.Close()
 
-	var bounds []int32
+	var bounds []int64
 
 	if !rows.Next() {
 		logger.Warn(
@@ -327,10 +327,10 @@ WHERE
 	// Add first open interval
 	result = append(result, &TSplitDescription_THistogramBounds{
 		ColumnName: pk.columnName,
-		Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
-			Int32Bounds: &TInt32Bounds{
+		Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
+			Int64Bounds: &TInt64Bounds{
 				Lower: nil,
-				Upper: wrapperspb.Int32(bounds[0]),
+				Upper: wrapperspb.Int64(bounds[0]),
 			},
 		},
 	})
@@ -339,10 +339,10 @@ WHERE
 	for i := 0; i < len(bounds)-1; i++ {
 		result = append(result, &TSplitDescription_THistogramBounds{
 			ColumnName: pk.columnName,
-			Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
-				Int32Bounds: &TInt32Bounds{
-					Lower: wrapperspb.Int32(bounds[i]),
-					Upper: wrapperspb.Int32(bounds[i+1]),
+			Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
+				Int64Bounds: &TInt64Bounds{
+					Lower: wrapperspb.Int64(bounds[i]),
+					Upper: wrapperspb.Int64(bounds[i+1]),
 				},
 			},
 		})
@@ -351,9 +351,9 @@ WHERE
 	// Add last open interval
 	result = append(result, &TSplitDescription_THistogramBounds{
 		ColumnName: pk.columnName,
-		Payload: &TSplitDescription_THistogramBounds_Int32Bounds{
-			Int32Bounds: &TInt32Bounds{
-				Lower: wrapperspb.Int32(bounds[len(bounds)-1]),
+		Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
+			Int64Bounds: &TInt64Bounds{
+				Lower: wrapperspb.Int64(bounds[len(bounds)-1]),
 				Upper: nil,
 			},
 		},
