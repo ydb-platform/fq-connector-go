@@ -22,30 +22,30 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// TInt32Bounds represents the bounds that can be found for an `INTEGER`, `SERIAL` column
+// TInt64Bounds represents the bounds that can be found for an `bigint`, `bigserial` column
 // An open interval can be represented by omitting one of the bounds.
-type TInt32Bounds struct {
+type TInt64Bounds struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Upper         *wrappers.Int32Value   `protobuf:"bytes,1,opt,name=upper,proto3" json:"upper,omitempty"`
-	Lower         *wrappers.Int32Value   `protobuf:"bytes,2,opt,name=lower,proto3" json:"lower,omitempty"`
+	Upper         *wrappers.Int64Value   `protobuf:"bytes,1,opt,name=upper,proto3" json:"upper,omitempty"`
+	Lower         *wrappers.Int64Value   `protobuf:"bytes,2,opt,name=lower,proto3" json:"lower,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *TInt32Bounds) Reset() {
-	*x = TInt32Bounds{}
+func (x *TInt64Bounds) Reset() {
+	*x = TInt64Bounds{}
 	mi := &file_app_server_datasource_rdbms_postgresql_split_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *TInt32Bounds) String() string {
+func (x *TInt64Bounds) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*TInt32Bounds) ProtoMessage() {}
+func (*TInt64Bounds) ProtoMessage() {}
 
-func (x *TInt32Bounds) ProtoReflect() protoreflect.Message {
+func (x *TInt64Bounds) ProtoReflect() protoreflect.Message {
 	mi := &file_app_server_datasource_rdbms_postgresql_split_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,19 +57,19 @@ func (x *TInt32Bounds) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use TInt32Bounds.ProtoReflect.Descriptor instead.
-func (*TInt32Bounds) Descriptor() ([]byte, []int) {
+// Deprecated: Use TInt64Bounds.ProtoReflect.Descriptor instead.
+func (*TInt64Bounds) Descriptor() ([]byte, []int) {
 	return file_app_server_datasource_rdbms_postgresql_split_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *TInt32Bounds) GetUpper() *wrappers.Int32Value {
+func (x *TInt64Bounds) GetUpper() *wrappers.Int64Value {
 	if x != nil {
 		return x.Upper
 	}
 	return nil
 }
 
-func (x *TInt32Bounds) GetLower() *wrappers.Int32Value {
+func (x *TInt64Bounds) GetLower() *wrappers.Int64Value {
 	if x != nil {
 		return x.Lower
 	}
@@ -196,14 +196,14 @@ func (*TSplitDescription_TSingle) Descriptor() ([]byte, []int) {
 	return file_app_server_datasource_rdbms_postgresql_split_proto_rawDescGZIP(), []int{1, 0}
 }
 
-// THistogramBounds describes the method of large table splitting
+// THistogramBounds describes the method of large table splitting.
 // based on the PostgreSQL's internal table stats.
 type TSplitDescription_THistogramBounds struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	ColumnName string                 `protobuf:"bytes,1,opt,name=column_name,json=columnName,proto3" json:"column_name,omitempty"`
 	// Types that are valid to be assigned to Payload:
 	//
-	//	*TSplitDescription_THistogramBounds_Int32Bounds
+	//	*TSplitDescription_THistogramBounds_Int64Bounds
 	Payload       isTSplitDescription_THistogramBounds_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -253,10 +253,10 @@ func (x *TSplitDescription_THistogramBounds) GetPayload() isTSplitDescription_TH
 	return nil
 }
 
-func (x *TSplitDescription_THistogramBounds) GetInt32Bounds() *TInt32Bounds {
+func (x *TSplitDescription_THistogramBounds) GetInt64Bounds() *TInt64Bounds {
 	if x != nil {
-		if x, ok := x.Payload.(*TSplitDescription_THistogramBounds_Int32Bounds); ok {
-			return x.Int32Bounds
+		if x, ok := x.Payload.(*TSplitDescription_THistogramBounds_Int64Bounds); ok {
+			return x.Int64Bounds
 		}
 	}
 	return nil
@@ -266,11 +266,11 @@ type isTSplitDescription_THistogramBounds_Payload interface {
 	isTSplitDescription_THistogramBounds_Payload()
 }
 
-type TSplitDescription_THistogramBounds_Int32Bounds struct {
-	Int32Bounds *TInt32Bounds `protobuf:"bytes,2,opt,name=int32_bounds,json=int32Bounds,proto3,oneof"`
+type TSplitDescription_THistogramBounds_Int64Bounds struct {
+	Int64Bounds *TInt64Bounds `protobuf:"bytes,2,opt,name=int64_bounds,json=int64Bounds,proto3,oneof"`
 }
 
-func (*TSplitDescription_THistogramBounds_Int32Bounds) isTSplitDescription_THistogramBounds_Payload() {
+func (*TSplitDescription_THistogramBounds_Int64Bounds) isTSplitDescription_THistogramBounds_Payload() {
 }
 
 var File_app_server_datasource_rdbms_postgresql_split_proto protoreflect.FileDescriptor
@@ -285,13 +285,13 @@ var file_app_server_datasource_rdbms_postgresql_split_proto_rawDesc = string([]b
 	0x2e, 0x50, 0x6f, 0x73, 0x74, 0x67, 0x72, 0x65, 0x53, 0x51, 0x4c, 0x1a, 0x1e, 0x67, 0x6f, 0x6f,
 	0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x77, 0x72, 0x61,
 	0x70, 0x70, 0x65, 0x72, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x74, 0x0a, 0x0c, 0x54,
-	0x49, 0x6e, 0x74, 0x33, 0x32, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x12, 0x31, 0x0a, 0x05, 0x75,
+	0x49, 0x6e, 0x74, 0x36, 0x34, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x12, 0x31, 0x0a, 0x05, 0x75,
 	0x70, 0x70, 0x65, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x67, 0x6f, 0x6f,
 	0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x49, 0x6e, 0x74,
-	0x33, 0x32, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x75, 0x70, 0x70, 0x65, 0x72, 0x12, 0x31,
+	0x36, 0x34, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x75, 0x70, 0x70, 0x65, 0x72, 0x12, 0x31,
 	0x0a, 0x05, 0x6c, 0x6f, 0x77, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e,
 	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
-	0x49, 0x6e, 0x74, 0x33, 0x32, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x6c, 0x6f, 0x77, 0x65,
+	0x49, 0x6e, 0x74, 0x36, 0x34, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52, 0x05, 0x6c, 0x6f, 0x77, 0x65,
 	0x72, 0x22, 0xc9, 0x03, 0x0a, 0x11, 0x54, 0x53, 0x70, 0x6c, 0x69, 0x74, 0x44, 0x65, 0x73, 0x63,
 	0x72, 0x69, 0x70, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x6a, 0x0a, 0x06, 0x73, 0x69, 0x6e, 0x67, 0x6c,
 	0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x50, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x43,
@@ -313,13 +313,13 @@ var file_app_server_datasource_rdbms_postgresql_split_proto_rawDesc = string([]b
 	0x74, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x12, 0x1f, 0x0a, 0x0b,
 	0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x5f, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x0a, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x4e, 0x61, 0x6d, 0x65, 0x12, 0x68, 0x0a,
-	0x0c, 0x69, 0x6e, 0x74, 0x33, 0x32, 0x5f, 0x62, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x18, 0x02, 0x20,
+	0x0c, 0x69, 0x6e, 0x74, 0x36, 0x34, 0x5f, 0x62, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x18, 0x02, 0x20,
 	0x01, 0x28, 0x0b, 0x32, 0x43, 0x2e, 0x4e, 0x59, 0x71, 0x6c, 0x2e, 0x43, 0x6f, 0x6e, 0x6e, 0x65,
 	0x63, 0x74, 0x6f, 0x72, 0x2e, 0x41, 0x70, 0x70, 0x2e, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e,
 	0x44, 0x61, 0x74, 0x61, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x2e, 0x52, 0x44, 0x42, 0x4d, 0x53,
 	0x2e, 0x50, 0x6f, 0x73, 0x74, 0x67, 0x72, 0x65, 0x53, 0x51, 0x4c, 0x2e, 0x54, 0x49, 0x6e, 0x74,
-	0x33, 0x32, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x48, 0x00, 0x52, 0x0b, 0x69, 0x6e, 0x74, 0x33,
-	0x32, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x42, 0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f,
+	0x36, 0x34, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x48, 0x00, 0x52, 0x0b, 0x69, 0x6e, 0x74, 0x36,
+	0x34, 0x42, 0x6f, 0x75, 0x6e, 0x64, 0x73, 0x42, 0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f,
 	0x61, 0x64, 0x42, 0x09, 0x0a, 0x07, 0x70, 0x61, 0x79, 0x6c, 0x6f, 0x61, 0x64, 0x42, 0x51, 0x5a,
 	0x4f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x79, 0x64, 0x62, 0x2d,
 	0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x2f, 0x66, 0x71, 0x2d, 0x63, 0x6f, 0x6e, 0x6e,
@@ -343,18 +343,18 @@ func file_app_server_datasource_rdbms_postgresql_split_proto_rawDescGZIP() []byt
 
 var file_app_server_datasource_rdbms_postgresql_split_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_app_server_datasource_rdbms_postgresql_split_proto_goTypes = []any{
-	(*TInt32Bounds)(nil),                       // 0: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt32Bounds
+	(*TInt64Bounds)(nil),                       // 0: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt64Bounds
 	(*TSplitDescription)(nil),                  // 1: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription
 	(*TSplitDescription_TSingle)(nil),          // 2: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.TSingle
 	(*TSplitDescription_THistogramBounds)(nil), // 3: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.THistogramBounds
-	(*wrappers.Int32Value)(nil),                // 4: google.protobuf.Int32Value
+	(*wrappers.Int64Value)(nil),                // 4: google.protobuf.Int64Value
 }
 var file_app_server_datasource_rdbms_postgresql_split_proto_depIdxs = []int32{
-	4, // 0: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt32Bounds.upper:type_name -> google.protobuf.Int32Value
-	4, // 1: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt32Bounds.lower:type_name -> google.protobuf.Int32Value
+	4, // 0: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt64Bounds.upper:type_name -> google.protobuf.Int64Value
+	4, // 1: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt64Bounds.lower:type_name -> google.protobuf.Int64Value
 	2, // 2: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.single:type_name -> NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.TSingle
 	3, // 3: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.histogram_bounds:type_name -> NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.THistogramBounds
-	0, // 4: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.THistogramBounds.int32_bounds:type_name -> NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt32Bounds
+	0, // 4: NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TSplitDescription.THistogramBounds.int64_bounds:type_name -> NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL.TInt64Bounds
 	5, // [5:5] is the sub-list for method output_type
 	5, // [5:5] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name
@@ -372,7 +372,7 @@ func file_app_server_datasource_rdbms_postgresql_split_proto_init() {
 		(*TSplitDescription_HistogramBounds)(nil),
 	}
 	file_app_server_datasource_rdbms_postgresql_split_proto_msgTypes[3].OneofWrappers = []any{
-		(*TSplitDescription_THistogramBounds_Int32Bounds)(nil),
+		(*TSplitDescription_THistogramBounds_Int64Bounds)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
