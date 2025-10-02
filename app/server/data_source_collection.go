@@ -79,7 +79,6 @@ func (dsc *DataSourceCollection) DescribeTable(
 		)
 
 		return ds.DescribeTable(ctx, logger, request)
-<<<<<<< HEAD
 	case api_common.EGenericDataSourceKind_OPENSEARCH:
 		openSearchCfg := dsc.cfg.Datasources.Opensearch
 		ds := opensearch.NewDataSource(
@@ -92,7 +91,8 @@ func (dsc *DataSourceCollection) DescribeTable(
 			dsc.converterCollection,
 			dsc.queryLoggerFactory.Make(logger),
 		)
-=======
+
+		return ds.DescribeTable(ctx, logger, request)
 	case api_common.EGenericDataSourceKind_PROMETHEUS:
 		prometheusCfg := dsc.cfg.Datasources.Prometheus
 		ds := prometheus.NewDataSource(
@@ -103,9 +103,6 @@ func (dsc *DataSourceCollection) DescribeTable(
 			prometheusCfg,
 			dsc.converterCollection,
 		)
-
-		return ds.DescribeTable(ctx, logger, request)
->>>>>>> f59c59d (Prometheus: basic support (#267))
 
 		return ds.DescribeTable(ctx, logger, request)
 	default:

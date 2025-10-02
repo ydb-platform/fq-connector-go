@@ -81,7 +81,7 @@ func (ds *dataSource) DescribeTable(
 	}}, nil
 }
 
-func (ds *dataSource) ListSplits(
+func (dataSource) ListSplits(
 	ctx context.Context,
 	_ *zap.Logger,
 	_ *api_service_protos.TListSplitsRequest,
@@ -101,6 +101,7 @@ func (ds *dataSource) ListSplits(
 func (ds *dataSource) ReadSplit(
 	ctx context.Context,
 	logger *zap.Logger,
+	_ string,
 	request *api_service_protos.TReadSplitsRequest,
 	split *api_service_protos.TSplit,
 	sinkFactory paging.SinkFactory[any],
