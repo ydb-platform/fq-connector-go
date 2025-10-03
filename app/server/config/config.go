@@ -189,6 +189,19 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 		c.Datasources.Opensearch.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
 	}
 
+	// Prometheus
+
+	if c.Datasources.Prometheus == nil {
+		c.Datasources.Prometheus = &config.TPrometheusConfig{
+			OpenConnectionTimeout: "5s",
+			ChunkedReadLimit:      5e7,
+		}
+	}
+
+	if c.Datasources.Prometheus.ExponentialBackoff == nil {
+		c.Datasources.Prometheus.ExponentialBackoff = makeDefaultExponentialBackoffConfig()
+	}
+
 	// PostgreSQL
 
 	if c.Datasources.Postgresql == nil {

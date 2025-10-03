@@ -95,7 +95,7 @@ func doReadTable(
 		api_common.EGenericDataSourceKind_MYSQL, api_common.EGenericDataSourceKind_GREENPLUM,
 		api_common.EGenericDataSourceKind_ORACLE, api_common.EGenericDataSourceKind_LOGGING,
 		api_common.EGenericDataSourceKind_MONGO_DB, api_common.EGenericDataSourceKind_REDIS,
-		api_common.EGenericDataSourceKind_OPENSEARCH:
+		api_common.EGenericDataSourceKind_OPENSEARCH, api_common.EGenericDataSourceKind_PROMETHEUS:
 		typeMappingSettings := &api_service_protos.TTypeMappingSettings{
 			DateTimeFormat: dateTimeFormat,
 		}
