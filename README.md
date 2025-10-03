@@ -22,6 +22,7 @@ Currently supported data sources:
 * Redis
 * OpenSearch
 * Yandex Cloud Logging
+* Prometheus
 
 ### Documentation 
 
