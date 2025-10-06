@@ -8,7 +8,8 @@ import (
 func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 	// TODO YQ-3413: synonym tables and from other users.
 	// TODO YQ-3454: all capitalize
-	query := "SELECT column_name, data_type FROM user_tab_columns WHERE table_name = :1"
+	query := `SELECT column_name, data_type, DATA_PRECISION, DATA_SCALE 
+			  FROM user_tab_columns WHERE table_name = :1`
 
 	var args rdbms_utils.QueryArgs
 

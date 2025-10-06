@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -15,9 +14,8 @@ import (
 )
 
 type schemaItem struct {
-	columnName string
-	columnType string
-	ydbColumn  *Ydb.Column
+	columnDescription *datasource.ColumnDescription
+	ydbColumn         *Ydb.Column
 }
 
 type SchemaBuilder struct {
@@ -26,24 +24,21 @@ type SchemaBuilder struct {
 	items               []*schemaItem
 }
 
-type ColumnDescription struct {
-	Name      string
-	Type      string
-	Precision sql.NullInt16
-	Scale     sql.NullInt16
-}
-
-func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {
+func (sb *SchemaBuilder) AddColumn(columnDescription *datasource.ColumnDescription) error {
 	item := &schemaItem{
-		columnName: columnName,
-		columnType: columnType,
+		columnDescription: columnDescription,
 	}
 
 	var err error
-	item.ydbColumn, err = sb.typeMapper.SQLTypeToYDBColumn(columnName, columnType, sb.typeMappingSettings)
+	item.ydbColumn, err = sb.typeMapper.SQLTypeToYDBColumn(columnDescription, sb.typeMappingSettings)
 
 	if err != nil && !errors.Is(err, common.ErrDataTypeNotSupported) {
-		return fmt.Errorf("sql type to ydb column (%s, %s): %w", columnName, columnType, err)
+		return fmt.Errorf(
+			"sql type to ydb column (%s, %s): %w",
+			columnDescription.Name,
+			columnDescription.Type,
+			err,
+		)
 	}
 
 	sb.items = append(sb.items, item)
@@ -63,7 +58,10 @@ func (sb *SchemaBuilder) Build(logger *zap.Logger) (*api_service_protos.TSchema,
 
 	for _, item := range sb.items {
 		if item.ydbColumn == nil {
-			unsupported = append(unsupported, fmt.Sprintf("%s %s", item.columnName, item.columnType))
+			unsupported = append(
+				unsupported,
+				fmt.Sprintf("%s %s", item.columnDescription.Name, item.columnDescription.Type),
+			)
 		} else {
 			schema.Columns = append(schema.Columns, item.ydbColumn)
 		}

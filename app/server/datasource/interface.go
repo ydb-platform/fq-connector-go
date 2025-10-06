@@ -58,6 +58,16 @@ type DataSource[T paging.Acceptor] interface {
 	) error
 }
 
+type ColumnDescription struct {
+	Name      string // mandatory
+	Type      string // mandatory
+	Precision *uint8 // filled only for numeric columns
+	Scale     *uint8 // filled only for numeric columns
+}
+
 type TypeMapper interface {
-	SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error)
+	SQLTypeToYDBColumn(
+		columnDescription *ColumnDescription,
+		rules *api_service_protos.TTypeMappingSettings,
+	) (*Ydb.Column, error)
 }

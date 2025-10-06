@@ -80,11 +80,16 @@ func primitiveYqlTypeName(typeId Ydb.Type_PrimitiveTypeId) (string, error) {
 	}
 }
 
-func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (typeMapper) SQLTypeToYDBColumn(
+	columnDescription *datasource.ColumnDescription,
+	_ *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
 	)
+
+	typeName := columnDescription.Name
 
 	optional := false
 	if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
@@ -101,7 +106,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, _rules *api_se
 		ydbType = common.MakeOptionalType(ydbType)
 	}
 
-	return &Ydb.Column{Name: columnName, Type: ydbType}, nil
+	return &Ydb.Column{Name: columnDescription.Name, Type: ydbType}, nil
 }
 
 //nolint:gocyclo

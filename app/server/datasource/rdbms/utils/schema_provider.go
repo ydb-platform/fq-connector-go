@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -41,21 +40,16 @@ func (f *defaultSchemaProvider) GetSchema(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	var (
-		columnName *string
-		typeName   *string
-		precision  sql.NullInt16
-		scale      sql.NullInt16
-	)
+	var cd datasource.ColumnDescription
 
 	sb := NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
 
 	for rows.Next() {
-		if err = rows.Scan(&columnName, &typeName, &precision, &scale); err != nil {
+		if err = rows.Scan(&cd.Name, &cd.Type, &cd.Precision, &cd.Scale); err != nil {
 			return nil, fmt.Errorf("rows scan: %w", err)
 		}
 
-		if err = sb.AddColumn(*columnName, *typeName); err != nil {
+		if err = sb.AddColumn(&cd); err != nil {
 			return nil, fmt.Errorf("add column to schema builder: %w", err)
 		}
 	}

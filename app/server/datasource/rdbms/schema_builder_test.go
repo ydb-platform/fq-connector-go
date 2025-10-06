@@ -79,17 +79,21 @@ func TestSchemaBuilder(t *testing.T) {
 			sb := rdbms_utils.NewSchemaBuilder(tc.typeMapper, &api_service_protos.TTypeMappingSettings{})
 
 			for num, supportedType := range tc.supportedTypesMatch {
-				require.NoError(
-					t,
-					sb.AddColumn(fmt.Sprintf("suppTypeCol%d", num),
-						supportedType.name)) // supported
+				desc := &datasource.ColumnDescription{
+					Name: fmt.Sprintf("suppTypeCol%d", num),
+					Type: supportedType.name,
+				}
+
+				require.NoError(t, sb.AddColumn(desc))
 			}
 
 			for num, unsuppType := range tc.unsupportedTypes {
-				require.NoError(
-					t,
-					sb.AddColumn(fmt.Sprintf("unsuppTypeCol%d", num),
-						unsuppType.name)) // yet unsupported
+				desc := &datasource.ColumnDescription{
+					Name: fmt.Sprintf("unsuppTypeCol%d", num),
+					Type: unsuppType.name,
+				}
+
+				require.NoError(t, sb.AddColumn(desc))
 			}
 
 			logger := common.NewTestLogger(t)
@@ -116,11 +120,12 @@ func TestSchemaBuilder(t *testing.T) {
 			sb := rdbms_utils.NewSchemaBuilder(tc.typeMapper, &api_service_protos.TTypeMappingSettings{})
 
 			for num, unsuppType := range tc.unsupportedTypes {
-				require.NoError(
-					t,
-					sb.AddColumn(
-						fmt.Sprintf("unsuppTypeCol%d", num),
-						unsuppType.name)) // yet unsupported
+				desc := &datasource.ColumnDescription{
+					Name: fmt.Sprintf("unsuppTypeCol%d", num),
+					Type: unsuppType.name,
+				}
+
+				require.NoError(t, sb.AddColumn(desc))
 			}
 
 			schema, err := sb.Build(common.NewTestLogger(t))

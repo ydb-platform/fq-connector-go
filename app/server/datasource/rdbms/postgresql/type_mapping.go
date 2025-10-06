@@ -2,8 +2,6 @@ package postgresql
 
 import (
 	"fmt"
-	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -22,13 +20,14 @@ import (
 
 var _ datasource.TypeMapper = typeMapper{}
 
-type typeMapper struct {
-	isNumericWithPrecisionScale *regexp.Regexp
-}
+type typeMapper struct{}
 
-func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (tm typeMapper) SQLTypeToYDBColumn(
+	columnDescription *datasource.ColumnDescription,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
 	ydbType, err := func() (*Ydb.Type, error) {
-		ydbType, err := tm.maybePrimitiveType(typeName, rules)
+		ydbType, err := tm.maybePrimitiveType(columnDescription.Type, rules)
 		if err != nil {
 			return nil, fmt.Errorf("maybe primitive type: %w", err)
 		}
@@ -37,7 +36,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 			return ydbType, nil
 		}
 
-		ydbType, err = tm.maybeNumericType(typeName)
+		ydbType, err = tm.maybeNumericType(columnDescription)
 		if err != nil {
 			return nil, fmt.Errorf("maybe numeric type: %w", err)
 		}
@@ -46,7 +45,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 			return ydbType, nil
 		}
 
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s': %w", columnDescription.Type, common.ErrDataTypeNotSupported)
 	}()
 
 	if err != nil {
@@ -58,7 +57,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
-		Name: columnName,
+		Name: columnDescription.Name,
 		Type: ydbType,
 	}, nil
 }
@@ -106,28 +105,16 @@ func (tm typeMapper) maybePrimitiveType(typeName string, rules *api_service_prot
 	}
 }
 
-func (tm typeMapper) maybeNumericType(typeName string) (*Ydb.Type, error) {
-	matches := tm.isNumericWithPrecisionScale.FindStringSubmatch(typeName)
-	switch len(matches) {
-	case 0:
+func (tm typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescription) (*Ydb.Type, error) {
+	if columnDescription.Type != "numeric" {
 		return nil, nil
-	case 2:
-		break
-	default:
-		return nil, fmt.Errorf("unexpected matches: %v in '%s'", matches, typeName)
 	}
 
-	precision, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return nil, fmt.Errorf("invalid precision value '%s': %v", matches[1], err)
+	if columnDescription.Precision == nil || columnDescription.Scale == nil {
+		return nil, fmt.Errorf("for numeric type both precision and scale must be filled")
 	}
 
-	scale, err := strconv.Atoi(matches[2])
-	if err != nil {
-		return nil, fmt.Errorf("invalid scale value '%s': %v", matches[2], err)
-	}
-
-	return common.MakeDecimalType(uint32(precision), uint32(scale)), nil
+	return common.MakeDecimalType(uint32(*columnDescription.Precision), uint32(*columnDescription.Scale)), nil
 }
 
 //nolint:gocyclo,funlen
@@ -304,7 +291,5 @@ func appendValuePtrToArrowBuilder[
 }
 
 func NewTypeMapper() datasource.TypeMapper {
-	return typeMapper{
-		isNumericWithPrecisionScale: regexp.MustCompile(`(?i)numeric\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)`),
-	}
+	return typeMapper{}
 }

@@ -25,13 +25,18 @@ type typeMapper struct {
 	isTimestampWLTZ *regexp.Regexp
 }
 
-func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (tm typeMapper) SQLTypeToYDBColumn(
+	columnDescription *datasource.ColumnDescription,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
 	)
 
 	_ = rules
+
+	typeName := columnDescription.Type
 
 	// Oracle Data Types
 	//	https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/Data-Types.html#GUID-7B72E154-677A-4342-A1EA-C74C1EA928E6
@@ -77,7 +82,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
-		Name: columnName,
+		Name: columnDescription.Name,
 		Type: ydbType,
 	}, nil
 }

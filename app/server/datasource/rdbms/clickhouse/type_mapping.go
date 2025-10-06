@@ -28,7 +28,7 @@ type typeMapper struct {
 
 //nolint:gocyclo
 func (tm typeMapper) SQLTypeToYDBColumn(
-	columnName, typeName string,
+	columnDescription *datasource.ColumnDescription,
 	rules *api_service_protos.TTypeMappingSettings,
 ) (*Ydb.Column, error) {
 	var (
@@ -45,6 +45,8 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	nullable := false
 	arrayContainer := false
 	innerNullable := false
+
+	typeName := columnDescription.Type
 
 	if matches := tm.isNullable.FindStringSubmatch(typeName); len(matches) > 0 {
 		nullable = true
@@ -128,7 +130,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	}
 
 	return &Ydb.Column{
-		Name: columnName,
+		Name: columnDescription.Name,
 		Type: ydbType,
 	}, nil
 }
