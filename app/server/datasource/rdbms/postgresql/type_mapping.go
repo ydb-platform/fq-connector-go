@@ -2,6 +2,8 @@ package postgresql
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -20,15 +22,27 @@ import (
 
 var _ datasource.TypeMapper = typeMapper{}
 
-type typeMapper struct{}
+type typeMapper struct {
+	isNumericWithPrecisionScale *regexp.Regexp
+}
 
-func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
 	)
 
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
+
+	ydbType, err = tm.maybeNumeric(typeName)
+	if err != nil {
+		return nil, fmt.Errorf("maybe numeric: %w", err)
+	}
+	if ydbType != nil {
+		return ydbType, nil
+	}
+
+	// Primitive types
 	switch typeName {
 	case "boolean", "bool":
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
@@ -73,6 +87,30 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 		Name: columnName,
 		Type: ydbType,
 	}, nil
+}
+
+func (tm typeMapper) maybeNumeric(typeName string) (*Ydb.Type, error) {
+	matches := tm.isNumericWithPrecisionScale.FindStringSubmatch(typeName)
+	switch len(matches) {
+	case 0:
+		return nil, nil
+	case 2:
+		break
+	default:
+		return nil, fmt.Errorf("unexpected matches: %v in '%s'", matches, typeName)
+	}
+
+	precision, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return nil, fmt.Errorf("invalid precision value '%s': %v", matches[1], err)
+	}
+
+	scale, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return nil, fmt.Errorf("invalid scale value '%s': %v", matches[2], err)
+	}
+
+	return common.MakeDecimalType(uint32(precision), uint32(scale)), nil
 }
 
 //nolint:gocyclo,funlen
@@ -248,4 +286,8 @@ func appendValuePtrToArrowBuilder[
 	return utils.AppendValueToArrowBuilder[IN, OUT, AB](value, builder, conv)
 }
 
-func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
+func NewTypeMapper() datasource.TypeMapper {
+	return typeMapper{
+		isNumericWithPrecisionScale: regexp.MustCompile(`(?i)numeric\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)`),
+	}
+}
