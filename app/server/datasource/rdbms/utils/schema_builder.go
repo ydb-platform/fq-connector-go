@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 
@@ -23,6 +24,13 @@ type SchemaBuilder struct {
 	typeMapper          datasource.TypeMapper
 	typeMappingSettings *api_service_protos.TTypeMappingSettings
 	items               []*schemaItem
+}
+
+type ColumnDescription struct {
+	Name      string
+	Type      string
+	Precision sql.NullInt16
+	Scale     sql.NullInt16
 }
 
 func (sb *SchemaBuilder) AddColumn(columnName, columnType string) error {

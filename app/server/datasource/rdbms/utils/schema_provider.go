@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -43,12 +44,14 @@ func (f *defaultSchemaProvider) GetSchema(
 	var (
 		columnName *string
 		typeName   *string
+		precision  sql.NullInt16
+		scale      sql.NullInt16
 	)
 
 	sb := NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
 
 	for rows.Next() {
-		if err = rows.Scan(&columnName, &typeName); err != nil {
+		if err = rows.Scan(&columnName, &typeName, &precision, &scale); err != nil {
 			return nil, fmt.Errorf("rows scan: %w", err)
 		}
 

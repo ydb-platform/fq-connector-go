@@ -27,56 +27,30 @@ type typeMapper struct {
 }
 
 func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
-	var (
-		ydbType *Ydb.Type
-		err     error
-	)
+	ydbType, err := func() (*Ydb.Type, error) {
+		ydbType, err := tm.maybePrimitiveType(typeName, rules)
+		if err != nil {
+			return nil, fmt.Errorf("maybe primitive type: %w", err)
+		}
 
-	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
+		if ydbType != nil {
+			return ydbType, nil
+		}
 
-	ydbType, err = tm.maybeNumeric(typeName)
-	if err != nil {
-		return nil, fmt.Errorf("maybe numeric: %w", err)
-	}
-	if ydbType != nil {
-		return ydbType, nil
-	}
+		ydbType, err = tm.maybeNumericType(typeName)
+		if err != nil {
+			return nil, fmt.Errorf("maybe numeric type: %w", err)
+		}
 
-	// Primitive types
-	switch typeName {
-	case "boolean", "bool":
-		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
-	case "smallint", "int2", "smallserial", "serial2":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT16)
-	case "integer", "int", "int4", "serial", "serial4":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT32)
-	case "bigint", "int8", "bigserial", "serial8":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
-	case "real", "float4":
-		ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT)
-	case "double precision", "float8":
-		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
-	case "bytea", "uuid":
-		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case "character", "character varying", "text":
-		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case "json":
-		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
-	// TODO: jsonb to YDB_Json_document
-	case "date":
-		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
-	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
-	// but it can be supported when the PG-compatible types are added to YDB:
-	// https://st.yandex-team.ru/YQ-2285
-	// case "time":
-	case "timestamp without time zone":
-		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
-	default:
+		if ydbType != nil {
+			return ydbType, nil
+		}
+
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
-	}
+	}()
 
 	if err != nil {
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, err)
+		return nil, err
 	}
 
 	// In PostgreSQL all columns are actually nullable, hence we wrap every T in Optional<T>.
@@ -89,7 +63,50 @@ func (tm typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_
 	}, nil
 }
 
-func (tm typeMapper) maybeNumeric(typeName string) (*Ydb.Type, error) {
+func (tm typeMapper) maybePrimitiveType(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
+	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
+	switch typeName {
+	case "boolean", "bool":
+		return common.MakePrimitiveType(Ydb.Type_BOOL), nil
+	case "smallint", "int2", "smallserial", "serial2":
+		return common.MakePrimitiveType(Ydb.Type_INT16), nil
+	case "integer", "int", "int4", "serial", "serial4":
+		return common.MakePrimitiveType(Ydb.Type_INT32), nil
+	case "bigint", "int8", "bigserial", "serial8":
+		return common.MakePrimitiveType(Ydb.Type_INT64), nil
+	case "real", "float4":
+		return common.MakePrimitiveType(Ydb.Type_FLOAT), nil
+	case "double precision", "float8":
+		return common.MakePrimitiveType(Ydb.Type_DOUBLE), nil
+	case "bytea", "uuid":
+		return common.MakePrimitiveType(Ydb.Type_STRING), nil
+	case "character", "character varying", "text":
+		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
+	case "json":
+		return common.MakePrimitiveType(Ydb.Type_JSON), nil
+	// TODO: jsonb to YDB_Json_document
+	case "date":
+		ydbType, err := common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
+		return ydbType, nil
+	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
+	// but it can be supported when the PG-compatible types are added to YDB:
+	// https://st.yandex-team.ru/YQ-2285
+	// case "time":
+	case "timestamp without time zone":
+		ydbType, err := common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
+		return ydbType, nil
+	default:
+		return nil, nil
+	}
+}
+
+func (tm typeMapper) maybeNumericType(typeName string) (*Ydb.Type, error) {
 	matches := tm.isNumericWithPrecisionScale.FindStringSubmatch(typeName)
 	switch len(matches) {
 	case 0:
