@@ -271,7 +271,11 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*shopspring.Numeric)
 				if cast.Status == jackc_pgtype.Present {
-					decimal.PackDecimalToArrow(cast.Decimal.BigInt(), builder.(*array.FixedSizeBinaryBuilder))
+					decimal.DecimalToTwosComplementScaled(
+						&cast.Decimal,
+						0,
+						builder.(*array.FixedSizeBinaryBuilder),
+					)
 				} else {
 					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
 				}
