@@ -6,6 +6,8 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/google/uuid"
+	jackc_pgtype "github.com/jackc/pgtype"
+	shopspring "github.com/jackc/pgtype/ext/shopspring-numeric"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -261,6 +263,17 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 					builder.(*array.BinaryBuilder).AppendNull()
 				}
 
+				return nil
+			})
+		case pgtype.NumericOID:
+			acceptors = append(acceptors, new(shopspring.Numeric))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				cast := acceptor.(*shopspring.Numeric)
+				if cast.Status == jackc_pgtype.Present {
+					builder.(*array.FixedSizeBinaryBuilder).Append(cast.Decimal.BigInt())
+				} else {
+					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
+				}
 				return nil
 			})
 		default:
