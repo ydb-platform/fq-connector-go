@@ -17,11 +17,6 @@ func Serialize(
 	dst []byte, // acceptor
 ) {
 	scaled := val.Shift(int32(scale))
-
-	if !scaled.IsInteger() {
-		scaled = scaled.Truncate(0)
-	}
-
 	bigInt := scaled.BigInt()
 
 	if bigInt.Sign() >= 0 {

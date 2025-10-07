@@ -707,7 +707,7 @@ func (tb *Table[T, K]) MatchRecords(t *testing.T, records []arrow.Record, schema
 func (tb *Table[_, _]) MatchSchema(t *testing.T, schema *api_service_protos.TSchema) {
 	require.Equal(t, len(tb.Schema.Columns), len(schema.Columns),
 		fmt.Sprintf(
-			"incorrect number of column, expected: %d\nactual:   %d\n",
+			"incorrect number of columns, expected: %d\nactual:   %d\n",
 			len(tb.Schema.Columns),
 			len(schema.Columns),
 		))
