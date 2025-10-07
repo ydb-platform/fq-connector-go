@@ -47,138 +47,69 @@ func IsSpecialValue(b byte) bool {
 	return b == NegNaN[0] || b == NegInf[0] || b == PosInf[0] || b == PosNaN[0]
 }
 
-// Serialize converts a big.Int to a binary representation compatible with YQL Decimal format.
-// Returns a fixed-size [16]byte array.
-func Serialize(value *big.Int) [16]byte {
-	var result [16]byte
+func Serialize(value *big.Int, buf []byte) int {
+	// Ensure we're working with a 128-bit value
+	// Create a mask for 128 bits if needed to truncate
+	var valueBytes [16]byte
 
-	// Handle nil input
-	if value == nil {
-		result[0] = PosNaN[0]
-		return result
-	}
-
-	// Check for special values
-	// In Go, we don't have direct equivalents for NaN and Infinity in big.Int
-	// But we can check if the value exceeds the max/min decimal range
-	if value.Cmp(MaxDecimal) > 0 {
-		result[0] = PosInf[0]
-		return result
-	}
-	if value.Cmp(MinDecimal) < 0 {
-		result[0] = NegInf[0]
-		return result
-	}
-
-	// Get the bytes of the big.Int in big-endian format
-	bytes := value.Bytes()
-	isNegative := value.Sign() < 0
-
-	// If the value is zero, we need special handling
-	if len(bytes) == 0 {
-		if isNegative {
-			result[0] = 0x80 // Negative zero
-		} else {
-			result[0] = 0x7F + 1 // Positive zero with 1 byte size
+	if value.Sign() >= 0 {
+		// Positive number - get bytes directly
+		bytes := value.Bytes()
+		// Copy to valueBytes in little-endian order
+		for i := 0; i < len(bytes) && i < 16; i++ {
+			valueBytes[i] = bytes[len(bytes)-1-i]
 		}
-		return result
-	}
-
-	// For negative numbers, we need to handle the two's complement representation
-	if isNegative {
-		// Create a new big.Int with the absolute value
-		absValue := new(big.Int).Abs(value)
-		// Get the bytes of the absolute value
-		bytes = absValue.Bytes()
-	}
-
-	// Calculate the size needed
-	size := len(bytes)
-	if size > 15 {
-		size = 15 // Maximum size is 15 bytes plus marker
-	}
-
-	// Set the marker byte based on sign and size
-	if isNegative {
-		result[0] = byte(0x80 - size)
 	} else {
-		result[0] = byte(0x7F + size)
-	}
+		// Negative number - need two's complement in 128 bits
+		// Calculate 2^128 + value (where value is negative)
+		twoTo128 := new(big.Int).Lsh(big.NewInt(1), 128)
+		temp := new(big.Int).Add(twoTo128, value)
+		bytes := temp.Bytes()
 
-	// Copy the bytes in reverse order (to match the C++ implementation)
-	// The C++ code copies from the end of the value to the beginning
-	for i := 0; i < size; i++ {
-		if i < len(bytes) {
-			result[i+1] = bytes[len(bytes)-1-i]
+		// Fill with 0xFF for sign extension
+		for i := range valueBytes {
+			valueBytes[i] = 0xFF
+		}
+
+		// Copy bytes in little-endian order
+		for i := 0; i < len(bytes) && i < 16; i++ {
+			valueBytes[i] = bytes[len(bytes)-1-i]
 		}
 	}
 
-	return result
-}
+	size := 16
+	p := 15 // index pointing to MSB
 
-// Deserialize converts a binary representation in YQL Decimal format to a big.Int.
-// It takes a 16-byte array and returns the deserialized big.Int value.
-// If the input represents a special value (NaN, Infinity), it returns nil and an error.
-func Deserialize(data [16]byte) (*big.Int, error) {
-	// Check for special values
-	if IsSpecialValue(data[0]) {
-		switch data[0] {
-		case NegNaN[0]:
-			return nil, ErrNegativeNaN
-		case NegInf[0]:
-			return nil, ErrNegativeInfinity
-		case PosInf[0]:
-			return nil, ErrPositiveInfinity
-		case PosNaN[0]:
-			return nil, ErrPositiveNaN
+	// Check the sign bit of the second-most-significant byte
+	if valueBytes[14]&0x80 != 0 {
+		// Negative number - skip 0xFF bytes from MSB
+		for size > 1 && p > 0 {
+			p--
+			if valueBytes[p] != 0xFF {
+				break
+			}
+			size--
 		}
-	}
-
-	// Get the marker byte
-	marker := data[0]
-
-	// Check if the marker is valid
-	if marker < minMarker || marker > maxMarker {
-		return nil, ErrInvalidMarker
-	}
-
-	// Determine if the value is negative and calculate the size
-	isNegative := marker < 0x80
-	var size int
-	if isNegative {
-		size = int(0x80 - marker)
+		buf[0] = byte(0x80 - size)
 	} else {
-		size = int(marker - 0x7F)
+		// Positive number - skip 0x00 bytes from MSB
+		for size > 1 && p > 0 {
+			p--
+			if valueBytes[p] != 0x00 {
+				break
+			}
+			size--
+		}
+		buf[0] = byte(0x7F + size)
 	}
 
-	// Check if the size is valid
-	if size < 1 || size > 15 {
-		return nil, ErrInvalidSize
+	// Copy remaining significant bytes in big-endian order
+	bufIdx := 1
+	for i := 1; i < size; i++ {
+		buf[bufIdx] = valueBytes[p]
+		bufIdx++
+		p--
 	}
 
-	// Create a buffer to hold the bytes in big-endian order
-	buf := make([]byte, size)
-
-	// Copy the bytes in reverse order (to match the C++ implementation)
-	for i := 0; i < size; i++ {
-		buf[size-1-i] = data[i+1]
-	}
-
-	// Create a new big.Int from the bytes
-	result := new(big.Int).SetBytes(buf)
-
-	// Set the sign if negative
-	if isNegative {
-		result.Neg(result)
-	}
-
-	// Check if the value is within the valid range
-	if result.Cmp(MaxDecimal) > 0 {
-		return nil, ErrPositiveInfinity
-	}
-	if result.Cmp(MinDecimal) < 0 {
-		return nil, ErrNegativeInfinity
-	}
-
-	return result, nil
+	return size
 }

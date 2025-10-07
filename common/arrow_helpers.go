@@ -117,9 +117,11 @@ func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (
 
 		structType := arrow.StructOf(fields...)
 		builder = array.NewStructBuilder(arrowAllocator, structType)
+	case *Ydb.Type_DecimalType:
+		builder = array.NewFixedSizeBinaryBuilder(arrowAllocator, &arrow.FixedSizeBinaryType{ByteWidth: 16})
 	default:
 		err := fmt.Errorf(
-			"only primitive, optional, tagged and struct types are supported, got '%T' instead: %w",
+			"only primitive, optional, tagged, struct and decimal types are supported, got '%T' instead: %w",
 			t, ErrDataTypeNotSupported,
 		)
 
@@ -228,9 +230,14 @@ func ydbTypeToArrowField(ydbType *Ydb.Type, column *Ydb.Column) (arrow.Field, er
 			Type:     arrow.StructOf(fields...),
 			Nullable: true,
 		}
+	case *Ydb.Type_DecimalType:
+		field = arrow.Field{
+			Name: column.Name,
+			Type: &arrow.FixedSizeBinaryType{ByteWidth: 16},
+		}
 	default:
 		err := fmt.Errorf(
-			"only primitive, optional, tagged and struct types are supported, got '%T' instead: %w",
+			"only primitive, optional, tagged, struct and decimal types are supported, got '%T' instead: %w",
 			t, ErrDataTypeNotSupported,
 		)
 
