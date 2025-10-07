@@ -271,10 +271,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*shopspring.Numeric)
 				if cast.Status == jackc_pgtype.Present {
-					var buffer = make([]byte, 16) // TODO: reuse the buffer between the calls of a callbacks
-					decimal.Serialize(cast.Decimal.BigInt(), buffer)
-					fmt.Println(">>> CRAB: ", cast.Decimal, buffer)
-					builder.(*array.FixedSizeBinaryBuilder).Append(buffer[:])
+					decimal.PackDecimalToArrow(cast.Decimal.BigInt(), builder.(*array.FixedSizeBinaryBuilder))
 				} else {
 					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
 				}
