@@ -65,7 +65,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 	}, nil
 }
 
-func (tm typeMapper) maybePrimitiveType(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
+func (typeMapper) maybePrimitiveType(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
 	switch typeName {
 	case "boolean", "bool":
@@ -92,6 +92,7 @@ func (tm typeMapper) maybePrimitiveType(typeName string, rules *api_service_prot
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date time type: %w", err)
 		}
+
 		return ydbType, nil
 	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
 	// but it can be supported when the PG-compatible types are added to YDB:
@@ -102,13 +103,14 @@ func (tm typeMapper) maybePrimitiveType(typeName string, rules *api_service_prot
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date time type: %w", err)
 		}
+
 		return ydbType, nil
 	default:
 		return nil, nil
 	}
 }
 
-func (tm typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescription) (*Ydb.Type, error) {
+func (typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescription) (*Ydb.Type, error) {
 	if columnDescription.Type != "numeric" {
 		return nil, nil
 	}
@@ -267,8 +269,9 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 				return nil
 			})
 		case pgtype.NumericOID:
-			buf := make([]byte, 16) // reuse buffer between calls
-			scale := ydbTypes[i].GetOptionalType().Item.GetDecimalType().Scale
+			buf := make([]byte, 16)                                            // reuse buffer between calls
+			scale := ydbTypes[i].GetOptionalType().Item.GetDecimalType().Scale // preserve scale
+
 			acceptors = append(acceptors, new(shopspring.Numeric))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*shopspring.Numeric)
@@ -278,6 +281,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 				} else {
 					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
 				}
+
 				return nil
 			})
 		default:

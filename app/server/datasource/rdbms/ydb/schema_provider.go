@@ -54,6 +54,7 @@ func (f *schemaProvider) GetSchema(
 	}
 
 	sb := rdbms_utils.NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
+
 	for _, column := range desc.Columns {
 		desc := &datasource.ColumnDescription{
 			Name:      column.Name,

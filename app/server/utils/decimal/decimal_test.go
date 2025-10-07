@@ -2,6 +2,7 @@ package decimal
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/shopspring/decimal"
@@ -117,7 +118,7 @@ func TestSerializeWithDecimalInput(t *testing.T) {
 			name:     "decimal value with fraction and positive scale",
 			input:    "123.45",
 			scale:    2,
-			expected: []byte{69, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // 12345
+			expected: []byte{57, 48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // 12345
 		},
 	}
 
@@ -134,7 +135,7 @@ func TestSerializeWithDecimalInput(t *testing.T) {
 			Serialize(&dec, tt.scale, result)
 
 			// Check result
-			assert.Equal(t, tt.expected, result)
+			assert.Equal(t, tt.expected, result, fmt.Sprintf("%v %v", tt.input, tt.scale))
 		})
 	}
 }
