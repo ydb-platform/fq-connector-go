@@ -17,6 +17,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/decimal"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -270,7 +271,7 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*shopspring.Numeric)
 				if cast.Status == jackc_pgtype.Present {
-					builder.(*array.FixedSizeBinaryBuilder).Append(cast.Decimal.BigInt())
+					builder.(*array.FixedSizeBinaryBuilder).Append(decimal.Serialize(cast.Decimal.BigInt()))
 				} else {
 					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
 				}
