@@ -54,8 +54,16 @@ func (f *schemaProvider) GetSchema(
 	}
 
 	sb := rdbms_utils.NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
+
 	for _, column := range desc.Columns {
-		if err = sb.AddColumn(column.Name, column.Type.String()); err != nil {
+		desc := &datasource.ColumnDescription{
+			Name:      column.Name,
+			Type:      column.Type.String(),
+			Precision: nil,
+			Scale:     nil,
+		}
+
+		if err = sb.AddColumn(desc); err != nil {
 			return nil, fmt.Errorf("add column to schema builder: %w", err)
 		}
 	}

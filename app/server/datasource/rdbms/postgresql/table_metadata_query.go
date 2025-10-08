@@ -9,7 +9,8 @@ func TableMetadataQuery(
 	request *api_service_protos.TDescribeTableRequest,
 	schema string,
 ) (string, *rdbms_utils.QueryArgs) {
-	query := "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2"
+	query := "SELECT column_name, data_type, numeric_precision, numeric_scale " +
+		"FROM information_schema.columns WHERE table_name = $1 AND table_schema = $2"
 
 	var args rdbms_utils.QueryArgs
 

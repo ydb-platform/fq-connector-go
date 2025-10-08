@@ -7,10 +7,16 @@ import (
 
 func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 	// TODO: do not add 'unsigned' modifiers to column type and use the driver-provided fields instead.
+	//
 	// In MySQL schema and database are basically the same thing. So we can safely pass dbname as
 	// `schema_name` when quering `information_schema`.
-	query := `SELECT column_name, column_type FROM information_schema.columns
-		WHERE table_name = ? AND table_schema = ?`
+	//
+	// TODO: learn how to extract numeric precision and scale from MySQL
+	query := `SELECT 
+				column_name, 
+				column_type
+			FROM information_schema.columns  
+			WHERE table_name = ? AND table_schema = ?`
 
 	var args rdbms_utils.QueryArgs
 

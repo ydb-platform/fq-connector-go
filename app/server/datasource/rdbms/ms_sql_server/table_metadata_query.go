@@ -9,7 +9,8 @@ import (
 
 func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
 	// opts := request.GetDataSourceInstance().GetPgOptions().GetSchema()
-	query := "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @p1;"
+	query := `SELECT column_name, data_type, numeric_precision, numeric_scale 
+				FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = @p1;`
 
 	var args rdbms_utils.QueryArgs
 

@@ -6,6 +6,8 @@ import (
 
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/google/uuid"
+	jackc_pgtype "github.com/jackc/pgtype"
+	shopspring "github.com/jackc/pgtype/ext/shopspring-numeric"
 	"github.com/jackc/pgx/v5/pgtype"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -15,6 +17,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/decimal"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -22,47 +25,34 @@ var _ datasource.TypeMapper = typeMapper{}
 
 type typeMapper struct{}
 
-func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
-	var (
-		ydbType *Ydb.Type
-		err     error
-	)
+func (tm typeMapper) SQLTypeToYDBColumn(
+	columnDescription *datasource.ColumnDescription,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
+	ydbType, err := func() (*Ydb.Type, error) {
+		ydbType, err := tm.maybePrimitiveType(columnDescription.Type, rules)
+		if err != nil {
+			return nil, fmt.Errorf("maybe primitive type: %w", err)
+		}
 
-	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
-	switch typeName {
-	case "boolean", "bool":
-		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
-	case "smallint", "int2", "smallserial", "serial2":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT16)
-	case "integer", "int", "int4", "serial", "serial4":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT32)
-	case "bigint", "int8", "bigserial", "serial8":
-		ydbType = common.MakePrimitiveType(Ydb.Type_INT64)
-	case "real", "float4":
-		ydbType = common.MakePrimitiveType(Ydb.Type_FLOAT)
-	case "double precision", "float8":
-		ydbType = common.MakePrimitiveType(Ydb.Type_DOUBLE)
-	case "bytea", "uuid":
-		ydbType = common.MakePrimitiveType(Ydb.Type_STRING)
-	case "character", "character varying", "text":
-		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case "json":
-		ydbType = common.MakePrimitiveType(Ydb.Type_JSON)
-	// TODO: jsonb to YDB_Json_document
-	case "date":
-		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
-	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
-	// but it can be supported when the PG-compatible types are added to YDB:
-	// https://st.yandex-team.ru/YQ-2285
-	// case "time":
-	case "timestamp without time zone":
-		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
-	default:
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
-	}
+		if ydbType != nil {
+			return ydbType, nil
+		}
+
+		ydbType, err = tm.maybeNumericType(columnDescription)
+		if err != nil {
+			return nil, fmt.Errorf("maybe numeric type: %w", err)
+		}
+
+		if ydbType != nil {
+			return ydbType, nil
+		}
+
+		return nil, fmt.Errorf("convert type '%s': %w", columnDescription.Type, common.ErrDataTypeNotSupported)
+	}()
 
 	if err != nil {
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, err)
+		return nil, err
 	}
 
 	// In PostgreSQL all columns are actually nullable, hence we wrap every T in Optional<T>.
@@ -70,9 +60,66 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
-		Name: columnName,
+		Name: columnDescription.Name,
 		Type: ydbType,
 	}, nil
+}
+
+func (typeMapper) maybePrimitiveType(typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Type, error) {
+	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
+	switch typeName {
+	case "boolean", "bool":
+		return common.MakePrimitiveType(Ydb.Type_BOOL), nil
+	case "smallint", "int2", "smallserial", "serial2":
+		return common.MakePrimitiveType(Ydb.Type_INT16), nil
+	case "integer", "int", "int4", "serial", "serial4":
+		return common.MakePrimitiveType(Ydb.Type_INT32), nil
+	case "bigint", "int8", "bigserial", "serial8":
+		return common.MakePrimitiveType(Ydb.Type_INT64), nil
+	case "real", "float4":
+		return common.MakePrimitiveType(Ydb.Type_FLOAT), nil
+	case "double precision", "float8":
+		return common.MakePrimitiveType(Ydb.Type_DOUBLE), nil
+	case "bytea", "uuid":
+		return common.MakePrimitiveType(Ydb.Type_STRING), nil
+	case "character", "character varying", "text":
+		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
+	case "json":
+		return common.MakePrimitiveType(Ydb.Type_JSON), nil
+	// TODO: jsonb to YDB_Json_document
+	case "date":
+		ydbType, err := common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
+
+		return ydbType, nil
+	// TODO: PostgreSQL `time` data type has no direct counterparts in the YDB's type system;
+	// but it can be supported when the PG-compatible types are added to YDB:
+	// https://st.yandex-team.ru/YQ-2285
+	// case "time":
+	case "timestamp without time zone":
+		ydbType, err := common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
+		if err != nil {
+			return nil, fmt.Errorf("make YDB date time type: %w", err)
+		}
+
+		return ydbType, nil
+	default:
+		return nil, nil
+	}
+}
+
+func (typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescription) (*Ydb.Type, error) {
+	if columnDescription.Type != "numeric" {
+		return nil, nil
+	}
+
+	if columnDescription.Precision == nil || columnDescription.Scale == nil {
+		return nil, fmt.Errorf("for numeric type both precision and scale must be filled")
+	}
+
+	return common.MakeDecimalType(uint32(*columnDescription.Precision), uint32(*columnDescription.Scale)), nil
 }
 
 //nolint:gocyclo,funlen
@@ -221,6 +268,23 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 
 				return nil
 			})
+		case pgtype.NumericOID:
+			buf := make([]byte, 16)                                            // reuse buffer between calls
+			scale := ydbTypes[i].GetOptionalType().Item.GetDecimalType().Scale // preserve scale
+			serializer := decimal.NewSerializer()
+
+			acceptors = append(acceptors, new(shopspring.Numeric))
+			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+				cast := acceptor.(*shopspring.Numeric)
+				if cast.Status == jackc_pgtype.Present {
+					serializer.Serialize(&cast.Decimal, scale, buf)
+					builder.(*array.FixedSizeBinaryBuilder).Append(buf)
+				} else {
+					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
+				}
+
+				return nil
+			})
 		default:
 			return nil, fmt.Errorf("convert type OID %d: %w", oid, common.ErrDataTypeNotSupported)
 		}
@@ -248,4 +312,6 @@ func appendValuePtrToArrowBuilder[
 	return utils.AppendValueToArrowBuilder[IN, OUT, AB](value, builder, conv)
 }
 
-func NewTypeMapper() datasource.TypeMapper { return typeMapper{} }
+func NewTypeMapper() datasource.TypeMapper {
+	return typeMapper{}
+}

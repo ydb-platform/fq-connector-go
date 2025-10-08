@@ -28,7 +28,7 @@ type typeMapper struct {
 
 //nolint:gocyclo
 func (tm *typeMapper) SQLTypeToYDBColumn(
-	columnName, columnType string,
+	columnDescription *datasource.ColumnDescription,
 	typeMapperSettings *api_service_protos.TTypeMappingSettings,
 ) (*Ydb.Column, error) {
 	var (
@@ -37,9 +37,9 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		err      error
 	)
 
-	typeNameWithoutModifier := strings.Split(columnType, " ")[0]
+	typeNameWithoutModifier := strings.Split(columnDescription.Type, " ")[0]
 
-	if matches := tm.reType.FindStringSubmatch(columnType); len(matches) > 0 {
+	if matches := tm.reType.FindStringSubmatch(columnDescription.Type); len(matches) > 0 {
 		typeName = matches[tm.reType.SubexpIndex("type")]
 		typeSize, err = strconv.ParseUint(matches[tm.reType.SubexpIndex("size")], 10, 64)
 
@@ -50,9 +50,9 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		typeName = typeNameWithoutModifier
 	}
 
-	unsigned := strings.Contains(columnType, "unsigned")
+	unsigned := strings.Contains(columnDescription.Type, "unsigned")
 
-	ydbColumn := Ydb.Column{Name: columnName}
+	ydbColumn := Ydb.Column{Name: columnDescription.Name}
 
 	switch typeName {
 	case typeInt, typeMediumInt:

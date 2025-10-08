@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	numeric "github.com/jackc/pgtype/ext/shopspring-numeric"
 	"github.com/jackc/pgx/v5/pgtype"
 	bson_primitive "go.mongodb.org/mongo-driver/bson/primitive"
 
@@ -251,6 +252,8 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 	case *pgtype.Date:
 		return 16, fixedSize, nil
 	case *pgtype.Timestamp:
+		return 16, fixedSize, nil
+	case *numeric.Numeric:
 		return 16, fixedSize, nil
 	case **uuid.UUID:
 		return 16, fixedSize, nil

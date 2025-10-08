@@ -21,7 +21,10 @@ var _ datasource.TypeMapper = typeMapper{}
 type typeMapper struct{}
 
 //nolint:gocyclo
-func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_service_protos.TTypeMappingSettings) (*Ydb.Column, error) {
+func (typeMapper) SQLTypeToYDBColumn(
+	columnDescription *datasource.ColumnDescription,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Column, error) {
 	var (
 		ydbType *Ydb.Type
 		err     error
@@ -31,7 +34,7 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 
 	// MS SQL Server Data Types https://learn.microsoft.com/ru-ru/sql/t-sql/data-types/data-types-transact-sql?view=sql-server-ver16
 	// Reference table: https://github.com/ydb-platform/fq-connector-go/blob/main/docs/type_mapping_table.md
-	switch typeName {
+	switch columnDescription.Type {
 	case "bit":
 		ydbType = common.MakePrimitiveType(Ydb.Type_BOOL)
 	case "tinyint":
@@ -72,17 +75,17 @@ func (typeMapper) SQLTypeToYDBColumn(columnName, typeName string, rules *api_ser
 			return nil, fmt.Errorf("make YDB date time type: %w", err)
 		}
 	default:
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
+		return nil, fmt.Errorf("convert type '%s': %w", columnDescription.Type, common.ErrDataTypeNotSupported)
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("convert type '%s': %w", typeName, err)
+		return nil, fmt.Errorf("convert type '%s': %w", columnDescription.Type, err)
 	}
 
 	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
-		Name: columnName,
+		Name: columnDescription.Name,
 		Type: ydbType,
 	}, nil
 }
