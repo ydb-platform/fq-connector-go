@@ -59,10 +59,10 @@ type DataSource[T paging.Acceptor] interface {
 }
 
 type ColumnDescription struct {
-	Name      string // mandatory
-	Type      string // mandatory
-	Precision *int64 // filled only for numeric columns
-	Scale     *int64 // filled only for numeric columns
+	Name      string  // mandatory
+	Type      string  // mandatory
+	Precision *uint64 // filled only for numeric columns
+	Scale     *uint64 // filled only for numeric columns
 }
 
 type TypeMapper interface {
