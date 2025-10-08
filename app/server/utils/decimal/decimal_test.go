@@ -139,3 +139,77 @@ func TestSerializeWithDecimalInput(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkSerialize(b *testing.B) {
+	tests := []struct {
+		name  string
+		input string
+		scale uint32
+	}{
+		{
+			name:  "positive small number",
+			input: "1",
+			scale: 0,
+		},
+		{
+			name:  "positive number with two bytes",
+			input: "257",
+			scale: 0,
+		},
+		{
+			name:  "negative number",
+			input: "-2",
+			scale: 0,
+		},
+		{
+			name:  "zero",
+			input: "0",
+			scale: 0,
+		},
+		{
+			name:  "large positive number",
+			input: "9223372036854775807",
+			scale: 0,
+		},
+		{
+			name:  "with scale",
+			input: "123",
+			scale: 1,
+		},
+		{
+			name:  "very large number",
+			input: "9223372036854775808",
+			scale: 0,
+		},
+		{
+			name:  "very small negative number",
+			input: "-9223372036854775809",
+			scale: 0,
+		},
+		{
+			name:  "decimal value with fraction",
+			input: "123.45",
+			scale: 0,
+		},
+		{
+			name:  "decimal value with fraction and positive scale",
+			input: "123.45",
+			scale: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		dec, err := decimal.NewFromString(tt.input)
+		if err != nil {
+			b.Fatalf("Failed to create decimal from string: %v", err)
+		}
+		dst := make([]byte, blobSize)
+
+		b.Run(tt.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				Serialize(&dec, tt.scale, dst)
+			}
+		})
+	}
+}

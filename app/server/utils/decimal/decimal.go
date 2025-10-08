@@ -3,6 +3,7 @@ package decimal
 
 import (
 	"math/big"
+	"slices"
 
 	"github.com/shopspring/decimal"
 )
@@ -27,8 +28,5 @@ func Serialize(
 		tmp.FillBytes(dst)
 	}
 
-	// Reverse bytes to convert from big-endian to little-endian
-	for i := 0; i < blobSize/2; i++ {
-		dst[i], dst[blobSize-1-i] = dst[blobSize-1-i], dst[i]
-	}
+	slices.Reverse(dst)
 }
