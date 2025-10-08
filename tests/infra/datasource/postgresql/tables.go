@@ -74,6 +74,8 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 				"col_24_date":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_DATE)),
 				"col_25_json":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_JSON)),
 				"col_26_uuid":                common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
+				"col_27_numeric_int":         common.MakeOptionalType(common.MakeDecimalType(10, 0)),
+				"col_28_numeric_rational":    common.MakeOptionalType(common.MakeDecimalType(4, 2)),
 			},
 		},
 		Records: []*test_utils.Record[int32, *array.Int32Builder]{
@@ -210,6 +212,16 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 					"col_26_uuid": []*[]byte{
 						ptr.T([]byte(string("dce06500-b56b-412b-bc39-f9fafb602663"))),
 						ptr.T([]byte(string("b18cafa2-9892-4515-843d-e8ee9bd9a858"))),
+						nil,
+					},
+					"col_27_numeric_int": []*[]byte{
+						ptr.T([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
+						nil,
+					},
+					"col_28_numeric_rational": []*[]byte{
+						ptr.T([]byte{87, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{82, 247, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
 						nil,
 					},
 				},

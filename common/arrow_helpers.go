@@ -27,7 +27,7 @@ type ArrowArrayType[VT ValueType] interface {
 		*array.Int8 | *array.Int16 | *array.Int32 | *array.Int64 |
 		*array.Uint8 | *array.Uint16 | *array.Uint32 | *array.Uint64 |
 		*array.Float32 | *array.Float64 |
-		*array.String | *array.Binary
+		*array.String | *array.Binary | *array.FixedSizeBinary
 
 	Len() int
 	Value(int) VT

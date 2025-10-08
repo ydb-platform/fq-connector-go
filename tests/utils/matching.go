@@ -187,6 +187,8 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			processColumn[string, *array.String](table, colIdx, restCols)
 		case *array.Binary:
 			processColumn[[]byte, *array.Binary](table, colIdx, restCols)
+		case *array.FixedSizeBinary:
+			processColumn[[]byte, *array.FixedSizeBinary](table, colIdx, restCols)
 		//nolint:revive
 		case *array.Struct:
 			// Обработка для структурных типов
@@ -298,6 +300,8 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 					restBuilders[colIdx] = array.NewNullBuilder(pool)
 				case *array.Binary:
 					restBuilders[colIdx] = array.NewBinaryBuilder(pool, arrow.BinaryTypes.Binary)
+				case *array.FixedSizeBinary:
+					restBuilders[colIdx] = array.NewFixedSizeBinaryBuilder(pool, &arrow.FixedSizeBinaryType{ByteWidth: 16})
 				case *array.Struct:
 					// Создаем новый StructBuilder на основе существующего типа
 					structType := table.Column(colIdx + 1).DataType().(*arrow.StructType)
@@ -333,6 +337,8 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			case *array.NullBuilder:
 				builder.AppendNull()
 			case *array.BinaryBuilder:
+				appendToBuilder(builder, val)
+			case *array.FixedSizeBinaryBuilder:
 				appendToBuilder(builder, val)
 			case *array.StructBuilder:
 				// Обработка структуры
@@ -445,6 +451,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 	return newTable
 }
 
+//nolint:gocyclo
 func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arrow.Array, optional bool) {
 	switch arrowField.Type.ID() {
 	case arrow.INT8:
@@ -475,6 +482,8 @@ func matchColumns(t *testing.T, arrowField arrow.Field, expected any, actual arr
 		}
 	case arrow.BINARY:
 		matchArrays[[]byte, *array.Binary](t, arrowField.Name, expected, actual, optional)
+	case arrow.FIXED_SIZE_BINARY:
+		matchArrays[[]byte, *array.FixedSizeBinary](t, arrowField.Name, expected, actual, optional)
 	case arrow.STRUCT:
 		matchStructArrays(t, arrowField.Name, expected, actual.(*array.Struct), optional)
 	default:
