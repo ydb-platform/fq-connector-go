@@ -89,7 +89,7 @@ func (typeMapper) SQLTypeToYDBColumn(
 		err     error
 	)
 
-	typeName := columnDescription.Name
+	typeName := columnDescription.Type
 
 	optional := false
 	if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
