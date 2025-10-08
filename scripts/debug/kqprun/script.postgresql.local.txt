@@ -2,4 +2,6 @@
 
 -- SELECT * FROM external_datasource.lineitem WHERE l_linenumber > 0;
 
-SELECT col_27_numeric_int, col_28_numeric_rational FROM external_datasource.primitives;
+SELECT col_27_numeric_int, col_28_numeric_rational FROM external_datasource.primitives WHERE col_27_numeric_int = Decimal(1);
+
+-- SELECT col_27_numeric_int, col_28_numeric_rational FROM external_datasource.primitives WHERE id = 1;

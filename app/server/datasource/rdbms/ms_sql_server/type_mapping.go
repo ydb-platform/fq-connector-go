@@ -85,7 +85,7 @@ func (typeMapper) SQLTypeToYDBColumn(
 	ydbType = common.MakeOptionalType(ydbType)
 
 	return &Ydb.Column{
-		Name: columnDescription.Type,
+		Name: columnDescription.Name,
 		Type: ydbType,
 	}, nil
 }
