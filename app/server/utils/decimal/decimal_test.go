@@ -10,6 +10,7 @@ import (
 )
 
 func TestSerialize(t *testing.T) {
+	serializer := NewSerializer()
 	tests := []struct {
 		name     string
 		input    int64
@@ -63,7 +64,7 @@ func TestSerialize(t *testing.T) {
 			result := make([]byte, blobSize)
 
 			// Call Serialize
-			Serialize(&dec, tt.scale, result)
+			serializer.Serialize(&dec, tt.scale, result)
 
 			// Check result
 			if !bytes.Equal(result, tt.expected) {
@@ -75,6 +76,7 @@ func TestSerialize(t *testing.T) {
 
 // TestSerializeEdgeCases tests edge cases for the Serialize function
 func TestSerializeEdgeCases(t *testing.T) {
+	serializer := NewSerializer()
 	// Test with a very large decimal number that requires big.Int
 	t.Run("very large number", func(t *testing.T) {
 		// Create a large decimal that would overflow int64
@@ -82,7 +84,7 @@ func TestSerializeEdgeCases(t *testing.T) {
 		assert.NoError(t, err)
 
 		result := make([]byte, blobSize)
-		Serialize(&dec, 0, result)
+		serializer.Serialize(&dec, 0, result)
 
 		expected := []byte{0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0}
 		assert.Equal(t, expected, result)
@@ -94,7 +96,7 @@ func TestSerializeEdgeCases(t *testing.T) {
 		assert.NoError(t, err)
 
 		result := make([]byte, blobSize)
-		Serialize(&dec, 0, result)
+		serializer.Serialize(&dec, 0, result)
 
 		expected := []byte{255, 255, 255, 255, 255, 255, 255, 127, 255, 255, 255, 255, 255, 255, 255, 255}
 		assert.Equal(t, expected, result)
@@ -102,6 +104,7 @@ func TestSerializeEdgeCases(t *testing.T) {
 }
 
 func TestSerializeWithDecimalInput(t *testing.T) {
+	serializer := NewSerializer()
 	tests := []struct {
 		name     string
 		input    string
@@ -132,7 +135,7 @@ func TestSerializeWithDecimalInput(t *testing.T) {
 			result := make([]byte, blobSize)
 
 			// Call Serialize
-			Serialize(&dec, tt.scale, result)
+			serializer.Serialize(&dec, tt.scale, result)
 
 			// Check result
 			assert.Equal(t, tt.expected, result, fmt.Sprintf("%v %v", tt.input, tt.scale))
@@ -141,6 +144,7 @@ func TestSerializeWithDecimalInput(t *testing.T) {
 }
 
 func BenchmarkSerialize(b *testing.B) {
+	serializer := NewSerializer()
 	tests := []struct {
 		name  string
 		input string
@@ -159,9 +163,7 @@ func BenchmarkSerialize(b *testing.B) {
 		{
 			name:  "negative number",
 			input: "-2",
-			scale: 0,
-		},
-		{
+			scale: 0}, {
 			name:  "zero",
 			input: "0",
 			scale: 0,
@@ -203,12 +205,14 @@ func BenchmarkSerialize(b *testing.B) {
 		if err != nil {
 			b.Fatalf("Failed to create decimal from string: %v", err)
 		}
+
 		dst := make([]byte, blobSize)
 
 		b.Run(tt.name, func(b *testing.B) {
 			b.ReportAllocs()
+
 			for i := 0; i < b.N; i++ {
-				Serialize(&dec, tt.scale, dst)
+				serializer.Serialize(&dec, tt.scale, dst)
 			}
 		})
 	}

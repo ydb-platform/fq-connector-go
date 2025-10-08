@@ -271,12 +271,13 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 		case pgtype.NumericOID:
 			buf := make([]byte, 16)                                            // reuse buffer between calls
 			scale := ydbTypes[i].GetOptionalType().Item.GetDecimalType().Scale // preserve scale
+			serializer := decimal.NewSerializer()
 
 			acceptors = append(acceptors, new(shopspring.Numeric))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*shopspring.Numeric)
 				if cast.Status == jackc_pgtype.Present {
-					decimal.Serialize(&cast.Decimal, scale, buf)
+					serializer.Serialize(&cast.Decimal, scale, buf)
 					builder.(*array.FixedSizeBinaryBuilder).Append(buf)
 				} else {
 					builder.(*array.FixedSizeBinaryBuilder).AppendNull()
