@@ -60,6 +60,8 @@ func (f sqlFormatter) supportsConstantValueExpression(t *Ydb.Type) bool {
 		return f.supportsType(v.TypeId)
 	case *Ydb.Type_OptionalType:
 		return f.supportsConstantValueExpression(v.OptionalType.Item)
+	case *Ydb.Type_DecimalType:
+		return true
 	default:
 		return false
 	}

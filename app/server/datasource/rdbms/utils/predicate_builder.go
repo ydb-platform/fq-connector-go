@@ -86,6 +86,7 @@ func (pb *predicateBuilder) formatPrimitiveValue(
 		pb.args.AddTyped(value.Type, v.DoubleValue)
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_BytesValue:
+		fmt.Println("BytesValue: ", v.BytesValue)
 		pb.args.AddTyped(value.Type, v.BytesValue)
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_TextValue:
