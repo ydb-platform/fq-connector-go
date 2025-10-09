@@ -345,3 +345,36 @@ func NewSuite(
 
 	return result
 }
+
+func (s *Suite) TestPushdownDecimalIntEQ() {
+	// Test for: SELECT * FROM table WHERE col_27_numeric_int = Decimal("1", 10, 0);
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_decimal_int_EQ"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_27_numeric_int",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(common.MakeDecimalType(10, 0), []byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+			),
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownDecimalRationalEQ() {
+	// Test for: SELECT * FROM table WHERE col_28_numeric_rational = Decimal("-22.22", 4, 2);
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_decimal_rational_EQ"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: tests_utils.MakePredicateComparisonColumn(
+				"col_28_numeric_rational",
+				api_service_protos.TPredicate_TComparison_EQ,
+				common.MakeTypedValue(
+					common.MakeDecimalType(4, 2),
+					[]byte{82, 247, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
+				),
+			),
+		}),
+	)
+}
