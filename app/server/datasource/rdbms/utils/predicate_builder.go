@@ -11,6 +11,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/decimal"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -91,6 +92,9 @@ func (pb *predicateBuilder) formatTypedValue(
 			pb.args.AddTyped(value.Type, v.BytesValue)
 			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		case *Ydb.Type_DecimalType:
+			decimalValue := decimal.Deserialize(v.BytesValue, t.DecimalType.Scale)
+			pb.args.AddTyped(value.Type, decimalValue)
+			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		default:
 			return "", fmt.Errorf("unsupported type '%T' for bytes value: %w", v, common.ErrUnimplementedTypedValue)
 		}

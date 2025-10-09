@@ -8,7 +8,6 @@ import (
 )
 
 func TestDeserialize(t *testing.T) {
-	deserializer := NewDeserializer()
 	tests := []struct {
 		name     string
 		input    []byte
@@ -67,8 +66,10 @@ func TestDeserialize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := deserializer.Deserialize(tt.input, tt.scale)
+			// Call Deserialize
+			result := Deserialize(tt.input, tt.scale)
 
+			// Check result
 			expected, err := decimal.NewFromString(tt.expected)
 			assert.NoError(t, err)
 			assert.True(t, expected.Equal(*result), "Expected %s, got %s", expected.String(), result.String())
@@ -78,12 +79,10 @@ func TestDeserialize(t *testing.T) {
 
 // TestDeserializeEdgeCases tests edge cases for the Deserialize function
 func TestDeserializeEdgeCases(t *testing.T) {
-	deserializer := NewDeserializer()
-
 	// Test with a very large decimal number that requires big.Int
 	t.Run("very large number", func(t *testing.T) {
 		input := []byte{0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 0, 0}
-		result := deserializer.Deserialize(input, 0)
+		result := Deserialize(input, 0)
 
 		expected, err := decimal.NewFromString("9223372036854775808") // One more than max int64
 		assert.NoError(t, err)
@@ -93,7 +92,7 @@ func TestDeserializeEdgeCases(t *testing.T) {
 	// Test with a very small negative number
 	t.Run("very small negative number", func(t *testing.T) {
 		input := []byte{255, 255, 255, 255, 255, 255, 255, 127, 255, 255, 255, 255, 255, 255, 255, 255}
-		result := deserializer.Deserialize(input, 0)
+		result := Deserialize(input, 0)
 
 		expected, err := decimal.NewFromString("-9223372036854775809") // One less than min int64
 		assert.NoError(t, err)
@@ -103,7 +102,6 @@ func TestDeserializeEdgeCases(t *testing.T) {
 
 func TestRoundTrip(t *testing.T) {
 	serializer := NewSerializer()
-	deserializer := NewDeserializer()
 
 	tests := []struct {
 		name  string
@@ -153,7 +151,7 @@ func TestRoundTrip(t *testing.T) {
 			serializer.Serialize(&original, tt.scale, buffer)
 
 			// Deserialize
-			result := deserializer.Deserialize(buffer, tt.scale)
+			result := Deserialize(buffer, tt.scale)
 
 			// Compare
 			assert.True(t, original.Equal(*result), "Round trip failed: original %s, got %s", original.String(), result.String())
@@ -162,7 +160,6 @@ func TestRoundTrip(t *testing.T) {
 }
 
 func BenchmarkDeserialize(b *testing.B) {
-	deserializer := NewDeserializer()
 	tests := []struct {
 		name  string
 		input []byte
@@ -215,7 +212,7 @@ func BenchmarkDeserialize(b *testing.B) {
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				deserializer.Deserialize(tt.input, tt.scale)
+				Deserialize(tt.input, tt.scale)
 			}
 		})
 	}
