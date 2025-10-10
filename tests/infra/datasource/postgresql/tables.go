@@ -501,6 +501,53 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 		Schema:                pushdownSchemaYdb(),
 		Records:               []*test_utils.Record[int32, *array.Int32Builder]{},
 	},
+	"pushdown_decimal_int_EQ": {
+		Name:                  "pushdown_decimal",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownDecimalSchemaYdb(),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id": []*int32{ptr.Int32(1)},
+					"col_27_numeric_int": []*[]byte{
+						ptr.T([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+					},
+					"col_28_numeric_rational": []*[]byte{
+						ptr.T([]byte{87, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+					},
+				},
+			},
+		},
+	},
+	"pushdown_decimal_rational_EQ": {
+		Name:                  "pushdown_decimal",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownDecimalSchemaYdb(),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id": []*int32{ptr.Int32(2)},
+					"col_27_numeric_int": []*[]byte{
+						ptr.T([]byte{254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
+					},
+					"col_28_numeric_rational": []*[]byte{
+						ptr.T([]byte{82, 247, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}),
+					},
+				},
+			},
+		},
+	},
+}
+
+// Schema for decimal pushdown tests
+func pushdownDecimalSchemaYdb() *test_utils.TableSchema {
+	return &test_utils.TableSchema{
+		Columns: map[string]*Ydb.Type{
+			"id":                      common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+			"col_27_numeric_int":      common.MakeOptionalType(common.MakeDecimalType(10, 0)),
+			"col_28_numeric_rational": common.MakeOptionalType(common.MakeDecimalType(4, 2)),
+		},
+	}
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

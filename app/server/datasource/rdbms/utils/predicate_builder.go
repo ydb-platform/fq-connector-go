@@ -11,6 +11,7 @@ import (
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/decimal"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
@@ -36,11 +37,11 @@ func (pb *predicateBuilder) formatValue(
 		return pb.formatOptionalValue(value)
 	}
 
-	return pb.formatPrimitiveValue(value, embedBool)
+	return pb.formatTypedValue(value, embedBool)
 }
 
 //nolint:gocyclo
-func (pb *predicateBuilder) formatPrimitiveValue(
+func (pb *predicateBuilder) formatTypedValue(
 	value *Ydb.TypedValue,
 	embedBool bool, // remove after YQ-4191, KIKIMR-22852 is fixed
 ) (string, error) {
@@ -86,8 +87,18 @@ func (pb *predicateBuilder) formatPrimitiveValue(
 		pb.args.AddTyped(value.Type, v.DoubleValue)
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_BytesValue:
-		pb.args.AddTyped(value.Type, v.BytesValue)
-		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
+		switch t := value.Type.Type.(type) {
+		case *Ydb.Type_TypeId:
+			pb.args.AddTyped(value.Type, v.BytesValue)
+			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
+		case *Ydb.Type_DecimalType:
+			decimalValue := decimal.Deserialize(v.BytesValue, t.DecimalType.Scale)
+			pb.args.AddTyped(value.Type, decimalValue)
+
+			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
+		default:
+			return "", fmt.Errorf("unsupported type '%T' for bytes value: %w", v, common.ErrUnimplementedTypedValue)
+		}
 	case *Ydb.Value_TextValue:
 		pb.args.AddTyped(value.Type, v.TextValue)
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil

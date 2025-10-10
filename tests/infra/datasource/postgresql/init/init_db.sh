@@ -95,3 +95,15 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         (3, 30, 'c'), \
         (4, NULL, NULL);
 EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS pushdown_decimal;
+    CREATE TABLE pushdown_decimal (
+        id int,
+        col_27_numeric_int numeric(10, 0),
+        col_28_numeric_rational numeric(4, 2)
+    );
+    INSERT INTO pushdown_decimal (id, col_27_numeric_int, col_28_numeric_rational) VALUES \
+        (1, 1, 11.11), \
+        (2, -2, -22.22);
+EOSQL
