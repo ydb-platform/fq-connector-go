@@ -127,6 +127,10 @@ func (typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescripti
 		return nil, fmt.Errorf("scale must be specified for numeric types")
 	}
 
+	if *columnDescription.Scale < 0 {
+		return nil, fmt.Errorf("scale must be non-negative")
+	}
+
 	return common.MakeDecimalType(uint32(*columnDescription.Precision), uint32(*columnDescription.Scale)), nil
 }
 

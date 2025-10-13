@@ -46,7 +46,7 @@ func (f *defaultSchemaProvider) GetSchema(
 		columnName *string
 		typeName   *string
 		precision  *uint64
-		scale      *uint64
+		scale      *int64
 	)
 
 	for rows.Next() {
@@ -65,8 +65,8 @@ func (f *defaultSchemaProvider) GetSchema(
 		}
 
 		if scale != nil {
-			cd.Scale = new(uint8)
-			*cd.Scale = uint8(*scale)
+			cd.Scale = new(int8)
+			*cd.Scale = int8(*scale)
 		}
 
 		if err = sb.AddColumn(cd); err != nil {
