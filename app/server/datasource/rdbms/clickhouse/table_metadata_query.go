@@ -6,7 +6,8 @@ import (
 )
 
 func TableMetadataQuery(request *api_service_protos.TDescribeTableRequest) (string, *rdbms_utils.QueryArgs) {
-	query := "SELECT name, type, numeric_precision, numeric_scale FROM system.columns WHERE table = ? and database = ?"
+	query := `SELECT name, type, numeric_precision, toInt64(numeric_scale) 
+			FROM system.columns WHERE table = ? and database = ?`
 
 	var args rdbms_utils.QueryArgs
 
