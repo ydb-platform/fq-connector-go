@@ -40,15 +40,13 @@ func (f *defaultSchemaProvider) GetSchema(
 
 	defer func() { common.LogCloserError(logger, rows, "close rows") }()
 
-	var cd datasource.ColumnDescription
-
 	sb := NewSchemaBuilder(f.typeMapper, request.TypeMappingSettings)
 
 	var (
 		columnName *string
 		typeName   *string
 		precision  *uint64
-		scale      *uint64
+		scale      *int64
 	)
 
 	for rows.Next() {
@@ -56,8 +54,10 @@ func (f *defaultSchemaProvider) GetSchema(
 			return nil, fmt.Errorf("rows scan: %w", err)
 		}
 
-		cd.Name = *columnName
-		cd.Type = *typeName
+		cd := &datasource.ColumnDescription{
+			Name: *columnName,
+			Type: *typeName,
+		}
 
 		if precision != nil {
 			cd.Precision = new(uint8)
@@ -65,12 +65,12 @@ func (f *defaultSchemaProvider) GetSchema(
 		}
 
 		if scale != nil {
-			cd.Scale = new(uint8)
-			*cd.Scale = uint8(*scale)
+			cd.Scale = new(int8)
+			*cd.Scale = int8(*scale)
 		}
 
-		if err = sb.AddColumn(&cd); err != nil {
-			return nil, fmt.Errorf("add column to schema builder: %w", err)
+		if err = sb.AddColumn(cd); err != nil {
+			return nil, fmt.Errorf("add column `%s` to schema builder: %w", cd.Name, err)
 		}
 	}
 

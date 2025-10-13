@@ -62,7 +62,7 @@ type ColumnDescription struct {
 	Name      string // mandatory
 	Type      string // mandatory
 	Precision *uint8 // filled only for numeric columns
-	Scale     *uint8 // filled only for numeric columns
+	Scale     *int8  // filled only for numeric columns
 }
 
 type TypeMapper interface {
