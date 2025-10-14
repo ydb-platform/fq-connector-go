@@ -165,23 +165,41 @@ func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
 		sb.WriteString(" AND ")
 	}
 
-	switch t := (histogramBounds.Payload).(type) {
-	case *TSplitDescription_THistogramBounds_Int64Bounds:
-		out, err := f.renderSelectQueryTextWithInt64Bounds(sb, histogramBounds.ColumnName, t.Int64Bounds)
-		if err != nil {
-			return "", fmt.Errorf("render select query text with int64 bounds: %w", err)
-		}
+	var lowerVal, upperVal any
 
-		return out, nil
+	switch t := (histogramBounds.Payload).(type) {
+	case *TSplitDescription_THistogramBounds_Int32Bounds:
+		if t.Int32Bounds.Lower != nil {
+			lowerVal = t.Int32Bounds.Lower.Value
+		}
+		if t.Int32Bounds.Upper != nil {
+			upperVal = t.Int32Bounds.Upper.Value
+		}
+	case *TSplitDescription_THistogramBounds_Int64Bounds:
+		if t.Int64Bounds.Lower != nil {
+			lowerVal = t.Int64Bounds.Lower.Value
+		}
+		if t.Int64Bounds.Upper != nil {
+			upperVal = t.Int64Bounds.Upper.Value
+		}
+	case *TSplitDescription_THistogramBounds_DecimalBounds:
+		if t.DecimalBounds.Lower != nil {
+			lowerVal = t.DecimalBounds.Lower.Value
+		}
+		if t.DecimalBounds.Upper != nil {
+			upperVal = t.DecimalBounds.Upper.Value
+		}
 	default:
 		return "", fmt.Errorf("unknown histogram bounds type: %v", t)
 	}
+
+	return f.renderSelectQueryTextWithBoundsHelper(sb, histogramBounds.ColumnName, lowerVal, upperVal)
 }
 
-func (f sqlFormatter) renderSelectQueryTextWithInt64Bounds(
+func (f sqlFormatter) renderSelectQueryTextWithBoundsHelper(
 	sb *strings.Builder,
 	columnName string,
-	bounds *TInt64Bounds,
+	lower, upper any,
 ) (string, error) {
 	if columnName == "" {
 		return "", fmt.Errorf("column name is empty")
@@ -189,20 +207,20 @@ func (f sqlFormatter) renderSelectQueryTextWithInt64Bounds(
 
 	columnName = f.SanitiseIdentifier(columnName)
 
-	if bounds.Lower == nil && bounds.Upper == nil {
+	if lower == nil && upper == nil {
 		return "", fmt.Errorf("you must fill either lower bounds, either upper bounds, or both of them")
 	}
 
-	if bounds.Lower == nil && bounds.Upper != nil {
-		if _, err := fmt.Fprintf(sb, "%s < %d", columnName, bounds.Upper.Value); err != nil {
+	if lower == nil && upper != nil {
+		if _, err := fmt.Fprintf(sb, "%s < %v", columnName, upper); err != nil {
 			return "", fmt.Errorf("fprintf: %w", err)
 		}
 
 		return sb.String(), nil
 	}
 
-	if bounds.Lower != nil && bounds.Upper == nil {
-		if _, err := fmt.Fprintf(sb, "%s >= %d", columnName, bounds.Lower.Value); err != nil {
+	if lower != nil && upper == nil {
+		if _, err := fmt.Fprintf(sb, "%s >= %v", columnName, lower); err != nil {
 			return "", fmt.Errorf("fprintf: %w", err)
 		}
 
@@ -212,9 +230,9 @@ func (f sqlFormatter) renderSelectQueryTextWithInt64Bounds(
 	sb.WriteString("(")
 
 	if _, err := fmt.Fprintf(sb,
-		"%s >= %d AND %s < %d",
-		columnName, bounds.Lower.Value,
-		columnName, bounds.Upper.Value,
+		"%s >= %v AND %s < %v",
+		columnName, lower,
+		columnName, upper,
 	); err != nil {
 		return "", fmt.Errorf("fprintf: %w", err)
 	}
