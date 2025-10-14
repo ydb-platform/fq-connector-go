@@ -116,19 +116,19 @@ func (typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescripti
 	}
 
 	if columnDescription.Precision == nil {
-		return nil, fmt.Errorf("unconstrained numeric types with arbitrary precision are not supported")
+		return nil, fmt.Errorf("unconstrained numeric types with arbitrary precision are not supported: %w", common.ErrDataTypeNotSupported)
 	}
 
 	if *columnDescription.Precision > 35 {
-		return nil, fmt.Errorf("precision of a numeric type must be less or equal to 35")
+		return nil, fmt.Errorf("precision of a numeric type must be less or equal to 35: %w", common.ErrDataTypeNotSupported)
 	}
 
 	if columnDescription.Scale == nil {
-		return nil, fmt.Errorf("scale must be specified for numeric types")
+		return nil, fmt.Errorf("scale must be specified for numeric types: %w", common.ErrDataTypeNotSupported)
 	}
 
 	if *columnDescription.Scale < 0 {
-		return nil, fmt.Errorf("scale must be non-negative")
+		return nil, fmt.Errorf("scale must be non-negative: %w", common.ErrDataTypeNotSupported)
 	}
 
 	return common.MakeDecimalType(uint32(*columnDescription.Precision), uint32(*columnDescription.Scale)), nil
