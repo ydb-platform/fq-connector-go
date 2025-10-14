@@ -20,6 +20,13 @@ message TInt64Bounds {
     google.protobuf.Int64Value lower = 2;
 };
 
+// TDecimalBounds represents the bounds that can be found for a `numeric`, `decimal` column
+// An open interval can be represented by omitting one of the bounds.
+message TDecimalBounds {
+    google.protobuf.StringValue upper = 1;
+    google.protobuf.StringValue lower = 2;
+};
+
 // TSplitDescription represents the description of PostgreSQL's table split.
 message TSplitDescription {
     // TSingle means that table will be read sequentially
@@ -34,6 +41,7 @@ message TSplitDescription {
         oneof payload {
             TInt32Bounds int32_bounds = 3;
             TInt64Bounds int64_bounds = 2;
+            TDecimalBounds decimal_bounds = 4;
         }
     }
 
