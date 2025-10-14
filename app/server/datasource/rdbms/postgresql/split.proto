@@ -6,7 +6,14 @@ package NYql.Connector.App.Server.DataSource.RDBMS.PostgreSQL;
 
 option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql/";
 
-// TInt64Bounds represents the bounds that can be found for an `bigint`, `bigserial` column
+// TInt32Bounds represents the bounds that can be found for an `int`, `serial`, `int4` column
+// An open interval can be represented by omitting one of the bounds.
+message TInt32Bounds {
+    google.protobuf.Int32Value upper = 1;
+    google.protobuf.Int32Value lower = 2;
+};
+
+// TInt64Bounds represents the bounds that can be found for an `bigint`, `bigserial`, `int8` column
 // An open interval can be represented by omitting one of the bounds.
 message TInt64Bounds {
     google.protobuf.Int64Value upper = 1;
@@ -25,6 +32,7 @@ message TSplitDescription {
         string column_name = 1;
 
         oneof payload {
+            TInt32Bounds int32_bounds = 3;
             TInt64Bounds int64_bounds = 2;
         }
     }
