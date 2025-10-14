@@ -129,10 +129,16 @@ func (s *splitProviderImpl) ListSplits(
 	}
 
 	// We've discovered primary key, add now lets extract the PostgreSQL's native histogram bounds
-	// to use it for a "natural" splitting.
-	histogramBounds, err := s.getHistogramBoundsForPrimaryKey(ctx, logger, conn, schemaName, tableName, pk)
-	if err != nil {
-		return fmt.Errorf("get histogram bounds for primary key: %w", err)
+	// to use it for a "natural" splitting, but first we need to check the type:
+	var histogramBounds []*TSplitDescription_THistogramBounds
+	switch pk.columnType {
+	case "int":
+		histogramBounds, err = s.getHistogramBoundsForPrimaryKey(ctx, logger, conn, schemaName, tableName, pk)
+		if err != nil {
+			return fmt.Errorf("get histogram bounds for int primary key: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported primary key type: %s", pk.columnType)
 	}
 
 	if len(histogramBounds) == 0 {
