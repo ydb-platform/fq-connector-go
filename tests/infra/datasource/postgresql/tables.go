@@ -3,6 +3,7 @@ package postgresql
 import (
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/apache/arrow/go/v13/arrow/array"
 	"github.com/apache/arrow/go/v13/arrow/memory"
 
@@ -15,7 +16,7 @@ import (
 
 var memPool memory.Allocator = memory.NewGoAllocator()
 
-var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
+var tablesIDInt32 = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 	"simple": {
 		Name:                  "simple",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
@@ -537,6 +538,120 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"primary_key_int": {
+		Name:                  "primary_key_int",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)),
+				"text_col": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":       []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3), ptr.Int32(4), ptr.Int32(5)},
+					"text_col": []*string{ptr.String("a"), ptr.String("b"), ptr.String("c"), ptr.String("d"), ptr.String("e")},
+				},
+			},
+		},
+	},
+}
+
+var tablesIDInt64 = map[string]*test_utils.Table[int64, *array.Int64Builder]{
+	"primary_key_bigint": {
+		Name:                  "primary_key_bigint",
+		IDArrayBuilderFactory: newInt64IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT64)),
+				"text_col": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[int64, *array.Int64Builder]{
+			{
+				Columns: map[string]any{
+					"id":       []*int64{ptr.Int64(1), ptr.Int64(2), ptr.Int64(3), ptr.Int64(4), ptr.Int64(5)},
+					"text_col": []*string{ptr.String("a"), ptr.String("b"), ptr.String("c"), ptr.String("d"), ptr.String("e")},
+				},
+			},
+		},
+	},
+}
+
+var tablesIDDecimal = map[string]*test_utils.Table[[]byte, *array.FixedSizeBinaryBuilder]{
+	"primary_key_numeric_10_0": {
+		Name:                  "primary_key_numeric_10_0",
+		IDArrayBuilderFactory: newFixedSizeBinaryBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":       common.MakeOptionalType(common.MakeDecimalType(10, 0)),
+				"text_col": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[[]byte, *array.FixedSizeBinaryBuilder]{
+			{
+				Columns: map[string]any{
+					"id": []*[]byte{
+						ptr.T([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+					},
+					"text_col": []*string{ptr.String("a"), ptr.String("b"), ptr.String("c"), ptr.String("d"), ptr.String("e")},
+				},
+			},
+		},
+	},
+	"primary_key_numeric_4_2": {
+		Name:                  "primary_key_numeric_4_2",
+		IDArrayBuilderFactory: newFixedSizeBinaryBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":       common.MakeOptionalType(common.MakeDecimalType(4, 2)),
+				"text_col": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[[]byte, *array.FixedSizeBinaryBuilder]{
+			{
+				Columns: map[string]any{
+					"id": []*[]byte{
+						ptr.T([]byte{100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), // 1.00
+						ptr.T([]byte{250, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), // 2.50
+						ptr.T([]byte{119, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), // 3.75
+						ptr.T([]byte{169, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), // 4.25
+						ptr.T([]byte{87, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),  // 5.99
+					},
+					"text_col": []*string{ptr.String("a"), ptr.String("b"), ptr.String("c"), ptr.String("d"), ptr.String("e")},
+				},
+			},
+		},
+	},
+	"primary_key_numeric_unconstrained": {
+		Name:                  "primary_key_numeric",
+		IDArrayBuilderFactory: newFixedSizeBinaryBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"text_col": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+			},
+		},
+		Records: []*test_utils.Record[[]byte, *array.FixedSizeBinaryBuilder]{
+			{
+				Columns: map[string]any{
+					"id": []*[]byte{
+						ptr.T([]byte{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+						ptr.T([]byte{5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}),
+					},
+					"text_col": []*string{ptr.String("a"), ptr.String("b"), ptr.String("c"), ptr.String("d"), ptr.String("e")},
+				},
+			},
+		},
+	},
 }
 
 // Schema for decimal pushdown tests
@@ -563,5 +678,17 @@ func pushdownSchemaYdb() *test_utils.TableSchema {
 func newInt32IDArrayBuilder(pool memory.Allocator) func() *array.Int32Builder {
 	return func() *array.Int32Builder {
 		return array.NewInt32Builder(pool)
+	}
+}
+
+func newInt64IDArrayBuilder(pool memory.Allocator) func() *array.Int64Builder {
+	return func() *array.Int64Builder {
+		return array.NewInt64Builder(pool)
+	}
+}
+
+func newFixedSizeBinaryBuilder(pool memory.Allocator) func() *array.FixedSizeBinaryBuilder {
+	return func() *array.FixedSizeBinaryBuilder {
+		return array.NewFixedSizeBinaryBuilder(pool, &arrow.FixedSizeBinaryType{ByteWidth: 16})
 	}
 }

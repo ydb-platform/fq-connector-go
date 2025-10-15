@@ -20,7 +20,7 @@ import (
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
-	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder | *array.StringBuilder
+	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder | *array.StringBuilder | *array.FixedSizeBinaryBuilder
 	Append(ID)
 	NewArray() arrow.Array
 	Release()
@@ -143,6 +143,8 @@ func (c arrowIDCol[ID]) mustValue(i int) ID {
 	case *array.Binary:
 		return any(col.Value(i)).(ID)
 	case *array.String:
+		return any(col.Value(i)).(ID)
+	case *array.FixedSizeBinary:
 		return any(col.Value(i)).(ID)
 	default:
 		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))

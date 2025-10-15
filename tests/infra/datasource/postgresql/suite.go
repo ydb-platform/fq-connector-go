@@ -15,33 +15,33 @@ import (
 	tests_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
-type Suite struct {
+type SuiteIDInt32 struct {
 	*suite.Base[int32, *array.Int32Builder]
 	dataSource *datasource.DataSource
 }
 
-func (s *Suite) TestSelect() {
+func (s *SuiteIDInt32) TestSelect() {
 	testCaseNames := []string{"simple", "primitives"}
 
 	for _, testCase := range testCaseNames {
-		s.ValidateTable(s.dataSource, tables[testCase])
+		s.ValidateTable(s.dataSource, tablesIDInt32[testCase])
 	}
 }
 
-func (s *Suite) TestDatetimeFormatYQL() {
+func (s *SuiteIDInt32) TestDatetimeFormatYQL() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["datetime_format_yql"],
+		tablesIDInt32["datetime_format_yql"],
 		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_YQL_FORMAT),
 	)
 }
 
-func (s *Suite) TestPushdownTimestampEQ() {
+func (s *SuiteIDInt32) TestPushdownTimestampEQ() {
 	t := time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC)
 
 	s.ValidateTable(
 		s.dataSource,
-		tables["datetime_format_yql_pushdown_timestamp_EQ"],
+		tablesIDInt32["datetime_format_yql_pushdown_timestamp_EQ"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_01_timestamp",
@@ -53,18 +53,18 @@ func (s *Suite) TestPushdownTimestampEQ() {
 	)
 }
 
-func (s *Suite) TestDatetimeFormatString() {
+func (s *SuiteIDInt32) TestDatetimeFormatString() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["datetime_format_string"],
+		tablesIDInt32["datetime_format_string"],
 		suite.WithDateTimeFormat(api_service_protos.EDateTimeFormat_STRING_FORMAT),
 	)
 }
 
-func (s *Suite) TestPushdownComparisonL() {
+func (s *SuiteIDInt32) TestPushdownComparisonL() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_L"],
+		tablesIDInt32["pushdown_comparison_L"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_01_int",
@@ -75,10 +75,10 @@ func (s *Suite) TestPushdownComparisonL() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonLE() {
+func (s *SuiteIDInt32) TestPushdownComparisonLE() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_LE"],
+		tablesIDInt32["pushdown_comparison_LE"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_01_int",
@@ -89,10 +89,10 @@ func (s *Suite) TestPushdownComparisonLE() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonEQ() {
+func (s *SuiteIDInt32) TestPushdownComparisonEQ() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_EQ"],
+		tablesIDInt32["pushdown_comparison_EQ"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_01_int",
@@ -103,10 +103,10 @@ func (s *Suite) TestPushdownComparisonEQ() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonGE() {
+func (s *SuiteIDInt32) TestPushdownComparisonGE() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_GE"],
+		tablesIDInt32["pushdown_comparison_GE"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_01_int",
@@ -117,11 +117,11 @@ func (s *Suite) TestPushdownComparisonGE() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonG() {
+func (s *SuiteIDInt32) TestPushdownComparisonG() {
 	// WHERE col_01_int > id
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_G"],
+		tablesIDInt32["pushdown_comparison_G"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Comparison{
 				Comparison: &api_service_protos.TPredicate_TComparison{
@@ -142,10 +142,10 @@ func (s *Suite) TestPushdownComparisonG() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonNE() {
+func (s *SuiteIDInt32) TestPushdownComparisonNE() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_NE"],
+		tablesIDInt32["pushdown_comparison_NE"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"id",
@@ -156,10 +156,10 @@ func (s *Suite) TestPushdownComparisonNE() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonNULL() {
+func (s *SuiteIDInt32) TestPushdownComparisonNULL() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_NULL"],
+		tablesIDInt32["pushdown_comparison_NULL"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateIsNullColumn(
 				"col_01_int",
@@ -168,10 +168,10 @@ func (s *Suite) TestPushdownComparisonNULL() {
 	)
 }
 
-func (s *Suite) TestPushdownComparisonNotNULL() {
+func (s *SuiteIDInt32) TestPushdownComparisonNotNULL() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_comparison_NOT_NULL"],
+		tablesIDInt32["pushdown_comparison_NOT_NULL"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateIsNotNullColumn(
 				"col_01_int",
@@ -180,11 +180,11 @@ func (s *Suite) TestPushdownComparisonNotNULL() {
 	)
 }
 
-func (s *Suite) TestPushdownConjunction() {
+func (s *SuiteIDInt32) TestPushdownConjunction() {
 	// WHERE col_01_int > 10 AND col_02_string IS NOT NULL
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_conjunction"],
+		tablesIDInt32["pushdown_conjunction"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Conjunction{
 				Conjunction: &api_service_protos.TPredicate_TConjunction{
@@ -206,11 +206,11 @@ func (s *Suite) TestPushdownConjunction() {
 	)
 }
 
-func (s *Suite) TestPushdownDisjunction() {
+func (s *SuiteIDInt32) TestPushdownDisjunction() {
 	// WHERE col_01_int > 10 OR col_02_string IS NOT NULL
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_disjunction"],
+		tablesIDInt32["pushdown_disjunction"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Disjunction{
 				Disjunction: &api_service_protos.TPredicate_TDisjunction{
@@ -232,11 +232,11 @@ func (s *Suite) TestPushdownDisjunction() {
 	)
 }
 
-func (s *Suite) TestPushdownNegation() {
+func (s *SuiteIDInt32) TestPushdownNegation() {
 	// WHERE NOT (col_01_int IS NOT NULL)
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_negation"],
+		tablesIDInt32["pushdown_negation"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: &api_service_protos.TPredicate_Negation{
 				Negation: &api_service_protos.TPredicate_TNegation{
@@ -256,10 +256,10 @@ func (s *Suite) TestPushdownNegation() {
 // Dependening on a value of filtering mode, server returns either an error
 // or a full table.
 
-func (s *Suite) TestPushdownUnsupportedFilteringOptional() {
+func (s *SuiteIDInt32) TestPushdownUnsupportedFilteringOptional() {
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_unsupported_filtering_optional"],
+		tablesIDInt32["pushdown_unsupported_filtering_optional"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"id",
@@ -272,12 +272,12 @@ func (s *Suite) TestPushdownUnsupportedFilteringOptional() {
 	)
 }
 
-func (s *Suite) TestPushdownUnsupportedFilteringMandatory() {
+func (s *SuiteIDInt32) TestPushdownUnsupportedFilteringMandatory() {
 	for _, dsi := range s.dataSource.Instances {
 		suite.TestUnsupportedPushdownFilteringMandatory(
 			s.Base,
 			dsi,
-			tables["pushdown_unsupported_filtering_optional"],
+			tablesIDInt32["pushdown_unsupported_filtering_optional"],
 			&api_service_protos.TPredicate{
 				Payload: tests_utils.MakePredicateComparisonColumn(
 					"id",
@@ -291,11 +291,11 @@ func (s *Suite) TestPushdownUnsupportedFilteringMandatory() {
 
 // Set of tests validating stats
 
-func (s *Suite) TestPositiveStats() {
-	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
+func (s *SuiteIDInt32) TestPositiveStats() {
+	suite.TestPositiveStats(s.Base, s.dataSource, tablesIDInt32["simple"])
 }
 
-func (s *Suite) TestMissingDataSource() {
+func (s *SuiteIDInt32) TestMissingDataSource() {
 	dsi := &api_common.TGenericDataSourceInstance{
 		Kind:     api_common.EGenericDataSourceKind_POSTGRESQL,
 		Endpoint: &api_common.TGenericEndpoint{Host: "www.google.com", Port: 5432},
@@ -320,37 +320,23 @@ func (s *Suite) TestMissingDataSource() {
 	suite.TestMissingDataSource(s.Base, dsi)
 }
 
-func (s *Suite) TestInvalidLogin() {
+func (s *SuiteIDInt32) TestInvalidLogin() {
 	for _, dsi := range s.dataSource.Instances {
-		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
+		suite.TestInvalidLogin(s.Base, dsi, tablesIDInt32["simple"])
 	}
 }
 
-func (s *Suite) TestInvalidPassword() {
+func (s *SuiteIDInt32) TestInvalidPassword() {
 	for _, dsi := range s.dataSource.Instances {
-		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
+		suite.TestInvalidPassword(s.Base, dsi, tablesIDInt32["simple"])
 	}
 }
 
-func NewSuite(
-	baseSuite *suite.Base[int32, *array.Int32Builder],
-) *Suite {
-	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
-	baseSuite.Require().NoError(err)
-
-	result := &Suite{
-		Base:       baseSuite,
-		dataSource: ds,
-	}
-
-	return result
-}
-
-func (s *Suite) TestPushdownDecimalIntEQ() {
+func (s *SuiteIDInt32) TestPushdownDecimalIntEQ() {
 	// Test for: SELECT * FROM table WHERE col_27_numeric_int = Decimal("1", 10, 0);
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_decimal_int_EQ"],
+		tablesIDInt32["pushdown_decimal_int_EQ"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_27_numeric_int",
@@ -361,11 +347,11 @@ func (s *Suite) TestPushdownDecimalIntEQ() {
 	)
 }
 
-func (s *Suite) TestPushdownDecimalRationalEQ() {
+func (s *SuiteIDInt32) TestPushdownDecimalRationalEQ() {
 	// Test for: SELECT * FROM table WHERE col_28_numeric_rational = Decimal("-22.22", 4, 2);
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_decimal_rational_EQ"],
+		tablesIDInt32["pushdown_decimal_rational_EQ"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
 			Payload: tests_utils.MakePredicateComparisonColumn(
 				"col_28_numeric_rational",
@@ -378,3 +364,76 @@ func (s *Suite) TestPushdownDecimalRationalEQ() {
 		}),
 	)
 }
+
+func NewSuiteIDInt32(
+	baseSuite *suite.Base[int32, *array.Int32Builder],
+) *SuiteIDInt32 {
+	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
+	baseSuite.Require().NoError(err)
+
+	result := &SuiteIDInt32{
+		Base:       baseSuite,
+		dataSource: ds,
+	}
+
+	return result
+}
+
+func (s *SuiteIDInt32) TestPrimaryKeyInt() {
+	s.ValidateTable(s.dataSource, tablesIDInt32["primary_key_int"])
+}
+
+type SuiteIDInt64 struct {
+	*suite.Base[int64, *array.Int64Builder]
+	dataSource *datasource.DataSource
+}
+
+func (s *SuiteIDInt64) TestPrimaryKeyBigint() {
+	s.ValidateTable(s.dataSource, tablesIDInt64["primary_key_bigint"])
+}
+
+func NewSuiteIDInt64(
+	baseSuite *suite.Base[int64, *array.Int64Builder],
+) *SuiteIDInt64 {
+	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
+	baseSuite.Require().NoError(err)
+
+	result := &SuiteIDInt64{
+		Base:       baseSuite,
+		dataSource: ds,
+	}
+
+	return result
+}
+
+type SuiteIDDecimal struct {
+	*suite.Base[[]byte, *array.FixedSizeBinaryBuilder]
+	dataSource *datasource.DataSource
+}
+
+func (s *SuiteIDDecimal) TestPrimaryKeyNumeric_10_0() {
+	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_10_0"])
+}
+
+func (s *SuiteIDDecimal) TestPrimaryKeyNumeric_4_2() {
+	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_4_2"])
+}
+
+// Yet not supported
+// func (s *SuiteIDDecimal) TestPrimaryKeyNumericUnconstrained() {
+// 	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_unconstrained"])
+// }
+
+func NewSuiteIDDecimal(baseSuite *suite.Base[[]byte, *array.FixedSizeBinaryBuilder]) *SuiteIDDecimal {
+	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)
+	baseSuite.Require().NoError(err)
+
+	result := &SuiteIDDecimal{
+		Base:       baseSuite,
+		dataSource: ds,
+	}
+
+	return result
+}
+
+//
