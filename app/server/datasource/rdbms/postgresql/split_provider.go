@@ -368,9 +368,11 @@ func createHistogramBound[T int32 | int64 | string](columnName string, lower, up
 		if lower != nil {
 			lowerVal = wrapperspb.Int32(any(*lower).(int32))
 		}
+
 		if upper != nil {
 			upperVal = wrapperspb.Int32(any(*upper).(int32))
 		}
+
 		payload = &TSplitDescription_THistogramBounds_Int32Bounds{
 			Int32Bounds: &TInt32Bounds{
 				Lower: lowerVal,
@@ -382,9 +384,11 @@ func createHistogramBound[T int32 | int64 | string](columnName string, lower, up
 		if lower != nil {
 			lowerVal = wrapperspb.Int64(any(*lower).(int64))
 		}
+
 		if upper != nil {
 			upperVal = wrapperspb.Int64(any(*upper).(int64))
 		}
+
 		payload = &TSplitDescription_THistogramBounds_Int64Bounds{
 			Int64Bounds: &TInt64Bounds{
 				Lower: lowerVal,
@@ -393,12 +397,15 @@ func createHistogramBound[T int32 | int64 | string](columnName string, lower, up
 		}
 	case string:
 		var lowerVal, upperVal *wrapperspb.StringValue
+
 		if lower != nil {
 			lowerVal = wrapperspb.String(any(*lower).(string))
 		}
+
 		if upper != nil {
 			upperVal = wrapperspb.String(any(*upper).(string))
 		}
+
 		payload = &TSplitDescription_THistogramBounds_DecimalBounds{
 			DecimalBounds: &TDecimalBounds{
 				Lower: lowerVal,

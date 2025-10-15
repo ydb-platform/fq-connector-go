@@ -262,7 +262,6 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			return any(records[i].ID).(int64) < any(records[j].ID).(int64)
 		})
 	} else if _, ok := any(idType).([]byte); ok {
-		var idBuilder IDBUILDER
 		switch any(idBuilder).(type) {
 		case *array.FixedSizeBinaryBuilder:
 			sort.Slice(records, func(i, j int) bool {

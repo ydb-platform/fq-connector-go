@@ -49,9 +49,24 @@ func TestClickHouse(t *testing.T) {
 
 func TestPostgreSQL(t *testing.T) {
 	state.SkipSuiteIfNotEnabled(t)
-	testify_suite.Run(t, postgresql.NewSuiteIDInt32(suite.NewBase[int32, *array.Int32Builder](t, state, "PostgreSQL")))
-	testify_suite.Run(t, postgresql.NewSuiteIDInt64(suite.NewBase[int64, *array.Int64Builder](t, state, "PostgreSQL")))
-	testify_suite.Run(t, postgresql.NewSuiteIDDecimal(suite.NewBase[[]byte, *array.FixedSizeBinaryBuilder](t, state, "PostgreSQL")))
+
+	// enable splitting even for small tables
+	option := suite.WithEmbeddedOptions(server.WithPostgreSQLSplitting(0))
+
+	testify_suite.Run(
+		t,
+		postgresql.NewSuiteIDInt32(suite.NewBase[int32, *array.Int32Builder](t, state, "PostgreSQL", option)),
+	)
+
+	testify_suite.Run(
+		t,
+		postgresql.NewSuiteIDInt64(suite.NewBase[int64, *array.Int64Builder](t, state, "PostgreSQL", option)),
+	)
+
+	testify_suite.Run(
+		t,
+		postgresql.NewSuiteIDDecimal(suite.NewBase[[]byte, *array.FixedSizeBinaryBuilder](t, state, "PostgreSQL", option)),
+	)
 }
 
 func TestYDB(t *testing.T) {

@@ -172,6 +172,7 @@ func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
 		if t.Int32Bounds.Lower != nil {
 			lowerVal = t.Int32Bounds.Lower.Value
 		}
+
 		if t.Int32Bounds.Upper != nil {
 			upperVal = t.Int32Bounds.Upper.Value
 		}
@@ -179,6 +180,7 @@ func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
 		if t.Int64Bounds.Lower != nil {
 			lowerVal = t.Int64Bounds.Lower.Value
 		}
+
 		if t.Int64Bounds.Upper != nil {
 			upperVal = t.Int64Bounds.Upper.Value
 		}
@@ -186,6 +188,7 @@ func (f sqlFormatter) renderSelectQueryTextWithHistogramBounds(
 		if t.DecimalBounds.Lower != nil {
 			lowerVal = t.DecimalBounds.Lower.Value
 		}
+
 		if t.DecimalBounds.Upper != nil {
 			upperVal = t.DecimalBounds.Upper.Value
 		}

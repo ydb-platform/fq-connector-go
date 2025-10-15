@@ -411,11 +411,11 @@ type SuiteIDDecimal struct {
 	dataSource *datasource.DataSource
 }
 
-func (s *SuiteIDDecimal) TestPrimaryKeyNumeric_10_0() {
+func (s *SuiteIDDecimal) TestPrimaryKeyNumericPrecision10Scale0() {
 	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_10_0"])
 }
 
-func (s *SuiteIDDecimal) TestPrimaryKeyNumeric_4_2() {
+func (s *SuiteIDDecimal) TestPrimaryKeyNumericPrecision4Scale2() {
 	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_4_2"])
 }
 
