@@ -32,12 +32,12 @@ integration_test_env_run: integration_test_env_clean
 
 test_coverage: integration_test_env_run
 	go test -coverpkg=./... -coverprofile=coverage_unit_tests.out -covermode=atomic ./app/... ./common/... ./tests/utils/...
-	sleep 10
+	sleep 15
 	go test -c -o fq-connector-go-tests -coverpkg=./... -covermode=atomic ./tests
-	./fq-connector-go-tests -projectPath="$(projectPath)" -test.coverprofile=coverage_integration_tests.out 
+	./fq-connector-go-tests -projectPath="$(projectPath)" -test.coverprofile=coverage_integration_tests.out -test.failfast
 	cat coverage_unit_tests.out | grep -v 'pb.go\|mock.go\|library' > coverage.out
 	cat coverage_integration_tests.out | grep -v 'atomic\|pb.go\|mock.go\|library' >> coverage.out
-	go tool cover -func=sudo apt install cloc 
+	go tool cover -html=coverage.out
 
 docker_compose_update:
 	go run ./tools/docker_compose_update -path="$(path)"
