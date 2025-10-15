@@ -39,7 +39,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 			return ydbType, nil
 		}
 
-		ydbType, err = tm.maybeNumericType(columnDescription)
+		ydbType, err = tm.maybeNumericType(columnDescription, rules)
 		if err != nil {
 			return nil, fmt.Errorf("maybe numeric type: %w", err)
 		}
@@ -110,13 +110,24 @@ func (typeMapper) maybePrimitiveType(typeName string, rules *api_service_protos.
 	}
 }
 
-func (typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescription) (*Ydb.Type, error) {
+func (typeMapper) maybeNumericType(
+	columnDescription *datasource.ColumnDescription,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Type, error) {
 	if columnDescription.Type != "numeric" {
 		return nil, nil
 	}
 
+	// We have encountered an unconstrained numeric type.
+	// There is no correspoding type in the YQL type system.
+	// User must specify the YQL type to map unconstrained numeric into.
 	if columnDescription.Precision == nil {
-		return nil, fmt.Errorf("unconstrained numeric types with arbitrary precision are not supported: %w", common.ErrDataTypeNotSupported)
+		if rules.UncostrainedNumeric != nil {
+			return rules.UncostrainedNumeric, nil
+		}
+
+		// If no type was specified by user, fall back to the largest possible precision in YQL
+		return common.MakeDecimalType(35, 0), nil
 	}
 
 	if *columnDescription.Precision > 35 {

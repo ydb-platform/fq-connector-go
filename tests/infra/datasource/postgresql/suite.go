@@ -419,10 +419,9 @@ func (s *SuiteIDDecimal) TestPrimaryKeyNumericPrecision4Scale2() {
 	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_4_2"])
 }
 
-// Yet not supported
-// func (s *SuiteIDDecimal) TestPrimaryKeyNumericUnconstrained() {
-// 	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_unconstrained"])
-// }
+func (s *SuiteIDDecimal) TestPrimaryKeyNumericUnconstrained() {
+	s.ValidateTable(s.dataSource, tablesIDDecimal["primary_key_numeric_unconstrained"])
+}
 
 func NewSuiteIDDecimal(baseSuite *suite.Base[[]byte, *array.FixedSizeBinaryBuilder]) *SuiteIDDecimal {
 	ds, err := deriveDataSourceFromDockerCompose(baseSuite.EndpointDeterminer)

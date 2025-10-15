@@ -717,7 +717,7 @@ var tablesIDDecimal = map[string]*test_utils.Table[[]byte, *array.FixedSizeBinar
 		IDArrayBuilderFactory: newFixedSizeBinaryBuilder(memPool),
 		Schema: &test_utils.TableSchema{
 			Columns: map[string]*Ydb.Type{
-				"id":       common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
+				"id":       common.MakeOptionalType(common.MakeDecimalType(35, 0)), // default type for unconstrained numerics
 				"text_col": common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_UTF8)),
 			},
 		},

@@ -264,8 +264,8 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 	} else if _, ok := any(idType).([]byte); ok {
 		switch any(idBuilder).(type) {
 		case *array.FixedSizeBinaryBuilder:
+			// it's actually decimal type encoded in bytes
 			sort.Slice(records, func(i, j int) bool {
-				// return bytes.Compare(any(records[i].ID).([]byte), any(records[j].ID).([]byte)) < 0
 				return decimal.Deserialize(any(records[i].ID).([]byte), 0).LessThan(*decimal.Deserialize(any(records[j].ID).([]byte), 0))
 			})
 		default:
