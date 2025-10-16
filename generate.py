@@ -182,13 +182,47 @@ def __call_subprocess(cmd: List[str]):
 
 
 def __find_executable(name: str) -> Path:
+    import os
+    
+    # Check in $HOME/.local/bin first
+    home_dir = Path.home()
+    local_bin = home_dir / ".local" / "bin" / name
+    if local_bin.exists() and os.access(local_bin, os.X_OK):
+        return local_bin
+    
+    # Fall back to system PATH
     result = shutil.which(name)
     if not result:
         raise ValueError(
             f'executable "{name}" was not found in path, you should install it first'
         )
 
-    return result
+    return Path(result)
+
+
+def __check_protoc_version(protoc_binary: Path, min_version: tuple = (3, 15, 0)):
+    """Check if protoc version meets minimum requirements."""
+    try:
+        result = subprocess.run(
+            [str(protoc_binary), "--version"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        # Output format: "libprotoc 3.15.0" or similar
+        version_str = result.stdout.strip().split()[-1]
+        version_parts = tuple(int(x) for x in version_str.split('.'))
+        
+        if version_parts < min_version:
+            min_version_str = '.'.join(str(x) for x in min_version)
+            raise ValueError(
+                f'protoc version {version_str} is too old. '
+                f'Minimum required version is {min_version_str}'
+            )
+        
+        print(f"Using protoc version {version_str}")
+    except (subprocess.CalledProcessError, ValueError, IndexError) as e:
+        raise ValueError(f"Failed to check protoc version: {e}")
 
 
 def run_protoc(
@@ -202,6 +236,9 @@ def run_protoc(
     protoc_binary = __find_executable("protoc")
     protoc_gen_go_binary = __find_executable("protoc-gen-go")
     protoc_gen_go_grpc_binary = __find_executable("protoc-gen-go-grpc")
+    
+    # Check protoc version
+    __check_protoc_version(protoc_binary)
 
     # build protoc args
     cmd = [

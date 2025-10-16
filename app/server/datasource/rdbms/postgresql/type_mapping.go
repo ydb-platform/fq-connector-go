@@ -39,7 +39,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 			return ydbType, nil
 		}
 
-		ydbType, err = tm.maybeNumericType(columnDescription)
+		ydbType, err = tm.maybeNumericType(columnDescription, rules)
 		if err != nil {
 			return nil, fmt.Errorf("maybe numeric type: %w", err)
 		}
@@ -110,25 +110,36 @@ func (typeMapper) maybePrimitiveType(typeName string, rules *api_service_protos.
 	}
 }
 
-func (typeMapper) maybeNumericType(columnDescription *datasource.ColumnDescription) (*Ydb.Type, error) {
+func (typeMapper) maybeNumericType(
+	columnDescription *datasource.ColumnDescription,
+	rules *api_service_protos.TTypeMappingSettings,
+) (*Ydb.Type, error) {
 	if columnDescription.Type != "numeric" {
 		return nil, nil
 	}
 
+	// We have encountered an unconstrained numeric type.
+	// There is no correspoding type in the YQL type system.
+	// User must specify the YQL type to map unconstrained numeric into.
 	if columnDescription.Precision == nil {
-		return nil, fmt.Errorf("unconstrained numeric types with arbitrary precision are not supported")
+		if rules.UncostrainedNumeric != nil {
+			return rules.UncostrainedNumeric, nil
+		}
+
+		// If no type was specified by user, fall back to the largest possible precision in YQL
+		return common.MakeDecimalType(35, 0), nil
 	}
 
 	if *columnDescription.Precision > 35 {
-		return nil, fmt.Errorf("precision of a numeric type must be less or equal to 35")
+		return nil, fmt.Errorf("precision of a numeric type must be less or equal to 35: %w", common.ErrDataTypeNotSupported)
 	}
 
 	if columnDescription.Scale == nil {
-		return nil, fmt.Errorf("scale must be specified for numeric types")
+		return nil, fmt.Errorf("scale must be specified for numeric types: %w", common.ErrDataTypeNotSupported)
 	}
 
 	if *columnDescription.Scale < 0 {
-		return nil, fmt.Errorf("scale must be non-negative")
+		return nil, fmt.Errorf("scale must be non-negative: %w", common.ErrDataTypeNotSupported)
 	}
 
 	return common.MakeDecimalType(uint32(*columnDescription.Precision), uint32(*columnDescription.Scale)), nil

@@ -142,3 +142,20 @@ func (o *withPushdownConfig) apply(cfg *config.TServerConfig) {
 func WithPushdownConfig(cfg *config.TPushdownConfig) EmbeddedOption {
 	return &withPushdownConfig{pushdownConfig: cfg}
 }
+
+type withPostgreSQLSplitting struct {
+	splitting *config.TPostgreSQLConfig_TSplitting
+}
+
+func (o *withPostgreSQLSplitting) apply(cfg *config.TServerConfig) {
+	cfg.Datasources.Postgresql.Splitting = o.splitting
+}
+
+func WithPostgreSQLSplitting(tablePhysicalSizeThresholdBytes uint64) EmbeddedOption {
+	return &withPostgreSQLSplitting{
+		splitting: &config.TPostgreSQLConfig_TSplitting{
+			Enabled:                         true,
+			TablePhysicalSizeThresholdBytes: tablePhysicalSizeThresholdBytes,
+		},
+	}
+}

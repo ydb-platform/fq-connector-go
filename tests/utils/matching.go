@@ -16,11 +16,12 @@ import (
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
+	"github.com/ydb-platform/fq-connector-go/app/server/utils/decimal"
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
 type ArrowIDBuilder[ID TableIDTypes] interface {
-	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder | *array.StringBuilder
+	*array.Int64Builder | *array.Int32Builder | *array.BinaryBuilder | *array.StringBuilder | *array.FixedSizeBinaryBuilder
 	Append(ID)
 	NewArray() arrow.Array
 	Release()
@@ -144,6 +145,8 @@ func (c arrowIDCol[ID]) mustValue(i int) ID {
 		return any(col.Value(i)).(ID)
 	case *array.String:
 		return any(col.Value(i)).(ID)
+	case *array.FixedSizeBinary:
+		return any(col.Value(i)).(ID)
 	default:
 		panic(fmt.Sprintf("Get value id value from arrowIDCol for %T", col))
 	}
@@ -153,7 +156,6 @@ func (c arrowIDCol[ID]) mustValue(i int) ID {
 // The main purpose is to sort the table by the ID column while preserving the order of the other columns.
 // This is necessary because the columns in Greenplum come in random order, and it is necessary to sort them
 //
-
 //nolint:funlen,gocyclo
 func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Record, idBuilder IDBUILDER) arrow.Record {
 	records := make([]tableRow[ID], table.NumRows())
@@ -260,9 +262,17 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 			return any(records[i].ID).(int64) < any(records[j].ID).(int64)
 		})
 	} else if _, ok := any(idType).([]byte); ok {
-		sort.Slice(records, func(i, j int) bool {
-			return bytes.Compare(any(records[i].ID).([]byte), any(records[j].ID).([]byte)) < 0
-		})
+		switch any(idBuilder).(type) {
+		case *array.FixedSizeBinaryBuilder:
+			// it's actually decimal type encoded in bytes
+			sort.Slice(records, func(i, j int) bool {
+				return decimal.Deserialize(any(records[i].ID).([]byte), 0).LessThan(*decimal.Deserialize(any(records[j].ID).([]byte), 0))
+			})
+		default:
+			sort.Slice(records, func(i, j int) bool {
+				return bytes.Compare(any(records[i].ID).([]byte), any(records[j].ID).([]byte)) < 0
+			})
+		}
 	}
 
 	pool := memory.NewGoAllocator()

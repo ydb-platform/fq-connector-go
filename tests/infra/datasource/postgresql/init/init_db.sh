@@ -107,3 +107,77 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
         (1, 1, 11.11), \
         (2, -2, -22.22);
 EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS primary_key_int;
+    CREATE TABLE primary_key_int (
+        id int PRIMARY KEY,
+        text_col text
+    );
+    INSERT INTO primary_key_int VALUES
+        (1, 'a'),
+        (2, 'b'),
+        (3, 'c'),
+        (4, 'd'),
+        (5, 'e');
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS primary_key_bigint;
+    CREATE TABLE primary_key_bigint (
+        id bigint PRIMARY KEY,
+        text_col text
+    );
+    INSERT INTO primary_key_bigint VALUES
+        (1, 'a'),
+        (2, 'b'),
+        (3, 'c'),
+        (4, 'd'),
+        (5, 'e');
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS primary_key_numeric_10_0;
+    CREATE TABLE primary_key_numeric_10_0 (
+        id numeric(10, 0) PRIMARY KEY,
+        text_col text
+    );
+    INSERT INTO primary_key_numeric_10_0 VALUES
+        (1, 'a'),
+        (2, 'b'),
+        (3, 'c'),
+        (4, 'd'),
+        (5, 'e');
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS primary_key_numeric_4_2;
+    CREATE TABLE primary_key_numeric_4_2 (
+        id numeric(4, 2) PRIMARY KEY,
+        text_col text
+    );
+    INSERT INTO primary_key_numeric_4_2 VALUES
+        (1.00, 'a'),
+        (2.50, 'b'),
+        (3.75, 'c'),
+        (4.25, 'd'),
+        (5.99, 'e');
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    DROP TABLE IF EXISTS primary_key_numeric;
+    CREATE TABLE primary_key_numeric (
+        id numeric PRIMARY KEY,
+        text_col text
+    );
+    INSERT INTO primary_key_numeric VALUES
+        (1, 'a'),
+        (2, 'b'),
+        (3, 'c'),
+        (4, 'd'),
+        (5, 'e');
+EOSQL
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+    ANALYZE;
+EOSQL

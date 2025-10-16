@@ -132,7 +132,7 @@ func (s *splitProviderImpl) ListSplits(
 	// to use it for a "natural" splitting.
 	histogramBounds, err := s.getHistogramBoundsForPrimaryKey(ctx, logger, conn, schemaName, tableName, pk)
 	if err != nil {
-		return fmt.Errorf("get histogram bounds for primary key: %w", err)
+		return fmt.Errorf("get histogram bounds for int primary key: %w", err)
 	}
 
 	if len(histogramBounds) == 0 {
@@ -273,6 +273,26 @@ func (splitProviderImpl) getHistogramBoundsForPrimaryKey(
 	schemaName, tableName string,
 	pk *primaryKey,
 ) ([]*TSplitDescription_THistogramBounds, error) {
+	// Determine if we should use int32, int64, or decimal based on column type
+	switch pk.columnType {
+	case "integer", "int", "int4", "serial":
+		return getHistogramBoundsForPrimaryKeyGeneric[int32](ctx, logger, conn, schemaName, tableName, pk)
+	case "bigint", "int8", "bigserial":
+		return getHistogramBoundsForPrimaryKeyGeneric[int64](ctx, logger, conn, schemaName, tableName, pk)
+	case "numeric", "decimal":
+		return getHistogramBoundsForPrimaryKeyGeneric[string](ctx, logger, conn, schemaName, tableName, pk)
+	default:
+		return nil, fmt.Errorf("unsupported column type for histogram bounds: %s", pk.columnType)
+	}
+}
+
+func getHistogramBoundsForPrimaryKeyGeneric[T int32 | int64 | string](
+	ctx context.Context,
+	logger *zap.Logger,
+	conn rdbms_utils.Connection,
+	schemaName, tableName string,
+	pk *primaryKey,
+) ([]*TSplitDescription_THistogramBounds, error) {
 	const queryText = `
 SELECT
     histogram_bounds
@@ -303,7 +323,7 @@ WHERE
 
 	defer rows.Close()
 
-	var bounds []int64
+	var bounds []T
 
 	if !rows.Next() {
 		logger.Warn(
@@ -320,46 +340,84 @@ WHERE
 
 	logger.Debug("discovered histogram bounds", zap.String("column_name", pk.columnName), zap.Int("total_bounds", len(bounds)))
 
-	// No we need to transfer histogram bounds into splits
-
+	// Now we need to transfer histogram bounds into splits
 	result := make([]*TSplitDescription_THistogramBounds, 0, len(bounds)+1)
 
 	// Add first open interval
-	result = append(result, &TSplitDescription_THistogramBounds{
-		ColumnName: pk.columnName,
-		Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
-			Int64Bounds: &TInt64Bounds{
-				Lower: nil,
-				Upper: wrapperspb.Int64(bounds[0]),
-			},
-		},
-	})
+	result = append(result, createHistogramBound(pk.columnName, nil, &bounds[0]))
 
 	// Add intervals between bounds
 	for i := 0; i < len(bounds)-1; i++ {
-		result = append(result, &TSplitDescription_THistogramBounds{
-			ColumnName: pk.columnName,
-			Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
-				Int64Bounds: &TInt64Bounds{
-					Lower: wrapperspb.Int64(bounds[i]),
-					Upper: wrapperspb.Int64(bounds[i+1]),
-				},
-			},
-		})
+		result = append(result, createHistogramBound(pk.columnName, &bounds[i], &bounds[i+1]))
 	}
 
 	// Add last open interval
-	result = append(result, &TSplitDescription_THistogramBounds{
-		ColumnName: pk.columnName,
-		Payload: &TSplitDescription_THistogramBounds_Int64Bounds{
-			Int64Bounds: &TInt64Bounds{
-				Lower: wrapperspb.Int64(bounds[len(bounds)-1]),
-				Upper: nil,
-			},
-		},
-	})
+	result = append(result, createHistogramBound(pk.columnName, &bounds[len(bounds)-1], nil))
 
 	return result, nil
+}
+
+func createHistogramBound[T int32 | int64 | string](columnName string, lower, upper *T) *TSplitDescription_THistogramBounds {
+	var payload any
+
+	// Use type assertion on the actual value to determine the type
+	var zeroVal T
+	switch any(zeroVal).(type) {
+	case int32:
+		var lowerVal, upperVal *wrapperspb.Int32Value
+		if lower != nil {
+			lowerVal = wrapperspb.Int32(any(*lower).(int32))
+		}
+
+		if upper != nil {
+			upperVal = wrapperspb.Int32(any(*upper).(int32))
+		}
+
+		payload = &TSplitDescription_THistogramBounds_Int32Bounds{
+			Int32Bounds: &TInt32Bounds{
+				Lower: lowerVal,
+				Upper: upperVal,
+			},
+		}
+	case int64:
+		var lowerVal, upperVal *wrapperspb.Int64Value
+		if lower != nil {
+			lowerVal = wrapperspb.Int64(any(*lower).(int64))
+		}
+
+		if upper != nil {
+			upperVal = wrapperspb.Int64(any(*upper).(int64))
+		}
+
+		payload = &TSplitDescription_THistogramBounds_Int64Bounds{
+			Int64Bounds: &TInt64Bounds{
+				Lower: lowerVal,
+				Upper: upperVal,
+			},
+		}
+	case string:
+		var lowerVal, upperVal *wrapperspb.StringValue
+
+		if lower != nil {
+			lowerVal = wrapperspb.String(any(*lower).(string))
+		}
+
+		if upper != nil {
+			upperVal = wrapperspb.String(any(*upper).(string))
+		}
+
+		payload = &TSplitDescription_THistogramBounds_DecimalBounds{
+			DecimalBounds: &TDecimalBounds{
+				Lower: lowerVal,
+				Upper: upperVal,
+			},
+		}
+	}
+
+	return &TSplitDescription_THistogramBounds{
+		ColumnName: columnName,
+		Payload:    payload.(isTSplitDescription_THistogramBounds_Payload),
+	}
 }
 
 func (splitProviderImpl) listSingleSplit(

@@ -16,6 +16,7 @@ import (
 type schemaItem struct {
 	columnDescription *datasource.ColumnDescription
 	ydbColumn         *Ydb.Column
+	err               error // clarifies the reason for the lack of support
 }
 
 type SchemaBuilder struct {
@@ -29,15 +30,14 @@ func (sb *SchemaBuilder) AddColumn(columnDescription *datasource.ColumnDescripti
 		columnDescription: columnDescription,
 	}
 
-	var err error
-	item.ydbColumn, err = sb.typeMapper.SQLTypeToYDBColumn(columnDescription, sb.typeMappingSettings)
+	item.ydbColumn, item.err = sb.typeMapper.SQLTypeToYDBColumn(columnDescription, sb.typeMappingSettings)
 
-	if err != nil && !errors.Is(err, common.ErrDataTypeNotSupported) {
+	if item.err != nil && !errors.Is(item.err, common.ErrDataTypeNotSupported) {
 		return fmt.Errorf(
 			"sql type to ydb column (%s, %s): %w",
 			columnDescription.Name,
 			columnDescription.Type,
-			err,
+			item.err,
 		)
 	}
 
@@ -60,7 +60,7 @@ func (sb *SchemaBuilder) Build(logger *zap.Logger) (*api_service_protos.TSchema,
 		if item.ydbColumn == nil {
 			unsupported = append(
 				unsupported,
-				fmt.Sprintf("%s %s", item.columnDescription.Name, item.columnDescription.Type),
+				fmt.Sprintf("name='%s' type='%s' reason='%v'", item.columnDescription.Name, item.columnDescription.Type, item.err),
 			)
 		} else {
 			schema.Columns = append(schema.Columns, item.ydbColumn)

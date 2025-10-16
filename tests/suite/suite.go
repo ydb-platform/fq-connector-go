@@ -253,6 +253,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 
 	listSplitsResponses, err := b.Connector.ClientBuffering().ListSplits(ctx, slct)
 	b.Require().NoError(err)
+	b.Require().NotZero(len(listSplitsResponses)) // at least one split is required
 
 	for _, listSplitsResponse := range listSplitsResponses {
 		b.Require().True(common.IsSuccess(listSplitsResponse.Error), listSplitsResponse.Error.String())
@@ -263,8 +264,6 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	readSplitsResponses, err := b.Connector.ClientBuffering().ReadSplits(ctx, splits)
 	b.Require().NoError(err)
 	b.Require().NoError(common.ExtractErrorFromReadResponses(readSplitsResponses))
-	// either no blocks (empty table), either single block (tables are small)
-	b.Require().Contains([]int{0, 1}, len(readSplitsResponses))
 
 	records, err := common.ReadResponsesToArrowRecords(readSplitsResponses)
 	b.Require().NoError(err)
