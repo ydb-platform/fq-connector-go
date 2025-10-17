@@ -48,7 +48,7 @@ func NewReadClient(dsi *api_common.TGenericDataSourceInstance, cfg *config.TProm
 	readClient, err := remote.NewReadClient(prometheusClientName, &remote.ClientConfig{
 		URL:              remoteReadURL,
 		Timeout:          model.Duration(common.MustDurationFromString(cfg.GetOpenConnectionTimeout())),
-		ChunkedReadLimit: cfg.GetChunkedReadLimit(),
+		ChunkedReadLimit: cfg.GetChunkedReadLimitBytes(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("new Prometheus remote read client: %w", err)

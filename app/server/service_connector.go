@@ -17,6 +17,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_store_type_cache"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
@@ -274,12 +275,18 @@ func newServiceConnector(
 	grpcServer := grpc.NewServer(options...)
 	reflection.Register(grpcServer)
 
+	ydbTableStoreTypeCache, err := table_store_type_cache.NewCache(cfg.Datasources.Ydb.TableStoreTypeCache)
+	if err != nil {
+		return nil, fmt.Errorf("new table store type cache: %w", err)
+	}
+
 	dataSourceCollection, err := NewDataSourceCollection(
 		queryLoggerFactory,
 		memory.DefaultAllocator,
 		paging.NewReadLimiterFactory(cfg.Datasources),
 		conversion.NewCollection(cfg.Conversion),
 		observationStorage,
+		ydbTableStoreTypeCache,
 		cfg,
 	)
 	if err != nil {

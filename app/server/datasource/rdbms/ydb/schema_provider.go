@@ -13,10 +13,12 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_store_type_cache"
 )
 
 type schemaProvider struct {
-	typeMapper datasource.TypeMapper
+	typeMapper          datasource.TypeMapper
+	tableStoreTypeCache table_store_type_cache.Cache
 }
 
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
@@ -79,8 +81,10 @@ func (f *schemaProvider) GetSchema(
 
 func NewSchemaProvider(
 	typeMapper datasource.TypeMapper,
+	tableStoreTypeCache table_store_type_cache.Cache,
 ) rdbms_utils.SchemaProvider {
 	return &schemaProvider{
-		typeMapper: typeMapper,
+		typeMapper:          typeMapper,
+		tableStoreTypeCache: tableStoreTypeCache,
 	}
 }
