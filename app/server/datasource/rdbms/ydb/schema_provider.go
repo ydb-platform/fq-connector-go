@@ -35,7 +35,9 @@ func (f *schemaProvider) GetSchema(
 		desc   options.Description
 	)
 
-	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
+	logger = logger.With(zap.String("prefix", prefix))
+
+	logger.Debug("obtaining table metadata")
 
 	err := driver.Table().Do(
 		ctx,
@@ -45,6 +47,14 @@ func (f *schemaProvider) GetSchema(
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
+			}
+
+			// preserve table store type into cache - it further can save ListSplits latency
+			ok := f.tableStoreTypeCache.Put(request.DataSourceInstance, "tableName", desc.StoreType)
+			if !ok {
+				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
+			} else {
+				logger.Info("cached table store type", zap.Any("store_type", desc.StoreType))
 			}
 
 			return nil

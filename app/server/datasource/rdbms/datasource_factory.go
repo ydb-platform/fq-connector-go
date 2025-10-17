@@ -138,7 +138,7 @@ func NewDataSourceFactory(
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
 			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper, ydbTableStoreTypeCache),
-			SplitProvider:     ydb.NewSplitProvider(cfg.Ydb.Splitting),
+			SplitProvider:     ydb.NewSplitProvider(cfg.Ydb.Splitting, ydbTableStoreTypeCache),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
@@ -210,7 +210,7 @@ func NewDataSourceFactory(
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        nil,
 		SchemaProvider:    logging.NewSchemaProvider(),
-		SplitProvider:     logging.NewSplitProvider(dsf.loggingResolver, ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting)),
+		SplitProvider:     logging.NewSplitProvider(dsf.loggingResolver, ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting, ydbTableStoreTypeCache)),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),

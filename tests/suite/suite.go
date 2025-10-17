@@ -76,6 +76,18 @@ func (b *Base[_, _]) SetupSuite() {
 				EnableTimestampPushdown: true,
 			},
 		),
+		server.WithYDBTableStoreTypeCache(
+			&config.TYdbConfig_TTableStoreTypeCache{
+				Ttl: "5m",
+				Storage: &config.TYdbConfig_TTableStoreTypeCache_Ristretto{
+					Ristretto: &config.TYdbConfig_TTableStoreTypeCache_TRistretto{
+						NumCounters: 1000,
+						MaxCost:     10 * 1024 * 1024, // 10 MB
+						BufferItems: 64,
+					},
+				},
+			},
+		),
 	}
 
 	options = append(options, b.cfg.embeddedOptions...)

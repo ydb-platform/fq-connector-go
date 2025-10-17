@@ -18,12 +18,14 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_store_type_cache"
 )
 
 var _ rdbms_utils.SplitProvider = (*SplitProvider)(nil)
 
 type SplitProvider struct {
-	cfg *config.TYdbConfig_TSplitting
+	cfg                 *config.TYdbConfig_TSplitting
+	tableStoreTypeCache table_store_type_cache.Cache
 }
 
 func (s SplitProvider) ListSplits(
@@ -105,7 +107,7 @@ func (s SplitProvider) ListSplits(
 	return nil
 }
 
-func (SplitProvider) getTableStoreType(
+func (sp *SplitProvider) getTableStoreType(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -118,6 +120,15 @@ func (SplitProvider) getTableStoreType(
 
 	logger.Debug("obtaining table store type", zap.String("prefix", prefix))
 
+	// try to get cached store type
+	storeType, exists := sp.tableStoreTypeCache.Get(conn.DataSourceInstance(), conn.TableName())
+	if exists {
+		logger.Info("obtained table store type from cache", zap.Any("store_type", desc.StoreType))
+
+		return storeType, nil
+	}
+
+	// otherwise make `DescribeTable` call and cache the result
 	err := driver.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
@@ -128,6 +139,11 @@ func (SplitProvider) getTableStoreType(
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
+			ok := sp.tableStoreTypeCache.Put(conn.DataSourceInstance(), conn.TableName(), desc.StoreType)
+			if !ok {
+				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
+			}
+
 			return nil
 		},
 		table.WithIdempotent(),
@@ -136,7 +152,7 @@ func (SplitProvider) getTableStoreType(
 		return table_options.StoreTypeUnspecified, fmt.Errorf("get table description: %w", err)
 	}
 
-	logger.Info("determined table store type", zap.Any("store_type", desc.StoreType))
+	logger.Info("obtained table store type from GRPC call", zap.Any("store_type", desc.StoreType))
 
 	return desc.StoreType, nil
 }
@@ -312,8 +328,9 @@ func makeSplit(
 	}
 }
 
-func NewSplitProvider(cfg *config.TYdbConfig_TSplitting) SplitProvider {
+func NewSplitProvider(cfg *config.TYdbConfig_TSplitting, tableStoreTypeCache table_store_type_cache.Cache) SplitProvider {
 	return SplitProvider{
-		cfg: cfg,
+		cfg:                 cfg,
+		tableStoreTypeCache: tableStoreTypeCache,
 	}
 }
