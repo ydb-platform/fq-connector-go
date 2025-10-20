@@ -29,6 +29,13 @@ func (f *schemaProvider) GetSchema(
 	conn rdbms_utils.Connection,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
+
+	// Try to get cached value - this may help us to save a connection
+	cachedValue, exists := f.tableMetadataCache.Get(request.DataSourceInstance, request.Table)
+	if exists && cachedValue != nil && cachedValue.Schema != nil {
+		return cachedValue.Schema, nil
+	}
+
 	var (
 		driver = conn.(Connection).Driver()
 		prefix = path.Join(conn.DataSourceInstance().Database, conn.TableName())
@@ -47,14 +54,6 @@ func (f *schemaProvider) GetSchema(
 			desc, errInner = s.DescribeTable(ctx, prefix)
 			if errInner != nil {
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
-			}
-
-			// preserve table store type into cache - it further can save ListSplits latency
-			ok := f.tableMetadataCache.Put(request.DataSourceInstance, "tableName", desc.StoreType)
-			if !ok {
-				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
-			} else {
-				logger.Info("cached table store type", zap.Any("store_type", desc.StoreType))
 			}
 
 			return nil
@@ -81,9 +80,21 @@ func (f *schemaProvider) GetSchema(
 	}
 
 	schema, err := sb.Build(logger)
-
 	if err != nil {
 		return nil, fmt.Errorf("build schema: %w", err)
+	}
+
+	// preserve table store type into cache - it can decrease the latency of ListSplits and DescribeTable table
+	value := &table_metadata_cache.TValue{
+		Schema:    schema,
+		StoreType: table_metadata_cache.EStoreType(desc.StoreType),
+	}
+
+	ok := f.tableMetadataCache.Put(request.DataSourceInstance, "tableName", value)
+	if !ok {
+		logger.Warn("failed to cache table metadata")
+	} else {
+		logger.Debug("cached table metadata")
 	}
 
 	return schema, nil

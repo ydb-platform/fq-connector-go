@@ -348,14 +348,19 @@ def main():
             [ydb_github_root, connector_github_root, protobuf_includes],
             False,
         )
-        # Generate split description files
+        # Generate datasource-specific types (split descriptions, helpers and so on)
         run_protoc(
-            connector_github_root.joinpath("app/server/datasource/rdbms/ydb").rglob(
-                "*.proto"
-            ),
+            [connector_github_root.joinpath("app/server/datasource/rdbms/ydb/split.proto")],
             connector_github_root.joinpath("app/server/datasource/rdbms/ydb"),
             "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb",
             [connector_github_root, protobuf_includes],
+            False,
+        )
+        run_protoc(
+            [connector_github_root.joinpath("app/server/datasource/rdbms/ydb/table_metadata_cache/value.proto")],
+            connector_github_root.joinpath("app/server/datasource/rdbms/ydb/table_metadata_cache"),
+            "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache",
+            [ydb_github_root, connector_github_root, protobuf_includes],
             False,
         )
         run_protoc(

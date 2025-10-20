@@ -5,8 +5,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
-
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -20,25 +19,37 @@ func serializeKey(dsi *api_common.TGenericDataSourceInstance, tableName string) 
 }
 
 type ristrettoCache struct {
-	cache *ristretto.Cache[string, int]
+	cache *ristretto.Cache[string, []byte]
 	ttl   time.Duration
 }
 
-func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableName string, storeType options.StoreType) bool {
+func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool {
 	key := serializeKey(dsi, tableName)
 
-	return r.cache.SetWithTTL(key, int(storeType), 1, r.ttl)
-}
-
-func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableName string) (options.StoreType, bool) {
-	key := serializeKey(dsi, tableName)
-
-	value, found := r.cache.Get(key)
-	if !found {
-		return 0, false
+	// Serialize TValue to bytes
+	data, err := proto.Marshal(value)
+	if err != nil {
+		return false
 	}
 
-	return options.StoreType(value), true
+	return r.cache.SetWithTTL(key, data, int64(len(data)), r.ttl)
+}
+
+func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool) {
+	key := serializeKey(dsi, tableName)
+
+	data, found := r.cache.Get(key)
+	if !found {
+		return nil, false
+	}
+
+	// Deserialize bytes to TValue
+	value := &TValue{}
+	if err := proto.Unmarshal(data, value); err != nil {
+		return nil, false
+	}
+
+	return value, true
 }
 
 func (r *ristrettoCache) Metrics() *Metrics {
@@ -65,7 +76,7 @@ func (r *ristrettoCache) Metrics() *Metrics {
 }
 
 func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCache, error) {
-	cache, err := ristretto.NewCache(&ristretto.Config[string, int]{
+	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
 		NumCounters: cfg.GetRistretto().NumCounters,
 		MaxCost:     cfg.GetRistretto().MaxCost,
 		BufferItems: cfg.GetRistretto().BufferItems,

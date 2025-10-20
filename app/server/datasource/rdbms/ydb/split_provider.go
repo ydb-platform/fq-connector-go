@@ -33,6 +33,23 @@ func (sp SplitProvider) ListSplits(
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
 
+	// Try to get cached value - this may help us to save a connection
+	cachedValue, exists := sp.tableMetadataCache.Get(params.Select.DataSourceInstance, params.Select.GetFrom().GetTable())
+	if exists && cachedValue != nil {
+		storeType := table_options.StoreType(cachedValue.StoreType)
+		logger.Info("obtained table metadata from cache")
+
+		// On the data shards the table splitting is not implemented yet,
+		// so no need to connect the database to get table metadata, return single split.
+		if storeType == table_options.StoreTypeRow {
+			if err := sp.listSingleSplit(ctx, slct, resultChan); err != nil {
+				return fmt.Errorf("list splits data shard: %w", err)
+			}
+
+			return nil
+		}
+	}
+
 	// Connect YDB to get some table metadata
 	var cs []rdbms_utils.Connection
 
@@ -83,21 +100,21 @@ func (sp SplitProvider) ListSplits(
 			logger.Warn(
 				"splitting is disabled in config, fallback to default (single split per table)")
 
-			if err = sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+			if err = sp.listSingleSplit(ctx, slct, resultChan); err != nil {
 				return fmt.Errorf("list single split: %w", err)
 			}
 		}
 	case table_options.StoreTypeRow:
 		logger.Info("data shard table discovered")
 
-		if err = sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
-			return fmt.Errorf("list splits column shard: %w", err)
+		if err = sp.listSingleSplit(ctx, slct, resultChan); err != nil {
+			return fmt.Errorf("list splits data shard: %w", err)
 		}
 	case table_options.StoreTypeUnspecified:
 		// Observed with OLTP tables at: 24.3.11.13
 		logger.Warn("table store type is unspecified, fallback to default (single split per table)")
 
-		if err = sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+		if err = sp.listSingleSplit(ctx, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
 	default:
@@ -120,14 +137,6 @@ func (sp *SplitProvider) getTableStoreType(
 
 	logger.Debug("obtaining table store type", zap.String("prefix", prefix))
 
-	// try to get cached store type
-	storeType, exists := sp.tableMetadataCache.Get(conn.DataSourceInstance(), conn.TableName())
-	if exists {
-		logger.Info("obtained table store type from cache", zap.Any("store_type", desc.StoreType))
-
-		return storeType, nil
-	}
-
 	// otherwise make `DescribeTable` call and cache the result
 	err := driver.Table().Do(
 		ctx,
@@ -139,7 +148,12 @@ func (sp *SplitProvider) getTableStoreType(
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
-			ok := sp.tableMetadataCache.Put(conn.DataSourceInstance(), conn.TableName(), desc.StoreType)
+			// Create TValue with store type
+			value := &table_metadata_cache.TValue{
+				StoreType: table_metadata_cache.EStoreType(desc.StoreType),
+			}
+
+			ok := sp.tableMetadataCache.Put(conn.DataSourceInstance(), conn.TableName(), value)
 			if !ok {
 				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
 			}
@@ -172,7 +186,7 @@ func (sp SplitProvider) listSplitsColumnShard(
 	// There is a weird behavior of OLAP tables that have no data:
 	// they do not return tablet ids at all, so in this case we have to return a single split
 	if len(tabletIDs) == 0 {
-		if err := sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+		if err := sp.listSingleSplit(ctx, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
 
@@ -297,8 +311,6 @@ func (sp SplitProvider) GetColumnShardTabletIDs(
 // TODO: check request.MaxSplitCount (SLJ always wants a single split)
 func (SplitProvider) listSingleSplit(
 	ctx context.Context,
-	_ *zap.Logger,
-	_ rdbms_utils.Connection,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,
 ) error {

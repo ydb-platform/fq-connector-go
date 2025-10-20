@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package NYql.Connector.App.Server.DataSource.RDBMS.Ydb.TableMetadataCache;
+
+option go_package = "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache";
+
+import "ydb/library/yql/providers/generic/connector/api/service/protos/connector.proto";
+
+enum EStoreType {
+    STORE_TYPE_UNSPECIFIED = 0;
+    STORE_TYPE_ROW = 1;
+    STORE_TYPE_COLUMN = 2;
+}
+
+message TValue {
+   NYql.NConnector.NApi.TSchema schema = 1;  
+   EStoreType store_type = 2;
+}
