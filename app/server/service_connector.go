@@ -245,6 +245,7 @@ func newServiceConnector(
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
 	observationStorage observation.Storage,
+	ydbTableMetadataCache table_metadata_cache.Cache,
 ) (utils.Service, error) {
 	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
@@ -274,11 +275,6 @@ func newServiceConnector(
 
 	grpcServer := grpc.NewServer(options...)
 	reflection.Register(grpcServer)
-
-	ydbTableMetadataCache, err := table_metadata_cache.NewCache(cfg.Datasources.Ydb.TableMetadataCache)
-	if err != nil {
-		return nil, fmt.Errorf("new table store type cache: %w", err)
-	}
 
 	dataSourceCollection, err := NewDataSourceCollection(
 		queryLoggerFactory,

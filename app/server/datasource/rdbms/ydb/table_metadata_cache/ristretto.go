@@ -41,6 +41,19 @@ func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableNa
 	return options.StoreType(value), true
 }
 
+func (r *ristrettoCache) Metrics() *Metrics {
+	m := r.cache.Metrics
+	return &Metrics{
+		Hits:        m.Hits(),
+		Misses:      m.Misses(),
+		Ratio:       m.Ratio(),
+		KeysAdded:   m.KeysAdded(),
+		KeysEvicted: m.KeysEvicted(),
+		CostAdded:   m.CostAdded(),
+		CostEvicted: m.CostEvicted(),
+	}
+}
+
 func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, int]{
 		NumCounters: cfg.GetRistretto().NumCounters,

@@ -18,3 +18,7 @@ func (noopCache) Put(_ *api_common.TGenericDataSourceInstance, _ string, _ optio
 func (noopCache) Get(_ *api_common.TGenericDataSourceInstance, _ string) (options.StoreType, bool) {
 	return 0, false
 }
+
+func (noopCache) Metrics() *Metrics {
+	return nil
+}
