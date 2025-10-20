@@ -168,6 +168,6 @@ func (o *withYDBTableMetadataCache) apply(cfg *config.TServerConfig) {
 	cfg.Datasources.Ydb.TableMetadataCache = o.TableMetadataCache
 }
 
-func WithYDBTableMetadataCache(TableMetadataCache *config.TYdbConfig_TTableMetadataCache) EmbeddedOption {
-	return &withYDBTableMetadataCache{TableMetadataCache: TableMetadataCache}
+func WithYDBTableMetadataCache(tableMetadataCache *config.TYdbConfig_TTableMetadataCache) EmbeddedOption {
+	return &withYDBTableMetadataCache{TableMetadataCache: tableMetadataCache}
 }

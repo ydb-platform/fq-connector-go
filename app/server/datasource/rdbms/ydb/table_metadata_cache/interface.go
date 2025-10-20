@@ -1,8 +1,9 @@
 package table_metadata_cache
 
 import (
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 )
 
 type Cache interface {

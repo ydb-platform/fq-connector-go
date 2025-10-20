@@ -18,7 +18,7 @@ import (
 
 type schemaProvider struct {
 	typeMapper         datasource.TypeMapper
-	TableMetadataCache table_metadata_cache.Cache
+	tableMetadataCache table_metadata_cache.Cache
 }
 
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
@@ -50,7 +50,7 @@ func (f *schemaProvider) GetSchema(
 			}
 
 			// preserve table store type into cache - it further can save ListSplits latency
-			ok := f.TableMetadataCache.Put(request.DataSourceInstance, "tableName", desc.StoreType)
+			ok := f.tableMetadataCache.Put(request.DataSourceInstance, "tableName", desc.StoreType)
 			if !ok {
 				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
 			} else {
@@ -91,10 +91,10 @@ func (f *schemaProvider) GetSchema(
 
 func NewSchemaProvider(
 	typeMapper datasource.TypeMapper,
-	TableMetadataCache table_metadata_cache.Cache,
+	tableMetadataCache table_metadata_cache.Cache,
 ) rdbms_utils.SchemaProvider {
 	return &schemaProvider{
 		typeMapper:         typeMapper,
-		TableMetadataCache: TableMetadataCache,
+		tableMetadataCache: tableMetadataCache,
 	}
 }

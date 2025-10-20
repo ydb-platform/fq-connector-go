@@ -1,8 +1,9 @@
 package table_metadata_cache
 
 import (
-	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 )
 
 var _ Cache = (*noopCache)(nil)
@@ -10,10 +11,10 @@ var _ Cache = (*noopCache)(nil)
 type noopCache struct {
 }
 
-func (noopCache) Put(dsi *api_common.TGenericDataSourceInstance, tableName string, storeType options.StoreType) bool {
+func (noopCache) Put(_ *api_common.TGenericDataSourceInstance, _ string, _ options.StoreType) bool {
 	return true
 }
 
-func (noopCache) Get(dsi *api_common.TGenericDataSourceInstance, tableName string) (options.StoreType, bool) {
+func (noopCache) Get(_ *api_common.TGenericDataSourceInstance, _ string) (options.StoreType, bool) {
 	return 0, false
 }

@@ -25,10 +25,10 @@ var _ rdbms_utils.SplitProvider = (*SplitProvider)(nil)
 
 type SplitProvider struct {
 	cfg                *config.TYdbConfig_TSplitting
-	TableMetadataCache table_metadata_cache.Cache
+	tableMetadataCache table_metadata_cache.Cache
 }
 
-func (s SplitProvider) ListSplits(
+func (sp SplitProvider) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
@@ -66,7 +66,7 @@ func (s SplitProvider) ListSplits(
 	conn := cs[0]
 
 	// Find out the type of a table
-	storeType, err := s.getTableStoreType(ctx, logger, conn)
+	storeType, err := sp.getTableStoreType(ctx, logger, conn)
 	if err != nil {
 		return fmt.Errorf("get table store type: %w", err)
 	}
@@ -75,29 +75,29 @@ func (s SplitProvider) ListSplits(
 	case table_options.StoreTypeColumn:
 		logger.Info("column shard table discovered")
 
-		if s.cfg.EnabledOnColumnShards {
-			if err = s.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
+		if sp.cfg.EnabledOnColumnShards {
+			if err = sp.listSplitsColumnShard(ctx, logger, conn, slct, resultChan); err != nil {
 				return fmt.Errorf("list splits column shard: %w", err)
 			}
 		} else {
 			logger.Warn(
 				"splitting is disabled in config, fallback to default (single split per table)")
 
-			if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+			if err = sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
 				return fmt.Errorf("list single split: %w", err)
 			}
 		}
 	case table_options.StoreTypeRow:
 		logger.Info("data shard table discovered")
 
-		if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+		if err = sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list splits column shard: %w", err)
 		}
 	case table_options.StoreTypeUnspecified:
 		// Observed with OLTP tables at: 24.3.11.13
 		logger.Warn("table store type is unspecified, fallback to default (single split per table)")
 
-		if err = s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+		if err = sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
 	default:
@@ -121,7 +121,7 @@ func (sp *SplitProvider) getTableStoreType(
 	logger.Debug("obtaining table store type", zap.String("prefix", prefix))
 
 	// try to get cached store type
-	storeType, exists := sp.TableMetadataCache.Get(conn.DataSourceInstance(), conn.TableName())
+	storeType, exists := sp.tableMetadataCache.Get(conn.DataSourceInstance(), conn.TableName())
 	if exists {
 		logger.Info("obtained table store type from cache", zap.Any("store_type", desc.StoreType))
 
@@ -139,7 +139,7 @@ func (sp *SplitProvider) getTableStoreType(
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
-			ok := sp.TableMetadataCache.Put(conn.DataSourceInstance(), conn.TableName(), desc.StoreType)
+			ok := sp.tableMetadataCache.Put(conn.DataSourceInstance(), conn.TableName(), desc.StoreType)
 			if !ok {
 				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
 			}
@@ -157,14 +157,14 @@ func (sp *SplitProvider) getTableStoreType(
 	return desc.StoreType, nil
 }
 
-func (s SplitProvider) listSplitsColumnShard(
+func (sp SplitProvider) listSplitsColumnShard(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
 	slct *api_service_protos.TSelect,
 	resultChan chan<- *datasource.ListSplitResult,
 ) error {
-	tabletIDs, err := s.GetColumnShardTabletIDs(ctx, logger, conn)
+	tabletIDs, err := sp.GetColumnShardTabletIDs(ctx, logger, conn)
 	if err != nil {
 		return fmt.Errorf("enumerate shards: %w", err)
 	}
@@ -172,7 +172,7 @@ func (s SplitProvider) listSplitsColumnShard(
 	// There is a weird behavior of OLAP tables that have no data:
 	// they do not return tablet ids at all, so in this case we have to return a single split
 	if len(tabletIDs) == 0 {
-		if err := s.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
+		if err := sp.listSingleSplit(ctx, logger, conn, slct, resultChan); err != nil {
 			return fmt.Errorf("list single split: %w", err)
 		}
 
@@ -252,7 +252,7 @@ func (SplitProvider) doQueryTabletIDs(
 	return tabletIDs, nil
 }
 
-func (s SplitProvider) GetColumnShardTabletIDs(
+func (sp SplitProvider) GetColumnShardTabletIDs(
 	parentCtx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
@@ -262,7 +262,7 @@ func (s SplitProvider) GetColumnShardTabletIDs(
 
 	var tabletIDs []uint64
 
-	timeout, err := time.ParseDuration(s.cfg.QueryTabletIdsTimeout)
+	timeout, err := time.ParseDuration(sp.cfg.QueryTabletIdsTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("parse query tablet ids timeout: %w", err)
 	}
@@ -277,7 +277,7 @@ func (s SplitProvider) GetColumnShardTabletIDs(
 
 		var queryErr error
 
-		tabletIDs, queryErr = s.doQueryTabletIDs(ctx, session, logger, prefix, attempts)
+		tabletIDs, queryErr = sp.doQueryTabletIDs(ctx, session, logger, prefix, attempts)
 		if queryErr != nil {
 			return fmt.Errorf("do query tablet ids: %w", queryErr)
 		}
@@ -328,9 +328,9 @@ func makeSplit(
 	}
 }
 
-func NewSplitProvider(cfg *config.TYdbConfig_TSplitting, TableMetadataCache table_metadata_cache.Cache) SplitProvider {
+func NewSplitProvider(cfg *config.TYdbConfig_TSplitting, tableMetadataCache table_metadata_cache.Cache) SplitProvider {
 	return SplitProvider{
 		cfg:                cfg,
-		TableMetadataCache: TableMetadataCache,
+		tableMetadataCache: tableMetadataCache,
 	}
 }

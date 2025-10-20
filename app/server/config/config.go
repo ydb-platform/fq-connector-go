@@ -516,6 +516,7 @@ func validatePostgreSQLConfig(c *config.TPostgreSQLConfig) error {
 	return nil
 }
 
+//nolint:gocyclo
 func validateYdbConfig(c *config.TYdbConfig) error {
 	if c == nil {
 		return nil
@@ -575,9 +576,11 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 			if storageCfg.Ristretto.BufferItems <= 0 {
 				return fmt.Errorf("invalid `buffer_items` value: %v", storageCfg.Ristretto.BufferItems)
 			}
+
 			if storageCfg.Ristretto.MaxCost <= 0 {
 				return fmt.Errorf("invalid `max_cost` value: %v", storageCfg.Ristretto.MaxCost)
 			}
+
 			if storageCfg.Ristretto.NumCounters <= 0 {
 				return fmt.Errorf("invalid `num_counters` value: %v", storageCfg.Ristretto.NumCounters)
 			}

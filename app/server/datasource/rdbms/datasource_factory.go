@@ -210,7 +210,10 @@ func NewDataSourceFactory(
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        nil,
 		SchemaProvider:    logging.NewSchemaProvider(),
-		SplitProvider:     logging.NewSplitProvider(dsf.loggingResolver, ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting, ydbTableMetadataCache)),
+		SplitProvider: logging.NewSplitProvider(
+			dsf.loggingResolver,
+			ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting, ydbTableMetadataCache),
+		),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),

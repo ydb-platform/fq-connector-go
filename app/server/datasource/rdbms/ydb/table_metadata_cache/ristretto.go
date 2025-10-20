@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
+
+	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/common"
-	"github.com/ydb-platform/ydb-go-sdk/v3/table/options"
 )
 
 var _ Cache = (*ristrettoCache)(nil)
