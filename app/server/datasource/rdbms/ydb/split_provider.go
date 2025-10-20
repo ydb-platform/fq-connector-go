@@ -18,14 +18,14 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_store_type_cache"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 )
 
 var _ rdbms_utils.SplitProvider = (*SplitProvider)(nil)
 
 type SplitProvider struct {
-	cfg                 *config.TYdbConfig_TSplitting
-	tableStoreTypeCache table_store_type_cache.Cache
+	cfg                *config.TYdbConfig_TSplitting
+	TableMetadataCache table_metadata_cache.Cache
 }
 
 func (s SplitProvider) ListSplits(
@@ -121,7 +121,7 @@ func (sp *SplitProvider) getTableStoreType(
 	logger.Debug("obtaining table store type", zap.String("prefix", prefix))
 
 	// try to get cached store type
-	storeType, exists := sp.tableStoreTypeCache.Get(conn.DataSourceInstance(), conn.TableName())
+	storeType, exists := sp.TableMetadataCache.Get(conn.DataSourceInstance(), conn.TableName())
 	if exists {
 		logger.Info("obtained table store type from cache", zap.Any("store_type", desc.StoreType))
 
@@ -139,7 +139,7 @@ func (sp *SplitProvider) getTableStoreType(
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
-			ok := sp.tableStoreTypeCache.Put(conn.DataSourceInstance(), conn.TableName(), desc.StoreType)
+			ok := sp.TableMetadataCache.Put(conn.DataSourceInstance(), conn.TableName(), desc.StoreType)
 			if !ok {
 				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
 			}
@@ -328,9 +328,9 @@ func makeSplit(
 	}
 }
 
-func NewSplitProvider(cfg *config.TYdbConfig_TSplitting, tableStoreTypeCache table_store_type_cache.Cache) SplitProvider {
+func NewSplitProvider(cfg *config.TYdbConfig_TSplitting, TableMetadataCache table_metadata_cache.Cache) SplitProvider {
 	return SplitProvider{
-		cfg:                 cfg,
-		tableStoreTypeCache: tableStoreTypeCache,
+		cfg:                cfg,
+		TableMetadataCache: TableMetadataCache,
 	}
 }

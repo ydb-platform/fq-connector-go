@@ -13,12 +13,12 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
-	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_store_type_cache"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 )
 
 type schemaProvider struct {
-	typeMapper          datasource.TypeMapper
-	tableStoreTypeCache table_store_type_cache.Cache
+	typeMapper         datasource.TypeMapper
+	TableMetadataCache table_metadata_cache.Cache
 }
 
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
@@ -50,7 +50,7 @@ func (f *schemaProvider) GetSchema(
 			}
 
 			// preserve table store type into cache - it further can save ListSplits latency
-			ok := f.tableStoreTypeCache.Put(request.DataSourceInstance, "tableName", desc.StoreType)
+			ok := f.TableMetadataCache.Put(request.DataSourceInstance, "tableName", desc.StoreType)
 			if !ok {
 				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
 			} else {
@@ -91,10 +91,10 @@ func (f *schemaProvider) GetSchema(
 
 func NewSchemaProvider(
 	typeMapper datasource.TypeMapper,
-	tableStoreTypeCache table_store_type_cache.Cache,
+	TableMetadataCache table_metadata_cache.Cache,
 ) rdbms_utils.SchemaProvider {
 	return &schemaProvider{
-		typeMapper:          typeMapper,
-		tableStoreTypeCache: tableStoreTypeCache,
+		typeMapper:         typeMapper,
+		TableMetadataCache: TableMetadataCache,
 	}
 }

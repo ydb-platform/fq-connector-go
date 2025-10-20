@@ -350,10 +350,10 @@ message TYdbConfig {
 
     // When working with YDB tables, it's important to distinguish row tables from columnar tables,
     // because they provide different optimizations for massively-parallel reading.
-    // As soon as the tables rarely change their type, it's useful to store type in cache
-    // in order to save latency. 
-    message TTableStoreTypeCache {
-        // TTL for cache values.
+    // It's quite useful to store table metadata (including, but not limited to, the store type) 
+    // because it changes rarely.
+    message TTableMetadataCache {
+        // TTL for cached values.
         // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
         string ttl = 1;
 
@@ -370,7 +370,7 @@ message TYdbConfig {
         }
     }
 
-    TTableStoreTypeCache table_store_type_cache = 9;
+    TTableMetadataCache table_metadata_cache = 9;
 
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;

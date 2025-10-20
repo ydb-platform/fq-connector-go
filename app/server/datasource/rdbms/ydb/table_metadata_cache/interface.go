@@ -1,4 +1,4 @@
-package table_store_type_cache
+package table_metadata_cache
 
 import (
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"

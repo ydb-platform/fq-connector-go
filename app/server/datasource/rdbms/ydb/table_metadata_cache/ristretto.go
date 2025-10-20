@@ -1,4 +1,4 @@
-package table_store_type_cache
+package table_metadata_cache
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableNa
 	return options.StoreType(value), true
 }
 
-func newRistrettoCache(cfg *config.TYdbConfig_TTableStoreTypeCache) (*ristrettoCache, error) {
+func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, int]{
 		NumCounters: cfg.GetRistretto().NumCounters,
 		MaxCost:     cfg.GetRistretto().MaxCost,

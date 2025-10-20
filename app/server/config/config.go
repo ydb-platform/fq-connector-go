@@ -565,13 +565,13 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 	}
 
 	// it's OK not to have this cache, but if it's provided, validate it
-	if cacheCfg := c.TableStoreTypeCache; cacheCfg != nil {
+	if cacheCfg := c.TableMetadataCache; cacheCfg != nil {
 		if _, err := common.DurationFromString(cacheCfg.Ttl); err != nil {
 			return fmt.Errorf("validate `ttl`: %v", err)
 		}
 
 		switch storageCfg := cacheCfg.Storage.(type) {
-		case *config.TYdbConfig_TTableStoreTypeCache_Ristretto:
+		case *config.TYdbConfig_TTableMetadataCache_Ristretto:
 			if storageCfg.Ristretto.BufferItems <= 0 {
 				return fmt.Errorf("invalid `buffer_items` value: %v", storageCfg.Ristretto.BufferItems)
 			}

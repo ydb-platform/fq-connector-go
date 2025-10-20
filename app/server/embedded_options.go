@@ -160,14 +160,14 @@ func WithPostgreSQLSplitting(tablePhysicalSizeThresholdBytes uint64) EmbeddedOpt
 	}
 }
 
-type withYDBTableStoreTypeCache struct {
-	tableStoreTypeCache *config.TYdbConfig_TTableStoreTypeCache
+type withYDBTableMetadataCache struct {
+	TableMetadataCache *config.TYdbConfig_TTableMetadataCache
 }
 
-func (o *withYDBTableStoreTypeCache) apply(cfg *config.TServerConfig) {
-	cfg.Datasources.Ydb.TableStoreTypeCache = o.tableStoreTypeCache
+func (o *withYDBTableMetadataCache) apply(cfg *config.TServerConfig) {
+	cfg.Datasources.Ydb.TableMetadataCache = o.TableMetadataCache
 }
 
-func WithYDBTableStoreTypeCache(tableStoreTypeCache *config.TYdbConfig_TTableStoreTypeCache) EmbeddedOption {
-	return &withYDBTableStoreTypeCache{tableStoreTypeCache: tableStoreTypeCache}
+func WithYDBTableMetadataCache(TableMetadataCache *config.TYdbConfig_TTableMetadataCache) EmbeddedOption {
+	return &withYDBTableMetadataCache{TableMetadataCache: TableMetadataCache}
 }
