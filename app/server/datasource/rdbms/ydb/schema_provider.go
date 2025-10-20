@@ -26,27 +26,47 @@ var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
 func (f *schemaProvider) GetSchema(
 	ctx context.Context,
 	logger *zap.Logger,
-	conn rdbms_utils.Connection,
+	connMgr rdbms_utils.ConnectionManager,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
+	prefix := path.Join(request.DataSourceInstance.Database, request.Table)
+	logger = logger.With(zap.String("prefix", prefix))
 
-	// Try to get cached value - this may help us to save a connection
+	logger.Debug("obtaining table metadata from YDB")
+
+	// Try to get cached value - this helps us avoid creating a connection
 	cachedValue, exists := f.tableMetadataCache.Get(request.DataSourceInstance, request.Table)
 	if exists && cachedValue != nil && cachedValue.Schema != nil {
+		logger.Debug("obtained table metadata from cache")
+
 		return cachedValue.Schema, nil
 	}
 
+	// Cache miss or empty schema - need to create connection and fetch from YDB
+	params := &rdbms_utils.ConnectionParams{
+		Ctx:                ctx,
+		Logger:             logger,
+		DataSourceInstance: request.DataSourceInstance,
+		TableName:          request.Table,
+		QueryPhase:         rdbms_utils.QueryPhaseDescribeTable,
+	}
+
+	cs, err := connMgr.Make(params)
+	if err != nil {
+		return nil, fmt.Errorf("make connection: %w", err)
+	}
+
+	defer connMgr.Release(ctx, logger, cs)
+
+	// We asked for a single connection
+	conn := cs[0]
+
 	var (
 		driver = conn.(Connection).Driver()
-		prefix = path.Join(conn.DataSourceInstance().Database, conn.TableName())
 		desc   options.Description
 	)
 
-	logger = logger.With(zap.String("prefix", prefix))
-
-	logger.Debug("obtaining table metadata")
-
-	err := driver.Table().Do(
+	err = driver.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
@@ -84,13 +104,13 @@ func (f *schemaProvider) GetSchema(
 		return nil, fmt.Errorf("build schema: %w", err)
 	}
 
-	// preserve table store type into cache - it can decrease the latency of ListSplits and DescribeTable table
+	// preserve table metadata into cache to decrease the latency of DescribeTable and ListSplits methods
 	value := &table_metadata_cache.TValue{
 		Schema:    schema,
 		StoreType: table_metadata_cache.EStoreType(desc.StoreType),
 	}
 
-	ok := f.tableMetadataCache.Put(request.DataSourceInstance, "tableName", value)
+	ok := f.tableMetadataCache.Put(request.DataSourceInstance, request.Table, value)
 	if !ok {
 		logger.Warn("failed to cache table metadata")
 	} else {

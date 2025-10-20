@@ -45,39 +45,8 @@ func (ds *dataSourceImpl) DescribeTable(
 	logger *zap.Logger,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
-	var cs []rdbms_utils.Connection
-
-	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
-		func() error {
-			var makeConnErr error
-
-			params := &rdbms_utils.ConnectionParams{
-				Ctx:                ctx,
-				Logger:             logger,
-				DataSourceInstance: request.DataSourceInstance,
-				TableName:          request.Table,
-				QueryPhase:         rdbms_utils.QueryPhaseDescribeTable,
-			}
-
-			cs, makeConnErr = ds.connectionManager.Make(params)
-			if makeConnErr != nil {
-				return fmt.Errorf("make connection: %w", makeConnErr)
-			}
-
-			return nil
-		},
-	)
-
-	if err != nil {
-		return nil, fmt.Errorf("retry: %w", err)
-	}
-
-	defer ds.connectionManager.Release(ctx, logger, cs)
-
-	// We asked for a single connection
-	conn := cs[0]
-
-	schema, err := ds.schemaProvider.GetSchema(ctx, logger, conn, request)
+	// Pass ConnectionManager to SchemaProvider - it will decide whether to create a connection
+	schema, err := ds.schemaProvider.GetSchema(ctx, logger, ds.connectionManager, request)
 	if err != nil {
 		return nil, fmt.Errorf("get schema: %w", err)
 	}

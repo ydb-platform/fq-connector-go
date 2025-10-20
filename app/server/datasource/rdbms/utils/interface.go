@@ -122,7 +122,7 @@ type SchemaProvider interface {
 	GetSchema(
 		ctx context.Context,
 		logger *zap.Logger,
-		conn Connection,
+		connMgr ConnectionManager,
 		request *api_service_protos.TDescribeTableRequest,
 	) (*api_service_protos.TSchema, error)
 }

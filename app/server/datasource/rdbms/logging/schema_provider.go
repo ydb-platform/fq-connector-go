@@ -37,7 +37,7 @@ type schemaProviderImpl struct {
 func (schemaProviderImpl) GetSchema(
 	_ context.Context,
 	_ *zap.Logger,
-	_ rdbms_utils.Connection,
+	_ rdbms_utils.ConnectionManager,
 	_ *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
 	return loggingVirtualSchema, nil
