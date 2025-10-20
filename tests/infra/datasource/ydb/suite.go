@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
+	"github.com/stretchr/testify/require"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -355,7 +356,21 @@ func (s *Suite) TestTableInFolder() {
 // Set of tests validating stats
 
 func (s *Suite) TestPositiveStats() {
-	suite.TestPositiveStats(s.Base, s.dataSource, tables["simple"])
+	suite.TestPositiveStats(
+		s.Base, s.dataSource, tables["simple"],
+		func(require *require.Assertions, before, after *common.MetricsSnapshot) {
+			// Cache hit ration must grow
+			hitRatio, err := after.FindFloat64Sensor("ydb_table_metadata_cache_hit_ratio")
+			require.NoError(err)
+			require.GreaterOrEqual(hitRatio, 0.0)
+			require.LessOrEqual(hitRatio, 1.0)
+
+			// Cache size must be non-zero
+			cacheSize, err := after.FindFloat64Sensor("ydb_table_metadata_cache_size")
+			require.NoError(err)
+			require.Greater(cacheSize, 0.0)
+		},
+	)
 }
 
 func (s *Suite) TestMissingDataSource() {

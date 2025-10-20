@@ -29,7 +29,7 @@ func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableNa
 	// Serialize TValue to bytes
 	data, err := proto.Marshal(value)
 	if err != nil {
-		return false
+		panic(err)
 	}
 
 	return r.cache.SetWithTTL(key, data, int64(len(data)), r.ttl)
@@ -46,7 +46,7 @@ func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableNa
 	// Deserialize bytes to TValue
 	value := &TValue{}
 	if err := proto.Unmarshal(data, value); err != nil {
-		return nil, false
+		panic(err)
 	}
 
 	return value, true
@@ -80,6 +80,7 @@ func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCa
 		NumCounters: cfg.GetRistretto().NumCounters,
 		MaxCost:     cfg.GetRistretto().MaxCost,
 		BufferItems: cfg.GetRistretto().BufferItems,
+		Metrics:     true,
 	})
 
 	if err != nil {

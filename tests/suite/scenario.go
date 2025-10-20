@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/stretchr/testify/require"
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -19,6 +20,7 @@ func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDB
 	s *Base[ID, IDBUILDER],
 	dataSource *datasource.DataSource,
 	table *test_utils.Table[ID, IDBUILDER],
+	customChecks ...func(require *require.Assertions, before, after *common.MetricsSnapshot),
 ) {
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
@@ -43,6 +45,11 @@ func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDB
 	readSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ReadSplits", "stream_status_total", "OK")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(len(dataSource.Instances)), readSplitsStatusOK)
+
+	// Run custom checks if provided
+	for _, check := range customChecks {
+		check(s.Require(), snapshot1, snapshot2)
+	}
 }
 
 func TestMissingDataSource[
