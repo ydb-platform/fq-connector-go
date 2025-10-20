@@ -15,7 +15,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 	}
 
 	// Register gauges for cache statistics with ydb_table_metadata_cache_ prefix
-	cacheHitRatio := registry.FuncGauge("ydb_table_metadata_cache_hit_ratio", func() float64 {
+	_ = registry.FuncGauge("ydb_table_metadata_cache_hit_ratio", func() float64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
@@ -23,52 +23,52 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		return m.Ratio
 	})
 
-	cacheHits := registry.FuncGauge("ydb_table_metadata_cache_hits_total", func() float64 {
+	cacheHits := registry.FuncCounter("ydb_table_metadata_cache_hits_total", func() int64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
 		}
-		return float64(m.Hits)
+		return int64(m.Hits)
 	})
 
-	cacheMisses := registry.FuncGauge("ydb_table_metadata_cache_misses_total", func() float64 {
+	cacheMisses := registry.FuncCounter("ydb_table_metadata_cache_misses_total", func() int64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
 		}
-		return float64(m.Misses)
+		return int64(m.Misses)
 	})
 
-	cacheKeysAdded := registry.FuncGauge("ydb_table_metadata_cache_keys_added_total", func() float64 {
+	cacheKeysAdded := registry.FuncCounter("ydb_table_metadata_cache_keys_added_total", func() int64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
 		}
-		return float64(m.KeysAdded)
+		return int64(m.KeysAdded)
 	})
 
-	cacheKeysEvicted := registry.FuncGauge("ydb_table_metadata_cache_keys_evicted_total", func() float64 {
+	cacheKeysEvicted := registry.FuncCounter("ydb_table_metadata_cache_keys_evicted_total", func() int64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
 		}
-		return float64(m.KeysEvicted)
+		return int64(m.KeysEvicted)
 	})
 
-	cacheCostAdded := registry.FuncGauge("ydb_table_metadata_cache_cost_added_total", func() float64 {
+	cacheKeysDropped := registry.FuncCounter("ydb_table_metadata_cache_keys_dropped_total", func() int64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
 		}
-		return float64(m.CostAdded)
+		return int64(m.KeysDropped)
 	})
 
-	cacheCostEvicted := registry.FuncGauge("ydb_table_metadata_cache_cost_evicted_total", func() float64 {
+	_ = registry.FuncGauge("ydb_table_metadata_cache_size", func() float64 {
 		m := cache.Metrics()
 		if m == nil {
 			return 0
 		}
-		return float64(m.CostEvicted)
+		return float64(m.Size)
 	})
 
 	// Mark counters as rated for proper visualization
@@ -76,7 +76,5 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 	solomon.Rated(cacheMisses)
 	solomon.Rated(cacheKeysAdded)
 	solomon.Rated(cacheKeysEvicted)
-	solomon.Rated(cacheCostAdded)
-	solomon.Rated(cacheCostEvicted)
-	solomon.Rated(cacheHitRatio)
+	solomon.Rated(cacheKeysDropped)
 }

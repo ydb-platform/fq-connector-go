@@ -13,8 +13,8 @@ type Metrics struct {
 	Ratio       float64
 	KeysAdded   uint64
 	KeysEvicted uint64
-	CostAdded   uint64
-	CostEvicted uint64
+	KeysDropped uint64
+	Size        uint64
 }
 
 type Cache interface {

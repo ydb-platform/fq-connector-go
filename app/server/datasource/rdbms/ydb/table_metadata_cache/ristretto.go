@@ -43,14 +43,24 @@ func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableNa
 
 func (r *ristrettoCache) Metrics() *Metrics {
 	m := r.cache.Metrics
+	costAdded := m.CostAdded()
+	costEvicted := m.CostEvicted()
+	keysAdded := m.KeysAdded()
+	keysEvicted := m.KeysEvicted()
+
+	// KeysDropped represents keys that were rejected/dropped (not added successfully)
+	// We can compute this as the difference between keys that should have been added
+	// and keys that were actually added, but Ristretto doesn't expose this directly.
+	// For now, we'll set it to 0 as Ristretto doesn't track dropped keys separately.
+
 	return &Metrics{
 		Hits:        m.Hits(),
 		Misses:      m.Misses(),
 		Ratio:       m.Ratio(),
-		KeysAdded:   m.KeysAdded(),
-		KeysEvicted: m.KeysEvicted(),
-		CostAdded:   m.CostAdded(),
-		CostEvicted: m.CostEvicted(),
+		KeysAdded:   keysAdded,
+		KeysEvicted: keysEvicted,
+		KeysDropped: 0, // Ristretto doesn't expose this metric
+		Size:        costAdded - costEvicted,
 	}
 }
 
