@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
-	"github.com/stretchr/testify/require"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 
@@ -356,21 +355,55 @@ func (s *Suite) TestTableInFolder() {
 // Set of tests validating stats
 
 func (s *Suite) TestPositiveStats() {
+	var (
+		cacheHitsBeforeEviction   float64
+		cacheMissesBeforeEviction float64
+	)
+
+	// run defult stats tests, but check custom fields
 	suite.TestPositiveStats(
 		s.Base, s.dataSource, tables["simple"],
-		func(require *require.Assertions, before, after *common.MetricsSnapshot) {
-			// Cache hit ration must grow
-			hitRatio, err := after.FindFloat64Sensor("ydb_table_metadata_cache_hit_ratio")
-			require.NoError(err)
-			require.GreaterOrEqual(hitRatio, 0.0)
-			require.LessOrEqual(hitRatio, 1.0)
+		func(_, snapshotBeforeEviction *common.MetricsSnapshot) {
+			// Hit ratio must be non-zero
+			hitRatio, err := snapshotBeforeEviction.FindFloat64Sensor("ydb_table_metadata_cache_hit_ratio")
+			s.Require().NoError(err)
+			s.Require().Greater(hitRatio, 0.0)
+			s.Require().Less(hitRatio, 1.0)
 
 			// Cache size must be non-zero
-			cacheSize, err := after.FindFloat64Sensor("ydb_table_metadata_cache_size")
-			require.NoError(err)
-			require.Greater(cacheSize, 0.0)
+			cacheSize, err := snapshotBeforeEviction.FindFloat64Sensor("ydb_table_metadata_cache_size")
+			s.Require().NoError(err)
+			s.Require().Greater(cacheSize, 0.0)
+
+			// Cache hits and misses must be non-zero
+			cacheHitsBeforeEviction, err = snapshotBeforeEviction.FindFloat64Sensor("ydb_table_metadata_cache_hits_total")
+			s.Require().NoError(err)
+			s.Require().Greater(cacheHitsBeforeEviction, 0.0)
+
+			cacheMissesBeforeEviction, err = snapshotBeforeEviction.FindFloat64Sensor("ydb_table_metadata_cache_misses_total")
+			s.Require().NoError(err)
+			s.Require().Greater(cacheHitsBeforeEviction, 0.0)
 		},
 	)
+
+	// Sleep for a while to make cache evict old values
+	time.Sleep(suite.YDBTableMetadataCacheTTL * 2)
+
+	// Read the same table again: DescribeTable + ListSplits + ReadSplits
+	s.ValidateTable(s.dataSource, tables["simple"])
+
+	snapshotAfterEviction, err := s.Connector.MetricsSnapshot()
+	s.Require().NoError(err)
+
+	// One more cache miss happened during DescribeTable call
+	cacheMissesAfterEviction, err := snapshotAfterEviction.FindFloat64Sensor("ydb_table_metadata_cache_misses_total")
+	s.Require().NoError(err)
+	s.Require().Equal(cacheMissesAfterEviction, cacheMissesBeforeEviction+1)
+
+	// One more cache hit happened during ListSplits call
+	cacheHitsAfterEviction, err := snapshotAfterEviction.FindFloat64Sensor("ydb_table_metadata_cache_hits_total")
+	s.Require().NoError(err)
+	s.Require().Equal(cacheHitsAfterEviction, cacheHitsBeforeEviction+1)
 }
 
 func (s *Suite) TestMissingDataSource() {

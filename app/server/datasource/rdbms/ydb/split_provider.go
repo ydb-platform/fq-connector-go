@@ -28,20 +28,28 @@ type SplitProvider struct {
 	tableMetadataCache table_metadata_cache.Cache
 }
 
+//nolint:gocyclo
 func (sp SplitProvider) ListSplits(
 	params *rdbms_utils.ListSplitsParams,
 ) error {
 	resultChan, slct, ctx, logger := params.ResultChan, params.Select, params.Ctx, params.Logger
 
-	// Try to get cached value - this may help us to save a connection
-	cachedValue, exists := sp.tableMetadataCache.Get(params.Select.DataSourceInstance, params.Select.GetFrom().GetTable())
-	if exists && cachedValue != nil {
-		storeType := table_options.StoreType(cachedValue.StoreType)
-		logger.Info("obtained table metadata from cache")
+	storeType := table_metadata_cache.EStoreType_STORE_TYPE_UNSPECIFIED
 
-		// On the data shards the table splitting is not implemented yet,
-		// so no need to connect the database to get table metadata, return single split.
-		if storeType == table_options.StoreTypeRow {
+	// Try to get cached value - this may help us to save a connection
+	cachedValue, cachedValueExists := sp.tableMetadataCache.Get(
+		params.Select.DataSourceInstance,
+		params.Select.GetFrom().GetTable(),
+	)
+	if cachedValueExists && cachedValue != nil {
+		logger.Info("obtained table metadata from cache", zap.Stringer("store_type", cachedValue.StoreType))
+
+		// If we have STORE_TYPE_ROW or STORE_TYPE_UNSPECIFIED, that's a row table.
+		// On the row table the splitting is not implemented yet,
+		// so there's no need to connect the database to get table metadata:
+		// just return a single split.
+		if cachedValue.StoreType == table_metadata_cache.EStoreType_STORE_TYPE_ROW ||
+			cachedValue.StoreType == table_metadata_cache.EStoreType_STORE_TYPE_UNSPECIFIED {
 			if err := sp.listSingleSplit(ctx, slct, resultChan); err != nil {
 				return fmt.Errorf("list splits data shard: %w", err)
 			}
@@ -82,14 +90,16 @@ func (sp SplitProvider) ListSplits(
 
 	conn := cs[0]
 
-	// Find out the type of a table
-	storeType, err := sp.getTableStoreType(ctx, logger, conn)
-	if err != nil {
-		return fmt.Errorf("get table store type: %w", err)
+	// If the cache was empty, we have to obtain metadata (via DescribeTable)
+	if !cachedValueExists {
+		storeType, err = sp.getTableStoreType(ctx, logger, conn)
+		if err != nil {
+			return fmt.Errorf("get table store type: %w", err)
+		}
 	}
 
 	switch storeType {
-	case table_options.StoreTypeColumn:
+	case table_metadata_cache.EStoreType_STORE_TYPE_COLUMN:
 		logger.Info("column shard table discovered")
 
 		if sp.cfg.EnabledOnColumnShards {
@@ -104,13 +114,13 @@ func (sp SplitProvider) ListSplits(
 				return fmt.Errorf("list single split: %w", err)
 			}
 		}
-	case table_options.StoreTypeRow:
+	case table_metadata_cache.EStoreType_STORE_TYPE_ROW:
 		logger.Info("data shard table discovered")
 
 		if err = sp.listSingleSplit(ctx, slct, resultChan); err != nil {
 			return fmt.Errorf("list splits data shard: %w", err)
 		}
-	case table_options.StoreTypeUnspecified:
+	case table_metadata_cache.EStoreType_STORE_TYPE_UNSPECIFIED:
 		// Observed with OLTP tables at: 24.3.11.13
 		logger.Warn("table store type is unspecified, fallback to default (single split per table)")
 
@@ -124,11 +134,11 @@ func (sp SplitProvider) ListSplits(
 	return nil
 }
 
-func (sp *SplitProvider) getTableStoreType(
+func (SplitProvider) getTableStoreType(
 	ctx context.Context,
 	logger *zap.Logger,
 	conn rdbms_utils.Connection,
-) (table_options.StoreType, error) {
+) (table_metadata_cache.EStoreType, error) {
 	var (
 		driver = conn.(Connection).Driver()
 		prefix = path.Join(conn.DataSourceInstance().Database, conn.TableName())
@@ -148,27 +158,18 @@ func (sp *SplitProvider) getTableStoreType(
 				return fmt.Errorf("describe table '%v': %w", prefix, errInner)
 			}
 
-			// Create TValue with store type
-			value := &table_metadata_cache.TValue{
-				StoreType: table_metadata_cache.EStoreType(desc.StoreType),
-			}
-
-			ok := sp.tableMetadataCache.Put(conn.DataSourceInstance(), conn.TableName(), value)
-			if !ok {
-				logger.Warn("failed to cache table store type", zap.Any("store_type", desc.StoreType))
-			}
-
 			return nil
 		},
 		table.WithIdempotent(),
 	)
 	if err != nil {
-		return table_options.StoreTypeUnspecified, fmt.Errorf("get table description: %w", err)
+		return table_metadata_cache.EStoreType_STORE_TYPE_UNSPECIFIED, fmt.Errorf("get table description: %w", err)
 	}
 
-	logger.Info("obtained table store type from GRPC call", zap.Any("store_type", desc.StoreType))
+	result := table_metadata_cache.EStoreType(desc.StoreType)
+	logger.Info("obtained table store type from GRPC call", zap.Any("store_type", result))
 
-	return desc.StoreType, nil
+	return result, nil
 }
 
 func (sp SplitProvider) listSplitsColumnShard(

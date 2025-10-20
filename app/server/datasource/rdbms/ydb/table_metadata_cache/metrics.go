@@ -8,8 +8,9 @@ import (
 // RegisterMetrics registers cache metrics with the provided registry.
 // It uses the ydb_table_metadata_cache_ prefix for all metrics.
 func RegisterMetrics(registry metrics.Registry, cache Cache) {
-	metrics := cache.Metrics()
-	if metrics == nil {
+	m := cache.Metrics()
+
+	if m == nil {
 		// noop cache returns nil metrics
 		return
 	}
@@ -20,6 +21,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return m.Ratio
 	})
 
@@ -28,6 +30,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return int64(m.Hits)
 	})
 
@@ -36,6 +39,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return int64(m.Misses)
 	})
 
@@ -44,6 +48,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return int64(m.KeysAdded)
 	})
 
@@ -52,6 +57,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return int64(m.KeysEvicted)
 	})
 
@@ -60,6 +66,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return int64(m.KeysDropped)
 	})
 
@@ -68,6 +75,7 @@ func RegisterMetrics(registry metrics.Registry, cache Cache) {
 		if m == nil {
 			return 0
 		}
+
 		return float64(m.Size)
 	})
 

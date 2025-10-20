@@ -83,6 +83,7 @@ func (ms *MetricsSnapshot) FindFloat64Sensor(name string) (float64, error) {
 		if !ok {
 			return 0, fmt.Errorf("sensor %q found but value is not float64", name)
 		}
+
 		return value, nil
 	}
 
