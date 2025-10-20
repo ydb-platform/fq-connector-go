@@ -21,9 +21,27 @@ var _ SchemaProvider = (*defaultSchemaProvider)(nil)
 func (f *defaultSchemaProvider) GetSchema(
 	ctx context.Context,
 	logger *zap.Logger,
-	conn Connection,
+	connMgr ConnectionManager,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
+	params := &ConnectionParams{
+		Ctx:                ctx,
+		Logger:             logger,
+		DataSourceInstance: request.DataSourceInstance,
+		TableName:          request.Table,
+		QueryPhase:         QueryPhaseDescribeTable,
+	}
+
+	cs, err := connMgr.Make(params)
+	if err != nil {
+		return nil, fmt.Errorf("make connection: %w", err)
+	}
+
+	defer connMgr.Release(ctx, logger, cs)
+
+	// We asked for a single connection
+	conn := cs[0]
+
 	query, args := f.getArgsAndQuery(request)
 
 	queryParams := &QueryParams{

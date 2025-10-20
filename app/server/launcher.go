@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
@@ -66,11 +67,20 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 		return nil, fmt.Errorf("new observation storage: %w", err)
 	}
 
+	// initialize YDB table metadata cache
+	ydbTableMetadataCache, err := table_metadata_cache.NewCache(cfg.Datasources.Ydb.TableMetadataCache)
+	if err != nil {
+		return nil, fmt.Errorf("new YDB table metadata cache: %w", err)
+	}
+
 	// init metrics server
 	if cfg.MetricsServer != nil {
 		l.services[metricsServiceKey] = newServiceMetrics(
 			logger.With(zap.String("service", metricsServiceKey)),
-			cfg.MetricsServer, solomonRegistry)
+			cfg.MetricsServer,
+			solomonRegistry,
+			ydbTableMetadataCache,
+		)
 	}
 
 	// init GRPC server
@@ -79,6 +89,7 @@ func NewLauncher(logger *zap.Logger, cfg *config.TServerConfig) (*Launcher, erro
 		cfg,
 		solomonRegistry,
 		observationStorage,
+		ydbTableMetadataCache,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new connector service: %w", err)

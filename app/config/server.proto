@@ -269,7 +269,7 @@ message TPrometheusConfig {
     string open_connection_timeout = 1;
 
     // By default, we use `5e+7 bytes` ~ 50MB for the maximum size of frame, that we can read at once from data source
-    uint64 chunked_read_limit = 2;
+    uint64 chunked_read_limit_bytes = 2;
 
     TExponentialBackoffConfig exponential_backoff = 10;
 }
@@ -347,6 +347,30 @@ message TYdbConfig {
     // Appliable only if mode is MODE_QUERY_SERVICE_NATIVE,
     // with "default" as the default value.
     string resource_pool = 8;
+
+    // When working with YDB tables, it's important to distinguish row tables from columnar tables,
+    // because they provide different optimizations for massively-parallel reading.
+    // It's quite useful to store table metadata (including, but not limited to, the store type) 
+    // because it changes rarely.
+    message TTableMetadataCache {
+        // TTL for cached values.
+        // Valid values should satisfy `time.ParseDuration` (e. g. '5s', '100ms', '3h').
+        string ttl = 1;
+
+        // TRistretto contains configuration for Ristretto cache.
+        // See https://pkg.go.dev/github.com/dgraph-io/ristretto/v2#Config for details.
+        message TRistretto {
+            int64 num_counters = 1;
+            int64 max_cost = 2;
+            int64 buffer_items = 3;
+        }
+
+        oneof storage {
+            TRistretto ristretto = 2;
+        }
+    }
+
+    TTableMetadataCache table_metadata_cache = 9;
 
     TExponentialBackoffConfig exponential_backoff = 10;
     TPushdownConfig pushdown = 11;

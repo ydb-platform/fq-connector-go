@@ -19,6 +19,7 @@ func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDB
 	s *Base[ID, IDBUILDER],
 	dataSource *datasource.DataSource,
 	table *test_utils.Table[ID, IDBUILDER],
+	customChecks ...func(before, after *common.MetricsSnapshot),
 ) {
 	// get stats snapshot before table reading
 	snapshot1, err := s.Connector.MetricsSnapshot()
@@ -43,6 +44,11 @@ func TestPositiveStats[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDB
 	readSplitsStatusOK, err := common.DiffStatusSensors(snapshot1, snapshot2, "RATE", "ReadSplits", "stream_status_total", "OK")
 	s.Require().NoError(err)
 	s.Require().Equal(float64(len(dataSource.Instances)), readSplitsStatusOK)
+
+	// Run custom checks if provided
+	for _, check := range customChecks {
+		check(snapshot1, snapshot2)
+	}
 }
 
 func TestMissingDataSource[

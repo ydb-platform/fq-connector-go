@@ -194,7 +194,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	if c.Datasources.Prometheus == nil {
 		c.Datasources.Prometheus = &config.TPrometheusConfig{
 			OpenConnectionTimeout: "5s",
-			ChunkedReadLimit:      5e7,
+			ChunkedReadLimitBytes: 5e7,
 		}
 	}
 
@@ -516,6 +516,7 @@ func validatePostgreSQLConfig(c *config.TPostgreSQLConfig) error {
 	return nil
 }
 
+//nolint:gocyclo
 func validateYdbConfig(c *config.TYdbConfig) error {
 	if c == nil {
 		return nil
@@ -562,6 +563,30 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if _, err := common.DurationFromString(c.Splitting.QueryTabletIdsTimeout); err != nil {
 		return fmt.Errorf("validate `query_tablet_ids_timeout`: %v", err)
+	}
+
+	// it's OK not to have this cache, but if it's provided, validate it
+	if cacheCfg := c.TableMetadataCache; cacheCfg != nil {
+		if _, err := common.DurationFromString(cacheCfg.Ttl); err != nil {
+			return fmt.Errorf("validate `ttl`: %v", err)
+		}
+
+		switch storageCfg := cacheCfg.Storage.(type) {
+		case *config.TYdbConfig_TTableMetadataCache_Ristretto:
+			if storageCfg.Ristretto.BufferItems <= 0 {
+				return fmt.Errorf("invalid `buffer_items` value: %v", storageCfg.Ristretto.BufferItems)
+			}
+
+			if storageCfg.Ristretto.MaxCost <= 0 {
+				return fmt.Errorf("invalid `max_cost` value: %v", storageCfg.Ristretto.MaxCost)
+			}
+
+			if storageCfg.Ristretto.NumCounters <= 0 {
+				return fmt.Errorf("invalid `num_counters` value: %v", storageCfg.Ristretto.NumCounters)
+			}
+		default:
+			return fmt.Errorf("unknown storage: %v", storageCfg)
+		}
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {

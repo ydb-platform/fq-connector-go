@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/postgresql"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils/retry"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -79,6 +80,7 @@ func NewDataSourceFactory(
 	qlf common.QueryLoggerFactory,
 	converterCollection conversion.Collection,
 	observationStorage observation.Storage,
+	ydbTableMetadataCache table_metadata_cache.Cache,
 ) (datasource.Factory[any], error) {
 	connManagerBase := rdbms_utils.ConnectionManagerBase{
 		QueryLoggerFactory: qlf,
@@ -135,8 +137,8 @@ func NewDataSourceFactory(
 			SQLFormatter:      ydb.NewSQLFormatter(cfg.Ydb.Mode, cfg.Ydb.Pushdown),
 			ConnectionManager: ydb.NewConnectionManager(cfg.Ydb, connManagerBase),
 			TypeMapper:        ydbTypeMapper,
-			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper),
-			SplitProvider:     ydb.NewSplitProvider(cfg.Ydb.Splitting),
+			SchemaProvider:    ydb.NewSchemaProvider(ydbTypeMapper, ydbTableMetadataCache),
+			SplitProvider:     ydb.NewSplitProvider(cfg.Ydb.Splitting, ydbTableMetadataCache),
 			RetrierSet: &retry.RetrierSet{
 				MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 				Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),
@@ -208,7 +210,10 @@ func NewDataSourceFactory(
 		ConnectionManager: logging.NewConnectionManager(cfg.Logging, connManagerBase, dsf.loggingResolver),
 		TypeMapper:        nil,
 		SchemaProvider:    logging.NewSchemaProvider(),
-		SplitProvider:     logging.NewSplitProvider(dsf.loggingResolver, ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting)),
+		SplitProvider: logging.NewSplitProvider(
+			dsf.loggingResolver,
+			ydb.NewSplitProvider(cfg.Logging.Ydb.Splitting, ydbTableMetadataCache),
+		),
 		RetrierSet: &retry.RetrierSet{
 			MakeConnection: retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, retry.ErrorCheckerMakeConnectionCommon),
 			Query:          retry.NewRetrierFromConfig(cfg.Ydb.ExponentialBackoff, ydb.ErrorCheckerQuery),

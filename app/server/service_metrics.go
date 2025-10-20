@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
 	"github.com/ydb-platform/fq-connector-go/library/go/core/metrics/solomon"
@@ -42,9 +43,16 @@ func (s *serviceMetrics) Stop() {
 func newServiceMetrics(
 	logger *zap.Logger,
 	cfg *config.TMetricsServerConfig,
-	registry *solomon.Registry) utils.Service {
+	registry *solomon.Registry,
+	cache table_metadata_cache.Cache,
+) utils.Service {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", NewHTTPPullerHandler(logger, registry, WithSpack()))
+
+	// Register cache metrics if cache is available
+	if cache != nil {
+		table_metadata_cache.RegisterMetrics(registry, cache)
+	}
 
 	httpServer := &http.Server{
 		Addr:    common.EndpointToString(cfg.Endpoint),

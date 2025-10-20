@@ -13,10 +13,12 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 )
 
 type schemaProvider struct {
-	typeMapper datasource.TypeMapper
+	typeMapper         datasource.TypeMapper
+	tableMetadataCache table_metadata_cache.Cache
 }
 
 var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
@@ -24,18 +26,47 @@ var _ rdbms_utils.SchemaProvider = (*schemaProvider)(nil)
 func (f *schemaProvider) GetSchema(
 	ctx context.Context,
 	logger *zap.Logger,
-	conn rdbms_utils.Connection,
+	connMgr rdbms_utils.ConnectionManager,
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
+	prefix := path.Join(request.DataSourceInstance.Database, request.Table)
+	logger = logger.With(zap.String("prefix", prefix))
+
+	logger.Debug("obtaining table metadata from YDB")
+
+	// Try to get cached value - this helps us avoid creating a connection
+	cachedValue, exists := f.tableMetadataCache.Get(request.DataSourceInstance, request.Table)
+	if exists && cachedValue != nil && cachedValue.Schema != nil {
+		logger.Debug("obtained table metadata from cache")
+
+		return cachedValue.Schema, nil
+	}
+
+	// Cache miss or empty schema - need to create connection and fetch from YDB
+	params := &rdbms_utils.ConnectionParams{
+		Ctx:                ctx,
+		Logger:             logger,
+		DataSourceInstance: request.DataSourceInstance,
+		TableName:          request.Table,
+		QueryPhase:         rdbms_utils.QueryPhaseDescribeTable,
+	}
+
+	cs, err := connMgr.Make(params)
+	if err != nil {
+		return nil, fmt.Errorf("make connection: %w", err)
+	}
+
+	defer connMgr.Release(ctx, logger, cs)
+
+	// We asked for a single connection
+	conn := cs[0]
+
 	var (
 		driver = conn.(Connection).Driver()
-		prefix = path.Join(conn.DataSourceInstance().Database, conn.TableName())
 		desc   options.Description
 	)
 
-	logger.Debug("obtaining table metadata", zap.String("prefix", prefix))
-
-	err := driver.Table().Do(
+	err = driver.Table().Do(
 		ctx,
 		func(ctx context.Context, s table.Session) error {
 			var errInner error
@@ -69,9 +100,21 @@ func (f *schemaProvider) GetSchema(
 	}
 
 	schema, err := sb.Build(logger)
-
 	if err != nil {
 		return nil, fmt.Errorf("build schema: %w", err)
+	}
+
+	// preserve table metadata into cache to decrease the latency of DescribeTable and ListSplits methods
+	value := &table_metadata_cache.TValue{
+		Schema:    schema,
+		StoreType: table_metadata_cache.EStoreType(desc.StoreType),
+	}
+
+	ok := f.tableMetadataCache.Put(request.DataSourceInstance, request.Table, value)
+	if !ok {
+		logger.Warn("failed to cache table metadata")
+	} else {
+		logger.Debug("cached table metadata")
 	}
 
 	return schema, nil
@@ -79,8 +122,10 @@ func (f *schemaProvider) GetSchema(
 
 func NewSchemaProvider(
 	typeMapper datasource.TypeMapper,
+	tableMetadataCache table_metadata_cache.Cache,
 ) rdbms_utils.SchemaProvider {
 	return &schemaProvider{
-		typeMapper: typeMapper,
+		typeMapper:         typeMapper,
+		tableMetadataCache: tableMetadataCache,
 	}
 }

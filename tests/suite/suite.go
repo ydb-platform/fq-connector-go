@@ -19,6 +19,10 @@ import (
 	test_utils "github.com/ydb-platform/fq-connector-go/tests/utils"
 )
 
+const (
+	YDBTableMetadataCacheTTL = 1 * time.Second
+)
+
 type Base[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBuilder[ID]] struct {
 	testify_suite.Suite
 	*State
@@ -74,6 +78,18 @@ func (b *Base[_, _]) SetupSuite() {
 		server.WithPushdownConfig(
 			&config.TPushdownConfig{
 				EnableTimestampPushdown: true,
+			},
+		),
+		server.WithYDBTableMetadataCache(
+			&config.TYdbConfig_TTableMetadataCache{
+				Ttl: YDBTableMetadataCacheTTL.String(),
+				Storage: &config.TYdbConfig_TTableMetadataCache_Ristretto{
+					Ristretto: &config.TYdbConfig_TTableMetadataCache_TRistretto{
+						NumCounters: 1000,
+						MaxCost:     10 * 1024 * 1024, // 10 MB
+						BufferItems: 64,
+					},
+				},
 			},
 		),
 	}

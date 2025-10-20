@@ -17,6 +17,7 @@ import (
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
@@ -244,6 +245,7 @@ func newServiceConnector(
 	cfg *config.TServerConfig,
 	registry *solomon.Registry,
 	observationStorage observation.Storage,
+	ydbTableMetadataCache table_metadata_cache.Cache,
 ) (utils.Service, error) {
 	queryLoggerFactory := common.NewQueryLoggerFactory(cfg.Logger)
 
@@ -280,6 +282,7 @@ func newServiceConnector(
 		paging.NewReadLimiterFactory(cfg.Datasources),
 		conversion.NewCollection(cfg.Conversion),
 		observationStorage,
+		ydbTableMetadataCache,
 		cfg,
 	)
 	if err != nil {

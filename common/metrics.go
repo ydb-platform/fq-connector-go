@@ -58,6 +58,38 @@ func (ms *MetricsSnapshot) FindStatusSensors(typ, method, name, status string) [
 	return out
 }
 
+func (ms *MetricsSnapshot) FindFloat64Sensor(name string) (float64, error) {
+	metrics, ok := ms.data["metrics"].([]any)
+	if !ok {
+		return 0, fmt.Errorf("invalid response: metrics field not found or not an array")
+	}
+
+	for _, itemUntyped := range metrics {
+		item, ok := itemUntyped.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		labels, ok := item["labels"].(map[string]any)
+		if !ok {
+			continue
+		}
+
+		if labels["name"] != name {
+			continue
+		}
+
+		value, ok := item["value"].(float64)
+		if !ok {
+			return 0, fmt.Errorf("sensor %q found but value is not float64", name)
+		}
+
+		return value, nil
+	}
+
+	return 0, fmt.Errorf("sensor %q not found", name)
+}
+
 func getJSON(u url.URL, target any) error {
 	r, err := retryablehttp.Get(u.String())
 	if err != nil {

@@ -18,6 +18,7 @@ import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/nosql/redis"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/prometheus"
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms"
+	"github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/ydb/table_metadata_cache"
 	"github.com/ydb-platform/fq-connector-go/app/server/observation"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
 	"github.com/ydb-platform/fq-connector-go/app/server/streaming"
@@ -381,9 +382,17 @@ func NewDataSourceCollection(
 	readLimiterFactory *paging.ReadLimiterFactory,
 	converterCollection conversion.Collection,
 	observationStorage observation.Storage,
+	ydbTableMetadataCache table_metadata_cache.Cache,
 	cfg *config.TServerConfig,
 ) (*DataSourceCollection, error) {
-	rdbmsFactory, err := rdbms.NewDataSourceFactory(cfg.Datasources, queryLoggerFactory, converterCollection, observationStorage)
+	rdbmsFactory, err := rdbms.NewDataSourceFactory(
+		cfg.Datasources,
+		queryLoggerFactory,
+		converterCollection,
+		observationStorage,
+		ydbTableMetadataCache,
+	)
+
 	if err != nil {
 		return nil, fmt.Errorf("new data source factory: %w", err)
 	}
