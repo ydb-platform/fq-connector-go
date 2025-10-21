@@ -246,6 +246,7 @@ func fillServerConfigDefaults(c *config.TServerConfig) {
 	fillYdbConfigDefaults(c.Datasources.Logging.Ydb)
 }
 
+//nolint:gocyclo
 func fillYdbConfigDefaults(c *config.TYdbConfig) {
 	if c.OpenConnectionTimeout == "" {
 		c.OpenConnectionTimeout = "5s"
