@@ -91,9 +91,9 @@ func (r *ristrettoCache) Metrics() *Metrics {
 
 func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
-		NumCounters: cfg.GetRistretto().NumCounters,
-		MaxCost:     cfg.GetRistretto().MaxCost,
-		BufferItems: cfg.GetRistretto().BufferItems,
+		NumCounters: cfg.GetRistretto().MaxKeys,
+		MaxCost:     cfg.GetRistretto().MaxSizeBytes,
+		BufferItems: 64, // reasonable default
 		Metrics:     true,
 	})
 

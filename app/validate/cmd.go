@@ -97,6 +97,7 @@ func validateHelmConfigurationFile(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("new config from YAML data: %v", err)
 	}
 
+	// Print protobuf config
 	prettyJSON, err := common.ProtobufToJSON(cfg, true, "  ")
 	if err != nil {
 		return fmt.Errorf("marshal config to JSON: %v", err)

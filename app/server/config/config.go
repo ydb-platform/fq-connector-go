@@ -289,6 +289,18 @@ func fillYdbConfigDefaults(c *config.TYdbConfig) {
 	if c.Mode == config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE && c.ResourcePool == "" {
 		c.ResourcePool = "default"
 	}
+
+	if c.TableMetadataCache != nil && c.TableMetadataCache.GetRistretto() != nil {
+		ristretto := c.TableMetadataCache.GetRistretto()
+
+		if ristretto.MaxKeys == 0 {
+			ristretto.MaxKeys = 10000
+		}
+
+		if ristretto.MaxSizeBytes == 0 {
+			ristretto.MaxSizeBytes = 64 * 1024 * 1024
+		}
+	}
 }
 
 func validateServerConfig(c *config.TServerConfig) error {
@@ -573,16 +585,12 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 		switch storageCfg := cacheCfg.Storage.(type) {
 		case *config.TYdbConfig_TTableMetadataCache_Ristretto:
-			if storageCfg.Ristretto.BufferItems <= 0 {
-				return fmt.Errorf("invalid `buffer_items` value: %v", storageCfg.Ristretto.BufferItems)
+			if storageCfg.Ristretto.MaxSizeBytes <= 0 {
+				return fmt.Errorf("invalid `max_size_bytes` value: %v", storageCfg.Ristretto.MaxSizeBytes)
 			}
 
-			if storageCfg.Ristretto.MaxCost <= 0 {
-				return fmt.Errorf("invalid `max_cost` value: %v", storageCfg.Ristretto.MaxCost)
-			}
-
-			if storageCfg.Ristretto.NumCounters <= 0 {
-				return fmt.Errorf("invalid `num_counters` value: %v", storageCfg.Ristretto.NumCounters)
+			if storageCfg.Ristretto.MaxKeys <= 0 {
+				return fmt.Errorf("invalid `max_keys` value: %v", storageCfg.Ristretto.MaxKeys)
 			}
 		default:
 			return fmt.Errorf("unknown storage: %v", storageCfg)

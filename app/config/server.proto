@@ -360,9 +360,10 @@ message TYdbConfig {
         // TRistretto contains configuration for Ristretto cache.
         // See https://pkg.go.dev/github.com/dgraph-io/ristretto/v2#Config for details.
         message TRistretto {
-            int64 num_counters = 1;
-            int64 max_cost = 2;
-            int64 buffer_items = 3;
+            // The maximum number of keys to store in the cache.
+            int64 max_keys = 1;
+            // The maximum size of the cache in bytes (approximate limit)
+            int64 max_size_bytes = 2;
         }
 
         oneof storage {
