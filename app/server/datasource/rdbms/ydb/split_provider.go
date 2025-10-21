@@ -97,6 +97,21 @@ func (sp SplitProvider) ListSplits(
 		if err != nil {
 			return fmt.Errorf("get table store type: %w", err)
 		}
+
+		// and than put it back
+		ok := sp.tableMetadataCache.Put(
+			logger,
+			slct.GetDataSourceInstance(),
+			slct.GetFrom().GetTable(),
+			&table_metadata_cache.TValue{
+				StoreType: storeType,
+			},
+		)
+		if !ok {
+			logger.Warn("failed to cache table metadata")
+		} else {
+			logger.Debug("cached table metadata")
+		}
 	}
 
 	switch storeType {
