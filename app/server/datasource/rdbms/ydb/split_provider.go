@@ -38,6 +38,7 @@ func (sp SplitProvider) ListSplits(
 
 	// Try to get cached value - this may help us to save a connection
 	cachedValue, cachedValueExists := sp.tableMetadataCache.Get(
+		logger,
 		params.Select.DataSourceInstance,
 		params.Select.GetFrom().GetTable(),
 	)

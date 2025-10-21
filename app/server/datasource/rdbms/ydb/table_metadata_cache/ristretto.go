@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -23,8 +24,13 @@ type ristrettoCache struct {
 	ttl   time.Duration
 }
 
-func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool {
+func (r *ristrettoCache) Put(logger *zap.Logger, dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool {
 	key := serializeKey(dsi, tableName)
+
+	logger.Debug("putting value into ristretto cache",
+		zap.String("key", key),
+		zap.Stringer("value", value),
+	)
 
 	// Serialize TValue to bytes
 	data, err := proto.Marshal(value)
@@ -35,11 +41,17 @@ func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableNa
 	return r.cache.SetWithTTL(key, data, int64(len(data)), r.ttl)
 }
 
-func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool) {
+func (r *ristrettoCache) Get(logger *zap.Logger, dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool) {
 	key := serializeKey(dsi, tableName)
+
+	logger.Debug("getting value from ristretto cache",
+		zap.String("key", key),
+		zap.String("table", tableName),
+	)
 
 	data, found := r.cache.Get(key)
 	if !found {
+		logger.Debug("ristretto cache miss", zap.String("key", key))
 		return nil, false
 	}
 
@@ -48,6 +60,8 @@ func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableNa
 	if err := proto.Unmarshal(data, value); err != nil {
 		panic(err)
 	}
+
+	logger.Debug("ristretto cache hit", zap.String("key", key), zap.Stringer("value", value))
 
 	return value, true
 }
