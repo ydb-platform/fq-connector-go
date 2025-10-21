@@ -85,9 +85,8 @@ func (b *Base[_, _]) SetupSuite() {
 				Ttl: YDBTableMetadataCacheTTL.String(),
 				Storage: &config.TYdbConfig_TTableMetadataCache_Ristretto{
 					Ristretto: &config.TYdbConfig_TTableMetadataCache_TRistretto{
-						NumCounters: 1000,
-						MaxCost:     10 * 1024 * 1024, // 10 MB
-						BufferItems: 64,
+						MaxKeys:      1000,
+						MaxSizeBytes: 10 * 1024 * 1024, // 10 MB
 					},
 				},
 			},

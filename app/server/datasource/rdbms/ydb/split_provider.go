@@ -38,6 +38,7 @@ func (sp SplitProvider) ListSplits(
 
 	// Try to get cached value - this may help us to save a connection
 	cachedValue, cachedValueExists := sp.tableMetadataCache.Get(
+		logger,
 		params.Select.DataSourceInstance,
 		params.Select.GetFrom().GetTable(),
 	)
@@ -95,6 +96,21 @@ func (sp SplitProvider) ListSplits(
 		storeType, err = sp.getTableStoreType(ctx, logger, conn)
 		if err != nil {
 			return fmt.Errorf("get table store type: %w", err)
+		}
+
+		// and than put it back
+		ok := sp.tableMetadataCache.Put(
+			logger,
+			slct.GetDataSourceInstance(),
+			slct.GetFrom().GetTable(),
+			&table_metadata_cache.TValue{
+				StoreType: storeType,
+			},
+		)
+		if !ok {
+			logger.Warn("failed to cache table metadata")
+		} else {
+			logger.Debug("cached table metadata")
 		}
 	}
 

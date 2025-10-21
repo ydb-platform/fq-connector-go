@@ -35,8 +35,8 @@ func (f *schemaProvider) GetSchema(
 	logger.Debug("obtaining table metadata from YDB")
 
 	// Try to get cached value - this helps us avoid creating a connection
-	cachedValue, exists := f.tableMetadataCache.Get(request.DataSourceInstance, request.Table)
-	if exists && cachedValue != nil && cachedValue.Schema != nil {
+	cachedValue, cachedValueExists := f.tableMetadataCache.Get(logger, request.DataSourceInstance, request.Table)
+	if cachedValueExists && cachedValue != nil && cachedValue.Schema != nil {
 		logger.Debug("obtained table metadata from cache")
 
 		return cachedValue.Schema, nil
@@ -110,7 +110,7 @@ func (f *schemaProvider) GetSchema(
 		StoreType: table_metadata_cache.EStoreType(desc.StoreType),
 	}
 
-	ok := f.tableMetadataCache.Put(request.DataSourceInstance, request.Table, value)
+	ok := f.tableMetadataCache.Put(logger, request.DataSourceInstance, request.Table, value)
 	if !ok {
 		logger.Warn("failed to cache table metadata")
 	} else {

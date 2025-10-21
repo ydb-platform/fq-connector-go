@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
+	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
@@ -23,7 +24,7 @@ type ristrettoCache struct {
 	ttl   time.Duration
 }
 
-func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool {
+func (r *ristrettoCache) Put(_ *zap.Logger, dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool {
 	key := serializeKey(dsi, tableName)
 
 	// Serialize TValue to bytes
@@ -35,7 +36,7 @@ func (r *ristrettoCache) Put(dsi *api_common.TGenericDataSourceInstance, tableNa
 	return r.cache.SetWithTTL(key, data, int64(len(data)), r.ttl)
 }
 
-func (r *ristrettoCache) Get(dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool) {
+func (r *ristrettoCache) Get(_ *zap.Logger, dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool) {
 	key := serializeKey(dsi, tableName)
 
 	data, found := r.cache.Get(key)
@@ -77,9 +78,9 @@ func (r *ristrettoCache) Metrics() *Metrics {
 
 func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, []byte]{
-		NumCounters: cfg.GetRistretto().NumCounters,
-		MaxCost:     cfg.GetRistretto().MaxCost,
-		BufferItems: cfg.GetRistretto().BufferItems,
+		NumCounters: cfg.GetRistretto().MaxKeys,
+		MaxCost:     cfg.GetRistretto().MaxSizeBytes,
+		BufferItems: 64, // reasonable default
 		Metrics:     true,
 	})
 

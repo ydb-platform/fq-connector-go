@@ -1,6 +1,8 @@
 package table_metadata_cache
 
 import (
+	"go.uber.org/zap"
+
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 )
 
@@ -16,7 +18,7 @@ type Metrics struct {
 }
 
 type Cache interface {
-	Put(dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool
-	Get(dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool)
+	Put(logger *zap.Logger, dsi *api_common.TGenericDataSourceInstance, tableName string, value *TValue) bool
+	Get(logger *zap.Logger, dsi *api_common.TGenericDataSourceInstance, tableName string) (*TValue, bool)
 	Metrics() *Metrics
 }
