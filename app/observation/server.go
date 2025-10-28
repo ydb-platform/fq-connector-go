@@ -60,7 +60,7 @@ func newAggregationServer(cfg *config.TObservationServerConfig) (*aggregationSer
 func (s *aggregationServer) start() error {
 	endpoint := common.EndpointToString(s.cfg.Endpoint)
 
-	s.logger.Info("starting aggregation server",
+	s.logger.Info("starting aggregation server ",
 		zap.String("endpoint", endpoint),
 		zap.Duration("polling_period", s.pollingInterval),
 	)
