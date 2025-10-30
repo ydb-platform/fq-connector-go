@@ -1,8 +1,6 @@
 module github.com/ydb-platform/fq-connector-go
 
-go 1.23.0
-
-toolchain go1.23.8
+go 1.24.6
 
 require (
 	github.com/ClickHouse/ch-go v0.58.2
@@ -41,7 +39,7 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/ydb-platform/ydb-go-genproto v0.0.0-20250911135631-b3beddd517d9
 	// never update to version v3.113.1 or higher: this will break reading from YDB
-	github.com/ydb-platform/ydb-go-sdk/v3 v3.113.1
+	github.com/ydb-platform/ydb-go-sdk/v3 v3.117.2
 	github.com/ydb-platform/ydb-go-yc v0.11.0
 	go.mongodb.org/mongo-driver v1.17.1
 	go.uber.org/atomic v1.11.0
@@ -193,5 +191,3 @@ require (
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 )
-
-replace github.com/ydb-platform/ydb-go-sdk/v3 => /home/vitalyisaev/projects/ydb-go-sdk
