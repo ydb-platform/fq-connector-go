@@ -316,9 +316,6 @@ message TYdbConfig {
         // In MODE_QUERY_SERVICE_NATIVE the YDB connector uses YDB's Query Service
         // via native YDB interface.
         MODE_QUERY_SERVICE_NATIVE = 2;
-        // In MODE_QUERY_SERVICE_NATIVE_ARROW the YDB connector uses YDB's Query Service
-        // via native YDB interface, but accepts data in the Arrow format.
-        MODE_QUERY_SERVICE_NATIVE_ARROW = 3;
     }
 
     // Mode parametrizes the way YDB connector interacts with YDB servers.

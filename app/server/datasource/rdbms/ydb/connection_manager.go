@@ -110,21 +110,7 @@ func (c *connectionManager) Make(
 			ydbDriver,
 			formatter,
 			c.cfg.ResourcePool,
-			c.cfg.Mode,
-		)
-	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE_ARROW:
-		logger.Debug("connector will use Native SDK over Query Service with Arrow format")
-
-		formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE, c.cfg.Pushdown)
-		ydbConn = newConnectionNative(
-			logger,
-			c.QueryLoggerFactory,
-			dsi,
-			params.TableName,
-			ydbDriver,
-			formatter,
-			c.cfg.ResourcePool,
-			c.cfg.Mode,
+			dsi.GetYdbOptions().QueryDataFormat,
 		)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")

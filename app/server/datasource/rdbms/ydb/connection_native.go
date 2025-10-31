@@ -17,7 +17,6 @@ import (
 	ydb_sdk_query "github.com/ydb-platform/ydb-go-sdk/v3/query"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
-	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/conversion"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/app/server/paging"
@@ -454,7 +453,7 @@ func newConnectionNative(
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
 	resourcePool string,
-	mode config.TYdbConfig_Mode,
+	queryDataFormat api_common.TYdbDataSourceOptions_EQueryDataFormat,
 ) Connection {
 	return &connectionNative{
 		driver:             driver,
