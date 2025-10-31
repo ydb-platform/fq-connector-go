@@ -34,7 +34,7 @@ services:
       - ./postgresql/init:/docker-entrypoint-initdb.d
 
   ydb:
-    image: ghcr.io/ydb-platform/local-ydb:24.3.11.13
+    image: ghcr.io/ydb-platform/local-ydb:stable-25-3-1-fix-openssl-certs
     container_name: ${USER}-fq-connector-go-tests-ydb
     hostname: localhost
     ports:

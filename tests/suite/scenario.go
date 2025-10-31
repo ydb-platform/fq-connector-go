@@ -95,7 +95,7 @@ func TestInvalidLogin[ID test_utils.TableIDTypes, IDBUILDER test_utils.ArrowIDBu
 	// read some table
 	resp, err := s.Connector.ClientBuffering().DescribeTable(context.Background(), dsi, nil, table.Name)
 	s.Require().NoError(err)
-	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status)
+	s.Require().Equal(Ydb.StatusIds_UNAUTHORIZED, resp.Error.Status, resp.Error)
 
 	// get stats snapshot after table reading
 	snapshot2, err := s.Connector.MetricsSnapshot()
