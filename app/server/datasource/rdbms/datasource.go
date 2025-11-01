@@ -217,9 +217,10 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 
 	defer common.LogCloserError(logger, queryResult, "close query result")
 
-	var rowsRead int64
-
-	var processErr error
+	var (
+		rowsRead   int64
+		processErr error
+	)
 
 	// Choose the appropriate processing method based on which field is filled
 	if queryResult.Rows != nil {
@@ -281,7 +282,7 @@ func (ds *dataSourceImpl) processRowBasedResult(
 	return rowsRead, nil
 }
 
-// processArrowBasedResult processes Arrow-based results from the database
+// processArrowBasedResult processes results obtained from the database directly in Arrow format
 func (dataSourceImpl) processArrowBasedResult(
 	columns rdbms_utils.Columns,
 	sink paging.Sink[any],
