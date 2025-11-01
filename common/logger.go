@@ -57,6 +57,12 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGeneri
 		fields = append(fields, zap.String("folder_id", dsi.GetLoggingOptions().GetFolderId()))
 	}
 
+	if dsi.GetYdbOptions() != nil {
+		if dsi.GetYdbOptions().GetQueryDataFormat() != api_common.TYdbDataSourceOptions_QUERY_DATA_FORMAT_UNSPECIFIED {
+			fields = append(fields, zap.Stringer("query_data_format", dsi.GetYdbOptions().GetQueryDataFormat()))
+		}
+	}
+
 	return l.With(fields...)
 }
 
