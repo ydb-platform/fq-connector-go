@@ -64,6 +64,7 @@ func (k *kubernetesDiscovery) extractEndpointsFromSlice(
 					Host: address,
 					Port: uint32(*port.Port),
 				}
+
 				endpoints = append(endpoints, endpoint)
 			}
 		}
@@ -107,6 +108,7 @@ func (k *kubernetesDiscovery) GetEndpoints(logger *zap.Logger) ([]*api_common.TG
 
 	for _, slice := range endpointSlices.Items {
 		endpoints := k.extractEndpointsFromSlice(logger, &slice)
+
 		allEndpoints = append(allEndpoints, endpoints...)
 	}
 

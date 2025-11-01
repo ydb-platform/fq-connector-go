@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"github.com/ydb-platform/fq-connector-go/app/server/datasource"

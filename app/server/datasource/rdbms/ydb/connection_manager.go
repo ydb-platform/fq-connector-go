@@ -96,12 +96,11 @@ func (c *connectionManager) Make(
 	var ydbConn Connection
 
 	switch c.cfg.Mode {
-	case config.TYdbConfig_MODE_UNSPECIFIED:
-		fallthrough
-	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
+	case config.TYdbConfig_MODE_UNSPECIFIED, config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
 		logger.Debug("connector will use Native SDK over Query Service")
 
 		formatter := NewSQLFormatter(config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE, c.cfg.Pushdown)
+
 		ydbConn = newConnectionNative(
 			logger,
 			c.QueryLoggerFactory,
@@ -110,9 +109,11 @@ func (c *connectionManager) Make(
 			ydbDriver,
 			formatter,
 			c.cfg.ResourcePool,
+			dsi.GetYdbOptions().GetQueryDataFormat(),
 		)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")
+
 		ydbConn, err = newConnectionDatabaseSQL(ctx, logger, c.QueryLoggerFactory.Make(logger), c.cfg, dsi, params.TableName, ydbDriver)
 	default:
 		return nil, fmt.Errorf("unknown mode: %v", c.cfg.Mode)

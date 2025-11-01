@@ -723,6 +723,16 @@ var tables = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"invalid_credentials": {
+		Name:                  "invalid_credentials",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema: &test_utils.TableSchema{
+			Columns: map[string]*Ydb.Type{
+				"id": common.MakePrimitiveType(Ydb.Type_INT32),
+			},
+		},
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{},
+	},
 }
 
 func pushdownSchemaYdb() *test_utils.TableSchema {

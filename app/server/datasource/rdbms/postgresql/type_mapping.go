@@ -50,7 +50,6 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 
 		return nil, fmt.Errorf("convert type '%s': %w", columnDescription.Type, common.ErrDataTypeNotSupported)
 	}()
-
 	if err != nil {
 		return nil, err
 	}
@@ -196,21 +195,13 @@ func transformerFromOIDs(oids []uint32, ydbTypes []*Ydb.Type, cc conversion.Coll
 				return appendValuePtrToArrowBuilder[float64, float64, *array.Float64Builder](
 					&cast.Float64, builder, cast.Valid, cc.Float64())
 			})
-		case pgtype.TextOID, pgtype.BPCharOID, pgtype.VarcharOID:
+		case pgtype.TextOID, pgtype.BPCharOID, pgtype.VarcharOID, pgtype.JSONOID:
 			acceptors = append(acceptors, new(pgtype.Text))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
 				cast := acceptor.(*pgtype.Text)
 
 				return appendValuePtrToArrowBuilder[string, string, *array.StringBuilder](&cast.String, builder, cast.Valid, cc.String())
 			})
-		case pgtype.JSONOID:
-			acceptors = append(acceptors, new(pgtype.Text))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				cast := acceptor.(*pgtype.Text)
-
-				return appendValuePtrToArrowBuilder[string, string, *array.StringBuilder](&cast.String, builder, cast.Valid, cc.String())
-			})
-			// TODO: review all pgtype.json* types
 		case pgtype.ByteaOID:
 			acceptors = append(acceptors, new(*[]byte))
 			appenders = append(appenders, func(acceptor any, builder array.Builder) error {

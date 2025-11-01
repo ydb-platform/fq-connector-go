@@ -39,8 +39,8 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 	}
 
 	var err error
-	dsi.Endpoint, err = ed.GetEndpoint(endpointServiceName, internalPort)
 
+	dsi.Endpoint, err = ed.GetEndpoint(endpointServiceName, internalPort)
 	if err != nil {
 		return nil, fmt.Errorf("derive endpoint: %w", err)
 	}

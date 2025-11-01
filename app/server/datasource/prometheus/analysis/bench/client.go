@@ -82,14 +82,17 @@ func main() {
 				switch vt {
 				case chunkenc.ValFloat:
 					ts, v := iter.At()
+
 					vv += float64(ts) + v
 					fmt.Printf("%s %g %d\n", l, v, ts)
 				case chunkenc.ValHistogram:
 					ts, h := iter.AtHistogram(nil)
+
 					vv += float64(ts) + h.Sum
 					fmt.Printf("%s %s %d\n", l, h.String(), ts)
 				case chunkenc.ValFloatHistogram:
 					ts, h := iter.AtFloatHistogram(nil)
+
 					vv += float64(ts) + h.Sum
 					fmt.Printf("%s %s %d\n", l, h.String(), ts)
 				default:

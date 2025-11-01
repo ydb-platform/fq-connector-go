@@ -31,7 +31,6 @@ func (r *retrierDefault) Run(ctx context.Context, logger *zap.Logger, op Operati
 		attempts++
 
 		err := op()
-
 		if err != nil {
 			// It's convinient to disable retries for negative tests.
 			// These tests are marked with 'ForbidRetries' flag in GRPC Metadata.
@@ -63,6 +62,7 @@ func NewRetrierFromConfig(cfg *config.TExponentialBackoffConfig, retriableErrorC
 		retriableErrorChecker: retriableErrorChecker,
 		backoffFactory: func() *backoff.ExponentialBackOff {
 			b := backoff.NewExponentialBackOff()
+
 			b.MaxElapsedTime = common.MustDurationFromString(cfg.MaxElapsedTime)
 			b.InitialInterval = common.MustDurationFromString(cfg.InitialInterval)
 			b.MaxInterval = common.MustDurationFromString(cfg.MaxInterval)

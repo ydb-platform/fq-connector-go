@@ -24,6 +24,7 @@ func main() {
 
 func run(logger *zap.Logger) error {
 	path := flag.String("path", "path", "Specify the path to ydb file.")
+
 	flag.Parse()
 
 	if err := checkFileExistance(*path); err != nil {

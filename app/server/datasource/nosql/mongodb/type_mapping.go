@@ -137,6 +137,7 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported, typeMapIdOn
 	for _, doc := range docs {
 		if typeMapIdOnly {
 			elem := doc.Lookup(idColumn)
+
 			err := bsonToYqlColumn(
 				logger,
 				idColumn,
@@ -147,7 +148,6 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported, typeMapIdOn
 				omitUnsupported,
 				objectIdType,
 			)
-
 			if err != nil {
 				return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
 			}
@@ -171,7 +171,6 @@ func bsonToYql(logger *zap.Logger, docs []bson.Raw, omitUnsupported, typeMapIdOn
 				omitUnsupported,
 				objectIdType,
 			)
-
 			if err != nil {
 				return nil, fmt.Errorf("bsonToYqlColumn: %w", err)
 			}

@@ -533,6 +533,7 @@ func TestMakeSelectQuery(t *testing.T) {
 			)
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err))
+
 				return
 			}
 

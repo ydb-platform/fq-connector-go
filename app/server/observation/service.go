@@ -114,6 +114,7 @@ func (s *serviceImpl) ListIncomingQueries(
 		}
 		if err := stream.Send(response); err != nil {
 			logger.Error("Failed to send query to client", zap.Error(err))
+
 			return status.Errorf(codes.Internal, "failed to send query to client: %v", err)
 		}
 	}
@@ -171,6 +172,7 @@ func (s *serviceImpl) ListOutgoingQueries(
 		}
 		if err := stream.Send(response); err != nil {
 			logger.Error("Failed to send query to client", zap.Error(err))
+
 			return status.Errorf(codes.Internal, "failed to send query to client: %v", err)
 		}
 	}
@@ -188,8 +190,9 @@ func NewService(
 ) (utils.Service, error) {
 	// Create a listener
 	addr := common.EndpointToString(cfg.Server.GetEndpoint())
-	listener, err := net.Listen("tcp", addr)
 
+	//nolint:noctx
+	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("net listen: %w", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -100,6 +101,7 @@ func getChecksum(tag string) (string, error) {
 		line := scanner.Text()
 		if strings.Contains(line, "sha256") {
 			fmt.Println(line)
+
 			line = strings.Split(line, "class=\"Link\">")[1]
 			line = strings.Split(line, "</a>")[0]
 			checksum = line
@@ -109,7 +111,7 @@ func getChecksum(tag string) (string, error) {
 	}
 
 	if checksum == "" {
-		return "", fmt.Errorf("no checksum found by latest tag")
+		return "", errors.New("no checksum found by latest tag")
 	}
 
 	return checksum, nil
@@ -173,10 +175,11 @@ func changeDockerCompose(logger *zap.Logger, path string, newImage string) error
 
 	if services, ok := data["services"].(map[string]any); ok {
 		if _, ok := services["fq-connector-go"].(map[string]any); !ok {
-			return fmt.Errorf("error finding fq-connector-go in services")
+			return errors.New("error finding fq-connector-go in services")
 		}
 
 		fqConnectorGo := services["fq-connector-go"].(map[string]any)
+
 		fqConnectorGo["image"] = newImage
 	} else {
 		return fmt.Errorf("error finding services in file: %s", path)
@@ -208,6 +211,7 @@ func generateURL(baseURL string, params map[string]string) (string, error) {
 	}
 
 	q := u.Query()
+
 	for key, value := range params {
 		q.Set(key, value)
 	}

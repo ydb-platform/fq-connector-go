@@ -2,6 +2,7 @@ package bench
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -17,15 +18,15 @@ import (
 
 func validateConfig(logger *zap.Logger, cfg *config.TBenchmarkConfig) error {
 	if cfg.GetServerRemote() == nil && cfg.GetServerLocal() == nil {
-		return fmt.Errorf("you must provide either local or remote configuration for connector")
+		return errors.New("you must provide either local or remote configuration for connector")
 	}
 
 	if cfg.GetDataSourceInstance() == nil {
-		return fmt.Errorf("you must provide data source instance")
+		return errors.New("you must provide data source instance")
 	}
 
 	if cfg.GetResultDir() == "" {
-		return fmt.Errorf("empty result dir")
+		return errors.New("empty result dir")
 	}
 
 	if _, err := os.Stat(cfg.GetResultDir()); os.IsNotExist(err) {

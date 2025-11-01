@@ -50,6 +50,7 @@ func listIncomingQueries(cmd *cobra.Command, _ []string, state observation.Query
 
 		if resp.Error != nil && resp.Error.Status != 0 {
 			fmt.Printf("Error: %s\n", resp.Error.Message)
+
 			continue
 		}
 
@@ -121,6 +122,7 @@ func listOutgoingQueries(cmd *cobra.Command, _ []string, state observation.Query
 
 		if resp.Error != nil && resp.Error.Status != 0 {
 			fmt.Printf("Error: %s\n", resp.Error.Message)
+
 			continue
 		}
 

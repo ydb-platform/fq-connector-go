@@ -30,6 +30,7 @@ func (f *schemaProvider) GetSchema(
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TSchema, error) {
 	prefix := path.Join(request.DataSourceInstance.Database, request.Table)
+
 	logger = logger.With(zap.String("prefix", prefix))
 
 	logger.Debug("obtaining table metadata from YDB")

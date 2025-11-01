@@ -135,7 +135,7 @@ func TestWithYdbWhereUnsupportedPredicate(t *testing.T) {
 	//
 	// With filtering mandatory parsing
 	//
-	builder, err = prometheus.NewPromQLBuilder(logger).
+	_, err = prometheus.NewPromQLBuilder(logger).
 		WithYdbWhere(where, api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY)
 
 	assert.ErrorIs(t, err, common.ErrUnimplementedPredicateType)

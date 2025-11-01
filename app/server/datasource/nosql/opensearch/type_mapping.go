@@ -1,6 +1,7 @@
 package opensearch
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
@@ -22,6 +23,7 @@ func parseMapping(
 	// to the index. The "_meta" property is used during schema construction to identify
 	// which fields should be considered as arrays (lists).
 	meta := make(map[string]any)
+
 	if metaSection, ok := mappings["_meta"].(map[string]any); ok {
 		meta = metaSection
 	} else {
@@ -131,8 +133,8 @@ func processChildFields(
 		}
 
 		childQualifiedName := fmt.Sprintf("%s.%s", parentQualifiedName, childFieldName)
-		childField, err := inferField(logger, childFieldName, childQualifiedName, childProps, meta)
 
+		childField, err := inferField(logger, childFieldName, childQualifiedName, childProps, meta)
 		if err != nil {
 			return nil, fmt.Errorf("process child field '%s': %w", childFieldName, err)
 		}
@@ -200,7 +202,7 @@ func typeMap(
 ) (*Ydb.Type, error) {
 	fieldType, ok := mapping["type"].(string)
 	if !ok {
-		return nil, fmt.Errorf("missing 'type' in mapping")
+		return nil, errors.New("missing 'type' in mapping")
 	}
 
 	var ydbType *Ydb.Type

@@ -83,6 +83,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok {
 				*a = nil
+
 				continue
 			}
 
@@ -93,6 +94,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
@@ -103,6 +105,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
@@ -113,6 +116,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
@@ -123,6 +127,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok {
 				*a = nil
+
 				continue
 			}
 
@@ -133,6 +138,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
@@ -140,20 +146,20 @@ func (r *documentReader) accept(
 				return fmt.Errorf("convert: %w", err)
 			}
 		case *string:
-			if f.Name == "_id" {
-				*a = hit.ID
-			} else {
+			if f.Name != "_id" {
 				return fmt.Errorf("unsupported type %T: for field %T, %w", acceptors[i], f.Name, common.ErrDataTypeNotSupported)
 			}
+
+			*a = hit.ID
 		case **string:
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
 			str, err := convertToString(logger, value)
-
 			if err != nil {
 				if !errors.Is(err, common.ErrDataTypeNotSupported) {
 					return fmt.Errorf("json to string: %w", err)
@@ -165,6 +171,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
@@ -178,6 +185,7 @@ func (r *documentReader) accept(
 			value, ok := doc[f.Name]
 			if !ok || value == nil {
 				*a = nil
+
 				continue
 			}
 
@@ -212,7 +220,7 @@ func convertToMapStringAny(value any, fieldName string) (*map[string]any, error)
 
 func parseTime(value any) (time.Time, error) {
 	if value == nil {
-		return time.Time{}, fmt.Errorf("time value is nil")
+		return time.Time{}, errors.New("time value is nil")
 	}
 
 	switch v := value.(type) {
@@ -260,6 +268,7 @@ func parseTime(value any) (time.Time, error) {
 func convertPtr[INTO any](acceptor **INTO, value any) error {
 	if v, ok := value.(INTO); ok {
 		*acceptor = ptr.T(v)
+
 		return nil
 	}
 
@@ -403,6 +412,8 @@ func addAcceptorAppenderNullable(
 		case Ydb.Type_TIMESTAMP:
 			acceptors = append(acceptors, new(*time.Time))
 			appenders = append(appenders, utils.MakeAppenderNullable[time.Time, uint64, *array.Uint64Builder](cc.Timestamp()))
+		default:
+			return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 		}
 	case *Ydb.Type_StructType:
 		acceptors = append(acceptors, new(*map[string]any))
@@ -434,6 +445,7 @@ func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) e
 
 		if *pt == nil {
 			structBuilder.AppendNull()
+
 			return nil
 		}
 
@@ -449,6 +461,7 @@ func createStructAppender(structType *Ydb.StructType) func(any, array.Builder) e
 			fieldValue := (*data)[fieldName]
 			if fieldValue == nil {
 				fieldBuilder.AppendNull()
+
 				continue
 			}
 

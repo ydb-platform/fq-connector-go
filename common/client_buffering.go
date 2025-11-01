@@ -1,7 +1,8 @@
-package common
+package common //nolint:revive
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -99,7 +100,7 @@ func NewClientBufferingFromServerConfig(logger *zap.Logger, serverCfg *config.TS
 	}
 
 	if serverCfg.ConnectorServer.Tls != nil {
-		return nil, fmt.Errorf("TLS connections are not implemented yet")
+		return nil, errors.New("TLS connections are not implemented yet")
 	}
 
 	return NewClientBufferingFromClientConfig(logger, clientCfg)

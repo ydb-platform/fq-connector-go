@@ -131,11 +131,8 @@ func validateDataSourceOptions(dsi *api_common.TGenericDataSourceInstance) error
 		if dsi.GetOracleOptions().GetServiceName() == "" {
 			return fmt.Errorf("service_name field is empty: %w", common.ErrInvalidRequest)
 		}
-	case api_common.EGenericDataSourceKind_MS_SQL_SERVER:
-		// TODO: check schema
-		return nil
-
-	case api_common.EGenericDataSourceKind_GREENPLUM:
+	case api_common.EGenericDataSourceKind_MS_SQL_SERVER, api_common.EGenericDataSourceKind_GREENPLUM:
+		// TODO: check schema in MS SQL Server
 		return nil
 	case api_common.EGenericDataSourceKind_LOGGING:
 		if dsi.GetLoggingOptions().GetFolderId() == "" {

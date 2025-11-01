@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -65,10 +66,10 @@ func (s *serverEmbedded) ClientStreaming() *common.ClientStreaming { return s.cl
 
 func (s *serverEmbedded) MetricsSnapshot() (*common.MetricsSnapshot, error) {
 	if s.cfg.MetricsServer == nil {
-		return nil, fmt.Errorf("metrics server is not initialized")
+		return nil, errors.New("metrics server is not initialized")
 	}
 
-	mp, err := common.NewMetricsSnapshot(s.cfg.MetricsServer.Endpoint, s.cfg.Tls != nil)
+	mp, err := common.NewMetricsSnapshot(s.cfg.MetricsServer.Endpoint, false)
 	if err != nil {
 		return nil, fmt.Errorf("new metrics provider: %w", err)
 	}
@@ -83,12 +84,14 @@ func (s *serverEmbedded) Stop() {
 	if s.operational {
 		s.launcher.Stop()
 		s.clientBuffering.Close()
+
 		s.operational = false
 	}
 }
 
 func NewEmbedded(options ...EmbeddedOption) (common.TestingServer, error) {
 	cfg := app_server_config.NewDefaultConfig()
+
 	for _, o := range options {
 		o.apply(cfg)
 	}

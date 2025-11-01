@@ -58,7 +58,7 @@ func listSplits(cmd *cobra.Command, _ []string) error {
 			fmt.Println("Split select: ", common.MustProtobufToJSONString(split.Select, false, ""))
 			// fq-connector-go serializes split descriptions to JSON, so they're always human-readable
 			fmt.Println("Split description: ", string(split.GetDescription()))
-			fmt.Printf("\n")
+			fmt.Println("")
 		}
 	}
 

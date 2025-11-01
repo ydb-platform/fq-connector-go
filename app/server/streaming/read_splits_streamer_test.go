@@ -173,8 +173,11 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 	connection.On("Query", `SELECT "col0", "col1" FROM "example_1"`).Return(rows, nil).Once()
 
 	col0Acceptor := new(*int32)
+
 	*col0Acceptor = new(int32)
+
 	col1Acceptor := new(*string)
+
 	*col1Acceptor = new(string)
 
 	transformer := &rdbms_utils.RowTransformerMock{
@@ -233,6 +236,7 @@ func (tc testCaseStreaming) execute(t *testing.T) {
 			expectedColumnarBlock := expectedColumnarBlocks[sendCallID]
 
 			rowsInMessage := tc.rowsPerPage
+
 			if sendCallID == totalMessages-1 {
 				rowsInMessage = rowsInLastMessage
 			}
@@ -348,10 +352,11 @@ func TestStreaming(t *testing.T) {
 	})
 
 	t.Run("scan error", func(t *testing.T) {
-		scanErr := fmt.Errorf("scan error")
+		scanErr := errors.New("scan error")
 
 		for _, tc := range testCases {
 			tc := tc
+
 			tc.scanErr = scanErr
 			t.Run(tc.name(), func(t *testing.T) {
 				tc.execute(t)
@@ -360,10 +365,11 @@ func TestStreaming(t *testing.T) {
 	})
 
 	t.Run("send error", func(t *testing.T) {
-		sendErr := fmt.Errorf("stream send error")
+		sendErr := errors.New("stream send error")
 
 		for _, tc := range testCases {
 			tc := tc
+
 			tc.sendErr = sendErr
 			t.Run(tc.name(), func(t *testing.T) {
 				tc.execute(t)

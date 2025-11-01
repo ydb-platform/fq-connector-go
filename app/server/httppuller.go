@@ -82,7 +82,6 @@ func (h handler) okSpack(header http.Header) bool {
 func (h handler) okLZ4Compression(header http.Header) bool {
 	for _, header := range header[headers.AcceptEncodingKey] {
 		encodings, err := headers.ParseAcceptEncoding(header)
-
 		if err != nil {
 			h.logger.Warn("Can't parse accept-encoding header", zap.Error(err), zap.String("header", header))
 
@@ -108,8 +107,8 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 
 		w.Header().Set(headers.ContentTypeKey, headers.TypeApplicationXSolomonSpack.String())
-		_, err := h.registry.StreamSpack(r.Context(), w, compression)
 
+		_, err := h.registry.StreamSpack(r.Context(), w, compression)
 		if err != nil {
 			h.logger.Error("Failed to write compressed spack", zap.Error(err))
 		}
@@ -118,8 +117,8 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set(headers.ContentTypeKey, headers.TypeApplicationJSON.String())
-	_, err := h.registry.StreamJSON(r.Context(), w)
 
+	_, err := h.registry.StreamJSON(r.Context(), w)
 	if err != nil {
 		h.logger.Error("Failed to write json", zap.Error(err))
 	}

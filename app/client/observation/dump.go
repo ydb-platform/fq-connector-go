@@ -41,6 +41,7 @@ func dumpIncomingQueries(cmd *cobra.Command) error {
 		queries, err := fetchIncomingQueries(endpoint, logger)
 		if err != nil {
 			fmt.Printf("Error fetching from %s: %v\n", endpoint, err)
+
 			continue
 		}
 
@@ -56,7 +57,7 @@ func dumpIncomingQueries(cmd *cobra.Command) error {
 	}
 
 	if len(allQueries) == 0 {
-		return fmt.Errorf("no incoming queries fetched from any endpoint")
+		return errors.New("no incoming queries fetched from any endpoint")
 	}
 
 	// Write to CSV file
@@ -89,6 +90,7 @@ func dumpOutgoingQueries(cmd *cobra.Command) error {
 		queries, err := fetchOutgoingQueries(endpoint, logger)
 		if err != nil {
 			fmt.Printf("Error fetching from %s: %v\n", endpoint, err)
+
 			continue
 		}
 
@@ -104,7 +106,7 @@ func dumpOutgoingQueries(cmd *cobra.Command) error {
 	}
 
 	if len(allQueries) == 0 {
-		return fmt.Errorf("no outgoing queries fetched from any endpoint")
+		return errors.New("no outgoing queries fetched from any endpoint")
 	}
 
 	// Write to CSV file
@@ -127,7 +129,7 @@ func getDumpParams(cmd *cobra.Command) ([]string, string, error) {
 
 	endpoints := strings.Split(endpointsStr, ",")
 	if len(endpoints) == 0 {
-		return nil, "", fmt.Errorf("no endpoints provided")
+		return nil, "", errors.New("no endpoints provided")
 	}
 
 	// Get output file path
@@ -152,7 +154,7 @@ func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.I
 	logger.Info("connecting to endpoint for incoming queries", zap.String("endpoint", endpoint))
 
 	// Connect to the endpoint
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
 	}
@@ -196,6 +198,7 @@ func fetchIncomingQueries(endpoint string, logger *zap.Logger) ([]*observation.I
 
 			if resp.Error != nil && resp.Error.Status != 0 {
 				logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
+
 				continue
 			}
 
@@ -235,7 +238,7 @@ func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.O
 	logger.Info("connecting to endpoint for outgoing queries", zap.String("endpoint", endpoint))
 
 	// Connect to the endpoint
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to %s: %w", endpoint, err)
 	}
@@ -279,6 +282,7 @@ func fetchOutgoingQueries(endpoint string, logger *zap.Logger) ([]*observation.O
 
 			if resp.Error != nil && resp.Error.Status != 0 {
 				logger.Warn("received error in stream", zap.String("message", resp.Error.Message))
+
 				continue
 			}
 
@@ -328,7 +332,7 @@ type outgoingQueryWithEndpoint struct {
 // writeIncomingQueriesToCSV writes incoming queries to a CSV file
 func writeIncomingQueriesToCSV(queries []*incomingQueryWithEndpoint, outputPath string) error {
 	if len(queries) == 0 {
-		return fmt.Errorf("no queries to write")
+		return errors.New("no queries to write")
 	}
 
 	// Create CSV file
@@ -362,11 +366,13 @@ func writeIncomingQueriesToCSV(queries []*incomingQueryWithEndpoint, outputPath 
 	// Write data
 	for _, q := range queries {
 		createdAt := ""
+
 		if q.CreatedAt != nil {
 			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339Nano)
 		}
 
 		finishedAt := ""
+
 		if q.FinishedAt != nil {
 			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339Nano)
 		}
@@ -376,6 +382,7 @@ func writeIncomingQueriesToCSV(queries []*incomingQueryWithEndpoint, outputPath 
 
 		if q.CreatedAt != nil && q.FinishedAt != nil {
 			elapsedTime := q.FinishedAt.AsTime().Sub(q.CreatedAt.AsTime())
+
 			elapsedTimeMs = strconv.FormatInt(elapsedTime.Milliseconds(), 10)
 		} else {
 			elapsedTimeMs = ""
@@ -405,7 +412,7 @@ func writeIncomingQueriesToCSV(queries []*incomingQueryWithEndpoint, outputPath 
 // writeOutgoingQueriesToCSV writes outgoing queries to a CSV file
 func writeOutgoingQueriesToCSV(queries []*outgoingQueryWithEndpoint, outputPath string) error {
 	if len(queries) == 0 {
-		return fmt.Errorf("no queries to write")
+		return errors.New("no queries to write")
 	}
 
 	// Create CSV file
@@ -442,11 +449,13 @@ func writeOutgoingQueriesToCSV(queries []*outgoingQueryWithEndpoint, outputPath 
 	// Write data
 	for _, q := range queries {
 		createdAt := ""
+
 		if q.CreatedAt != nil {
 			createdAt = q.CreatedAt.AsTime().Format(time.RFC3339Nano)
 		}
 
 		finishedAt := ""
+
 		if q.FinishedAt != nil {
 			finishedAt = q.FinishedAt.AsTime().Format(time.RFC3339Nano)
 		}
@@ -456,6 +465,7 @@ func writeOutgoingQueriesToCSV(queries []*outgoingQueryWithEndpoint, outputPath 
 
 		if q.CreatedAt != nil && q.FinishedAt != nil {
 			elapsedTime := q.FinishedAt.AsTime().Sub(q.CreatedAt.AsTime())
+
 			elapsedTimeMs = strconv.FormatInt(elapsedTime.Milliseconds(), 10)
 		} else {
 			elapsedTimeMs = ""

@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import (
 	"fmt"
@@ -137,6 +137,7 @@ func TypesEqual(lhs, rhs *Ydb.Type) bool {
 		return rhs.GetNullType() != structpb.NullValue(0)
 	case *Ydb.Type_OptionalType:
 		rhsType := rhs.GetOptionalType()
+
 		return rhsType != nil &&
 			TypesEqual(rhsType.Item, lhsType.OptionalType.Item)
 	case *Ydb.Type_DictType:
@@ -147,6 +148,7 @@ func TypesEqual(lhs, rhs *Ydb.Type) bool {
 			TypesEqual(rhsType.Payload, lhsType.DictType.Payload)
 	case *Ydb.Type_ListType:
 		rhsType := rhs.GetListType()
+
 		return rhsType != nil &&
 			TypesEqual(rhsType.Item, lhsType.ListType.Item)
 	case *Ydb.Type_DecimalType:
@@ -157,15 +159,19 @@ func TypesEqual(lhs, rhs *Ydb.Type) bool {
 			rhsType.Scale == lhsType.DecimalType.Scale
 	case *Ydb.Type_TupleType:
 		rhsType := rhs.GetTupleType()
+
 		return rhsType != nil && tuplesEqual(rhsType, lhsType.TupleType)
 	case *Ydb.Type_StructType:
 		rhsType := rhs.GetStructType()
+
 		return rhsType != nil && structsEqual(rhsType, lhsType.StructType)
 	case *Ydb.Type_VariantType:
 		rhsType := rhs.GetVariantType()
+
 		return rhsType != nil && variantsEqual(rhsType, lhsType.VariantType)
 	case *Ydb.Type_TaggedType:
 		rhsType := rhs.GetTaggedType()
+
 		return rhsType.Tag == lhsType.TaggedType.Tag &&
 			TypesEqual(rhsType.Type, lhsType.TaggedType.Type)
 	case *Ydb.Type_VoidType:
@@ -176,6 +182,7 @@ func TypesEqual(lhs, rhs *Ydb.Type) bool {
 		return rhs.GetEmptyDictType() != structpb.NullValue(0)
 	case *Ydb.Type_PgType:
 		rhsType := rhs.GetPgType()
+
 		return rhsType != nil && rhs.GetPgType().TypeName == lhsType.PgType.TypeName
 	}
 

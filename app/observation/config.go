@@ -1,6 +1,7 @@
 package observation
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/ydb-platform/fq-connector-go/app/config"
@@ -9,7 +10,7 @@ import (
 
 func validateObservationServerConfig(cfg *config.TObservationServerConfig) error {
 	if cfg.Endpoint == nil {
-		return fmt.Errorf("missing required field `endpoint`")
+		return errors.New("missing required field `endpoint`")
 	}
 
 	if err := validateObservationDiscoveryConfig(cfg.Discovery); err != nil {
@@ -25,7 +26,7 @@ func validateObservationServerConfig(cfg *config.TObservationServerConfig) error
 
 func validateObservationDiscoveryConfig(cfg *config.TObservationDiscoveryConfig) error {
 	if cfg == nil {
-		return fmt.Errorf("missing required field `discovery`")
+		return errors.New("missing required field `discovery`")
 	}
 
 	switch t := cfg.GetPayload().(type) {
@@ -46,16 +47,16 @@ func validateObservationDiscoveryConfig(cfg *config.TObservationDiscoveryConfig)
 
 func validateObservationDiscoveryStaticConfig(cfg *config.TObservationDiscoveryConfig_TStaticDiscoveryConfig) error {
 	if len(cfg.Endpoints) == 0 {
-		return fmt.Errorf("missing required field `endpoints`")
+		return errors.New("missing required field `endpoints`")
 	}
 
 	for _, endpoint := range cfg.Endpoints {
 		if endpoint.GetHost() == "" {
-			return fmt.Errorf("missing required field `host`")
+			return errors.New("missing required field `host`")
 		}
 
 		if endpoint.GetPort() == 0 {
-			return fmt.Errorf("missing required field `port`")
+			return errors.New("missing required field `port`")
 		}
 	}
 
@@ -64,7 +65,7 @@ func validateObservationDiscoveryStaticConfig(cfg *config.TObservationDiscoveryC
 
 func validateObservationDiscoveryKubernetesConfig(cfg *config.TObservationDiscoveryConfig_TKubernetesDiscoveryConfig) error {
 	if cfg.LabelSelector == "" {
-		return fmt.Errorf("missing required field `label_selector`")
+		return errors.New("missing required field `label_selector`")
 	}
 
 	return nil

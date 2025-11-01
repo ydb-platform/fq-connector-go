@@ -76,7 +76,6 @@ func (s *ListSplitsStreamer[T]) sendResultToStream(result *datasource.ListSplitR
 			UseProtoNames:   true,
 			EmitUnpopulated: false,
 		}.Marshal(result.Description)
-
 		if err != nil {
 			return fmt.Errorf("marshal description to JSON: %w", err)
 		}

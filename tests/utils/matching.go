@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"bytes"
@@ -70,6 +70,7 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	for i, field := range table.Schema().Fields() {
 		if field.Name == "id" || field.Name == "ID" || field.Name == "COL_00_ID" || field.Name == "_id" || field.Name == "key" {
 			idIndex = i
+
 			break
 		}
 	}
@@ -77,21 +78,25 @@ func swapColumns(table arrow.Record, schema *api_service_protos.TSchema) (arrow.
 	// build new record with the correct order of columns
 	newColumns := make([]arrow.Array, table.NumCols())
 	for i := range newColumns {
-		if i == 0 {
+		switch i {
+		case 0:
 			newColumns[i] = table.Column(idIndex)
-		} else if i == idIndex {
+		case idIndex:
 			newColumns[i] = table.Column(0)
-		} else {
+		default:
 			newColumns[i] = table.Column(i)
 		}
 	}
 
 	fields := table.Schema().Fields()
+
 	fields[0], fields[idIndex] = fields[idIndex], fields[0]
+
 	newTable := array.NewRecord(arrow.NewSchema(fields, nil), newColumns, table.NumRows())
 
 	// fix order in table schema as well
 	newSchema := proto.Clone(schema).(*api_service_protos.TSchema)
+
 	newSchema.Columns[0], newSchema.Columns[idIndex] = newSchema.Columns[idIndex], newSchema.Columns[0]
 
 	return newTable, newSchema
@@ -315,6 +320,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 				case *array.Struct:
 					// Создаем новый StructBuilder на основе существующего типа
 					structType := table.Column(colIdx + 1).DataType().(*arrow.StructType)
+
 					restBuilders[colIdx] = array.NewStructBuilder(pool, structType)
 				default:
 					panic(fmt.Sprintf("UNSUPPORTED TYPE: %T", table.Column(colIdx+1)))
@@ -371,6 +377,7 @@ func sortTableByID[ID TableIDTypes, IDBUILDER ArrowIDBuilder[ID]](table arrow.Re
 						fieldValue := structData[fieldName]
 						if fieldValue == nil {
 							fieldBuilder.AppendNull()
+
 							continue
 						}
 
@@ -537,6 +544,7 @@ func matchStructArrays(
 		if expectedStructsBytes[i] == nil {
 			require.True(t, actual.IsNull(i),
 				fmt.Sprintf("struct column:  %v\nexpected NULL at index %d, got non-NULL\n", columnName, i))
+
 			continue
 		}
 
@@ -558,6 +566,7 @@ func matchStructArrays(
 			if expectedFieldValue == nil {
 				require.True(t, fieldArray.IsNull(i),
 					fmt.Sprintf("struct field %s: expected NULL at row %d, got non-NULL", fieldName, i))
+
 				continue
 			}
 

@@ -1,7 +1,6 @@
 //go:build ignore
-// +build ignore
 
-package utils
+package utils //nolint:revive
 
 import "testing"
 

@@ -92,7 +92,6 @@ func (s *splitProviderImpl) handleYDBSource(
 			return nil
 		},
 	)
-
 	if err != nil {
 		return fmt.Errorf("retry: %w", err)
 	}
@@ -104,7 +103,6 @@ func (s *splitProviderImpl) handleYDBSource(
 		params.Logger,
 		cs[0],
 	)
-
 	if err != nil {
 		return fmt.Errorf("get column shard tablet ids: %w", err)
 	}

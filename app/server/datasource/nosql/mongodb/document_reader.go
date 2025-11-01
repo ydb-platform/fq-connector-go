@@ -171,7 +171,7 @@ func (r *documentReader) accept(doc bson.M) error {
 
 	if isSerializedDocumentReadingMode(r.readingMode) {
 		if len(r.arrowTypes.Fields()) != 2 {
-			return fmt.Errorf("unexpected number of accepters for a serialized document reading mode")
+			return errors.New("unexpected number of accepters for a serialized document reading mode")
 		}
 
 		for i, f := range r.arrowTypes.Fields() {
@@ -275,6 +275,7 @@ func (r *documentReader) acceptSingleField(acceptor any, doc bson.M, fieldName s
 		value, ok := doc[fieldName]
 		if !ok {
 			*a = nil
+
 			return nil
 		}
 
@@ -286,6 +287,7 @@ func (r *documentReader) acceptSingleField(acceptor any, doc bson.M, fieldName s
 
 			if r.unexpectedDisplayMode == api_common.TMongoDbDataSourceOptions_UNEXPECTED_AS_NULL {
 				*a = nil
+
 				return nil
 			}
 		}
@@ -321,6 +323,7 @@ func (r *documentReader) acceptSingleField(acceptor any, doc bson.M, fieldName s
 		value, ok := doc[fieldName]
 		if !ok {
 			*a = nil
+
 			return nil
 		}
 
@@ -368,7 +371,6 @@ func makeTransformer(ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.Row
 
 	for _, ydbType := range ydbTypes {
 		acceptors, appenders, err = addAcceptorAppender(ydbType, cc, acceptors, appenders)
-
 		if err != nil {
 			return nil, fmt.Errorf("addAcceptorAppender: %w", err)
 		}
@@ -436,33 +438,37 @@ func addAcceptorAppenderNullable(ydbType *Ydb.Type, cc conversion.Collection, ac
 				acceptorPtr := acceptor.(**any)
 				if *acceptorPtr == nil {
 					builder.AppendNull()
+
 					return nil
 				}
 
 				return yqlStringAppender(**acceptorPtr, builder, cc.Bytes())
 			})
+		default:
+			return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 		}
 
 	case *Ydb.Type_TaggedType:
-		if t.TaggedType.Tag == objectIdTag {
-			acceptors = append(acceptors, new(*primitive.ObjectID))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				value := acceptor.(**primitive.ObjectID)
-				if *value == nil {
-					builder.AppendNull()
-					return nil
-				}
-
-				bytes, err := (*value).MarshalText()
-				if err != nil {
-					return err
-				}
-
-				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, cc.Bytes())
-			})
-		} else {
+		if t.TaggedType.Tag != objectIdTag {
 			return nil, nil, fmt.Errorf("unknown Tagged tag: %s", t.TaggedType.Tag)
 		}
+
+		acceptors = append(acceptors, new(*primitive.ObjectID))
+		appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+			value := acceptor.(**primitive.ObjectID)
+			if *value == nil {
+				builder.AppendNull()
+
+				return nil
+			}
+
+			bytes, err := (*value).MarshalText()
+			if err != nil {
+				return err
+			}
+
+			return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, cc.Bytes())
+		})
 
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
@@ -508,30 +514,32 @@ func addAcceptorAppenderNonNullable(ydbType *Ydb.Type, cc conversion.Collection,
 				acceptorPtr := acceptor.(*any)
 				if acceptorPtr == nil {
 					builder.AppendNull()
+
 					return nil
 				}
 
 				return yqlStringAppender(*acceptorPtr, builder, cc.Bytes())
 			})
+		default:
+			return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 		}
 
 	case *Ydb.Type_TaggedType:
-		if t.TaggedType.Tag == objectIdTag {
-			acceptors = append(acceptors, new(primitive.ObjectID))
-			appenders = append(appenders, func(acceptor any, builder array.Builder) error {
-				value := acceptor.(*primitive.ObjectID)
-
-				bytes, err := value.MarshalText()
-				if err != nil {
-					return fmt.Errorf("marshal text from data in ObjectId: %w", err)
-				}
-
-				return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, cc.Bytes())
-			})
-		} else {
+		if t.TaggedType.Tag != objectIdTag {
 			return nil, nil, fmt.Errorf("unknown Tagged tag: %s", t.TaggedType.Tag)
 		}
 
+		acceptors = append(acceptors, new(primitive.ObjectID))
+		appenders = append(appenders, func(acceptor any, builder array.Builder) error {
+			value := acceptor.(*primitive.ObjectID)
+
+			bytes, err := value.MarshalText()
+			if err != nil {
+				return fmt.Errorf("marshal text from data in ObjectId: %w", err)
+			}
+
+			return utils.AppendValueToArrowBuilder[[]byte, []byte, *array.BinaryBuilder](&bytes, builder, cc.Bytes())
+		})
 	default:
 		return nil, nil, fmt.Errorf("unsupported: %v", ydbType.String())
 	}

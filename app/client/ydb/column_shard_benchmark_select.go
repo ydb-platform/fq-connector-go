@@ -37,13 +37,13 @@ func columnShardBenchmarkSelect(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
 	connManager := rdbms_ydb.NewConnectionManager(ydbConfig, rdbms_utils.ConnectionManagerBase{})
+
 	cs, err := connManager.Make(&rdbms_utils.ConnectionParams{
 		Ctx:                ctx,
 		Logger:             preset.Logger,
 		DataSourceInstance: preset.Cfg.DataSourceInstance,
 		QueryPhase:         rdbms_utils.QueryPhaseReadSplits,
 	})
-
 	if err != nil {
 		return fmt.Errorf("make connection: %v", err)
 	}
@@ -147,7 +147,6 @@ func columnShardBenchmarkSelectSingleShard(
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("query do: %w", err)
 	}

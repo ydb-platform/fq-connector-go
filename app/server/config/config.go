@@ -334,7 +334,7 @@ func validateServerConfig(c *config.TServerConfig) error {
 
 func validateConnectorServerConfig(c *config.TConnectorServerConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	if err := validateEndpoint(c.Endpoint); err != nil {
@@ -350,7 +350,7 @@ func validateConnectorServerConfig(c *config.TConnectorServerConfig) error {
 
 func validateEndpoint(c *api_common.TGenericEndpoint) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	if c.Host == "" {
@@ -389,7 +389,7 @@ func validateReadLimiterConfig(c *config.TReadLimiterConfig) error {
 
 	// but if it's not nil, one must set limits explicitly
 	if c.GetRows() == 0 {
-		return fmt.Errorf("invalid value of field `rows`")
+		return errors.New("invalid value of field `rows`")
 	}
 
 	return nil
@@ -416,16 +416,16 @@ const maxInterconnectMessageSize = 50 * 1024 * 1024
 
 func validatePagingConfig(c *config.TPagingConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	limitIsSet := c.BytesPerPage != 0 || c.RowsPerPage != 0
 	if !limitIsSet {
-		return fmt.Errorf("you must set either `bytes_per_page` or `rows_per_page` or both of them")
+		return errors.New("you must set either `bytes_per_page` or `rows_per_page` or both of them")
 	}
 
 	if c.BytesPerPage > maxInterconnectMessageSize {
-		return fmt.Errorf("`bytes_per_page` limit exceeds the limits of interconnect system used by YDB engine")
+		return errors.New("`bytes_per_page` limit exceeds the limits of interconnect system used by YDB engine")
 	}
 
 	return nil
@@ -433,7 +433,7 @@ func validatePagingConfig(c *config.TPagingConfig) error {
 
 func validateConversionConfig(c *config.TConversionConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	return nil
@@ -441,7 +441,7 @@ func validateConversionConfig(c *config.TConversionConfig) error {
 
 func validateDatasourcesConfig(c *config.TDatasourcesConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	if err := validateRelationalDatasourceConfig(c.Clickhouse); err != nil {
@@ -546,11 +546,11 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 	switch c.Mode {
 	case config.TYdbConfig_MODE_QUERY_SERVICE_NATIVE:
 		if c.ResourcePool == "" {
-			return fmt.Errorf("you must set `resource_pool` if `mode` is `query_service_native`")
+			return errors.New("you must set `resource_pool` if `mode` is `query_service_native`")
 		}
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		if c.ResourcePool != "" {
-			return fmt.Errorf("you must not set `resource_pool` if `mode` is `table_service_stdlib_scan_queries`")
+			return errors.New("you must not set `resource_pool` if `mode` is `table_service_stdlib_scan_queries`")
 		}
 	default:
 		return fmt.Errorf("invalid `mode` value: %v", c.Mode)
@@ -558,7 +558,7 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 
 	if c.ServiceAccountKeyFileCredentials != "" {
 		if c.IamEndpoint == nil {
-			return fmt.Errorf("you must set `iam_endpoint` if `service_account_key_file_credentials` is set")
+			return errors.New("you must set `iam_endpoint` if `service_account_key_file_credentials` is set")
 		}
 
 		if c.IamEndpoint.Host == "" {
@@ -571,7 +571,7 @@ func validateYdbConfig(c *config.TYdbConfig) error {
 	}
 
 	if c.Splitting == nil {
-		return fmt.Errorf("you must set `splitting` section")
+		return errors.New("you must set `splitting` section")
 	}
 
 	if _, err := common.DurationFromString(c.Splitting.QueryTabletIdsTimeout); err != nil {
@@ -619,7 +619,7 @@ func validateMongoDBConfig(c *config.TMongoDbConfig) error {
 	}
 
 	if c.CountDocsToDeduceSchema == 0 {
-		return fmt.Errorf("validate `count_docs_to_deduce_schema`: can't be zero")
+		return errors.New("validate `count_docs_to_deduce_schema`: can't be zero")
 	}
 
 	if c.ObjectIdYqlType == config.TMongoDbConfig_OBJECT_ID_UNSPECIFIED {
@@ -643,7 +643,7 @@ func validateRedisConfig(c *config.TRedisConfig) error {
 	}
 
 	if c.CountDocsToDeduceSchema == 0 {
-		return fmt.Errorf("validate `count_docs_to_deduce_schema`: can't be zero")
+		return errors.New("validate `count_docs_to_deduce_schema`: can't be zero")
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
@@ -663,11 +663,11 @@ func validateLoggingConfig(c *config.TLoggingConfig) error {
 	}
 
 	if c.GetStatic() == nil && c.GetDynamic() == nil {
-		return fmt.Errorf("you should set either `static` or `dynamic` section")
+		return errors.New("you should set either `static` or `dynamic` section")
 	}
 
 	if c.GetStatic() != nil && c.GetDynamic() != nil {
-		return fmt.Errorf("you should set either `static` or `dynamic` section, not both of them")
+		return errors.New("you should set either `static` or `dynamic` section, not both of them")
 	}
 
 	if err := validateLoggingResolvingStaticConfig(c.GetStatic()); err != nil {
@@ -729,11 +729,11 @@ func validateLoggingResolvingDynamicConfig(c *config.TLoggingConfig_TDynamicReso
 	}
 
 	if c.LoggingEndpoint.Host == "" {
-		return fmt.Errorf("missing `logging_endpoint.host`")
+		return errors.New("missing `logging_endpoint.host`")
 	}
 
 	if c.LoggingEndpoint.Port == 0 {
-		return fmt.Errorf("missing `logging_endpoint.port`")
+		return errors.New("missing `logging_endpoint.port`")
 	}
 
 	return nil
@@ -741,7 +741,7 @@ func validateLoggingResolvingDynamicConfig(c *config.TLoggingConfig_TDynamicReso
 
 func validateExponentialBackoff(c *config.TExponentialBackoffConfig) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	if _, err := common.DurationFromString(c.InitialInterval); err != nil {
@@ -785,7 +785,7 @@ func validateOpenSearchConfig(c *config.TOpenSearchConfig) error {
 	}
 
 	if c.BatchSize == 0 {
-		return fmt.Errorf("validate `batch_size`, must be greater than zero")
+		return errors.New("validate `batch_size`, must be greater than zero")
 	}
 
 	if err := validateExponentialBackoff(c.ExponentialBackoff); err != nil {
@@ -813,7 +813,7 @@ func validateObservationConfig(c *config.TObservationConfig) error {
 
 func validateObservationServerConfig(c *config.TObservationConfig_TServer) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	if err := validateEndpoint(c.Endpoint); err != nil {
@@ -825,12 +825,12 @@ func validateObservationServerConfig(c *config.TObservationConfig_TServer) error
 
 func validateObservationStorageConfig(c *config.TObservationConfig_TStorage) error {
 	if c == nil {
-		return fmt.Errorf("required section is missing")
+		return errors.New("required section is missing")
 	}
 
 	if storage := c.GetSqlite(); storage != nil {
 		if storage.Path == "" {
-			return fmt.Errorf("empty `sqlite.path`")
+			return errors.New("empty `sqlite.path`")
 		}
 
 		if _, err := common.DurationFromString(storage.GcPeriod); err != nil {
@@ -899,6 +899,7 @@ func NewConfigFromFile(configPath string) (*config.TServerConfig, error) {
 
 	if cfg == nil {
 		err := errors.Join(errs...)
+
 		return nil, err
 	}
 

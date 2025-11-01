@@ -1,8 +1,9 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"context"
 
+	"github.com/apache/arrow/go/v13/arrow"
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -16,6 +17,26 @@ import (
 	"github.com/ydb-platform/fq-connector-go/common"
 )
 
+// Rows represents an iterator returning data from a row-oriented storage.
+// Each data piece is a row.
+type Rows interface {
+	Close() error
+	Err() error
+	Next() bool
+	NextResultSet() bool
+	Scan(dest ...any) error
+	MakeTransformer(columns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error)
+}
+
+// Columns represents an iterator returning data from a column-oriented storage.
+// Each data piece is an Apache Arrow Record.
+type Columns interface {
+	Close() error
+	Err() error
+	Next() bool
+	Record() arrow.Record
+}
+
 type QueryParams struct {
 	Ctx       context.Context
 	Logger    *zap.Logger
@@ -23,9 +44,33 @@ type QueryParams struct {
 	QueryArgs *QueryArgs
 }
 
+type QueryResult struct {
+	Rows    Rows
+	Columns Columns
+}
+
+// Close implements io.Closer interface
+func (qr *QueryResult) Close() error {
+	var rowsErr, columnsErr error
+
+	if qr.Rows != nil {
+		rowsErr = qr.Rows.Close()
+	}
+
+	if qr.Columns != nil {
+		columnsErr = qr.Columns.Close()
+	}
+
+	if rowsErr != nil {
+		return rowsErr
+	}
+
+	return columnsErr
+}
+
 type Connection interface {
 	// Query runs a query on a specific connection.
-	Query(params *QueryParams) (Rows, error)
+	Query(params *QueryParams) (*QueryResult, error)
 	// DataSourceInstance comprehensively describing the target of the connection
 	DataSourceInstance() *api_common.TGenericDataSourceInstance
 	// The name of a table that will be read via this connection.
@@ -35,15 +80,6 @@ type Connection interface {
 	Logger() *zap.Logger
 	// Close terminates network connections.
 	Close() error
-}
-
-type Rows interface {
-	Close() error
-	Err() error
-	Next() bool
-	NextResultSet() bool
-	Scan(dest ...any) error
-	MakeTransformer(columns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error)
 }
 
 //go:generate stringer -type=QueryPhase

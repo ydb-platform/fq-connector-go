@@ -432,13 +432,13 @@ func (s *Suite) TestMissingDataSource() {
 
 func (s *Suite) TestInvalidLogin() {
 	for _, dsi := range s.dataSource.Instances {
-		suite.TestInvalidLogin(s.Base, dsi, tables["simple"])
+		suite.TestInvalidLogin(s.Base, dsi, tables["invalid_credentials"])
 	}
 }
 
 func (s *Suite) TestInvalidPassword() {
 	for _, dsi := range s.dataSource.Instances {
-		suite.TestInvalidPassword(s.Base, dsi, tables["simple"])
+		suite.TestInvalidPassword(s.Base, dsi, tables["invalid_credentials"])
 	}
 }
 

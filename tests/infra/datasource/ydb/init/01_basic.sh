@@ -178,6 +178,12 @@ set -x
       ("6758ddf04f23be19dc7adf08356c697f21dc751aabc1c71b55d340ee920781ca", "a"),
       ("6758ddf04f23be19dc7adf08356c697f21dc751aabc1c71b55d340ee920781cb", NULL);
     COMMIT;
+
+    CREATE TABLE invalid_credentials (
+        id Int32 NOT NULL,
+        PRIMARY KEY (id)
+    );
+    COMMIT;
   '
 
 # YQ-3494

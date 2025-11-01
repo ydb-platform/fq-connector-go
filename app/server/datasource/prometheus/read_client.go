@@ -69,6 +69,7 @@ func (rc *ReadClient) Read(ctx context.Context, pbQuery *prompb.Query) (storage.
 	timeSeries, err := rc.promClient.Read(ctx, pbQuery, false)
 	if err != nil {
 		cancel()
+
 		return nil, nil, fmt.Errorf("client remote read: %w", err)
 	}
 

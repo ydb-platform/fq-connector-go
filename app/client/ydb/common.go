@@ -61,7 +61,6 @@ func getColumnShardIDs(ctx context.Context, driver *ydb.Driver, prefix string) (
 
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
 	}

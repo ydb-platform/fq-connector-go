@@ -3,6 +3,7 @@ package redis
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"time"
 
@@ -21,7 +22,7 @@ type Suite struct {
 
 func connectRedisFromDS(ctx context.Context, ds *datasource.DataSource) (*redis.Client, error) {
 	if len(ds.Instances) == 0 {
-		return nil, fmt.Errorf("no data source instances")
+		return nil, errors.New("no data source instances")
 	}
 
 	dsi := ds.Instances[0]
@@ -119,6 +120,8 @@ func (s *Suite) populateTestDataForCase(caseName string) error {
 			}
 
 			s.T().Logf("Hash value for %s: %v\n", key, val)
+		default:
+			return fmt.Errorf("unexpected type for key %s: %s", key, typ)
 		}
 	}
 

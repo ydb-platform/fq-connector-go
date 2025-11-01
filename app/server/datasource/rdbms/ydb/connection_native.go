@@ -8,6 +8,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/apache/arrow/go/v13/arrow"
+	"github.com/apache/arrow/go/v13/arrow/ipc"
 	"go.uber.org/zap"
 
 	"github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -38,7 +40,6 @@ func (r *rowsNative) Next() bool {
 	var err error
 
 	r.lastRow, err = r.lastResultSet.NextRow(r.ctx)
-
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			r.err = nil
@@ -79,7 +80,7 @@ func (r *rowsNative) Scan(dest ...any) error {
 
 func (r *rowsNative) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	if r.lastResultSet == nil {
-		return nil, fmt.Errorf("last result set is not ready yet")
+		return nil, errors.New("last result set is not ready yet")
 	}
 
 	columnTypes := r.lastResultSet.ColumnTypes()
@@ -107,6 +108,91 @@ func (r *rowsNative) Close() error {
 	return nil
 }
 
+var _ rdbms_utils.Columns = (*columnsNative)(nil)
+
+type columnsNative struct {
+	ctx         context.Context
+	err         error
+	arrowResult ydb_sdk_query.ArrowResult
+	currentPart io.Reader
+	reader      *ipc.Reader
+	record      arrow.Record
+	closeChan   chan struct{}
+}
+
+func (c *columnsNative) Close() error {
+	if err := c.arrowResult.Close(c.ctx); err != nil {
+		return fmt.Errorf("arrow result close: %w", err)
+	}
+
+	return nil
+}
+
+func (c *columnsNative) Err() error {
+	return c.err
+}
+
+func (c *columnsNative) Next() bool {
+	// If we have a reader and it has more records, get the next one
+	if c.reader != nil && c.reader.Next() {
+		c.record = c.reader.Record()
+
+		return true
+	}
+
+	// Try to get the next part
+	var part io.Reader
+
+	var err error
+
+	for p, e := range c.arrowResult.Parts(c.ctx) {
+		if e != nil {
+			if errors.Is(e, io.EOF) {
+				c.err = nil
+			} else {
+				c.err = fmt.Errorf("next part: %w", e)
+			}
+
+			return false
+		}
+
+		part = p
+
+		break
+	}
+
+	if part == nil {
+		return false
+	}
+
+	// Create a new reader for this part
+	c.currentPart = part
+
+	reader, err := ipc.NewReader(part)
+	if err != nil {
+		c.err = fmt.Errorf("create arrow reader: %w", err)
+
+		return false
+	}
+
+	c.reader = reader
+
+	// Get the first record from this part
+	if !c.reader.Next() {
+		c.err = errors.New("no records in arrow part")
+
+		return false
+	}
+
+	c.record = c.reader.Record()
+
+	return true
+}
+
+func (c *columnsNative) Record() arrow.Record {
+	return c.record
+}
+
 var _ rdbms_utils.Connection = (*connectionNative)(nil)
 
 type connectionNative struct {
@@ -117,12 +203,18 @@ type connectionNative struct {
 	tableName          string
 	formatter          rdbms_utils.SQLFormatter
 	resourcePool       string
+	queryDataFormat    api_common.TYdbDataSourceOptions_EQueryDataFormat
 }
 
 // nolint: gocyclo,funlen
-func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
-	// prepare parameter list
+func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	paramsBuilder := ydb_sdk.ParamsBuilder()
+
+	// modify query with args
+	queryRewritten, err := c.rewriteQuery(params)
+	if err != nil {
+		return nil, fmt.Errorf("rewrite query: %w", err)
+	}
 
 	for i, arg := range params.QueryArgs.Values() {
 		placeholder := c.formatter.GetPlaceholder(i)
@@ -200,71 +292,100 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 	}
 
 	type result struct {
-		rows rdbms_utils.Rows
-		err  error
+		result *rdbms_utils.QueryResult
+		err    error
 	}
 
 	// We cannot use the results of a query from outside of the SDK callback.
 	// See https://github.com/ydb-platform/ydb-go-sdk/issues/1862 for details.
 	resultChan := make(chan result)
-	// context coming from the connector's clien (federated YDB)
+
+	// context coming from the client (the federated YDB)
 	parentCtx := params.Ctx
 
 	go func() {
 		finalErr := c.driver.Query().Do(
 			parentCtx,
 			func(ctx context.Context, session ydb_sdk_query.Session) (err error) {
-				// modify query with args
-				queryRewritten, err := c.rewriteQuery(params)
-				if err != nil {
-					return fmt.Errorf("rewrite query: %w", err)
-				}
-
 				queryLogger := c.queryLoggerFactory.Make(params.Logger, zap.String("resource_pool", c.resourcePool))
 				queryLogger.Dump(queryRewritten, params.QueryArgs.Values()...)
 
-				// execute query
-				streamResult, err := session.Query(
-					ctx,
-					queryRewritten,
-					ydb_sdk_query.WithParameters(paramsBuilder.Build()),
-					ydb_sdk_query.WithResourcePool(c.resourcePool),
-				)
-				if err != nil {
-					return fmt.Errorf("session query: %w", err)
-				}
+				var queryResult *rdbms_utils.QueryResult
 
-				defer func() {
-					if closeErr := streamResult.Close(ctx); closeErr != nil {
-						params.Logger.Error("close stream result", zap.Error(closeErr))
+				switch c.queryDataFormat {
+				case api_common.TYdbDataSourceOptions_QUERY_DATA_FORMAT_UNSPECIFIED:
+					// execute query
+					streamResult, err := session.Query(
+						ctx,
+						queryRewritten,
+						ydb_sdk_query.WithParameters(paramsBuilder.Build()),
+						ydb_sdk_query.WithResourcePool(c.resourcePool),
+					)
+					if err != nil {
+						return fmt.Errorf("session query: %w", err)
 					}
-				}()
 
-				// obtain first result set because it's necessary
-				// to create type transformers
-				resultSet, err := streamResult.NextResultSet(ctx)
-				if err != nil {
-					return fmt.Errorf("next result set: %w", err)
-				}
+					defer func() {
+						if closeErr := streamResult.Close(ctx); closeErr != nil {
+							params.Logger.Error("close stream result", zap.Error(closeErr))
+						}
+					}()
 
-				rows := &rowsNative{
-					ctx:           parentCtx,
-					streamResult:  streamResult,
-					lastResultSet: resultSet,
-					closeChan:     make(chan struct{}),
+					// obtain first result set because it's necessary
+					// to create type transformers
+					resultSet, err := streamResult.NextResultSet(ctx)
+					if err != nil {
+						return fmt.Errorf("next result set: %w", err)
+					}
+
+					queryResult = &rdbms_utils.QueryResult{
+						Rows: &rowsNative{
+							ctx:           parentCtx,
+							streamResult:  streamResult,
+							lastResultSet: resultSet,
+							closeChan:     make(chan struct{}),
+						},
+					}
+				case api_common.TYdbDataSourceOptions_ARROW:
+					// execute query
+					arrowResult, err := session.QueryArrow(
+						ctx,
+						queryRewritten,
+						ydb_sdk_query.WithParameters(paramsBuilder.Build()),
+						ydb_sdk_query.WithResourcePool(c.resourcePool),
+					)
+					if err != nil {
+						return fmt.Errorf("session query: %w", err)
+					}
+
+					defer func() {
+						if closeErr := arrowResult.Close(ctx); closeErr != nil {
+							params.Logger.Error("close stream result", zap.Error(closeErr))
+						}
+					}()
+
+					queryResult = &rdbms_utils.QueryResult{
+						Columns: &columnsNative{
+							ctx:         parentCtx,
+							arrowResult: arrowResult,
+							closeChan:   make(chan struct{}),
+						},
+					}
+				default:
+					return fmt.Errorf("unsupported query data format: %v", c.queryDataFormat)
 				}
 
 				// push iterator over GRPC stream into the outer space
 				select {
-				case resultChan <- result{rows: rows}:
+				case resultChan <- result{result: queryResult}:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
 
-				// Keep waiting until the rowsNative object is closed by a caller.
-				// The context (and the rowsNative object) will be invalidated otherwise.
+				// Keep waiting until the rowsNative/columnsNative object is closed by a caller.
+				// The context (and the objects) will be otherwise invalidated by the SDK.
 				select {
-				case <-rows.closeChan:
+				case <-extractCloseChan(queryResult):
 					return nil
 				case <-ctx.Done():
 					return ctx.Err()
@@ -289,10 +410,18 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (rdbms_utils.R
 			return nil, r.err
 		}
 
-		return r.rows, nil
+		return r.result, nil
 	case <-parentCtx.Done():
 		return nil, parentCtx.Err()
 	}
+}
+
+func extractCloseChan(queryResult *rdbms_utils.QueryResult) <-chan struct{} {
+	if queryResult.Rows != nil {
+		return queryResult.Rows.(*rowsNative).closeChan
+	}
+
+	return queryResult.Columns.(*columnsNative).closeChan
 }
 
 func (c *connectionNative) Driver() *ydb_sdk.Driver {
@@ -368,6 +497,7 @@ func newConnectionNative(
 	driver *ydb_sdk.Driver,
 	formatter rdbms_utils.SQLFormatter,
 	resourcePool string,
+	queryDataFormat api_common.TYdbDataSourceOptions_EQueryDataFormat,
 ) Connection {
 	return &connectionNative{
 		driver:             driver,
@@ -377,5 +507,6 @@ func newConnectionNative(
 		tableName:          tableName,
 		formatter:          formatter,
 		resourcePool:       resourcePool,
+		queryDataFormat:    queryDataFormat,
 	}
 }

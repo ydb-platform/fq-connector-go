@@ -34,7 +34,6 @@ func (r *tabletRows) Next() bool {
 	var err error
 
 	r.lastRow, err = r.lastResultSet.NextRow(r.ctx)
-
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			r.err = nil
@@ -57,6 +56,7 @@ func (r *tabletRows) NextResultSet() bool {
 			r.err = nil
 		} else {
 			fmt.Println("obtaining next result", err, r.ctx.Err())
+
 			r.err = fmt.Errorf("next result set: %w", err)
 		}
 
@@ -151,6 +151,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	}
 
 	var scheme string
+
 	if useTLS {
 		scheme = "grpcs"
 
@@ -166,6 +167,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	dsn := fmt.Sprintf("%s://%s%s", scheme, endpoint, database)
 
 	authMethod := "none"
+
 	if token != "" {
 		authMethod = "IAM token"
 	}
@@ -233,7 +235,6 @@ func executeQuery(parentCtx context.Context, logger *zap.Logger, ydbDriver *ydb.
 			return ctx.Err()
 		}
 	}, query.WithIdempotent())
-
 	if finalErr != nil {
 		return nil, fmt.Errorf("execute query: %w", finalErr)
 	}
@@ -290,6 +291,7 @@ func main() {
 	}
 
 	logger := common.NewDefaultLogger()
+
 	defer func() {
 		_ = logger.Sync()
 	}()

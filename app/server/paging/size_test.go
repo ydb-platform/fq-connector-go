@@ -32,8 +32,11 @@ func (tc testCaseSize[Type]) execute(t *testing.T) {
 		t.Run(fnName+"_"+typeName, func(t *testing.T) {
 			x0 := tc.value
 			x1 := new(Type)
+
 			*x1 = x0
+
 			x2 := new(*Type)
+
 			*x2 = x1
 
 			size0, kind0, err := fn(x0)

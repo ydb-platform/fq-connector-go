@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import (
 	"bytes"
@@ -64,6 +64,7 @@ func ReadResponsesToArrowRecords(responses []*api_service_protos.TReadSplitsResp
 			record := reader.Record()
 
 			record.Retain()
+
 			out = append(out, record)
 		}
 

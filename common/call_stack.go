@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import "runtime"
 
@@ -13,6 +13,7 @@ func GetCallStackFunctionNames() []string {
 	}
 
 	pc = pc[:n]
+
 	frames := runtime.CallersFrames(pc)
 
 	for {

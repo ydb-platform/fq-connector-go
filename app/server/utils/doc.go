@@ -1,2 +1,2 @@
 // Package utils contains various helpers and utility functions
-package utils
+package utils //nolint:revive

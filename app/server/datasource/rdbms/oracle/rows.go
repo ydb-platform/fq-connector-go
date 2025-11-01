@@ -2,6 +2,7 @@ package oracle
 
 import (
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -196,7 +197,7 @@ func (r *rows) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collectio
 	// https://cs.opensource.google/go/go/+/refs/tags/go1.22.5:src/database/sql/sql.go;l=3244
 	prop, ok := r.rows.(driver.RowsColumnTypeDatabaseTypeName)
 	if !ok {
-		return nil, fmt.Errorf("can't cast driver.Rows to driver.RowsColumnTypeDatabaseTypeName")
+		return nil, errors.New("can't cast driver.Rows to driver.RowsColumnTypeDatabaseTypeName")
 	}
 
 	typeNames := make([]string, 0, len(r.rows.Columns()))

@@ -17,7 +17,7 @@ type sqlFormatter struct {
 	cfg *config.TPushdownConfig
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,revive
 func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
@@ -88,6 +88,7 @@ func (sqlFormatter) GetPlaceholder(_ int) string {
 func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	// https: //clickhouse.com/docs/en/sql-reference/syntax#identifiers
 	sanitizedIdent := strings.ReplaceAll(ident, string([]byte{0}), "")
+
 	sanitizedIdent = `"` + strings.ReplaceAll(sanitizedIdent, `"`, `""`) + `"`
 
 	return sanitizedIdent

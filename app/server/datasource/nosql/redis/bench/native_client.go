@@ -38,7 +38,6 @@ func NewBench(interval time.Duration) (*Bench, error) {
 	}
 
 	t, err := p.Times()
-
 	if err != nil {
 		return nil, err
 	}
@@ -78,6 +77,7 @@ func (b *Bench) Stop() {
 // Add tracks internal byte count and row count
 func (b *Bench) Add(internalBytes, rowCount int) {
 	b.mu.Lock()
+
 	b.bytesInt += int64(internalBytes)
 	b.rows += int64(rowCount)
 	b.mu.Unlock()
@@ -185,16 +185,20 @@ func scanAll(b *Bench) {
 				log.Fatalf("cmd result: %v", errRes)
 			}
 
-			if t == "string" {
+			switch t {
+			case "string":
 				strKeys = append(strKeys, keys[i])
-			} else if t == "hash" {
+			case "hash":
 				hashKeys = append(hashKeys, keys[i])
+			default:
+				log.Fatalf("unexpected type: %s", t)
 			}
 		}
 
 		// 3) GET pipeline
 		if len(strKeys) > 0 {
 			pipe = rdb.Pipeline()
+
 			getCmds := make([]*redis.StringCmd, len(strKeys))
 
 			for i, key := range strKeys {
@@ -218,6 +222,7 @@ func scanAll(b *Bench) {
 		// 4) HGETALL pipeline
 		if len(hashKeys) > 0 {
 			pipe = rdb.Pipeline()
+
 			hgetCmds := make([]*redis.MapStringStringCmd, len(hashKeys))
 
 			for i, key := range hashKeys {

@@ -3,6 +3,8 @@ package paging
 import (
 	"fmt"
 
+	"github.com/apache/arrow/go/v13/arrow"
+
 	api_service_protos "github.com/ydb-platform/fq-connector-go/api/service/protos"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	"github.com/ydb-platform/fq-connector-go/app/server/utils"
@@ -51,12 +53,48 @@ func (tt *trafficTracker[T]) tryAddRow(acceptors []T) (bool, error) {
 	return true, nil
 }
 
+// tryAddArrowRecord checks if the addition of the Arrow record
+// would exceed the limits on the page size.
+// If there's enough space in buffer, it returns true and increases the internal counters.
+// Otherwise it returns false, but doesn't change internal state.
+func (tt *trafficTracker[T]) tryAddArrowRecord(record arrow.Record) (bool, error) {
+	if record == nil {
+		return true, nil
+	}
+
+	// Estimate the size of the Arrow record
+	totalBytes, err := estimateArrowRecordSize(record)
+	if err != nil {
+		return false, fmt.Errorf("estimate arrow record size: %w", err)
+	}
+
+	// Get the number of rows in the record
+	rowCount := uint64(record.NumRows())
+	if rowCount == 0 {
+		return true, nil
+	}
+
+	wouldBeEnough, err := tt.checkPageSizeLimit(totalBytes, rowCount)
+	if err != nil {
+		return false, fmt.Errorf("check page size limit: %w", err)
+	}
+
+	if wouldBeEnough {
+		return false, nil
+	}
+
+	tt.bytesCurr.Add(totalBytes)
+	tt.rowsCurr.Add(rowCount)
+
+	return true, nil
+}
+
 func (tt *trafficTracker[T]) maybeInit(acceptors []T) error {
 	if tt.sizePattern == nil {
 		// lazy initialization when the first row is ready
 		var err error
-		tt.sizePattern, err = newSizePattern(acceptors)
 
+		tt.sizePattern, err = newSizePattern(acceptors)
 		if err != nil {
 			return fmt.Errorf("new size pattern: %w", err)
 		}
