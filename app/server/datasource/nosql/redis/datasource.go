@@ -198,6 +198,7 @@ func (*dataSource) readKeys(
 	case api_service_protos.TPredicate_TComparison_CONTAINS:
 		// LIKE '%foo%' → '*foo*'
 		pattern = "*" + pattern + "*"
+	default:
 	}
 
 	var cursor, unsupported uint64
