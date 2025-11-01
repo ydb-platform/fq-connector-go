@@ -109,7 +109,7 @@ func (c *connectionManager) Make(
 			ydbDriver,
 			formatter,
 			c.cfg.ResourcePool,
-			dsi.GetYdbOptions().QueryDataFormat,
+			dsi.GetYdbOptions().GetQueryDataFormat(),
 		)
 	case config.TYdbConfig_MODE_TABLE_SERVICE_STDLIB_SCAN_QUERIES:
 		logger.Debug("connector will use database/sql SDK with scan queries over Table Service")
