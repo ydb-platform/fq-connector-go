@@ -1,6 +1,7 @@
 package postgresql
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,7 @@ type sqlFormatter struct {
 	cfg *config.TPushdownConfig
 }
 
+//nolint:revive
 func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	// TODO Json_document - binary form of json
 	switch typeID {
@@ -90,6 +92,7 @@ func (sqlFormatter) SanitiseIdentifier(ident string) string {
 	// https://github.com/jackc/pgx/blob/v5.4.3/conn.go#L93
 	// https://www.postgresql.org/docs/current/sql-syntax-lexical.html#SQL-SYNTAX-IDENTIFIERS
 	sanitizedIdent := strings.ReplaceAll(ident, string([]byte{0}), "")
+
 	sanitizedIdent = `"` + strings.ReplaceAll(sanitizedIdent, `"`, `""`) + `"`
 
 	return sanitizedIdent
@@ -205,13 +208,13 @@ func (f sqlFormatter) renderSelectQueryTextWithBoundsHelper(
 	lower, upper any,
 ) (string, error) {
 	if columnName == "" {
-		return "", fmt.Errorf("column name is empty")
+		return "", errors.New("column name is empty")
 	}
 
 	columnName = f.SanitiseIdentifier(columnName)
 
 	if lower == nil && upper == nil {
-		return "", fmt.Errorf("you must fill either lower bounds, either upper bounds, or both of them")
+		return "", errors.New("you must fill either lower bounds, either upper bounds, or both of them")
 	}
 
 	if lower == nil && upper != nil {

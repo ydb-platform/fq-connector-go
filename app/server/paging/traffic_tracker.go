@@ -93,8 +93,8 @@ func (tt *trafficTracker[T]) maybeInit(acceptors []T) error {
 	if tt.sizePattern == nil {
 		// lazy initialization when the first row is ready
 		var err error
-		tt.sizePattern, err = newSizePattern(acceptors)
 
+		tt.sizePattern, err = newSizePattern(acceptors)
 		if err != nil {
 			return fmt.Errorf("new size pattern: %w", err)
 		}

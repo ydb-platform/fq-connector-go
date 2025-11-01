@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -95,7 +96,7 @@ func (c *connectionManager) Make(
 ) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
 	if dsi.GetCredentials().GetBasic() == nil {
-		return nil, fmt.Errorf("currently only basic auth is supported")
+		return nil, errors.New("currently only basic auth is supported")
 	}
 
 	if dsi.Protocol != api_common.EGenericProtocol_NATIVE {
@@ -107,6 +108,7 @@ func (c *connectionManager) Make(
 	}
 
 	connStr := "dbname=DBNAME user=USER password=PASSWORD host=HOST port=5432"
+
 	if dsi.UseTls {
 		connStr += " sslmode=verify-full"
 	} else {
@@ -154,7 +156,7 @@ func (*connectionManager) Release(_ context.Context, logger *zap.Logger, cs []rd
 	defer cancel()
 
 	for _, conn := range cs {
-		if err := conn.(*connection).Conn.DeallocateAll(ctx); err != nil {
+		if err := conn.(*connection).DeallocateAll(ctx); err != nil {
 			logger.Error("deallocate prepared statements", zap.Error(err))
 		}
 

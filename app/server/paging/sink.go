@@ -163,6 +163,7 @@ func (s *sinkImpl[T]) Finish() {
 		err := s.flush(false, true)
 		if err != nil {
 			s.respondWith(nil, nil, fmt.Errorf("flush: %w", err), true)
+
 			s.state = sinkFailed
 		} else {
 			s.state = sinkFinished
@@ -203,15 +204,18 @@ func (s *sinkImpl[T]) respondWithArrowRecord(
 	isTerminalMessage bool) {
 	// Create a response directly from the Arrow record
 	var buf bytes.Buffer
+
 	writer := ipc.NewWriter(&buf, ipc.WithSchema(record.Schema()))
 
 	if writeErr := writer.Write(record); writeErr != nil {
 		s.respondWith(nil, stats, fmt.Errorf("write record: %w", writeErr), isTerminalMessage)
+
 		return
 	}
 
 	if closeErr := writer.Close(); closeErr != nil {
 		s.respondWith(nil, stats, fmt.Errorf("close arrow writer: %w", closeErr), isTerminalMessage)
+
 		return
 	}
 

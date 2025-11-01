@@ -39,6 +39,7 @@ func estimateArrowRecordSize(record arrow.Record) (uint64, error) {
 }
 
 // estimateArrowArraySize estimates the size of an Arrow Array without serializing it.
+// nolint:gocyclo,funlen
 func estimateArrowArraySize(arr arrow.Array) (uint64, error) {
 	if arr == nil {
 		return 0, nil
@@ -50,6 +51,7 @@ func estimateArrowArraySize(arr arrow.Array) (uint64, error) {
 	// Add size for validity bitmap (null values)
 	// This is approximately 1 bit per value, rounded up to bytes
 	validityBitmapSize := uint64((arr.Len() + 7) / 8)
+
 	size += validityBitmapSize
 
 	// Get the number of non-null values
@@ -120,8 +122,8 @@ func estimateArrowArraySize(arr arrow.Array) (uint64, error) {
 		// For struct arrays, we need to account for each field
 		for i := 0; i < arr.NumField(); i++ {
 			fieldArr := arr.Field(i)
-			fieldSize, err := estimateArrowArraySize(fieldArr)
 
+			fieldSize, err := estimateArrowArraySize(fieldArr)
 			if err != nil {
 				return 0, fmt.Errorf("estimate struct field %d size: %w", i, err)
 			}
@@ -137,8 +139,8 @@ func estimateArrowArraySize(arr arrow.Array) (uint64, error) {
 		if mapArr, ok := arr.(*array.Map); ok {
 			// Estimate the key-value pairs size
 			keyArr := mapArr.Keys()
-			keySize, err := estimateArrowArraySize(keyArr)
 
+			keySize, err := estimateArrowArraySize(keyArr)
 			if err != nil {
 				return 0, fmt.Errorf("estimate map keys size: %w", err)
 			}
@@ -146,8 +148,8 @@ func estimateArrowArraySize(arr arrow.Array) (uint64, error) {
 			size += keySize
 
 			itemArr := mapArr.Items()
-			itemSize, err := estimateArrowArraySize(itemArr)
 
+			itemSize, err := estimateArrowArraySize(itemArr)
 			if err != nil {
 				return 0, fmt.Errorf("estimate map items size: %w", err)
 			}
@@ -156,8 +158,8 @@ func estimateArrowArraySize(arr arrow.Array) (uint64, error) {
 		} else {
 			// For regular list arrays, estimate the values size
 			valueArr := arr.ListValues()
-			valueSize, err := estimateArrowArraySize(valueArr)
 
+			valueSize, err := estimateArrowArraySize(valueArr)
 			if err != nil {
 				return 0, fmt.Errorf("estimate list values size: %w", err)
 			}

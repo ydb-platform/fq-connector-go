@@ -37,26 +37,6 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) addRow(transformer RowTrans
 	return nil
 }
 
-// addArrowRecord saves an Arrow Block obtained from the datasource into the columnar buffer
-func (cb *columnarBufferArrowIPCStreamingDefault[T]) addArrowRecord(record arrow.Record) error {
-	// Create a new record with the same schema as the buffer
-	if !cb.schema.Equal(record.Schema()) {
-		return fmt.Errorf("record schema does not match buffer schema")
-	}
-
-	// Store the record directly
-	if cb.arrowRecord != nil {
-		// Release the previous record if it exists
-		cb.arrowRecord.Release()
-	}
-
-	// Retain the record to prevent it from being garbage collected
-	record.Retain()
-	cb.arrowRecord = record
-
-	return nil
-}
-
 // ToResponse returns all the accumulated data and clears buffer
 func (cb *columnarBufferArrowIPCStreamingDefault[T]) ToResponse() (*api_service_protos.TReadSplitsResponse, error) {
 	var record arrow.Record
@@ -148,6 +128,7 @@ func (cb *columnarBufferArrowIPCStreamingDefault[T]) Release() {
 	// Release the stored Arrow Record if it exists
 	if cb.arrowRecord != nil {
 		cb.arrowRecord.Release()
+
 		cb.arrowRecord = nil
 	}
 }

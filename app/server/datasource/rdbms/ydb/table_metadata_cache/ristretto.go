@@ -83,7 +83,6 @@ func newRistrettoCache(cfg *config.TYdbConfig_TTableMetadataCache) (*ristrettoCa
 		BufferItems: 64, // reasonable default
 		Metrics:     true,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("ristretto new cache: %w", err)
 	}

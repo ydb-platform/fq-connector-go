@@ -92,6 +92,7 @@ func (typeMapper) SQLTypeToYDBColumn(
 	typeName := columnDescription.Type
 
 	optional := false
+
 	if matches := isOptional.FindStringSubmatch(typeName); len(matches) > 0 {
 		optional = true
 		typeName = matches[1]
@@ -140,7 +141,8 @@ func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 		return common.MakePrimitiveType(Ydb.Type_STRING), nil
 	case typeUtf8:
 		return common.MakePrimitiveType(Ydb.Type_UTF8), nil
-	case typeJSON:
+	case typeJSON, typeJSONDocument:
+		// Both types are mapping to YDB JSON due to KIKIMR-22201
 		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	case typeDate:
 		// YDB connector always returns date / time columns in YQL_FORMAT, because it is always fits YDB's date / time type value ranges
@@ -149,9 +151,6 @@ func makePrimitiveTypeFromString(typeName string) (*Ydb.Type, error) {
 		return common.MakePrimitiveType(Ydb.Type_DATETIME), nil
 	case typeTimestamp:
 		return common.MakePrimitiveType(Ydb.Type_TIMESTAMP), nil
-	case typeJSONDocument:
-		// This inconsistency is due to KIKIMR-22201
-		return common.MakePrimitiveType(Ydb.Type_JSON), nil
 	default:
 		return nil, fmt.Errorf("convert type '%s': %w", typeName, common.ErrDataTypeNotSupported)
 	}

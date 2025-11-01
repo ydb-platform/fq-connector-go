@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync/atomic"
@@ -75,6 +76,7 @@ func (r *rows) maybeInitializeTransformer(fields []*mysql.Field) {
 
 		for i := range fields {
 			t := fields[i].Type
+
 			mySQLTypes = append(mySQLTypes, t)
 		}
 
@@ -82,6 +84,7 @@ func (r *rows) maybeInitializeTransformer(fields []*mysql.Field) {
 		case r.transformerInitChan <- mySQLTypes:
 		case <-r.ctx.Done():
 		}
+
 		close(r.transformerInitChan)
 	}
 }
@@ -225,6 +228,7 @@ func scanDateValue(dest, value any, fieldValueType mysql.FieldValueType) error {
 
 	if fieldValueType == mysql.FieldValueTypeNull {
 		*out = nil
+
 		return nil
 	}
 
@@ -244,6 +248,7 @@ func scanDatetimeValue(dest, value any, fieldValueType mysql.FieldValueType) err
 
 	if fieldValueType == mysql.FieldValueTypeNull {
 		*out = nil
+
 		return nil
 	}
 
@@ -286,7 +291,7 @@ func (r *rows) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collectio
 	select {
 	case mySQLTypes, ok = <-r.transformerInitChan:
 		if !ok {
-			return nil, fmt.Errorf("mysql types are not ready")
+			return nil, errors.New("mysql types are not ready")
 		}
 	case err := <-r.errChan:
 		if err != nil {

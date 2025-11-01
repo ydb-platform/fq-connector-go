@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -34,6 +35,7 @@ func (s *State) SkipSuiteIfNotEnabled(t *testing.T) {
 	functionNames := common.GetCallStackFunctionNames()
 	if len(functionNames) == 0 {
 		t.FailNow()
+
 		return
 	}
 
@@ -56,7 +58,7 @@ func NewState() (*State, error) {
 	flag.Parse()
 
 	if *projectPath == "" {
-		return nil, fmt.Errorf("empty projectPath parameter")
+		return nil, errors.New("empty projectPath parameter")
 	}
 
 	projectPathInfo, err := os.Stat(*projectPath)

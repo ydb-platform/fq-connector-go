@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 
@@ -34,6 +35,7 @@ type serviceConnector struct {
 	logger               *zap.Logger
 }
 
+//nolint:staticcheck
 func (*serviceConnector) ListTables(_ *api_service_protos.TListTablesRequest, _ api_service.Connector_ListTablesServer) error {
 	return nil
 }
@@ -43,6 +45,7 @@ func (s *serviceConnector) DescribeTable(
 	request *api_service_protos.TDescribeTableRequest,
 ) (*api_service_protos.TDescribeTableResponse, error) {
 	logger := utils.LoggerMustFromContext(ctx)
+
 	logger = common.AnnotateLoggerWithDataSourceInstance(logger, request.DataSourceInstance)
 	logger.Info("request handling started", zap.String("table", request.GetTable()))
 
@@ -129,8 +132,8 @@ func (s *serviceConnector) ReadSplits(
 	logger.Info("request handling started", zap.Int("total_splits", len(request.Splits)))
 
 	var err error
-	logger, err = s.doReadSplits(logger, request, stream)
 
+	logger, err = s.doReadSplits(logger, request, stream)
 	if err != nil {
 		logger.Error("request handling failed", zap.Error(err))
 
@@ -173,7 +176,6 @@ func (s *serviceConnector) doReadSplits(
 			request,
 			split,
 		)
-
 		if err != nil {
 			return splitLogger, fmt.Errorf("read split %d: %w", split.Id, err)
 		}
@@ -211,8 +213,6 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 	switch {
 	case cfg.GetConnectorServer().GetTls() != nil:
 		tlsConfig = cfg.GetConnectorServer().GetTls()
-	case cfg.GetTls() != nil:
-		tlsConfig = cfg.GetTls()
 	default:
 		logger.Warn("server will use insecure connections")
 
@@ -230,6 +230,7 @@ func makeGRPCOptions(logger *zap.Logger, cfg *config.TServerConfig, registry *so
 
 	// for security reasons we do not allow TLS < 1.2, see YQ-1877
 	creds := credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{cert}, MinVersion: tls.VersionTLS12})
+
 	opts = append(opts, grpc.Creds(creds))
 
 	return opts, nil
@@ -255,14 +256,11 @@ func newServiceConnector(
 	switch {
 	case cfg.GetConnectorServer().GetEndpoint() != nil:
 		endpoint = cfg.ConnectorServer.GetEndpoint()
-	case cfg.GetEndpoint() != nil:
-		logger.Warn("Using deprecated field `endpoint` from config. Please update your config.")
-
-		endpoint = cfg.GetEndpoint()
 	default:
-		return nil, fmt.Errorf("invalid config: no endpoint")
+		return nil, errors.New("invalid config: no endpoint")
 	}
 
+	//nolint:noctx
 	listener, err := net.Listen("tcp", common.EndpointToString(endpoint))
 	if err != nil {
 		return nil, fmt.Errorf("net listen: %w", err)

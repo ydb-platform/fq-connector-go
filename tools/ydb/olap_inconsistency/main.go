@@ -182,7 +182,6 @@ func getTabletIDs(ctx context.Context, logger *zap.Logger, ydbDriver *ydb.Driver
 
 		return nil
 	}, query.WithIdempotent())
-
 	if err != nil {
 		return nil, fmt.Errorf("querying tablet IDs: %w", err)
 	}
@@ -252,7 +251,7 @@ func parseFlags() (*Config, error) {
 	}
 
 	if endTime.Before(startTime) {
-		return nil, fmt.Errorf("end time must be after start time")
+		return nil, errors.New("end time must be after start time")
 	}
 
 	return &Config{
@@ -277,6 +276,7 @@ func main() {
 	}
 
 	logger := common.NewDefaultLogger()
+
 	defer func() {
 		_ = logger.Sync()
 	}()
@@ -376,6 +376,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	}
 
 	var scheme string
+
 	if useTLS {
 		scheme = "grpcs"
 
@@ -391,6 +392,7 @@ func makeDriver(ctx context.Context, logger *zap.Logger, endpoint, database, tok
 	dsn := fmt.Sprintf("%s://%s%s", scheme, endpoint, database)
 
 	authMethod := "none"
+
 	if token != "" {
 		authMethod = "IAM token"
 	}
@@ -521,6 +523,7 @@ func executeQuery(
 	queryText := fmt.Sprintf(queryTemplate, table, tabletID)
 
 	paramsBuilder := ydb.ParamsBuilder()
+
 	paramsBuilder = paramsBuilder.Param("$p0").Timestamp(startTime)
 	paramsBuilder = paramsBuilder.Param("$p1").Timestamp(endTime)
 
@@ -578,7 +581,6 @@ func executeQuery(
 
 		return nil
 	}, query.WithIdempotent())
-
 	if err != nil {
 		return nil, fmt.Errorf("execute query: %w", err)
 	}

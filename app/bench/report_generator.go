@@ -28,6 +28,7 @@ type reportGenerator struct {
 
 func (agg *reportGenerator) start() {
 	agg.wg.Add(1)
+
 	go agg.progress()
 }
 
@@ -81,6 +82,7 @@ func (agg *reportGenerator) stop() *report {
 	agg.wg.Wait()
 
 	finalReport := agg.makeReport()
+
 	finalReport.StopTime = &jsonTime{time.Now()}
 
 	agg.logger.Info("FINAL RESULT: " + finalReport.String())

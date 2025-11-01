@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:revive
 func TestDateToStringConverter(t *testing.T) {
 	testCases := []time.Time{
 		time.Date(math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, time.UTC),
@@ -36,6 +37,7 @@ func TestDateToStringConverter(t *testing.T) {
 			// Check equivalence of results produced by default and unsafe converters
 			expectedOut, err := converterDefault.Convert(&tc)
 			require.NoError(t, err)
+
 			actualOut, err := converterUnsafe.Convert(&tc)
 			require.NoError(t, err)
 			require.Equal(t, expectedOut, actualOut)
@@ -91,12 +93,14 @@ func FuzzDateToStringConverter(f *testing.F) {
 		in := time.Date(year, time.Month(month), day, hour, minutes, sec, nsec, time.UTC)
 		expectedOut, err := converterDefault.Convert(&in)
 		require.NoError(t, err)
+
 		actualOut, err := converterUnsafe.Convert(&in)
 		require.NoError(t, err)
 		require.Equal(t, expectedOut, actualOut)
 	})
 }
 
+//nolint:revive
 func TestTimestampToStringConverter(t *testing.T) {
 	testCases := []time.Time{
 		time.Date(math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, math.MaxInt, time.UTC),
@@ -128,6 +132,7 @@ func TestTimestampToStringConverter(t *testing.T) {
 			// Check equivalence of results produced by default and unsafe converters
 			expectedOut, err := converterDefault.Convert(&tc)
 			require.NoError(t, err)
+
 			actualOut, err := converterUnsafe.Convert(&tc)
 			require.NoError(t, err)
 			require.Equal(t, expectedOut, actualOut)

@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -27,10 +28,11 @@ func makeFilter(
 	if readingMode == api_common.TMongoDbDataSourceOptions_TABLE {
 		what := split.Select.What
 		if what == nil {
-			return nil, nil, fmt.Errorf("not specified columns to query in Select.What")
+			return nil, nil, errors.New("not specified columns to query in Select.What")
 		}
 
 		projection := bson.D{}
+
 		for _, item := range what.GetItems() {
 			projection = append(projection, bson.E{Key: item.GetColumn().Name, Value: 1})
 		}
@@ -62,6 +64,7 @@ func makeFilter(
 			api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
 			if common.OptionalFilteringAllowedErrors.Match(err) {
 				logger.Warn("considering pushdown error as acceptable", zap.Error(err))
+
 				return filter, opts, nil
 			}
 
@@ -177,6 +180,7 @@ func getConjunctionFilter(
 		operand, err := makePredicateFilter(logger, op, false)
 		if err != nil {
 			err = fmt.Errorf("unable to format one of the predicates in conjunction: %w", err)
+
 			if !suppressErrors {
 				return nil, err
 			}
@@ -332,6 +336,7 @@ func getInSetFilter(
 	in *api_service_protos.TPredicate_TIn,
 ) (bson.D, error) {
 	var fieldName string
+
 	switch e := in.Value.Payload.(type) {
 	case *api_service_protos.TExpression_Column:
 		fieldName = e.Column

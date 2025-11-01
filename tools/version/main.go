@@ -2,12 +2,15 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"strings"
 	"text/template"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -72,7 +75,7 @@ func run(logger *zap.Logger) error {
 	)
 
 	if len(os.Args) != 2 {
-		return fmt.Errorf("wrong args")
+		return errors.New("wrong number of args")
 	}
 
 	switch os.Args[1] {
@@ -137,7 +140,6 @@ func getArcVersion() (versionData, error) {
 	}
 
 	branch, err := execCommand("bash", "-c", "arc branch | grep \\* | cut -d ' ' -f2")
-
 	if err != nil {
 		return data, fmt.Errorf("branch exec command: %w", err)
 	}
@@ -313,7 +315,10 @@ func getGitVersion() (versionData, error) {
 func execCommand(command string, args ...string) (string, error) {
 	var stderr bytes.Buffer
 
-	cmd := exec.Command(command, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, command, args...)
 
 	cmd.Stderr = &stderr
 

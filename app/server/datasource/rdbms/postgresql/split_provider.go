@@ -2,6 +2,7 @@ package postgresql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -58,7 +59,6 @@ func (s *splitProviderImpl) ListSplits(
 			return nil
 		},
 	)
-
 	if err != nil {
 		return fmt.Errorf("retry: %w", err)
 	}
@@ -75,7 +75,6 @@ func (s *splitProviderImpl) ListSplits(
 		slct.DataSourceInstance.GetPgOptions().Schema,
 		slct.From.Table,
 	)
-
 	if err != nil {
 		return fmt.Errorf("get table physical size: %w", err)
 	}
@@ -188,7 +187,7 @@ func (splitProviderImpl) getTablePhysicalSize(
 	var pgTableSize uint64
 
 	if !result.Rows.Next() {
-		return 0, fmt.Errorf("no rows returned from query")
+		return 0, errors.New("no rows returned from query")
 	}
 
 	if err := result.Rows.Scan(&pgTableSize); err != nil {
@@ -369,6 +368,7 @@ func createHistogramBound[T int32 | int64 | string](columnName string, lower, up
 	switch any(zeroVal).(type) {
 	case int32:
 		var lowerVal, upperVal *wrapperspb.Int32Value
+
 		if lower != nil {
 			lowerVal = wrapperspb.Int32(any(*lower).(int32))
 		}
@@ -385,6 +385,7 @@ func createHistogramBound[T int32 | int64 | string](columnName string, lower, up
 		}
 	case int64:
 		var lowerVal, upperVal *wrapperspb.Int64Value
+
 		if lower != nil {
 			lowerVal = wrapperspb.Int64(any(*lower).(int64))
 		}

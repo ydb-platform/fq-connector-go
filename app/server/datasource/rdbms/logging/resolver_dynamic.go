@@ -2,6 +2,7 @@ package logging
 
 import (
 	"crypto/tls"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -24,7 +25,7 @@ func (r *dynamicResolver) resolve(
 	request *resolveRequest,
 ) (*resolveResponse, error) {
 	if request.credentials.GetToken().GetValue() == "" {
-		return nil, fmt.Errorf("IAM token is missing")
+		return nil, errors.New("IAM token is missing")
 	}
 
 	md := metadata.Pairs("authorization", fmt.Sprintf("Bearer %s", request.credentials.GetToken().GetValue()))
@@ -39,7 +40,6 @@ func (r *dynamicResolver) resolve(
 		FolderId:  request.folderId,
 		GroupName: request.logGroupName,
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("get reading endpoint: %w", err)
 	}
@@ -98,7 +98,7 @@ func newResolverDynamic(cfg *config.TLoggingConfig) (Resolver, error) {
 
 	tlsCfg := &tls.Config{}
 
-	grpcConn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
+	grpcConn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	if err != nil {
 		return nil, fmt.Errorf("GRPC dial: %w", err)
 	}

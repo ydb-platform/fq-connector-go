@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
 

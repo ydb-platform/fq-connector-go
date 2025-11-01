@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import (
 	"fmt"
@@ -105,6 +105,7 @@ func NewDefaultLogger() *zap.Logger {
 
 func newDefaultLoggerConfig() zap.Config {
 	loggerCfg := zap.NewProductionConfig()
+
 	loggerCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	loggerCfg.Encoding = "console"
 	loggerCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -160,6 +161,7 @@ func (ql *QueryLogger) Dump(query string, args ...any) {
 	}
 
 	logFields := []zap.Field{zap.String("query", query)}
+
 	if len(args) > 0 {
 		logFields = append(logFields, zap.Any("args", args))
 	}

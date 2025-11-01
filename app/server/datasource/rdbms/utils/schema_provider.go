@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"context"
@@ -66,7 +66,6 @@ func (f *defaultSchemaProvider) GetSchema(
 		precision  *uint64
 		scale      *int64
 	)
-
 
 	rows := queryResult.Rows
 

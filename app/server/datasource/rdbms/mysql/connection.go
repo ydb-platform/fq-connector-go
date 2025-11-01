@@ -79,6 +79,7 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryR
 
 				for i, r := range row {
 					newRow[i].valueType = r.Type
+
 					val := r.Value()
 
 					switch val.(type) {

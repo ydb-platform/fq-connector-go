@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"context"
@@ -23,7 +23,9 @@ type ConnectionMock struct {
 
 func (m *ConnectionMock) Query(params *QueryParams) (*QueryResult, error) {
 	called := []any{params.QueryText}
+
 	called = append(called, params.QueryArgs.Values()...)
+
 	args := m.Called(called...)
 
 	rows := args.Get(0)

@@ -1,8 +1,9 @@
-package common
+package common //nolint:revive
 
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"os"
 
@@ -39,7 +40,7 @@ func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpt
 
 			certPool := x509.NewCertPool()
 			if !certPool.AppendCertsFromPEM(caCrt) {
-				return nil, fmt.Errorf("failed to add server CA's certificate")
+				return nil, errors.New("failed to add server CA's certificate")
 			}
 
 			tlsCfg.RootCAs = certPool
@@ -54,7 +55,7 @@ func makeConnection(logger *zap.Logger, cfg *config.TClientConfig, additionalOpt
 
 	opts = append(opts, additionalOpts...)
 
-	conn, err := grpc.Dial(EndpointToString(cfg.ConnectorServerEndpoint), opts...)
+	conn, err := grpc.NewClient(EndpointToString(cfg.ConnectorServerEndpoint), opts...)
 	if err != nil {
 		return nil, fmt.Errorf("grpc dial: %w", err)
 	}

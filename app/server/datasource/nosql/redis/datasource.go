@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -71,6 +72,8 @@ func newRedisRowTransformer(items []*api_service_protos.TSelect_TWhat_TItem) (*r
 			t.acceptors[i] = &t.stringVal
 		case HashColumnName:
 			t.acceptors[i] = &t.hashVal
+		default:
+			return nil, fmt.Errorf("unsupported column name: %s", column.Name)
 		}
 	}
 
@@ -121,7 +124,7 @@ func getHashFields(items []*api_service_protos.TSelect_TWhat_TItem) ([]string, e
 	for _, item := range items {
 		column := item.GetColumn()
 		if column == nil {
-			return nil, fmt.Errorf("select.what has nil column")
+			return nil, errors.New("select.what has nil column")
 		}
 
 		if column.Name == HashColumnName {
@@ -180,6 +183,7 @@ func (*dataSource) readKeys(
 			return nil
 		default:
 			logger.Warn("unsupported key type for specific key", zap.String("key", pattern), zap.String("type", typ))
+
 			return nil
 		}
 	}
@@ -194,6 +198,8 @@ func (*dataSource) readKeys(
 	case api_service_protos.TPredicate_TComparison_CONTAINS:
 		// LIKE '%foo%' → '*foo*'
 		pattern = "*" + pattern + "*"
+	default:
+		return fmt.Errorf("unsupported operation: %s", operation)
 	}
 
 	var cursor, unsupported uint64
@@ -341,6 +347,7 @@ func processHashKeys(
 		}
 
 		transformer.key = keys[i]
+
 		m := make(map[string]string, len(transformer.hashFields))
 
 		for j, field := range transformer.hashFields {
@@ -380,11 +387,11 @@ func (ds *dataSource) ReadSplit(
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
 		var err error
+
 		client, err = ds.makeConnection(ctx, logger, dsi)
 
 		return err
 	})
-
 	if err != nil {
 		return fmt.Errorf("make connection: %w", err)
 	}
@@ -436,11 +443,11 @@ func (ds *dataSource) DescribeTable(
 
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger, func() error {
 		var err error
+
 		client, err = ds.makeConnection(ctx, logger, dsi)
 
 		return err
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("make connection: %w", err)
 	}
@@ -456,7 +463,6 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	allKeys, err := ds.accumulateKeys(ctx, client, request.Table, int(count))
-
 	if err != nil {
 		return nil, fmt.Errorf("accumulate keys: %w", err)
 	}
@@ -540,8 +546,8 @@ func (*dataSource) analyzeKeys(
 			res.stringExists = true
 		case TypeHash:
 			res.hashExists = true
-			fields, err := client.HKeys(ctx, key).Result()
 
+			fields, err := client.HKeys(ctx, key).Result()
 			if err != nil {
 				return nil, fmt.Errorf("get hash keys for key %s: %w", key, err)
 			}
@@ -571,6 +577,7 @@ func buildSchema(spec keysSpec) []*Ydb.Column {
 		Name: KeyColumnName,
 		Type: common.MakePrimitiveType(Ydb.Type_STRING),
 	}
+
 	columns = append(columns, keyColumn)
 
 	// Add "string_values" column if string keys exist.
@@ -579,6 +586,7 @@ func buildSchema(spec keysSpec) []*Ydb.Column {
 			Name: StringColumnName,
 			Type: common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_STRING)),
 		}
+
 		columns = append(columns, stringColumn)
 	}
 
@@ -615,6 +623,7 @@ func buildSchema(spec keysSpec) []*Ydb.Column {
 			Name: HashColumnName,
 			Type: common.MakeOptionalType(structType),
 		}
+
 		columns = append(columns, hashColumn)
 	}
 
@@ -694,6 +703,7 @@ func (t *redisRowTransformer) AppendToArrowBuilders(_ *arrow.Schema, builders []
 func (t *redisRowTransformer) appendKey(builderIn array.Builder) error {
 	if builder, ok := builderIn.(*array.BinaryBuilder); ok {
 		builder.Append([]byte(t.key))
+
 		return nil
 	}
 
@@ -722,6 +732,7 @@ func (t *redisRowTransformer) appendHashValue(builderIn array.Builder) error {
 
 	if t.hashVal == nil {
 		builder.AppendNull()
+
 		return nil
 	}
 

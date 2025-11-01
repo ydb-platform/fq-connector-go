@@ -90,6 +90,7 @@ func (tm typeMapper) SQLTypeToYDBColumn(
 //nolint:gocyclo
 func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	_ = ydbTypes
+
 	acceptors := make([]any, 0, len(types))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 

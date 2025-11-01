@@ -41,8 +41,8 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 
 	if matches := tm.reType.FindStringSubmatch(columnDescription.Type); len(matches) > 0 {
 		typeName = matches[tm.reType.SubexpIndex("type")]
-		typeSize, err = strconv.ParseUint(matches[tm.reType.SubexpIndex("size")], 10, 64)
 
+		typeSize, err = strconv.ParseUint(matches[tm.reType.SubexpIndex("size")], 10, 64)
 		if err != nil {
 			return nil, fmt.Errorf("parse uint: %w", err)
 		}
@@ -97,14 +97,12 @@ func (tm *typeMapper) SQLTypeToYDBColumn(
 		}
 
 		ydbColumn.Type = common.MakePrimitiveType(ydbType)
-	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob:
+	case typeLongBlob, typeBlob, typeMediumBlob, typeTinyBlob,
+		typeBinary, typeVarBinary,
+		typeText, typeLongText, typeTinyText, typeMediumText:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeVarChar, typeChar:
 		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_UTF8)
-	case typeBinary, typeVarBinary:
-		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
-	case typeText, typeLongText, typeTinyText, typeMediumText:
-		ydbColumn.Type = common.MakePrimitiveType(Ydb.Type_STRING)
 	case typeDate:
 		ydbColumn.Type, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, typeMapperSettings.GetDateTimeFormat())
 		if err != nil {

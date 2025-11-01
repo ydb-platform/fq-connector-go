@@ -2,6 +2,7 @@ package streaming
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -82,7 +83,7 @@ func (s *ReadSplitsStreamer[T]) sendResultToStream(result *paging.ReadResult[T])
 			return fmt.Errorf("buffer to response: %w", err)
 		}
 	} else {
-		return fmt.Errorf("result contains neither Data nor ColumnarBuffer")
+		return errors.New("result contains neither Data nor ColumnarBuffer")
 	}
 
 	resp.Stats = result.Stats

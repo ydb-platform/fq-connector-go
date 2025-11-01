@@ -31,13 +31,13 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 	ctx := context.Background()
 
 	connManager := ydb.NewConnectionManager(ydbConfig, rdbms_utils.ConnectionManagerBase{})
+
 	cs, err := connManager.Make(&rdbms_utils.ConnectionParams{
 		Ctx:                ctx,
 		Logger:             preset.Logger,
 		DataSourceInstance: preset.Cfg.DataSourceInstance,
 		QueryPhase:         rdbms_utils.QueryPhaseReadSplits,
 	})
-
 	if err != nil {
 		return fmt.Errorf("make connection: %v", err)
 	}
@@ -105,7 +105,6 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 
 				return nil
 			})
-
 			if err != nil {
 				resultChan <- rowsCountResult{shardId: shardId, err: err}
 			}
@@ -127,7 +126,7 @@ func columnShardsDataDistribution(cmd *cobra.Command, _ []string) error {
 
 	mean := stat.Mean(totalRowsPerShard, nil)
 	if mean == 0 {
-		return fmt.Errorf("coefficient of variation is undefined for mean = 0")
+		return errors.New("coefficient of variation is undefined for mean = 0")
 	}
 
 	stdDev := stat.StdDev(totalRowsPerShard, nil)

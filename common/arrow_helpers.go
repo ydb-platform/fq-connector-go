@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import (
 	"fmt"
@@ -116,6 +116,7 @@ func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (
 		}
 
 		structType := arrow.StructOf(fields...)
+
 		builder = array.NewStructBuilder(arrowAllocator, structType)
 	case *Ydb.Type_DecimalType:
 		builder = array.NewFixedSizeBinaryBuilder(arrowAllocator, &arrow.FixedSizeBinaryType{ByteWidth: 16})
@@ -131,7 +132,7 @@ func ydbTypeToArrowBuilder(ydbType *Ydb.Type, arrowAllocator memory.Allocator) (
 	return builder, nil
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,revive
 func ydbTypeIdToArrowBuilder(typeID Ydb.Type_PrimitiveTypeId, arrowAllocator memory.Allocator) (array.Builder, error) {
 	var builder array.Builder
 
@@ -247,7 +248,7 @@ func ydbTypeToArrowField(ydbType *Ydb.Type, column *Ydb.Column) (arrow.Field, er
 	return field, nil
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,revive
 func ydbTypeIdToArrowField(typeID Ydb.Type_PrimitiveTypeId, column *Ydb.Column) (arrow.Field, error) {
 	var field arrow.Field
 

@@ -2,6 +2,7 @@ package rdbms
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -111,7 +112,6 @@ func (ds *dataSourceImpl) ReadSplit(
 			return nil
 		},
 	)
-
 	if err != nil {
 		return fmt.Errorf("make connection: %w", err)
 	}
@@ -210,7 +210,6 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 			return nil
 		},
 	)
-
 	if err != nil {
 		return 0, fmt.Errorf("query: %w", err)
 	}
@@ -228,7 +227,7 @@ func (ds *dataSourceImpl) doReadSplitSingleConn(
 	} else if queryResult.Columns != nil {
 		rowsRead, processErr = ds.processArrowBasedResult(queryResult.Columns, sink)
 	} else {
-		return 0, fmt.Errorf("query result contains neither Rows nor Columns")
+		return 0, errors.New("query result contains neither Rows nor Columns")
 	}
 
 	if processErr != nil {
@@ -291,6 +290,7 @@ func (dataSourceImpl) processArrowBasedResult(
 
 	for columns.Next() {
 		record := columns.Record()
+
 		rowsRead += record.NumRows()
 
 		if err := sink.AddArrowRecord(record); err != nil {

@@ -60,11 +60,13 @@ func (p PromQLBuilder) From(from string) PromQLBuilder {
 
 func (p PromQLBuilder) WithStartTime(start time.Time) PromQLBuilder {
 	p.startTime = toPromTime(start)
+
 	return p
 }
 
 func (p PromQLBuilder) WithEndTime(end time.Time) PromQLBuilder {
 	p.endTime = toPromTime(end)
+
 	return p
 }
 
@@ -111,6 +113,7 @@ func (p PromQLBuilder) applyComparisonPredicate(c *protos.TPredicate_TComparison
 	lv, rv, op := c.GetLeftValue(), c.GetRightValue(), c.GetOperation()
 	if op == protos.TPredicate_TComparison_COMPARISON_OPERATION_UNSPECIFIED || lv == nil || rv == nil {
 		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("get comparison predicate: %w", common.ErrInvalidRequest))
+
 		return p
 	}
 
@@ -132,6 +135,7 @@ func (p PromQLBuilder) applyComparisonPredicate(c *protos.TPredicate_TComparison
 		}
 	default:
 		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("apply comparison predicate: %w", common.ErrUnsupportedExpression))
+
 		return p
 	}
 }
@@ -149,6 +153,7 @@ func (p PromQLBuilder) applyTimestampExpr(op protos.TPredicate_TComparison_EOper
 	if value.GetValue() == nil ||
 		value.GetValue().GetUint64Value() == 0 {
 		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("get timestamp value: %w", common.ErrInvalidRequest))
+
 		return p
 	}
 
@@ -189,6 +194,7 @@ func (p PromQLBuilder) applyStringExpr(op protos.TPredicate_TComparison_EOperati
 
 	if value.GetValue() == nil {
 		p.predicateErrors = append(p.predicateErrors, fmt.Errorf("get string value: %w", common.ErrInvalidRequest))
+
 		return p
 	}
 
@@ -225,6 +231,7 @@ func (p PromQLBuilder) matchPredicateErrors(filtering protos.TReadSplitsRequest_
 		for _, err := range p.predicateErrors {
 			if acceptableErrors.Match(err) {
 				p.logger.Info("considering pushdown error as acceptable", zap.Error(err))
+
 				continue
 			}
 

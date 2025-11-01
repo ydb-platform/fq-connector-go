@@ -40,7 +40,6 @@ func (r *rowsNative) Next() bool {
 	var err error
 
 	r.lastRow, err = r.lastResultSet.NextRow(r.ctx)
-
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			r.err = nil
@@ -81,7 +80,7 @@ func (r *rowsNative) Scan(dest ...any) error {
 
 func (r *rowsNative) MakeTransformer(ydbColumns []*Ydb.Column, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	if r.lastResultSet == nil {
-		return nil, fmt.Errorf("last result set is not ready yet")
+		return nil, errors.New("last result set is not ready yet")
 	}
 
 	columnTypes := r.lastResultSet.ColumnTypes()
@@ -137,6 +136,7 @@ func (c *columnsNative) Next() bool {
 	// If we have a reader and it has more records, get the next one
 	if c.reader != nil && c.reader.Next() {
 		c.record = c.reader.Record()
+
 		return true
 	}
 
@@ -167,10 +167,11 @@ func (c *columnsNative) Next() bool {
 
 	// Create a new reader for this part
 	c.currentPart = part
-	reader, err := ipc.NewReader(part)
 
+	reader, err := ipc.NewReader(part)
 	if err != nil {
 		c.err = fmt.Errorf("create arrow reader: %w", err)
+
 		return false
 	}
 
@@ -178,7 +179,8 @@ func (c *columnsNative) Next() bool {
 
 	// Get the first record from this part
 	if !c.reader.Next() {
-		c.err = fmt.Errorf("no records in arrow part")
+		c.err = errors.New("no records in arrow part")
+
 		return false
 	}
 
@@ -204,7 +206,7 @@ type connectionNative struct {
 	queryDataFormat    api_common.TYdbDataSourceOptions_EQueryDataFormat
 }
 
-// nolint: gocyclo
+// nolint: gocyclo,funlen
 func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	paramsBuilder := ydb_sdk.ParamsBuilder()
 
@@ -298,7 +300,7 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.
 	// See https://github.com/ydb-platform/ydb-go-sdk/issues/1862 for details.
 	resultChan := make(chan result)
 
-	//context coming from the client (the federated YDB)
+	// context coming from the client (the federated YDB)
 	parentCtx := params.Ctx
 
 	go func() {
@@ -369,6 +371,8 @@ func (c *connectionNative) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.
 							closeChan:   make(chan struct{}),
 						},
 					}
+				default:
+					return fmt.Errorf("unsupported query data format: %v", c.queryDataFormat)
 				}
 
 				// push iterator over GRPC stream into the outer space

@@ -57,7 +57,7 @@ type connectionHTTP struct {
 func (c *connectionHTTP) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
-	out, err := c.DB.QueryContext(params.Ctx, params.QueryText, rewriteQueryArgs(params.QueryArgs.Values())...)
+	out, err := c.QueryContext(params.Ctx, params.QueryText, rewriteQueryArgs(params.QueryArgs.Values())...)
 	if err != nil {
 		return nil, fmt.Errorf("query context: %w", err)
 	}

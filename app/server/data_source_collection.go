@@ -356,6 +356,7 @@ func doReadSplit[T paging.Acceptor](
 	readStats := sinkFactory.FinalStats()
 
 	fields := common.SelectToFields(split.Select)
+
 	fields = append(fields,
 		zap.Uint64("total_bytes", readStats.GetBytes()),
 		zap.Uint64("total_rows", readStats.GetRows()),
@@ -392,7 +393,6 @@ func NewDataSourceCollection(
 		observationStorage,
 		ydbTableMetadataCache,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("new data source factory: %w", err)
 	}

@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"context"
@@ -53,6 +53,7 @@ func MakeSelectQuery(
 	}
 
 	var queryArgs *QueryArgs
+
 	if split.Select.Where != nil {
 		parts.WhereClause, queryArgs, err = formatWhereClause(
 			logger,
@@ -61,7 +62,6 @@ func MakeSelectQuery(
 			split.Select.Where,
 			split.Select.DataSourceInstance.Kind,
 		)
-
 		if err != nil {
 			return nil, fmt.Errorf("format where clause: %w", err)
 		}

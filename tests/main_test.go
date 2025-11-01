@@ -3,7 +3,6 @@ package tests
 import (
 	"flag"
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/apache/arrow/go/v13/arrow/array"
@@ -36,7 +35,7 @@ func TestMain(m *testing.M) {
 
 	state, err = suite.NewState()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	m.Run()

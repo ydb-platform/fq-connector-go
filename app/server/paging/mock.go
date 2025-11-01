@@ -73,10 +73,6 @@ func (*ColumnarBufferMock) addRow(_ RowTransformer[any]) error {
 	panic("not implemented") // TODO: Implement
 }
 
-func (*ColumnarBufferMock) addArrowRecord(_ arrow.Record) error {
-	panic("not implemented") // TODO: Implement
-}
-
 func (m *ColumnarBufferMock) ToResponse() (*api_service_protos.TReadSplitsResponse, error) {
 	args := m.Called()
 

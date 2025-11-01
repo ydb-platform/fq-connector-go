@@ -18,6 +18,7 @@ type sqlFormatter struct {
 	cfg *config.TPushdownConfig
 }
 
+//nolint:revive
 func (f *sqlFormatter) supportsType(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
@@ -80,7 +81,7 @@ func (sqlFormatter) GetPlaceholder(_ int) string {
 }
 
 func (sqlFormatter) SanitiseIdentifier(ident string) string {
-	return fmt.Sprintf("`%s`", strings.Replace(ident, "`", "``", -1))
+	return fmt.Sprintf("`%s`", strings.ReplaceAll(ident, "`", "``"))
 }
 
 func (f sqlFormatter) FormatWhat(what *api_service_protos.TSelect_TWhat, _ string) (string, error) {

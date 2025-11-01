@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"testing"
@@ -17,6 +17,7 @@ func TestSortTableByID(t *testing.T) {
 	t.Run("Test single row table", func(t *testing.T) {
 		idBuilder := array.NewInt32Builder(pool)
 		idBuilder.Append(1)
+
 		idArr := idBuilder.NewArray()
 
 		defer idArr.Release()
@@ -37,12 +38,14 @@ func TestSortTableByID(t *testing.T) {
 	t.Run("Test multiple rows table", func(t *testing.T) {
 		idBuilder := array.NewInt32Builder(pool)
 		idBuilder.AppendValues([]int32{3, 1, 2}, nil)
+
 		idArr := idBuilder.NewArray()
 
 		defer idArr.Release()
 
 		stringBuilder := array.NewStringBuilder(pool)
 		stringBuilder.AppendValues([]string{"three", "one", "two"}, nil)
+
 		stringArr := stringBuilder.NewArray()
 
 		defer stringArr.Release()
@@ -70,18 +73,21 @@ func TestSortTableByID(t *testing.T) {
 	t.Run("Test with different data types", func(t *testing.T) {
 		idBuilder := array.NewInt32Builder(pool)
 		idBuilder.AppendValues([]int32{2, 3, 1}, nil)
+
 		idArr := idBuilder.NewArray()
 
 		defer idArr.Release()
 
 		int64Builder := array.NewInt64Builder(pool)
 		int64Builder.AppendValues([]int64{200, 300, 100}, nil)
+
 		int64Arr := int64Builder.NewArray()
 
 		defer int64Arr.Release()
 
 		float32Builder := array.NewFloat32Builder(pool)
 		float32Builder.AppendValues([]float32{2.2, 3.3, 1.1}, nil)
+
 		float32Arr := float32Builder.NewArray()
 
 		defer float32Arr.Release()
@@ -112,12 +118,14 @@ func TestSortTableByID(t *testing.T) {
 	t.Run("Test with optional int values", func(t *testing.T) {
 		idBuilder := array.NewInt32Builder(pool)
 		idBuilder.AppendValues([]int32{3, 1, 2}, nil)
+
 		idArr := idBuilder.NewArray()
 
 		defer idArr.Release()
 
 		int32Builder := array.NewInt32Builder(pool)
 		int32Builder.AppendValues([]int32{30, 0, 20}, []bool{true, false, true})
+
 		int32Arr := int32Builder.NewArray()
 
 		defer int32Arr.Release()

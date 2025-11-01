@@ -34,13 +34,6 @@ func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) addRow(transformer Row
 	return nil
 }
 
-// addArrowRecord saves an Arrow Block obtained from the datasource into the columnar buffer
-func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) addArrowRecord(record arrow.Record) error {
-	// For empty columns buffer, we just need to count the number of rows
-	cb.rowsAdded += int(record.NumRows())
-	return nil
-}
-
 // ToResponse returns all the accumulated data and clears buffer
 func (cb *columnarBufferArrowIPCStreamingEmptyColumns[T]) ToResponse() (*api_service_protos.TReadSplitsResponse, error) {
 	columns := make([]arrow.Array, 0)

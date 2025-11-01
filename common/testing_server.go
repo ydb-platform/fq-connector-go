@@ -1,6 +1,7 @@
-package common
+package common //nolint:revive
 
 import (
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -31,7 +32,7 @@ func (ts *testingServerRemote) ClientBuffering() *ClientBuffering { return ts.cl
 func (ts *testingServerRemote) ClientStreaming() *ClientStreaming { return ts.clientStreaming }
 
 func (*testingServerRemote) MetricsSnapshot() (*MetricsSnapshot, error) {
-	return nil, fmt.Errorf("not implemented")
+	return nil, errors.New("not implemented")
 }
 
 func (ts *testingServerRemote) Stop() {

@@ -55,7 +55,7 @@ type connectionDatabaseSQL struct {
 func (c *connectionDatabaseSQL) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
-	out, err := c.DB.QueryContext(
+	out, err := c.QueryContext(
 		ydb_sdk.WithQueryMode(params.Ctx, ydb_sdk.ScanQueryMode),
 		params.QueryText,
 		params.QueryArgs.Values()...)
@@ -126,7 +126,6 @@ func newConnectionDatabaseSQL(
 		ydb_sdk.WithPositionalArgs(),
 		ydb_sdk.WithTablePathPrefix(dsi.Database),
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("connector error: %w", err)
 	}
@@ -140,6 +139,7 @@ func newConnectionDatabaseSQL(
 
 	if err := conn.PingContext(pingCtx); err != nil {
 		common.LogCloserError(logger, conn, "close YDB connection")
+
 		return nil, fmt.Errorf("conn ping: %w", err)
 	}
 

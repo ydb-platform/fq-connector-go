@@ -1,6 +1,7 @@
 package docker_compose
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 )
@@ -27,9 +29,13 @@ func (ed *EndpointDeterminer) GetEndpoint(service string, internalPort int) (*ap
 		fmt.Sprint(internalPort),
 	}
 
-	out, err := exec.Command(cmd, args...).CombinedOutput()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	out, err := exec.CommandContext(ctx, cmd, args...).CombinedOutput()
 	if err != nil {
 		cmdStr := fmt.Sprintf("%s %s", cmd, strings.Join(args, " "))
+
 		return nil, fmt.Errorf("exec cmd '%v': %w\n%s", cmdStr, err, string(out))
 	}
 

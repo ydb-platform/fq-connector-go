@@ -501,6 +501,7 @@ func (s *Suite) TestPushdownWithCoalesce() {
 
 func hexEncoded(s string) []byte {
 	bytes, _ := hex.DecodeString(s)
+
 	return bytes
 }
 
