@@ -440,6 +440,34 @@ var tablesIDInt32 = map[string]*test_utils.Table[int32, *array.Int32Builder]{
 			},
 		},
 	},
+	"pushdown_BETWEEN": {
+		Name:                  "pushdown",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":          []*int32{ptr.Int32(1), ptr.Int32(2), ptr.Int32(3)},
+					"col_01_int":  []*int32{ptr.Int32(10), ptr.Int32(20), ptr.Int32(30)},
+					"col_02_text": []*string{ptr.T("a"), ptr.T("b"), ptr.T("c")},
+				},
+			},
+		},
+	},
+	"pushdown_NOT_BETWEEN": {
+		Name:                  "pushdown",
+		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),
+		Schema:                pushdownSchemaYdb(),
+		Records: []*test_utils.Record[int32, *array.Int32Builder]{
+			{
+				Columns: map[string]any{
+					"id":          []*int32{ptr.Int32(1)},
+					"col_01_int":  []*int32{ptr.Int32(10)},
+					"col_02_text": []*string{ptr.T("a")},
+				},
+			},
+		},
+	},
 	"pushdown_conjunction": {
 		Name:                  "pushdown",
 		IDArrayBuilderFactory: newInt32IDArrayBuilder(memPool),

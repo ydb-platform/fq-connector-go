@@ -12,6 +12,7 @@ __pycache__
 *.test
 .vscode
 .idea
+.tmp
 .DS_Store
 
 .ipynb_checkpoints
