@@ -1,21 +1,21 @@
 PRAGMA generic.UsePredicatePushdown="true";
 
 SELECT
-    MIN(l_comment),
-    MIN(l_commitdate),
-    MIN(l_discount),
-    MIN(l_extendedprice),
-    MIN(l_linenumber),
-    MIN(l_linestatus),
-    MIN(l_orderkey),
-    MIN(l_partkey),
-    MIN(l_quantity),
-    MIN(l_receiptdate),
-    MIN(l_returnflag),
-    MIN(l_shipdate),
-    MIN(l_shipinstruct),
-    MIN(l_shipmode),
-    MIN(l_suppkey),
-    MIN(l_tax)
+    SUM(LEN(l_comment)),
+    SUM(Datetime::GetDayOfYear(l_commitdate)),
+    SUM(l_discount),
+    SUM(l_extendedprice),
+    SUM(l_linenumber),
+    SUM(LEN(l_linestatus)),
+    SUM(l_orderkey),
+    SUM(l_partkey),
+    SUM(l_quantity),
+    SUM(Datetime::GetDayOfYear(l_receiptdate)),
+    SUM(LEN(l_returnflag)),
+    SUM(Datetime::GetDayOfYear(l_shipdate)),
+    SUM(LEN(l_shipinstruct)),
+    SUM(LEN(l_shipmode)),
+    SUM(l_suppkey),
+    SUM(l_tax)
 FROM (SELECT * FROM external_datasource.olap_lineitem_s10 LIMIT 10000000);
 

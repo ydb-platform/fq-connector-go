@@ -14,6 +14,7 @@ import (
 	ydb_sugar "github.com/ydb-platform/ydb-go-sdk/v3/sugar"
 	yc "github.com/ydb-platform/ydb-go-yc"
 
+	api_common "github.com/ydb-platform/fq-connector-go/api/common"
 	"github.com/ydb-platform/fq-connector-go/app/config"
 	rdbms_utils "github.com/ydb-platform/fq-connector-go/app/server/datasource/rdbms/utils"
 	"github.com/ydb-platform/fq-connector-go/common"
@@ -56,9 +57,18 @@ func (c *connectionManager) Make(
 
 		cred = ydb_sdk.WithAccessTokenCredentials(dsi.Credentials.GetToken().Value)
 	} else if dsi.Credentials.GetBasic() != nil {
-		logger.Debug("connector will use base auth credentials for authorization")
+		// logger.Debug("connector will use base auth credentials for authorization")
 
-		cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
+		// cred = ydb_sdk.WithStaticCredentials(dsi.Credentials.GetBasic().Username, dsi.Credentials.GetBasic().Password)
+
+		cred = ydb_sdk.WithAnonymousCredentials()
+		logger.Warn("connector will not use any credentials for authorization")
+		dsi.Options = &api_common.TGenericDataSourceInstance_YdbOptions{
+			YdbOptions: &api_common.TYdbDataSourceOptions{
+				// QueryDataFormat: api_common.TYdbDataSourceOptions_ARROW,
+				QueryDataFormat: api_common.TYdbDataSourceOptions_QUERY_DATA_FORMAT_UNSPECIFIED,
+			},
+		}
 	} else {
 		logger.Warn("connector will not use any credentials for authorization")
 

@@ -4,7 +4,7 @@ connector_server:
     port: 2130
 
 logger:
-  log_level: DEBUG
+  log_level: INFO
   enable_sql_query_logging: true
 
 metrics_server:

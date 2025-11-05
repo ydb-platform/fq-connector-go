@@ -5,6 +5,6 @@ CREATE EXTERNAL DATA SOURCE external_datasource WITH (
     LOCATION="localhost:2136",
     AUTH_METHOD="BASIC",
     LOGIN="admin",
-    DATABASE_NAME="/Root",
+    DATABASE_NAME="Root",
     PASSWORD_SECRET_NAME="ydb_local_password"
 );
