@@ -67,6 +67,6 @@ func (SQLFormatterDefault) ValidateWhere(_ *api_service_protos.TSelect_TWhere) e
 	return nil
 }
 
-func (SQLFormatterDefault) RenderBetween(value, least, greatest string) (string, error) {
+func (SQLFormatterDefault) RenderBetween(_, _, _ string) (string, error) {
 	return "", nil
 }

@@ -248,7 +248,7 @@ func (f sqlFormatter) renderSelectQueryTextWithBoundsHelper(
 	return sb.String(), nil
 }
 
-func (f sqlFormatter) RenderBetween(value, least, greatest string) (string, error) {
+func (sqlFormatter) RenderBetween(value, least, greatest string) (string, error) {
 	return fmt.Sprintf("%s BETWEEN %s AND %s", value, least, greatest), nil
 }
 
