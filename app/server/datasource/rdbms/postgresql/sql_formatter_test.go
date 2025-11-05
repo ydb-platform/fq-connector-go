@@ -147,6 +147,34 @@ func TestMakeSelectQuery(t *testing.T) {
 			err:              nil,
 		},
 		{
+			testName: "between",
+			selectReq: &api_service_protos.TSelect{
+				From: &api_service_protos.TSelect_TFrom{
+					Table: "tab",
+				},
+				What: rdbms_utils.NewDefaultWhat(),
+				Where: &api_service_protos.TSelect_TWhere{
+					FilterTyped: &api_service_protos.TPredicate{
+						Payload: &api_service_protos.TPredicate_Between{
+							Between: &api_service_protos.TPredicate_TBetween{
+								Value:    rdbms_utils.NewColumnExpression("col2"),
+								Least:    rdbms_utils.NewColumnExpression("col1"),
+								Greatest: rdbms_utils.NewColumnExpression("col3"),
+							},
+						},
+					},
+				},
+				DataSourceInstance: &api_common.TGenericDataSourceInstance{
+					Kind: api_common.EGenericDataSourceKind_POSTGRESQL,
+				},
+			},
+			splitDescription: singleSplit,
+			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE "col2" BETWEEN "col1" AND "col3"`,
+			outputArgs:       []any{},
+			outputYdbTypes:   []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
+			err:              nil,
+		},
+		{
 			testName: "bool_column",
 			selectReq: &api_service_protos.TSelect{
 				From: &api_service_protos.TSelect_TFrom{
@@ -235,34 +263,6 @@ func TestMakeSelectQuery(t *testing.T) {
 			splitDescription: singleSplit,
 			outputQuery:      `SELECT "col0", "col1" FROM "tab" WHERE ((NOT ("col2" <= $1)) OR (("col1" <> $2) AND ("col3" IS NULL)))`,
 			outputArgs:       []any{int32(42), int64(0)},
-			outputYdbTypes:   []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
-			err:              nil,
-		},
-		{
-			testName: "unsupported_predicate",
-			selectReq: &api_service_protos.TSelect{
-				From: &api_service_protos.TSelect_TFrom{
-					Table: "tab",
-				},
-				What: rdbms_utils.NewDefaultWhat(),
-				Where: &api_service_protos.TSelect_TWhere{
-					FilterTyped: &api_service_protos.TPredicate{
-						Payload: &api_service_protos.TPredicate_Between{
-							Between: &api_service_protos.TPredicate_TBetween{
-								Value:    rdbms_utils.NewColumnExpression("col2"),
-								Least:    rdbms_utils.NewColumnExpression("col1"),
-								Greatest: rdbms_utils.NewColumnExpression("col3"),
-							},
-						},
-					},
-				},
-				DataSourceInstance: &api_common.TGenericDataSourceInstance{
-					Kind: api_common.EGenericDataSourceKind_POSTGRESQL,
-				},
-			},
-			splitDescription: singleSplit,
-			outputQuery:      `SELECT "col0", "col1" FROM "tab"`,
-			outputArgs:       []any{},
 			outputYdbTypes:   []*ydb.Type{common.MakePrimitiveType(ydb.Type_INT32), common.MakePrimitiveType(ydb.Type_STRING)},
 			err:              nil,
 		},
