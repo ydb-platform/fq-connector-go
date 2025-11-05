@@ -233,12 +233,12 @@ func (SplitProvider) doQueryTabletIDs(
 	ctx context.Context,
 	session query.Session,
 	logger *zap.Logger,
-	tableName string,
+	prefix string,
 	attempt int,
 ) ([]uint64, error) {
 	var tabletIDs []uint64
 
-	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", tableName)
+	queryText := fmt.Sprintf("SELECT DISTINCT(TabletId) FROM `%s/.sys/primary_index_stats`", prefix)
 
 	logger.Debug("discovering column table tablet ids", zap.String("query", queryText), zap.Int("attempt", attempt))
 
@@ -288,7 +288,7 @@ func (sp SplitProvider) GetColumnShardTabletIDs(
 	conn rdbms_utils.Connection,
 ) ([]uint64, error) {
 	driver := conn.(Connection).Driver()
-	// prefix := path.Join(conn.DataSourceInstance().Database, conn.TableName())
+	prefix := path.Join(conn.DataSourceInstance().Database, conn.TableName())
 
 	var tabletIDs []uint64
 
@@ -307,7 +307,7 @@ func (sp SplitProvider) GetColumnShardTabletIDs(
 
 		var queryErr error
 
-		tabletIDs, queryErr = sp.doQueryTabletIDs(ctx, session, logger, conn.TableName(), attempts)
+		tabletIDs, queryErr = sp.doQueryTabletIDs(ctx, session, logger, prefix, attempts)
 		if queryErr != nil {
 			return fmt.Errorf("do query tablet ids: %w", queryErr)
 		}
