@@ -147,7 +147,7 @@ func getClient(cmd *cobra.Command) (observation.ObservationServiceClient, *grpc.
 	}
 
 	// Set up a connection to the server
-	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to connect to server: %w", err)
 	}

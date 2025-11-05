@@ -1,6 +1,7 @@
 package ydb
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -21,7 +22,7 @@ type SQLFormatter struct {
 	cfg  *config.TPushdownConfig
 }
 
-//nolint:gocyclo
+//nolint:gocyclo,revive
 func (f SQLFormatter) supportsTypeForPushdown(typeID Ydb.Type_PrimitiveTypeId) bool {
 	switch typeID {
 	case Ydb.Type_BOOL:
@@ -166,7 +167,7 @@ func (SQLFormatter) RenderSelectQueryTextForColumnShard(
 	case 1:
 		sb.WriteString(fmt.Sprintf(" WITH TabletId='%d'", tabletIDs[0]))
 	default:
-		return "", fmt.Errorf("column shard split description must contain either 0, or 1 tablet id")
+		return "", errors.New("column shard split description must contain either 0, or 1 tablet id")
 	}
 
 	if parts.WhereClause != "" {
@@ -217,7 +218,7 @@ func (SQLFormatter) FormatCast(value string, ydbType *Ydb.Type) (string, error) 
 	primitiveType := ydbType.GetTypeId()
 
 	if primitiveType == Ydb.Type_PRIMITIVE_TYPE_ID_UNSPECIFIED {
-		return "", fmt.Errorf("primitive type is unspecified")
+		return "", errors.New("primitive type is unspecified")
 	}
 
 	typeName, err := primitiveYqlTypeName(primitiveType)

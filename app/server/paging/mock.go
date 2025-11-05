@@ -1,6 +1,7 @@
 package paging
 
 import (
+	"github.com/apache/arrow/go/v13/arrow"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
 
@@ -15,6 +16,12 @@ type SinkMock struct {
 
 func (m *SinkMock) AddRow(transformer RowTransformer[any]) error {
 	args := m.Called(transformer)
+
+	return args.Error(0)
+}
+
+func (m *SinkMock) AddArrowRecord(record arrow.Record) error {
+	args := m.Called(record)
 
 	return args.Error(0)
 }

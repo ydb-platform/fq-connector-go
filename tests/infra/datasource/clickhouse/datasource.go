@@ -38,6 +38,7 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 	)
 
 	dsiNative := proto.Clone(dsi).(*api_common.TGenericDataSourceInstance)
+
 	dsiNative.Protocol = api_common.EGenericProtocol_NATIVE
 
 	dsiNative.Endpoint, err = ed.GetEndpoint(serviceName, internalPortNative)
@@ -46,6 +47,7 @@ func deriveDataSourceFromDockerCompose(ed *docker_compose.EndpointDeterminer) (*
 	}
 
 	dsiHTTP := proto.Clone(dsi).(*api_common.TGenericDataSourceInstance)
+
 	dsiHTTP.Protocol = api_common.EGenericProtocol_HTTP
 
 	dsiHTTP.Endpoint, err = ed.GetEndpoint(serviceName, internalPortHTTP)

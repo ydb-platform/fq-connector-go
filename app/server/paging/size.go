@@ -262,6 +262,7 @@ func sizeOfValueBloated(v any) (uint64, acceptorKind, error) {
 		return 12, fixedSize, nil
 	case map[string]string:
 		var size uint64
+
 		for k, v := range t {
 			size += uint64(len(k) + len(v))
 		}

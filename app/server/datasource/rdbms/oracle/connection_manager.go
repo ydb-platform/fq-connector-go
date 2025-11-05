@@ -31,6 +31,7 @@ func (c *connectionManager) Make(
 	var err error
 
 	urlOptions := make(map[string]string)
+
 	if dsi.UseTls {
 		// more information in YQ-3456
 		urlOptions["SSL"] = "TRUE"
@@ -68,6 +69,7 @@ func (c *connectionManager) Make(
 	err = conn.Ping(pingCtx)
 	if err != nil {
 		conn.Close()
+
 		return nil, fmt.Errorf("ping database: %w", err)
 	}
 

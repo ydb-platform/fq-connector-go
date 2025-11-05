@@ -23,7 +23,7 @@ func (t *jsonTime) MarshalJSON() ([]byte, error) {
 		return nil, nil
 	}
 
-	return []byte(fmt.Sprintf(`"%s"`, t.Time.Format(layout))), nil
+	return []byte(fmt.Sprintf(`"%s"`, t.Format(layout))), nil
 }
 
 type report struct {

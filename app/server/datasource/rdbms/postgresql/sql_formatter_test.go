@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	ydb "github.com/ydb-platform/ydb-go-genproto/protos/Ydb"
@@ -588,6 +588,7 @@ func TestMakeSelectQuery(t *testing.T) {
 
 			if tc.err != nil {
 				require.True(t, errors.Is(err, tc.err), err, tc.err)
+
 				return
 			}
 

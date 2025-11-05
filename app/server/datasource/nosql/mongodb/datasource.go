@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -51,7 +52,7 @@ func (ds *dataSource) DescribeTable(
 
 	mongoDbOptions := dsi.GetMongodbOptions()
 	if mongoDbOptions == nil {
-		return nil, fmt.Errorf("TMongoDbDataSourceOptions not provided")
+		return nil, errors.New("TMongoDbDataSourceOptions not provided")
 	}
 
 	switch mongoDbOptions.ReadingMode {
@@ -72,12 +73,12 @@ func (ds *dataSource) DescribeTable(
 	err = ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var connErr error
+
 			conn, connErr = ds.makeConnection(ctx, logger, dsi)
 
 			return connErr
 		},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("make connection: %w", err)
 	}
@@ -102,6 +103,7 @@ func (ds *dataSource) DescribeTable(
 	}()
 
 	docs := make([]bson.Raw, 0, ds.cfg.GetCountDocsToDeduceSchema())
+
 	for cursor.Next(ctx) {
 		docs = append(docs, cursor.Current)
 	}
@@ -167,7 +169,7 @@ func (ds *dataSource) ReadSplit(
 
 	mongoDbOptions := dsi.GetMongodbOptions()
 	if mongoDbOptions == nil {
-		return fmt.Errorf("TMongoDbDataSourceOptions not provided")
+		return errors.New("TMongoDbDataSourceOptions not provided")
 	}
 
 	switch mongoDbOptions.ReadingMode {
@@ -183,12 +185,12 @@ func (ds *dataSource) ReadSplit(
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var connErr error
+
 			conn, connErr = ds.makeConnection(ctx, logger, dsi)
 
 			return connErr
 		},
 	)
-
 	if err != nil {
 		return fmt.Errorf("make connection: %w", err)
 	}

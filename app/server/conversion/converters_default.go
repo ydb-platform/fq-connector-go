@@ -78,7 +78,6 @@ type dateConverter struct{}
 
 func (dateConverter) Convert(in *time.Time) (uint16, error) {
 	out, err := common.TimeToYDBDate(in)
-
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Date: %w", err)
 	}
@@ -102,7 +101,6 @@ type datetimeConverter struct{}
 
 func (datetimeConverter) Convert(in *time.Time) (uint32, error) {
 	out, err := common.TimeToYDBDatetime(in)
-
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Datetime: %w", err)
 	}
@@ -120,7 +118,6 @@ type timestampConverter struct{}
 
 func (timestampConverter) Convert(in *time.Time) (uint64, error) {
 	out, err := common.TimeToYDBTimestamp(in)
-
 	if err != nil {
 		return 0, fmt.Errorf("convert time to YDB Timestamp: %w", err)
 	}

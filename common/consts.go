@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 const (
 	ForbidRetries = "forbid_retries"

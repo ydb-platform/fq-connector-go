@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import (
 	"fmt"
@@ -57,6 +57,12 @@ func AnnotateLoggerWithDataSourceInstance(l *zap.Logger, dsi *api_common.TGeneri
 		fields = append(fields, zap.String("folder_id", dsi.GetLoggingOptions().GetFolderId()))
 	}
 
+	if dsi.GetYdbOptions() != nil {
+		if dsi.GetYdbOptions().GetQueryDataFormat() != api_common.TYdbDataSourceOptions_QUERY_DATA_FORMAT_UNSPECIFIED {
+			fields = append(fields, zap.Stringer("query_data_format", dsi.GetYdbOptions().GetQueryDataFormat()))
+		}
+	}
+
 	return l.With(fields...)
 }
 
@@ -99,6 +105,7 @@ func NewDefaultLogger() *zap.Logger {
 
 func newDefaultLoggerConfig() zap.Config {
 	loggerCfg := zap.NewProductionConfig()
+
 	loggerCfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	loggerCfg.Encoding = "console"
 	loggerCfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
@@ -154,6 +161,7 @@ func (ql *QueryLogger) Dump(query string, args ...any) {
 	}
 
 	logFields := []zap.Field{zap.String("query", query)}
+
 	if len(args) > 0 {
 		logFields = append(logFields, zap.Any("args", args))
 	}

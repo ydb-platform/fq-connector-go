@@ -1,7 +1,8 @@
-package common
+package common //nolint:revive
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -116,7 +117,6 @@ func NewClientStreamingFromClientConfig(logger *zap.Logger, clientCfg *config.TC
 	conn, err := makeConnection(logger, clientCfg, grpc.WithDefaultCallOptions(
 		grpc.MaxCallRecvMsgSize(math.MaxInt64),
 	))
-
 	if err != nil {
 		return nil, fmt.Errorf("make connection: %w", err)
 	}
@@ -137,7 +137,7 @@ func NewClientStreamingFromServerConfig(logger *zap.Logger, serverCfg *config.TS
 	}
 
 	if serverCfg.ConnectorServer.Tls != nil {
-		return nil, fmt.Errorf("TLS connections are not implemented yet")
+		return nil, errors.New("TLS connections are not implemented yet")
 	}
 
 	return NewClientStreamingFromClientConfig(logger, clientCfg)

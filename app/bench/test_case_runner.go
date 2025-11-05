@@ -105,6 +105,7 @@ func (tcr *testCaseRunner) run() error {
 			if err := limiter.Wait(ctx); err != nil {
 				if errors.Is(err, context.DeadlineExceeded) {
 					tcr.logger.Info("load session finished")
+
 					return nil
 				}
 
@@ -136,7 +137,6 @@ func (tcr *testCaseRunner) executeScenario() error {
 		},
 		tcr.cfg.Table,
 	)
-
 	if err != nil {
 		return fmt.Errorf("describe table: %w", err)
 	}
@@ -226,7 +226,8 @@ func (tcr *testCaseRunner) readSplits(splits []*api_service_protos.TSplit) error
 }
 
 func (tcr *testCaseRunner) finish() *report {
-	tcr.srv.Stop()                    // terminate server
+	tcr.srv.Stop() // terminate server
+
 	return tcr.reportGenerator.stop() // obtain final report
 }
 

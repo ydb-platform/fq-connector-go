@@ -26,13 +26,16 @@ const digits = "0123456789abcdefghijklmnopqrstuvwxyz"
 // set, the string is appended to dst and the resulting byte slice is
 // returned as the first result value; otherwise the string is returned
 // as the second result value.
-func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s string) {
+//
+//nolint:unparam
+func formatBits(dst []byte, u uint64, base int, neg, appending bool) (d []byte, s string) {
 	if base < 2 || base > len(digits) {
 		panic("strconv: illegal AppendInt/FormatInt base")
 	}
 	// 2 <= base && base <= len(digits)
 
 	var a [64 + 1]byte // +1 for sign of 64bit value in base 2
+
 	i := len(a)
 
 	if neg {
@@ -45,7 +48,6 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 	if base == 10 {
 		// common case: use constants for / because
 		// the compiler can optimize it into a multiply+shift
-
 		if host32bit {
 			// convert the lower digits using 32bit operations
 			for u >= 1e9 {
@@ -53,11 +55,15 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 				// since 64bit division and modulo operations
 				// are calculated by runtime functions on 32bit machines.
 				q := u / 1e9
+
 				us := uint(u - q*1e9) // u % 1e9 fits into a uint
+
 				for j := 4; j > 0; j-- {
 					is := us % 100 * 2
+
 					us /= 100
 					i -= 2
+
 					a[i+1] = smallsString[is+1]
 					a[i+0] = smallsString[is+0]
 				}
@@ -65,6 +71,7 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 				// us < 10, since it contains the last digit
 				// from the initial 9-digit us.
 				i--
+
 				a[i] = smallsString[us*2+1]
 
 				u = q
@@ -76,8 +83,11 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 		us := uint(u)
 		for us >= 100 {
 			is := us % 100 * 2
+
 			us /= 100
+
 			i -= 2
+
 			a[i+1] = smallsString[is+1]
 			a[i+0] = smallsString[is+0]
 		}
@@ -85,24 +95,30 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 		// us < 100
 		is := us * 2
 		i--
+
 		a[i] = smallsString[is+1]
+
 		if us >= 10 {
 			i--
+
 			a[i] = smallsString[is]
 		}
-
 	} else if isPowerOfTwo(base) {
 		// Use shifts and masks instead of / and %.
 		shift := uint(bits.TrailingZeros(uint(base)))
 		b := uint64(base)
 		m := uint(base) - 1 // == 1<<shift - 1
+
 		for u >= b {
 			i--
+
 			a[i] = digits[uint(u)&m]
+
 			u >>= shift
 		}
 		// u < base
 		i--
+
 		a[i] = digits[uint(u)]
 	} else {
 		// general case
@@ -113,26 +129,32 @@ func formatBits(dst []byte, u uint64, base int, neg, append_ bool) (d []byte, s 
 			// since 64bit division and modulo operations
 			// are calculated by runtime functions on 32bit machines.
 			q := u / b
+
 			a[i] = digits[uint(u-q*b)]
 			u = q
 		}
 		// u < base
 		i--
+
 		a[i] = digits[uint(u)]
 	}
 
 	// add sign, if any
 	if neg {
 		i--
+
 		a[i] = '-'
 	}
 
-	if append_ {
+	if appending {
 		d = append(dst, a[i:]...)
-		return
+
+		return d, s
 	}
+
 	s = string(a[i:])
-	return
+
+	return d, s
 }
 
 func isPowerOfTwo(x int) bool {

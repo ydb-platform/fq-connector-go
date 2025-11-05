@@ -2,6 +2,7 @@ package clickhouse
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -23,7 +24,7 @@ func (c *connectionManager) Make(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	if params.DataSourceInstance.GetCredentials().GetBasic() == nil {
-		return nil, fmt.Errorf("currently only basic auth is supported")
+		return nil, errors.New("currently only basic auth is supported")
 	}
 
 	var (

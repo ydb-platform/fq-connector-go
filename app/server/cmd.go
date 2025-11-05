@@ -59,6 +59,7 @@ func flagToPort(f *pflag.Flag, port *uint32, errs *[]error) {
 	val, err := strconv.Atoi(f.Value.String())
 	if err != nil {
 		*errs = append(*errs, fmt.Errorf("strconv '%s': %w", f.Value, err))
+
 		return
 	}
 
@@ -86,6 +87,7 @@ func overrideConfigWithFlags(cfg *app_config.TServerConfig, flags *pflag.FlagSet
 			val, ok := app_config.ELogLevel_value[f.Value.String()]
 			if !ok {
 				var buf strings.Builder
+
 				for k := range app_config.ELogLevel_value {
 					buf.WriteString(fmt.Sprintf("\"%s\"", k))
 					buf.WriteString(" ")
@@ -102,6 +104,7 @@ func overrideConfigWithFlags(cfg *app_config.TServerConfig, flags *pflag.FlagSet
 			cfg.Logger.LogLevel = app_config.ELogLevel(val)
 		case enableSQLQueryLoggingFlag:
 			cfg.Logger.EnableSqlQueryLogging = enableSQLQueryLogging
+		default:
 		}
 	})
 

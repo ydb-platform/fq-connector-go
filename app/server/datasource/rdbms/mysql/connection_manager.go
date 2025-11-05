@@ -31,7 +31,7 @@ func (c *connectionManager) Make(
 	optionFuncs := make([]func(c *client.Conn), 0)
 
 	if dsi.GetCredentials().GetBasic() == nil {
-		return nil, fmt.Errorf("currently only basic auth is supported")
+		return nil, errors.New("currently only basic auth is supported")
 	}
 
 	if dsi.GetUseTls() {

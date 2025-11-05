@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"math/rand"
@@ -15,7 +16,7 @@ type staticResolver struct {
 
 func (r *staticResolver) resolve(request *resolveRequest) (*resolveResponse, error) {
 	if len(r.cfg.Databases) == 0 {
-		return nil, fmt.Errorf("no YDB endpoints provided")
+		return nil, errors.New("no YDB endpoints provided")
 	}
 
 	// get random YDB endpoint from provided list

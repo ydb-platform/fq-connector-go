@@ -20,17 +20,24 @@ func formatNanoseconds(buf []byte, ns int) []byte {
 	var tmp [9]byte
 
 	b := ns % 100 * 2
+
 	tmp[8] = tab[b+1]
 	tmp[7] = tab[b]
+
 	ns /= 100
+
 	b = ns % 100 * 2
 	tmp[6] = tab[b+1]
 	tmp[5] = tab[b]
+
 	ns /= 100
+
 	b = ns % 100 * 2
 	tmp[4] = tab[b+1]
 	tmp[3] = tab[b]
+
 	ns /= 100
+
 	b = ns % 100 * 2
 	tmp[2] = tab[b+1]
 	tmp[1] = tab[b]

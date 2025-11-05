@@ -73,7 +73,7 @@ col_17_date,
 col_18_timestamp, col_19_timestamp_w_timezone, col_20_timestamp_w_local_timezone, col_21_json) 
 VALUES 
 (1, 1, 1.1, 123, 1.1, 1.1, 'varchar', N'варчар', 'c', 'cha', N'ч', N'чар', 'clob', N'клоб', utl_raw.cast_to_raw('ABCD'), utl_raw.cast_to_raw('EF'), 
-	TO_DATE('01 01, 1970, 00:00:00', 'mm dd, YYYY, HH24:MI:SS'), 
+	TO_DATE('01 1, 1970, 00:00:00', 'mm dd, YYYY, HH24:MI:SS'), 
 	TO_TIMESTAMP('1970-01-01 01:01:01.111111', 'YYYY-mm-dd HH24:MI:SS.FF'), 
 	TO_TIMESTAMP_TZ('1970-01-01 01:01:01.111111 -1:00', 'YYYY-mm-dd HH24:MI:SS.FF TZH:TZM'), 
 	TO_TIMESTAMP_TZ('1970-01-01 01:01:01.111111 -1:11', 'YYYY-mm-dd HH24:MI:SS.FF TZH:TZM'),
@@ -81,7 +81,7 @@ VALUES
 	),
 (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (3, -1, -1.1, -123, -1.1, -1.1, 'varchar', N'варчар', 'c', 'cha', N'ч', N'чар', 'clob', N'клоб', utl_raw.cast_to_raw('1234'), utl_raw.cast_to_raw('5678'),
-	TO_DATE('01 01, 1970, 00:00:00', 'mm dd, YYYY, HH24:MI:SS'),
+	TO_DATE('01 1, 1970, 00:00:00', 'mm dd, YYYY, HH24:MI:SS'),
 	TO_TIMESTAMP('1970-01-01 01:01:01.111111', 'YYYY-mm-dd HH24:MI:SS.FF'),
 	TO_TIMESTAMP_TZ('1970-01-01 01:01:01.111111 -1:00', 'YYYY-mm-dd HH24:MI:SS.FF TZH:TZM'),
 	TO_TIMESTAMP_TZ('1970-01-01 01:01:01.111111 -1:11', 'YYYY-mm-dd HH24:MI:SS.FF TZH:TZM'),

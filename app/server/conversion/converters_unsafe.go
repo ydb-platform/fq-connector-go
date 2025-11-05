@@ -50,6 +50,7 @@ func (dateToStringConverterUnsafe) Convert(in *time.Time) (string, error) {
 		buf = append(buf, []byte("00")...)
 	case absYear < 1000:
 		buf = append(buf, byte('0'))
+	default:
 	}
 
 	buf, _ = formatBits(buf, uint64(absYear), 10, false, true)
@@ -57,6 +58,7 @@ func (dateToStringConverterUnsafe) Convert(in *time.Time) (string, error) {
 	// month
 
 	buf = append(buf, byte('-'))
+
 	if month < 10 {
 		buf = append(buf, byte('0'))
 	}
@@ -66,6 +68,7 @@ func (dateToStringConverterUnsafe) Convert(in *time.Time) (string, error) {
 	// day
 
 	buf = append(buf, byte('-'))
+
 	if day < 10 {
 		buf = append(buf, byte('0'))
 	}
@@ -100,6 +103,7 @@ func (timestampToStringConverterUTCUnsafe) Convert(src *time.Time) (string, erro
 		buf = append(buf, []byte("00")...)
 	case absYear < 1000:
 		buf = append(buf, byte('0'))
+	default:
 	}
 
 	buf, _ = formatBits(buf, uint64(absYear), 10, false, true)
@@ -107,6 +111,7 @@ func (timestampToStringConverterUTCUnsafe) Convert(src *time.Time) (string, erro
 	// month
 
 	buf = append(buf, byte('-'))
+
 	if month < 10 {
 		buf = append(buf, byte('0'))
 	}
@@ -116,6 +121,7 @@ func (timestampToStringConverterUTCUnsafe) Convert(src *time.Time) (string, erro
 	// day
 
 	buf = append(buf, byte('-'))
+
 	if day < 10 {
 		buf = append(buf, byte('0'))
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -68,6 +69,7 @@ func (ds *dataSource) DescribeTable(
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var err error
+
 			client, err = ds.makeConnection(ctx, logger, dsi)
 
 			return err
@@ -78,11 +80,11 @@ func (ds *dataSource) DescribeTable(
 	}
 
 	indexName := request.Table
+
 	res, err := client.Indices.Mapping.Get(
 		ctx,
 		&opensearchapi.MappingGetReq{Indices: []string{indexName}},
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("get mapping: %w", err)
 	}
@@ -103,7 +105,7 @@ func (ds *dataSource) DescribeTable(
 
 	mapping, ok := result[indexName].(map[string]any)["mappings"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("extract mappings: invalid response format")
+		return nil, errors.New("extract mappings: invalid response format")
 	}
 
 	columns, err := parseMapping(logger, mapping)
@@ -151,6 +153,7 @@ func (ds *dataSource) ReadSplit(
 	err := ds.retrierSet.MakeConnection.Run(ctx, logger,
 		func() error {
 			var err error
+
 			client, err = ds.makeConnection(ctx, logger, dsi)
 
 			return err
@@ -204,7 +207,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 	}
 
 	if searchResp.ScrollID == nil {
-		return fmt.Errorf("scroll id is nil")
+		return errors.New("scroll id is nil")
 	}
 
 	reader, err := prepareDocumentReader(split, ds.cc)
@@ -218,6 +221,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 	for {
 		if len(hits.Hits) == 0 {
 			logger.Info("no hits found")
+
 			break
 		}
 
@@ -239,6 +243,7 @@ func (ds *dataSource) doReadSplitSingleConn(
 		}
 
 		closeResponseBody(logger, nextResp.Inspect().Response.Body)
+
 		hits = nextResp.Hits
 	}
 
@@ -306,13 +311,11 @@ func prepareDocumentReader(
 	cc conversion.Collection,
 ) (*documentReader, error) {
 	arrowSchema, err := common.SelectWhatToArrowSchema(split.Select.What)
-
 	if err != nil {
 		return nil, fmt.Errorf("select what to Arrow schema: %w", err)
 	}
 
 	ydbSchema, err := common.SelectWhatToYDBTypes(split.Select.What)
-
 	if err != nil {
 		return nil, fmt.Errorf("select what to YDB schema: %w", err)
 	}
@@ -369,6 +372,7 @@ func (ds *dataSource) getNextScrollBatch(
 
 	err := ds.retrierSet.Query.Run(ctx, logger, func() error {
 		var err error
+
 		resp, err = client.Scroll.Get(ctx, opensearchapi.ScrollGetReq{
 			ScrollID: scrollID,
 			Params: opensearchapi.ScrollGetParams{

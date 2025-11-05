@@ -1,6 +1,7 @@
-package utils
+package utils //nolint:revive
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -61,35 +62,43 @@ func (pb *predicateBuilder) formatTypedValue(
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int32Value:
 		pb.args.AddTyped(value.Type, v.Int32Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Uint32Value:
 		pb.args.AddTyped(value.Type, v.Uint32Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int64Value:
 		switch value.Type.GetTypeId() {
 		case Ydb.Type_INT64:
 			pb.args.AddTyped(value.Type, v.Int64Value)
+
 			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		case Ydb.Type_TIMESTAMP:
 			// YQL Timestamp is always UTC
 			pb.args.AddTyped(value.Type, time.UnixMicro(v.Int64Value).UTC())
+
 			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		default:
 			return "", fmt.Errorf("unsupported type '%T': %w", v, common.ErrUnimplementedTypedValue)
 		}
 	case *Ydb.Value_Uint64Value:
 		pb.args.AddTyped(value.Type, v.Uint64Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_FloatValue:
 		pb.args.AddTyped(value.Type, v.FloatValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_DoubleValue:
 		pb.args.AddTyped(value.Type, v.DoubleValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_BytesValue:
 		switch t := value.Type.Type.(type) {
 		case *Ydb.Type_TypeId:
 			pb.args.AddTyped(value.Type, v.BytesValue)
+
 			return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 		case *Ydb.Type_DecimalType:
 			decimalValue := decimal.Deserialize(v.BytesValue, t.DecimalType.Scale)
@@ -101,6 +110,7 @@ func (pb *predicateBuilder) formatTypedValue(
 		}
 	case *Ydb.Value_TextValue:
 		pb.args.AddTyped(value.Type, v.TextValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_NullFlagValue:
 		placeholder, err := pb.formatNullFlagValue(value)
@@ -118,30 +128,39 @@ func (pb *predicateBuilder) formatOptionalValue(value *Ydb.TypedValue) (string, 
 	switch v := value.Value.Value.(type) {
 	case *Ydb.Value_BoolValue:
 		pb.args.AddTyped(value.Type, &v.BoolValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int32Value:
 		pb.args.AddTyped(value.Type, &v.Int32Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Uint32Value:
 		pb.args.AddTyped(value.Type, &v.Uint32Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Int64Value:
 		pb.args.AddTyped(value.Type, &v.Int64Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_Uint64Value:
 		pb.args.AddTyped(value.Type, &v.Uint64Value)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_FloatValue:
 		pb.args.AddTyped(value.Type, &v.FloatValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_DoubleValue:
 		pb.args.AddTyped(value.Type, &v.DoubleValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_BytesValue:
 		pb.args.AddTyped(value.Type, &v.BytesValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_TextValue:
 		pb.args.AddTyped(value.Type, &v.TextValue)
+
 		return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 	case *Ydb.Value_NullFlagValue:
 		placeholder, err := pb.formatNullFlagValue(value)
@@ -160,6 +179,7 @@ func addTypedNull[ACCEPTOR_TYPE any](
 	ydbType *Ydb.Type,
 ) (string, error) {
 	pb.args.AddTyped(ydbType, (*ACCEPTOR_TYPE)(nil))
+
 	return pb.formatter.GetPlaceholder(pb.args.Count() - 1), nil
 }
 
@@ -440,7 +460,6 @@ func (pb *predicateBuilder) formatConjunction(
 
 	for _, predicate := range conjunction.Operands {
 		statement, err = pb.formatPredicate(predicate, false, false)
-
 		if err != nil {
 			if !topLevel {
 				return "", fmt.Errorf("format predicate: %w", err)
@@ -511,7 +530,7 @@ func (pb *predicateBuilder) formatDisjunction(
 	}
 
 	if cnt == 0 {
-		return "", fmt.Errorf("no operands")
+		return "", errors.New("no operands")
 	}
 
 	if cnt == 1 {
@@ -680,6 +699,7 @@ func formatWhereClause(
 
 		if common.OptionalFilteringAllowedErrors.Match(err) {
 			logger.Warn("considering pushdown error as acceptable", zap.Error(err))
+
 			return clause, pb.args, nil
 		}
 

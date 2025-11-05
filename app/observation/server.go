@@ -76,6 +76,7 @@ func (s *aggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Reque
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.logger.Error("websocket upgrade failed", zap.Error(err))
+
 		return
 	}
 	defer conn.Close()
@@ -92,6 +93,7 @@ func (s *aggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Reque
 		duration := time.Since(startTime)
 
 		totalQueries := 0
+
 		for _, q := range queries {
 			totalQueries += len(q)
 		}
@@ -103,6 +105,7 @@ func (s *aggregationServer) handleWebSocket(w http.ResponseWriter, r *http.Reque
 
 		if err := conn.WriteJSON(queries); err != nil {
 			s.logger.Error("websocket write failed", zap.Error(err))
+
 			return
 		}
 	}
@@ -119,6 +122,7 @@ func (s *aggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 	endpoints, err := s.discovery.GetEndpoints(s.logger)
 	if err != nil {
 		s.logger.Error("discover endpoints", zap.Error(err))
+
 		return nil
 	}
 
@@ -136,6 +140,7 @@ func (s *aggregationServer) pollEndpoints() map[string][]*QueryWithFormattedTime
 
 		if err != nil {
 			s.logger.Error("error polling endpoint", zap.Stringer("endpoint", endpoint), zap.Error(err))
+
 			continue
 		}
 
@@ -204,6 +209,7 @@ func (s *aggregationServer) getOutgoingQueries(endpoint *api_common.TGenericEndp
 
 		if resp.Query != nil {
 			receivedCount++
+
 			query := &QueryWithFormattedTime{
 				OutgoingQuery: resp.Query,
 			}

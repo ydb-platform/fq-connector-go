@@ -42,7 +42,7 @@ func transformArgs(src *rdbms_utils.QueryArgs) []any {
 	return dst
 }
 
-func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, error) {
+func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
 	c.queryLogger.Dump(params.QueryText, params.QueryArgs.Values()...)
 
 	results := make(chan rowData, c.cfg.ResultChanCapacity)
@@ -62,7 +62,7 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 
 	stmt, err := c.conn.Prepare(params.QueryText)
 	if err != nil {
-		return r, fmt.Errorf("mysql: failed to prepare query: %w", err)
+		return &rdbms_utils.QueryResult{Rows: r}, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
 
 	go func() {
@@ -79,6 +79,7 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 
 				for i, r := range row {
 					newRow[i].valueType = r.Type
+
 					val := r.Value()
 
 					switch val.(type) {
@@ -105,7 +106,9 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (rdbms_utils.Rows, e
 		)
 	}()
 
-	return r, nil
+	return &rdbms_utils.QueryResult{
+		Rows: r,
+	}, nil
 }
 
 func (c *connection) Logger() *zap.Logger {

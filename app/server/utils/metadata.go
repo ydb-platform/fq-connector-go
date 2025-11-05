@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"context"
@@ -93,5 +93,6 @@ func insertMetadataToContext(serverContext context.Context, logger *zap.Logger, 
 
 func LoggerMustFromContext(ctx context.Context) *zap.Logger {
 	logger := ctx.Value(loggerKeyRequest).(*zap.Logger)
+
 	return logger
 }

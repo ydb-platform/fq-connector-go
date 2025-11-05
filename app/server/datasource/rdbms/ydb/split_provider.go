@@ -82,7 +82,6 @@ func (sp SplitProvider) ListSplits(
 			return nil
 		},
 	)
-
 	if err != nil {
 		return fmt.Errorf("retry: %w", err)
 	}
@@ -317,7 +316,6 @@ func (sp SplitProvider) GetColumnShardTabletIDs(
 	},
 		query.WithIdempotent(),
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("querying column table tablet ids: %w", err)
 	}

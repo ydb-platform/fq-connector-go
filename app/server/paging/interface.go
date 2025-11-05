@@ -43,6 +43,7 @@ type ColumnarBufferFactory[T Acceptor] interface {
 // 4. flag marking this stream as completed
 type ReadResult[T Acceptor] struct {
 	ColumnarBuffer    ColumnarBuffer[T]
+	Data              []byte // serialized Arrow Record
 	Stats             *api_service_protos.TReadSplitsResponse_TStats
 	Error             error
 	IsTerminalMessage bool
@@ -53,6 +54,9 @@ type ReadResult[T Acceptor] struct {
 type Sink[T Acceptor] interface {
 	// AddRow saves the row obtained from a stream incoming from an external data source.
 	AddRow(rowTransformer RowTransformer[T]) error
+
+	// AddArrowRecord saves the Arrow block obtained from a stream incoming from an external data source.
+	AddArrowRecord(record arrow.Record) error
 
 	// Finish reports the successful (!) completion of data stream reading.
 	// Never call this method if the request has failed.

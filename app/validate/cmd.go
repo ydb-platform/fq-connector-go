@@ -2,7 +2,6 @@ package validate
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -73,7 +72,7 @@ func validateHelmConfigurationFile(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("key '%s' not found in YAML file", key)
 	}
 
-	tempFile, err := ioutil.TempFile("", "connector-config-*.yaml")
+	tempFile, err := os.CreateTemp("", "connector-config-*.yaml")
 	if err != nil {
 		return fmt.Errorf("create temp file: %v", err)
 	}
@@ -88,7 +87,7 @@ func validateHelmConfigurationFile(cmd *cobra.Command, _ []string) error {
 		}
 	}()
 
-	if err = ioutil.WriteFile(tempFile.Name(), []byte(keyPart.(string)), 0644); err != nil {
+	if err = os.WriteFile(tempFile.Name(), []byte(keyPart.(string)), 0644); err != nil {
 		return fmt.Errorf("write temp file: %v", err)
 	}
 

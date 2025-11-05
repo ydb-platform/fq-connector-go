@@ -2,6 +2,7 @@ package paging
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -40,7 +41,7 @@ type sinkFactoryImpl[T Acceptor] struct {
 // This method can be called only once.
 func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) {
 	if f.state != sinkFactoryIdle {
-		return nil, fmt.Errorf("sink factory is already in use")
+		return nil, errors.New("sink factory is already in use")
 	}
 
 	f.totalSinks = len(params)
@@ -54,11 +55,13 @@ func (f *sinkFactoryImpl[T]) MakeSinks(params []*SinkParams) ([]Sink[T], error) 
 		buffer, err := f.bufferFactory.MakeBuffer()
 		if err != nil {
 			f.state = sinkFactoryFailed
+
 			return nil, fmt.Errorf("make buffer: %w", err)
 		}
 
 		// preserve traffic tracker to obtain stats in future
 		trafficTracker := newTrafficTracker[T](f.cfg)
+
 		f.trafficTrackers = append(f.trafficTrackers, trafficTracker)
 
 		sink := &sinkImpl[T]{
@@ -95,6 +98,7 @@ func (f *sinkFactoryImpl[T]) FinalStats() *api_service_protos.TReadSplitsRespons
 
 	for _, tracker := range f.trafficTrackers {
 		partialStats := tracker.DumpStats(true)
+
 		overallStats.Rows += partialStats.Rows
 		overallStats.Bytes += partialStats.Bytes
 	}
@@ -120,6 +124,7 @@ func (f *sinkFactoryImpl[T]) sinkTerminationHandler(terminateChan <-chan Sink[T]
 				// notify reader about the end of data
 				f.logger.Info("all sinks terminated")
 				close(f.resultQueue)
+
 				f.state = sinkFactoryFinished
 
 				return

@@ -3,7 +3,6 @@ package rdbms
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -136,6 +135,7 @@ func TestReadSplit(t *testing.T) {
 		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
 
 		queryID := "test-query-id"
+
 		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.NoError(t, err)
 
@@ -175,7 +175,7 @@ func TestReadSplit(t *testing.T) {
 			},
 		}
 
-		scanErr := fmt.Errorf("scan failed")
+		scanErr := errors.New("scan failed")
 
 		rows.On("MakeTransformer",
 			[]*Ydb.Column{
@@ -207,6 +207,7 @@ func TestReadSplit(t *testing.T) {
 		dataSource := NewDataSource(logger, preset, converterCollection, observationStorage)
 
 		queryID := "test-query-id"
+
 		err = dataSource.ReadSplit(ctx, logger, queryID, readSplitsRequest, split, sinkFactory)
 		require.True(t, errors.Is(err, scanErr))
 

@@ -161,31 +161,31 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 					},
 					"COL_17_DATE": []*uint32{
 						ptr.Uint32(common.MustTimeToYDBType(common.TimeToYDBDatetime,
-							time.Date(1970, 01, 01, 00, 00, 00, 000000000, time.UTC))),
+							time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC))),
 						nil,
 						ptr.Uint32(common.MustTimeToYDBType(common.TimeToYDBDatetime,
-							time.Date(1970, 01, 01, 00, 00, 00, 000000000, time.UTC))),
+							time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC))),
 					},
 					"COL_18_TIMESTAMP": []*uint64{
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
-							time.Date(1970, 01, 01, 01, 01, 01, 111111000, time.UTC))),
+							time.Date(1970, 1, 1, 1, 1, 1, 111111000, time.UTC))),
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
-							time.Date(1970, 01, 01, 01, 01, 01, 111111000, time.UTC))),
+							time.Date(1970, 1, 1, 1, 1, 1, 111111000, time.UTC))),
 					},
 					"COL_19_TIMESTAMP_W_TIMEZONE": []*uint64{
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
-							time.Date(1970, 01, 01, 02, 01, 01, 111111000, time.UTC))),
+							time.Date(1970, 1, 1, 2, 1, 1, 111111000, time.UTC))),
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
-							time.Date(1970, 01, 01, 02, 01, 01, 111111000, time.UTC))),
+							time.Date(1970, 1, 1, 2, 1, 1, 111111000, time.UTC))),
 					},
 					"COL_20_TIMESTAMP_W_LOCAL_TIMEZONE": []*uint64{
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
-							time.Date(1970, 01, 01, 02, 12, 01, 111111000, time.UTC))),
+							time.Date(1970, 1, 1, 2, 12, 1, 111111000, time.UTC))),
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType(common.TimeToYDBTimestamp,
-							time.Date(1970, 01, 01, 02, 12, 01, 111111000, time.UTC))),
+							time.Date(1970, 1, 1, 2, 12, 1, 111111000, time.UTC))),
 					},
 					"COL_21_JSON": []*string{
 						ptr.String("{\"friends\":" +
@@ -275,14 +275,14 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
 							common.TimeToYDBDatetime, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
 						ptr.Uint32(common.MustTimeToYDBType[uint32](
-							common.TimeToYDBDatetime, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+							common.TimeToYDBDatetime, time.Date(2023, 3, 21, 11, 21, 31, 0, time.UTC))),
 					},
 					"COL_02_TIMESTAMP": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123000000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 0, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 3, 21, 11, 21, 31, 0, time.UTC))),
 					},
 				},
 			},
@@ -349,37 +349,37 @@ var tables = map[string]*test_utils.Table[int64, *array.Int64Builder]{
 					"COL_01_TIMESTAMP_0": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 000000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 0, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 32, 000000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 3, 21, 11, 21, 32, 0, time.UTC))),
 					},
 					"COL_02_TIMESTAMP_1": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 100000000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 900000000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 3, 21, 11, 21, 31, 900000000, time.UTC))),
 					},
 					"COL_03_TIMESTAMP_6": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123123000, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 888889000, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 3, 21, 11, 21, 31, 888889000, time.UTC))),
 					},
 					"COL_04_TIMESTAMP_7": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123123100, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 888888900, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 3, 21, 11, 21, 31, 888888900, time.UTC))),
 					},
 					"COL_05_TIMESTAMP_9": []*uint64{
 						nil,
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
 							common.TimeToYDBTimestamp, time.Date(1988, 11, 20, 12, 55, 28, 123123123, time.UTC))),
 						ptr.Uint64(common.MustTimeToYDBType[uint64](
-							common.TimeToYDBTimestamp, time.Date(2023, 03, 21, 11, 21, 31, 888888888, time.UTC))),
+							common.TimeToYDBTimestamp, time.Date(2023, 3, 21, 11, 21, 31, 888888888, time.UTC))),
 					},
 				},
 			},

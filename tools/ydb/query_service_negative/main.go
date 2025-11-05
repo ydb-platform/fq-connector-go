@@ -116,7 +116,6 @@ func getTableDescription(ctx context.Context, ydbDriver *ydb.Driver) (*options.D
 		},
 		table.WithIdempotent(),
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("get table description: %w", err)
 	}
@@ -132,6 +131,7 @@ func getData(ctx context.Context, ydbDriver *ydb.Driver) error {
 		`
 
 		paramsBuilder := ydb.ParamsBuilder()
+
 		paramsBuilder = paramsBuilder.Param("$p0").BeginOptional().Int32(nil).EndOptional()
 
 		result, err := s.Query(ctx, fmt.Sprintf(queryText, tableName), query.WithParameters(paramsBuilder.Build()))
@@ -150,6 +150,7 @@ func getData(ctx context.Context, ydbDriver *ydb.Driver) error {
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				fmt.Println("EOF")
+
 				return nil
 			}
 
@@ -158,7 +159,6 @@ func getData(ctx context.Context, ydbDriver *ydb.Driver) error {
 
 		return nil
 	})
-
 	if finalErr != nil {
 		return fmt.Errorf("get data: %w", finalErr)
 	}

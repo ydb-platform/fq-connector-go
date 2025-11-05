@@ -24,17 +24,19 @@ type columnarBufferFactoryImpl[T Acceptor] struct {
 func (cbf *columnarBufferFactoryImpl[T]) MakeBuffer() (ColumnarBuffer[T], error) {
 	switch cbf.format {
 	case api_service_protos.TReadSplitsRequest_ARROW_IPC_STREAMING:
-		builders, err := common.YdbTypesToArrowBuilders(cbf.ydbTypes, cbf.arrowAllocator)
-		if err != nil {
-			return nil, fmt.Errorf("convert Select.What to arrow.Schema: %w", err)
-		}
-
+		// Special case for empty columns
 		if len(cbf.ydbTypes) == 0 {
 			return &columnarBufferArrowIPCStreamingEmptyColumns[T]{
 				arrowAllocator: cbf.arrowAllocator,
 				schema:         cbf.schema,
 				rowsAdded:      0,
 			}, nil
+		}
+
+		// Create the default implementation
+		builders, err := common.YdbTypesToArrowBuilders(cbf.ydbTypes, cbf.arrowAllocator)
+		if err != nil {
+			return nil, fmt.Errorf("convert Select.What to arrow.Schema: %w", err)
 		}
 
 		return &columnarBufferArrowIPCStreamingDefault[T]{

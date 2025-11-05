@@ -3,6 +3,7 @@ package opensearch
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -48,11 +49,12 @@ func (qb *queryBuilder) buildSearchQuery(
 
 	what := split.Select.GetWhat()
 	if what == nil {
-		return nil, nil, fmt.Errorf("not specified columns to query in Select.What")
+		return nil, nil, errors.New("not specified columns to query in Select.What")
 	}
 
 	// TODO (Test for top to bottom struct projection)
 	var projection []string
+
 	for _, item := range what.GetItems() {
 		projection = append(projection, item.GetColumn().Name)
 	}
@@ -84,11 +86,11 @@ func (qb *queryBuilder) buildSearchQuery(
 			case api_service_protos.TReadSplitsRequest_FILTERING_MANDATORY:
 				return nil, nil, fmt.Errorf("make predicate filter: %w", err)
 			case api_service_protos.TReadSplitsRequest_FILTERING_OPTIONAL:
-				if common.OptionalFilteringAllowedErrors.Match(err) {
-					qb.logger.Warn("considering pushdown error as acceptable", zap.Error(err))
-				} else {
+				if !common.OptionalFilteringAllowedErrors.Match(err) {
 					return nil, nil, fmt.Errorf("encountered an error making a filter: %w", err)
 				}
+
+				qb.logger.Warn("considering pushdown error as acceptable", zap.Error(err))
 			default:
 				return nil, nil, fmt.Errorf("unknown filtering mode: %d", filtering)
 			}
@@ -235,6 +237,7 @@ func (qb *queryBuilder) makeConjunctionFilter(
 		if err != nil {
 			if topLevel {
 				errs = append(errs, fmt.Errorf("operand error: %w", err))
+
 				continue
 			}
 
@@ -501,7 +504,7 @@ func (qb *queryBuilder) makeTypedValue(expr *Ydb.TypedValue) (any, error) {
 	ydbType := expr.GetType()
 
 	if v == nil {
-		return nil, fmt.Errorf("typed value container is nil")
+		return nil, errors.New("typed value container is nil")
 	}
 
 	if v.Value == nil {
@@ -513,6 +516,7 @@ func (qb *queryBuilder) makeTypedValue(expr *Ydb.TypedValue) (any, error) {
 	}
 
 	var value any
+
 	switch t := v.Value.(type) {
 	case *Ydb.Value_BoolValue:
 		value = t.BoolValue

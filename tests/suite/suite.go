@@ -193,6 +193,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTableMetadata(
 	customOptions ...ValidateTableOption,
 ) {
 	options := newDefaultValidateTableOptions()
+
 	for _, option := range customOptions {
 		option.apply(options)
 	}
@@ -228,6 +229,7 @@ func (b *Base[ID, IDBUILDER]) doValidateTable(
 	customOptions ...ValidateTableOption,
 ) {
 	options := newDefaultValidateTableOptions()
+
 	for _, option := range customOptions {
 		option.apply(options)
 	}

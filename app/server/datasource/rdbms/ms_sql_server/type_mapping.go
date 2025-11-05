@@ -58,19 +58,16 @@ func (typeMapper) SQLTypeToYDBColumn(
 		ydbType = common.MakePrimitiveType(Ydb.Type_UTF8)
 	case "date":
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATE, rules.GetDateTimeFormat())
-
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date time type: %w", err)
 		}
 	case "smalldatetime":
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_DATETIME, rules.GetDateTimeFormat())
-
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date time type: %w", err)
 		}
 	case "datetime", "datetime2":
 		ydbType, err = common.MakeYdbDateTimeType(Ydb.Type_TIMESTAMP, rules.GetDateTimeFormat())
-
 		if err != nil {
 			return nil, fmt.Errorf("make YDB date time type: %w", err)
 		}
@@ -93,6 +90,7 @@ func (typeMapper) SQLTypeToYDBColumn(
 //nolint:funlen,gocyclo
 func transformerFromSQLTypes(types []string, ydbTypes []*Ydb.Type, cc conversion.Collection) (paging.RowTransformer[any], error) {
 	_ = ydbTypes
+
 	acceptors := make([]any, 0, len(types))
 	appenders := make([]func(acceptor any, builder array.Builder) error, 0, len(types))
 

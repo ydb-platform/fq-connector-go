@@ -1,4 +1,4 @@
-package utils
+package utils //nolint:revive
 
 import (
 	"context"
@@ -18,6 +18,7 @@ func getTestName() string {
 	for _, functionName := range functionNames {
 		if strings.Contains(functionName, "*Suite") {
 			split := strings.Split(functionName, ".")
+
 			return split[len(split)-1]
 		}
 	}
@@ -27,5 +28,6 @@ func getTestName() string {
 
 func NewContextWithTestName() context.Context {
 	md := metadata.Pairs(common.TestName, getTestName())
+
 	return metadata.NewOutgoingContext(context.Background(), md)
 }

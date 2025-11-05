@@ -60,6 +60,7 @@ func maybeRegisterStatusCode(statusCount metrics.CounterVec, opName string, stre
 	ydbStatus := eg.GetError().Status
 
 	var ydbStatusStr string
+
 	if ydbStatus != Ydb.StatusIds_SUCCESS {
 		// convert YDB status code to string
 		ydbStatusStr = ydbStatus.String()
@@ -202,6 +203,7 @@ func StreamServerMetrics(logger *zap.Logger, registry metrics.Registry) grpc.Str
 
 				// return transport error to the client
 				err := status.Errorf(codes.Internal, "Server paniced")
+
 				_ = ss.SendMsg(err)
 			}
 		}
@@ -257,7 +259,6 @@ type serverStreamWithMessagesCount struct {
 
 func (s serverStreamWithMessagesCount) SendMsg(m any) error {
 	err := s.ServerStream.SendMsg(m)
-
 	if err == nil {
 		s.sentStreamMessages.Inc()
 		s.sentBytes.Add(int64(proto.Size(m.(proto.Message))))
@@ -270,7 +271,6 @@ func (s serverStreamWithMessagesCount) SendMsg(m any) error {
 
 func (s serverStreamWithMessagesCount) RecvMsg(m any) error {
 	err := s.ServerStream.RecvMsg(m)
-
 	if err == nil {
 		s.receivedStreamMessages.Inc()
 		s.receivedBytes.Add(int64(proto.Size(m.(proto.Message))))

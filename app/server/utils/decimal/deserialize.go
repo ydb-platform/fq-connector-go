@@ -29,6 +29,7 @@ func Deserialize(
 	if isNegative {
 		// For negative numbers: subtract from 2^{8*blobSize} to get the original negative value
 		twoToThe128 := new(big.Int).Lsh(big.NewInt(1), uint(blobSize*8))
+
 		bigInt = new(big.Int).Sub(twoToThe128, bigInt)
 		bigInt.Neg(bigInt)
 	}

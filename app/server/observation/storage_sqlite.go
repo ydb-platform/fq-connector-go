@@ -82,44 +82,47 @@ func (s *storageSQLite) initialize() error {
 
 	var err error
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
 	// Enable foreign key support
-	_, err = s.db.Exec("PRAGMA foreign_keys = ON;")
+	_, err = s.db.ExecContext(ctx, "PRAGMA foreign_keys = ON;")
 	if err != nil {
 		return fmt.Errorf("enabling foreign keys: %w", err)
 	}
 
 	// Create tables
-	_, err = s.db.Exec(createIncomingTableSQL)
+	_, err = s.db.ExecContext(ctx, createIncomingTableSQL)
 	if err != nil {
 		return fmt.Errorf("creating incoming_queries table: %w", err)
 	}
 
-	_, err = s.db.Exec(createOutgoingTableSQL)
+	_, err = s.db.ExecContext(ctx, createOutgoingTableSQL)
 	if err != nil {
 		return fmt.Errorf("creating outgoing_queries table: %w", err)
 	}
 
 	// Prepare statements for better performance
-	s.createIncomingQueryStmt, err = s.db.Prepare(
+	s.createIncomingQueryStmt, err = s.db.PrepareContext(ctx,
 		"INSERT INTO incoming_queries (id, data_source_kind, created_at, rows_read, bytes_read, state) VALUES (?, ?, ?, ?, ?, ?)")
 	if err != nil {
 		return fmt.Errorf("preparing create incoming query statement: %w", err)
 	}
 
-	s.finishIncomingQueryStmt, err = s.db.Prepare(
+	s.finishIncomingQueryStmt, err = s.db.PrepareContext(ctx,
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, rows_read = ?, bytes_read = ? WHERE id = ?")
 	if err != nil {
 		return fmt.Errorf("preparing finish incoming query statement: %w", err)
 	}
 
-	s.cancelIncomingQueryStmt, err = s.db.Prepare(
+	s.cancelIncomingQueryStmt, err = s.db.PrepareContext(ctx,
 		"UPDATE incoming_queries SET state = ?, finished_at = ?, error = ?, rows_read = ?, bytes_read = ? WHERE id = ?")
 	if err != nil {
 		return fmt.Errorf("preparing cancel incoming query statement: %w", err)
 	}
 
 	// Prepare statements for outgoing queries
-	s.createOutgoingQueryStmt, err = s.db.Prepare(`
+	s.createOutgoingQueryStmt, err = s.db.PrepareContext(ctx, `
 		INSERT INTO outgoing_queries
 		(id, incoming_query_id, database_name, database_endpoint, rows_read, query_text, query_args, created_at, state)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
@@ -127,13 +130,13 @@ func (s *storageSQLite) initialize() error {
 		return fmt.Errorf("preparing create outgoing query statement: %w", err)
 	}
 
-	s.finishOutgoingQueryStmt, err = s.db.Prepare(
+	s.finishOutgoingQueryStmt, err = s.db.PrepareContext(ctx,
 		"UPDATE outgoing_queries SET state = ?, finished_at = ?, rows_read = ? WHERE id = ?")
 	if err != nil {
 		return fmt.Errorf("preparing finish outgoing query statement: %w", err)
 	}
 
-	s.cancelOutgoingQueryStmt, err = s.db.Prepare(
+	s.cancelOutgoingQueryStmt, err = s.db.PrepareContext(ctx,
 		"UPDATE outgoing_queries SET state = ?, finished_at = ?, error = ? WHERE id = ?")
 	if err != nil {
 		return fmt.Errorf("preparing cancel outgoing query statement: %w", err)
@@ -352,11 +355,13 @@ func (s *storageSQLite) CreateOutgoingQuery(
 	err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM incoming_queries WHERE id = ?)", incomingQueryID).Scan(&exists)
 	if err != nil {
 		rollback()
+
 		return logger, "", fmt.Errorf("checking incoming query existence: %w", err)
 	}
 
 	if !exists {
 		rollback()
+
 		return logger, "", fmt.Errorf("incoming query not found: %s", incomingQueryID)
 	}
 
@@ -365,19 +370,21 @@ func (s *storageSQLite) CreateOutgoingQuery(
 
 	// Use the prepared statement for better performance
 	stmt := tx.StmtContext(ctx, s.createOutgoingQueryStmt)
+
 	_, err = stmt.ExecContext(ctx,
 		id, incomingQueryID, dsi.Database, common.EndpointToString(dsi.Endpoint),
 		0, queryText, fmt.Sprint(queryArgs), now, stateToString(observation.QueryState_QUERY_STATE_RUNNING),
 	)
-
 	if err != nil {
 		rollback()
+
 		return logger, "", fmt.Errorf("creating outgoing query: %w", err)
 	}
 
 	// Commit the transaction
 	if err = tx.Commit(); err != nil {
 		rollback()
+
 		return logger, "", fmt.Errorf("committing transaction: %w", err)
 	}
 
@@ -438,7 +445,7 @@ func (s *storageSQLite) CancelOutgoingQuery(ctx context.Context, logger *zap.Log
 }
 
 // ListOutgoingQueries retrieves a list of outgoing queries with optional filtering
-func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
+func (s *storageSQLite) ListOutgoingQueries(ctx context.Context, _ *zap.Logger,
 	incomingQueryID *string,
 	state *observation.QueryState,
 	limit, offset int,
@@ -449,6 +456,7 @@ func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
 	)
 
 	stateStr := ""
+
 	if state != nil && *state != observation.QueryState_QUERY_STATE_UNSPECIFIED {
 		stateStr = stateToString(*state)
 	}
@@ -487,7 +495,7 @@ func (s *storageSQLite) ListOutgoingQueries(_ context.Context, _ *zap.Logger,
 		args = []any{limit, offset}
 	}
 
-	rows, err := s.db.Query(querySQL, args...)
+	rows, err := s.db.QueryContext(ctx, querySQL, args...)
 	if err != nil {
 		return nil, fmt.Errorf("listing outgoing queries: %w", err)
 	}
@@ -609,6 +617,7 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("get database size before cleanup", zap.Error(err))
 	}
 
+	//nolint:noctx
 	_, err = s.db.Exec(`
         DELETE FROM incoming_queries WHERE created_at < ?;
         DELETE FROM outgoing_queries WHERE created_at < ?;
@@ -617,6 +626,7 @@ func (s *storageSQLite) collectGarbage(logger *zap.Logger, ttl time.Duration) {
 		logger.Error("clean up old queries", zap.Error(err))
 	}
 
+	//nolint:noctx
 	_, err = s.db.Exec(` VACUUM; `)
 	if err != nil {
 		logger.Error("vacuum database", zap.Error(err))
@@ -672,8 +682,11 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 		"PRAGMA wal_autocheckpoint = 1000",     // Checkpoint WAL file after 1000 pages
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	for _, pragma := range pragmas {
-		if _, err = db.Exec(pragma); err != nil {
+		if _, err = db.ExecContext(ctx, pragma); err != nil {
 			return nil, fmt.Errorf("setting pragma %s: %w", pragma, err)
 		}
 	}
@@ -688,6 +701,7 @@ func newStorageSQLite(logger *zap.Logger, cfg *config.TObservationConfig_TStorag
 
 	if err = storage.initialize(); err != nil {
 		common.LogCloserError(logger, db, "close SQLite database")
+
 		return nil, fmt.Errorf("initialize: %w", err)
 	}
 

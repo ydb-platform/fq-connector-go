@@ -1,7 +1,8 @@
-package common
+package common //nolint:revive
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -61,7 +62,7 @@ func (ms *MetricsSnapshot) FindStatusSensors(typ, method, name, status string) [
 func (ms *MetricsSnapshot) FindFloat64Sensor(name string) (float64, error) {
 	metrics, ok := ms.data["metrics"].([]any)
 	if !ok {
-		return 0, fmt.Errorf("invalid response: metrics field not found or not an array")
+		return 0, errors.New("invalid response: metrics field not found or not an array")
 	}
 
 	for _, itemUntyped := range metrics {

@@ -1,4 +1,4 @@
-package common
+package common //nolint:revive
 
 import (
 	"crypto/tls"
@@ -27,23 +27,23 @@ import (
 )
 
 var (
-	ErrTableDoesNotExist                   = fmt.Errorf("table does not exist")
-	ErrDataSourceNotSupported              = fmt.Errorf("data source not supported")
-	ErrDataTypeNotSupported                = fmt.Errorf("data type not supported")
-	ErrDataTypeMismatch                    = fmt.Errorf("data type mismatch")
-	ErrMethodNotSupported                  = fmt.Errorf("method not supported")
-	ErrReadLimitExceeded                   = fmt.Errorf("read limit exceeded")
-	ErrInvalidRequest                      = fmt.Errorf("invalid request")
-	ErrValueOutOfTypeBounds                = fmt.Errorf("value is out of possible range of values for the type")
-	ErrUnimplementedTypedValue             = fmt.Errorf("unimplemented typed value")
-	ErrUnimplementedExpression             = fmt.Errorf("unimplemented expression")
-	ErrUnsupportedExpression               = fmt.Errorf("expression is not supported")
-	ErrUnimplementedOperation              = fmt.Errorf("unimplemented operation")
-	ErrUnimplementedPredicateType          = fmt.Errorf("unimplemented predicate type")
-	ErrInvariantViolation                  = fmt.Errorf("implementation error (invariant violation)")
-	ErrUnimplementedArithmeticalExpression = fmt.Errorf("unimplemented arithmetical expression")
-	ErrEmptyTableName                      = fmt.Errorf("empty table name")
-	ErrPageSizeExceeded                    = fmt.Errorf("page size exceeded, check service configuration")
+	ErrTableDoesNotExist                   = errors.New("table does not exist")
+	ErrDataSourceNotSupported              = errors.New("data source not supported")
+	ErrDataTypeNotSupported                = errors.New("data type not supported")
+	ErrDataTypeMismatch                    = errors.New("data type mismatch")
+	ErrMethodNotSupported                  = errors.New("method not supported")
+	ErrReadLimitExceeded                   = errors.New("read limit exceeded")
+	ErrInvalidRequest                      = errors.New("invalid request")
+	ErrValueOutOfTypeBounds                = errors.New("value is out of possible range of values for the type")
+	ErrUnimplementedTypedValue             = errors.New("unimplemented typed value")
+	ErrUnimplementedExpression             = errors.New("unimplemented expression")
+	ErrUnsupportedExpression               = errors.New("expression is not supported")
+	ErrUnimplementedOperation              = errors.New("unimplemented operation")
+	ErrUnimplementedPredicateType          = errors.New("unimplemented predicate type")
+	ErrInvariantViolation                  = errors.New("implementation error (invariant violation)")
+	ErrUnimplementedArithmeticalExpression = errors.New("unimplemented arithmetical expression")
+	ErrEmptyTableName                      = errors.New("empty table name")
+	ErrPageSizeExceeded                    = errors.New("page size exceeded, check service configuration")
 )
 
 var OptionalFilteringAllowedErrors = NewErrorMatcher(
@@ -112,11 +112,9 @@ func newAPIErrorFromPostgreSQLError(err error) *api_service_protos.TError {
 		pgError, ok := pgConnectError.Unwrap().(*pgconn.PgError)
 		if ok {
 			switch pgError.Code {
-			case pgerrcode.InvalidPassword:
-				// Invalid password in PostgreSQL 15
-				status = ydb_proto.StatusIds_UNAUTHORIZED
-			case pgerrcode.InvalidAuthorizationSpecification:
-				// Invalid password in Greenplum 6.25
+			// Invalid password in PostgreSQL 15
+			// Invalid password in Greenplum 6.25
+			case pgerrcode.InvalidPassword, pgerrcode.InvalidAuthorizationSpecification:
 				status = ydb_proto.StatusIds_UNAUTHORIZED
 			default:
 				status = ydb_proto.StatusIds_INTERNAL_ERROR
@@ -421,14 +419,12 @@ func NewAPIErrorFromStdError(err error, kind api_common.EGenericDataSourceKind) 
 		apiError = newAPIErrorFromPostgreSQLError(err)
 	case api_common.EGenericDataSourceKind_MYSQL:
 		apiError = newAPIErrorFromMySQLError(err)
-	case api_common.EGenericDataSourceKind_YDB:
+	case api_common.EGenericDataSourceKind_YDB, api_common.EGenericDataSourceKind_LOGGING:
 		apiError = newAPIErrorFromYdbError(err)
 	case api_common.EGenericDataSourceKind_ORACLE:
 		apiError = newAPIErrorFromOracleError(err)
 	case api_common.EGenericDataSourceKind_MS_SQL_SERVER:
 		apiError = newAPIErrorFromMsSQLServer(err)
-	case api_common.EGenericDataSourceKind_LOGGING:
-		apiError = newAPIErrorFromYdbError(err)
 	case api_common.EGenericDataSourceKind_MONGO_DB:
 		apiError = newAPIErrorFromMongoDbError(err)
 	case api_common.EGenericDataSourceKind_REDIS:
