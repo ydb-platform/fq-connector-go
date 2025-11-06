@@ -732,14 +732,14 @@ func (pb *predicateBuilder) FormatBetween(
 		return "", fmt.Errorf("format expression for between value '%v': %w", b.Value, err)
 	}
 
-	greatest, err = pb.formatExpression(b.Greatest, embedBool)
-	if err != nil {
-		return "", fmt.Errorf("format expression for between greatest '%v': %w", b.Greatest, err)
-	}
-
 	least, err = pb.formatExpression(b.Least, embedBool)
 	if err != nil {
 		return "", fmt.Errorf("format expression for between least '%v': %w", b.Least, err)
+	}
+
+	greatest, err = pb.formatExpression(b.Greatest, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format expression for between greatest '%v': %w", b.Greatest, err)
 	}
 
 	return pb.formatter.RenderBetween(value, least, greatest)
