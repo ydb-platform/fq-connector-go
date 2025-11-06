@@ -22,5 +22,7 @@ SELECT
     SUM(LEN(l_shipmode)),
     SUM(l_suppkey),
     SUM(l_tax)
-FROM (SELECT * FROM external_datasource.olap_lineitem_s10 LIMIT 10000000);
+-- FROM (SELECT * FROM external_datasource.olap_lineitem_s10 LIMIT 10000000)
+   FROM external_datasource.olap_lineitem_s10
+;
 
