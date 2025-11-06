@@ -79,7 +79,7 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryR
 
 	args, err := transformArgs(params.QueryArgs)
 	if err != nil {
-		return &rdbms_utils.QueryResult{Rows: r}, fmt.Errorf("mysql: failed to prepare query: %w", err)
+		return nil, fmt.Errorf("transform args: %w", err)
 	}
 
 	go func() {
