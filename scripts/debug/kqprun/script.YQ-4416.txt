@@ -1,5 +1,10 @@
 PRAGMA generic.UsePredicatePushdown="true";
 
+pragma ydb.OverridePlanner = @@ [
+    { "tx": 0, "stage": 0, "tasks": 32 }
+] @@;
+
+
 SELECT
     SUM(LEN(l_comment)),
     SUM(Datetime::GetDayOfYear(l_commitdate)),
