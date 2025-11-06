@@ -1,7 +1,9 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -25,7 +27,7 @@ type connection struct {
 	tableName          string
 }
 
-func transformArgs(src *rdbms_utils.QueryArgs) []any {
+func transformArgs(src *rdbms_utils.QueryArgs) ([]any, error) {
 	dst := make([]any, len(src.Values()))
 
 	for i, v := range src.Values() {
@@ -34,14 +36,22 @@ func transformArgs(src *rdbms_utils.QueryArgs) []any {
 		case time.Time:
 			// TODO: check if time.RFC3339 (without Nano) would be enough
 			dst[i] = t.Format(time.RFC3339Nano)
-		case *int32:
-			dst[i] = *t
 		default:
-			dst[i] = v
+			rv := reflect.ValueOf(v)
+
+			if rv.Kind() == reflect.Ptr {
+				if rv.IsNil() {
+					return dst, errors.New("nil pointer does not supported")
+				}
+
+				dst[i] = rv.Elem().Interface()
+			} else {
+				dst[i] = v
+			}
 		}
 	}
 
-	return dst
+	return dst, nil
 }
 
 func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryResult, error) {
@@ -63,6 +73,11 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryR
 	}
 
 	stmt, err := c.conn.Prepare(params.QueryText)
+	if err != nil {
+		return &rdbms_utils.QueryResult{Rows: r}, fmt.Errorf("mysql: failed to prepare query: %w", err)
+	}
+
+	args, err := transformArgs(params.QueryArgs)
 	if err != nil {
 		return &rdbms_utils.QueryResult{Rows: r}, fmt.Errorf("mysql: failed to prepare query: %w", err)
 	}
@@ -104,7 +119,7 @@ func (c *connection) Query(params *rdbms_utils.QueryParams) (*rdbms_utils.QueryR
 				return nil
 			},
 			nil,
-			transformArgs(params.QueryArgs)...,
+			args...,
 		)
 	}()
 
