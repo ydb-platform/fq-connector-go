@@ -34,6 +34,8 @@ func transformArgs(src *rdbms_utils.QueryArgs) []any {
 		case time.Time:
 			// TODO: check if time.RFC3339 (without Nano) would be enough
 			dst[i] = t.Format(time.RFC3339Nano)
+		case *int32:
+			dst[i] = *t
 		default:
 			dst[i] = v
 		}
