@@ -253,31 +253,41 @@ func (s *Suite) TestPushdownNegation() {
 }
 
 func (s *Suite) TestPushdownBetween() {
-	// WHERE col_01_int32 BETWEEN 15 AND @%
-	s.T().Skip() // Not implemented yet
+	betweenPredicate := tests_utils.MakePredicateBetweenColumn(
+		"id",
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(1)),
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(3)),
+	)
+
 	s.ValidateTable(
 		s.dataSource,
-		tables["pushdown_between"],
+		tables["pushdown_BETWEEN"],
 		suite.WithPredicate(&api_service_protos.TPredicate{
-			Payload: &api_service_protos.TPredicate_Between{
-				Between: &api_service_protos.TPredicate_TBetween{
-					Value: &api_service_protos.TExpression{
-						Payload: &api_service_protos.TExpression_Column{
-							Column: "col_01_int32",
-						},
-					},
-					Least: &api_service_protos.TExpression{
-						Payload: &api_service_protos.TExpression_TypedValue{
-							TypedValue: common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(15)),
-						},
-					},
-					Greatest: &api_service_protos.TExpression{
-						Payload: &api_service_protos.TExpression_TypedValue{
-							TypedValue: common.MakeTypedValue(common.MakePrimitiveType(Ydb.Type_INT32), int32(25)),
-						},
-					},
-				},
+			Payload: betweenPredicate,
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownNotBetween() {
+	betweenPredicate := tests_utils.MakePredicateBetweenColumn(
+		"id",
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(2)),
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(1000)),
+	)
+
+	notPredicate := &api_service_protos.TPredicate_Negation{
+		Negation: &api_service_protos.TPredicate_TNegation{
+			Operand: &api_service_protos.TPredicate{
+				Payload: betweenPredicate,
 			},
+		},
+	}
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_NOT_BETWEEN"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: notPredicate,
 		}),
 	)
 }

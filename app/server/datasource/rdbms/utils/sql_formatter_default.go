@@ -66,3 +66,7 @@ func (SQLFormatterDefault) TransformPredicateComparison(src *api_service_protos.
 func (SQLFormatterDefault) ValidateWhere(_ *api_service_protos.TSelect_TWhere) error {
 	return nil
 }
+
+func (SQLFormatterDefault) RenderBetween(_, _, _ string) (string, error) {
+	return "", nil
+}

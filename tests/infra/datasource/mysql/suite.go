@@ -293,6 +293,45 @@ func (s *Suite) TestPushdownNegation() {
 		}),
 	)
 }
+func (s *Suite) TestPushdownBetween() {
+	betweenPredicate := tests_utils.MakePredicateBetweenColumn(
+		"id",
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(1)),
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(3)),
+	)
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_BETWEEN"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: betweenPredicate,
+		}),
+	)
+}
+
+func (s *Suite) TestPushdownNotBetween() {
+	betweenPredicate := tests_utils.MakePredicateBetweenColumn(
+		"id",
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(2)),
+		common.MakeTypedValue(common.MakeOptionalType(common.MakePrimitiveType(Ydb.Type_INT32)), int32(1000)),
+	)
+
+	notPredicate := &api_service_protos.TPredicate_Negation{
+		Negation: &api_service_protos.TPredicate_TNegation{
+			Operand: &api_service_protos.TPredicate{
+				Payload: betweenPredicate,
+			},
+		},
+	}
+
+	s.ValidateTable(
+		s.dataSource,
+		tables["pushdown_NOT_BETWEEN"],
+		suite.WithPredicate(&api_service_protos.TPredicate{
+			Payload: notPredicate,
+		}),
+	)
+}
 
 func (s *Suite) TestEmptyTable() {
 	s.ValidateTable(

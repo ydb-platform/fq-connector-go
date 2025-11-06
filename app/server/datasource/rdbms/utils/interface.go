@@ -152,6 +152,8 @@ type SQLFormatter interface {
 		*api_service_protos.TPredicate_TComparison, error)
 	// ValidateWhere validates the query predicate
 	ValidateWhere(where *api_service_protos.TSelect_TWhere) error
+	// Renders `value BETWEEN least AND greatest`
+	RenderBetween(value, least, greatest string) (string, error)
 }
 
 type SchemaProvider interface {

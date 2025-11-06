@@ -667,6 +667,11 @@ func (pb *predicateBuilder) formatPredicate(
 		if err != nil {
 			return "", fmt.Errorf("format regexp: %w", err)
 		}
+	case *api_service_protos.TPredicate_Between:
+		result, err = pb.FormatBetween(p.Between, embedBool)
+		if err != nil {
+			return "", fmt.Errorf("format between: %w", err)
+		}
 	default:
 		return "", fmt.Errorf("%w, type: %T", common.ErrUnimplementedPredicateType, p)
 	}
@@ -711,4 +716,31 @@ func formatWhereClause(
 	default:
 		return "", nil, fmt.Errorf("unknown filtering mode: %d", filtering)
 	}
+}
+
+func (pb *predicateBuilder) FormatBetween(
+	b *api_service_protos.TPredicate_TBetween,
+	embedBool bool,
+) (string, error) {
+	var (
+		value, greatest, least string
+		err                    error
+	)
+
+	value, err = pb.formatExpression(b.Value, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format expression for between value '%v': %w", b.Value, err)
+	}
+
+	least, err = pb.formatExpression(b.Least, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format expression for between least '%v': %w", b.Least, err)
+	}
+
+	greatest, err = pb.formatExpression(b.Greatest, embedBool)
+	if err != nil {
+		return "", fmt.Errorf("format expression for between greatest '%v': %w", b.Greatest, err)
+	}
+
+	return pb.formatter.RenderBetween(value, least, greatest)
 }

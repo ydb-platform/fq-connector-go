@@ -248,6 +248,10 @@ func (f sqlFormatter) renderSelectQueryTextWithBoundsHelper(
 	return sb.String(), nil
 }
 
+func (sqlFormatter) RenderBetween(value, least, greatest string) (string, error) {
+	return fmt.Sprintf("%s BETWEEN %s AND %s", value, least, greatest), nil
+}
+
 func NewSQLFormatter(cfg *config.TPushdownConfig) rdbms_utils.SQLFormatter {
 	return sqlFormatter{cfg: cfg}
 }
