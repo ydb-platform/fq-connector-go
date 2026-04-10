@@ -32,14 +32,11 @@ func (s *ListSplitsStreamer[T]) Run() error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
 
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		defer close(resultChan)
 
 		errChan <- s.dataSource.ListSplits(s.stream.Context(), s.logger, s.request, s.slct, resultChan)
-	}()
+	})
 
 	for {
 		select {

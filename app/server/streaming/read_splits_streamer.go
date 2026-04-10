@@ -125,20 +125,16 @@ func dumpReadSplitsResponse(logger *zap.Logger, resp *api_service_protos.TReadSp
 
 func (s *ReadSplitsStreamer[T]) Run() error {
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-
 	defer wg.Wait()
 
 	// Launch reading from the data source.
 	// Subscriber goroutine controls publisher goroutine lifetime.
-	go func() {
-		defer wg.Done()
-
+	wg.Go(func() {
 		select {
 		case s.errorChan <- s.dataSource.ReadSplit(s.ctx, s.logger, s.queryID, s.request, s.split, s.sinkFactory):
 		case <-s.ctx.Done():
 		}
-	}()
+	})
 
 	// Pass received blocks into the GRPC channel
 	if err := s.writeDataToStream(); err != nil {
