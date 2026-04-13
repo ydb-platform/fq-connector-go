@@ -28,14 +28,14 @@ func (c *connectionManager) Make(
 	params *rdbms_utils.ConnectionParams,
 ) ([]rdbms_utils.Connection, error) {
 	dsi, ctx, logger := params.DataSourceInstance, params.Ctx, params.Logger
-	optionFuncs := make([]func(c *client.Conn), 0)
+	optionFuncs := make([]client.Option, 0)
 
 	if dsi.GetCredentials().GetBasic() == nil {
 		return nil, errors.New("currently only basic auth is supported")
 	}
 
 	if dsi.GetUseTls() {
-		optionFuncs = append(optionFuncs, func(c *client.Conn) { c.UseSSL(true) })
+		optionFuncs = append(optionFuncs, func(c *client.Conn) error { c.UseSSL(true); return nil })
 	}
 
 	queryLogger := c.QueryLoggerFactory.Make(logger)
